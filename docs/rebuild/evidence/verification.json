@@ -1,0 +1,11 @@
+{
+  "version": "0.16.0-rebuild.1+21",
+  "flutter": "3.47.9",
+  "dart": "3.13.7",
+  "tests_passed": 43,
+  "analyzer_issues": 0,
+  "web_build": "passed",
+  "browser_tests": false,
+  "native_platform_builds": false,
+  "original_archives_unchanged": true
+}

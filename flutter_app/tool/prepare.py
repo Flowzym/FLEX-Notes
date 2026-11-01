@@ -48,10 +48,12 @@ def prepare():
             for path in src.rglob('*'):
                 dest = ROOT/name/path.relative_to(src)
                 if path.is_dir(): dest.mkdir(parents=True, exist_ok=True)
-                elif not dest.exists(): shutil.copy2(path, dest)
+                elif not dest.exists():
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(path, dest)
     run([flutter, 'pub', 'get'])
     web_asset()
-    run([dart, 'compile', 'js', '-O2', 'tool/drift_worker.dart', '-o', 'web/drift_worker.js'])
+    run([dart, '--suppress-analytics', 'compile', 'js', '-O2', 'tool/drift_worker.dart', '-o', 'web/drift_worker.js'])
     print('Next: flutter analyze; flutter test; flutter build web --no-web-resources-cdn')
 
 if __name__ == '__main__':

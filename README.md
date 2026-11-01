@@ -1,49 +1,58 @@
-# FLEX-Notes – Wiederherstellungssicherung
+# FLEX-Notes – Flutter-Wiederaufbau
 
-Dieser Branch `recovery/webpreview` sichert die verfügbaren Originalarchive und den Prüfbericht vom 1. November 2026. Er enthält **keine vollständige Wiederherstellung des zuletzt genannten Flutter-Arbeitsstands `0.16.0+20`**.
+Arbeitsbranch: **`rebuild/flutter`**, ausgehend von der unveränderten Sicherung
+auf `recovery/webpreview`.
 
-## Gesicherte Versionsstände
+Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
+Version **0.16.0-rebuild.1+21** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
+Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
+nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
+beschreibt den tatsächlichen Umfang.
 
-| Version | Vorhanden | Fehlend / Grenze |
-| --- | --- | --- |
-| **0.1.0+1** | Zwei ältere Flutter-Quellarchive; beide `pubspec.yaml` nennen diese Version. Je Archiv sind 14 Dart-Dateien enthalten. | Ihre Buildfähigkeit wurde nicht geprüft. Sie bilden nicht den neueren Entwicklungsstand ab. |
-| **0.15.3+19** | Unverändertes Webpreview-ZIP mit gebauter Webanwendung, SQL-Schema 7, Assets und Dokumentation; dazu der gesicherte Prüfbericht. | Die zugehörigen Flutter-/Dart-Quellen, `pubspec.yaml`, `pubspec.lock`, Tests und nativen Projektdateien fehlen im Webpreview-Paket. |
-| **0.16.0+20** | Nur die Angabe des Nutzers zum zuletzt bearbeiteten Stand. | **Die neueren Flutter-Quellen und ein Build dieser Version fehlen in den gesicherten Materialien.** |
+## Start und Prüfung
 
-Die Versionsstände liegen getrennt und wurden nicht zusammengeführt. Insbesondere wurden die Quellen von `0.1.0+1` weder als `0.15.3+19` noch als `0.16.0+20` ausgegeben.
+```sh
+cd flutter_app
+python3 tool/prepare.py
+flutter analyze --no-pub
+flutter test
+flutter build web --no-web-resources-cdn
+python3 tool/serve_preview.py --port 8081
+```
 
-## Ablage
+Flutter 3.47.9 / Dart 3.13.7; Details für Windows, Android und die Cloud-Vorschau
+stehen in der [Projektanleitung](flutter_app/README.md). Keine HTML-Einbettung,
+keine Browsertests und keine Veröffentlichung der Cloud-Umgebung.
 
-- [Webpreview-Original 0.15.3+19](recovery/webpreview/0.15.3+19/FLEX-Notizbuch-Flutter-Dialog-Verfeinerung-Webvorschau.zip)
-- [Prüfbericht zum Webpreview](recovery/webpreview/0.15.3+19/PRUEFBERICHT.md)
-- [Quellarchiv 0.1.0+1](recovery/flutter-sources/0.1.0+1/FLEX-Notizbuch-Flutter-Quellen.zip)
-- [Archiv „Neue Dateien“ 0.1.0+1](recovery/flutter-sources/0.1.0+1/FLEX-Notizbuch-Flutter-Neue-Dateien.zip)
-- [SHA-256-Prüfsummen der sechs gesicherten Dateien](recovery/SHA256SUMS)
+## Unveränderte Wiederherstellungsbasis
 
-Die beiden bereits vorhandenen `.zip.sha256`-Begleitdateien der Quellarchive wurden ebenfalls unverändert übernommen. Die Quellarchive stammen aus `/workspace/exports`; das Webpreview stammt aus dem vom Nutzer hochgeladenen ZIP. Alle Archive und der Prüfbericht wurden bytegleich kopiert. Das Webpreview-ZIP wurde nicht neu gepackt oder verändert.
+| Bestand | Ablage |
+| --- | --- |
+| Flutter-Originalquellen **0.1.0+1**, zwei ZIPs | [Quellarchive](recovery/flutter-sources/0.1.0+1/) |
+| Gebautes Webpreview **0.15.3+19**, Original-ZIP | [Webpreview](recovery/webpreview/0.15.3+19/) |
+| Ursprünglicher Prüfbericht | [PRUEFBERICHT.md](recovery/webpreview/0.15.3+19/PRUEFBERICHT.md) |
+| HTML-Prototyp und ursprüngliche Unterlagen | [work/FLEX-Notizbuch/](work/FLEX-Notizbuch/) |
+| Schema 7 und Dokumentation aus 0.15.3 | [Referenz](reference/webpreview-0.15.3+19/) |
+| Historische Flutter-0.1-Anleitungen | [Referenz](reference/flutter-0.1.0/) |
 
-## Wiederherstellbarkeit
+Der Code im aktiven `flutter_app/` wird rekonstruiert; die Originalarchive bleiben
+bytegleich. Ihre Versionen werden nicht vermischt oder umetikettiert.
+`NEUE_DATEIEN.txt` und `PAKET_MANIFEST.sha256` sind historische Inhaltsnachweise
+des 0.1.0-Archivs, kein Manifest des aktuellen Wiederaufbaus.
 
-Das Webpreview erhält den kompilierten Stand **0.15.3+19**. Seine 47 Webdateien, das SQL-Schema mit 19 Tabellen, mitgelieferte Schriften und weitere Laufzeitdateien sowie 18 Markdown-Dokumente sind verfügbar. Persönliche Notizbuchdaten oder Nutzersicherungen sind nicht enthalten.
-
-Es gibt genau eine Source Map: `drift_worker.js.map` mit 160 Quellenverweisen, aber **ohne eingebettete Quelltexte (`sourcesContent`)**. Die referenzierte Projektdatei `tool/drift_worker.dart` fehlt. Auch `main.dart.js.map` und die vom Flutter-Loader referenzierte `flutter.js.map` fehlen. Die Laufzeit-Symboldateien liefern keine Dart-Quellen der FLEX-App. Minifiziertes `main.dart.js` ersetzt kein bearbeitbares Flutter-Projekt und erlaubt keine verlustfreie Rückgewinnung der Originalquellen.
-
-Für die exakte Wiederherstellung des zuletzt bearbeiteten Stands wird ein zusätzliches Quellarchiv oder ein Git-Stand von **0.16.0+20** benötigt. Auch die Flutter-Quellen von **0.15.3+19** liegen in den hier gesicherten Materialien nicht vor.
-
-## Integrität prüfen
-
-Im Wurzelverzeichnis des Repositorys:
+Originalintegrität vom Repository-Wurzelverzeichnis prüfen:
 
 ```sh
 sha256sum -c recovery/SHA256SUMS
 ```
 
-SHA-256 des unveränderten Webpreview-Originals:
+Vollständige Quellenpakete des aktuellen Commits erzeugen:
 
-```text
-b29aa3c067014637fa279a19c493e6928322cedc5aa1d45d2f80bd5777cc3693
+```sh
+python3 flutter_app/tool/package_sources.py --output /gewünschter/ausgabeordner
 ```
 
-Die ZIP-CRC-Prüfung aller drei Archive und der Vergleich mit den vorhandenen Prüfsummen waren erfolgreich. Beim Webpreview stimmen alle 71 Dateien des internen Manifests überein. Der Prüfbericht wurde als unveränderte Momentaufnahme übernommen: Seine lokalen Pfade, Prozessangaben und Verweise auf zusätzliche Prüfdateien beziehen sich auf die damalige Cloud-Sitzung und garantieren keinen laufenden Server nach einem Checkout. Die zusätzlichen lokalen Prüfdateien und das Startskript sind nicht Bestandteil dieser Sicherung.
-
-Es wurden keine Browsertests ausgeführt. Der in der Cloud gestartete HTTP-Server und die Datei-/Prüfsummenprüfungen belegen keine geprüfte Browseroberfläche oder Datenpersistenz. Diese Sicherung veröffentlicht keine Cloud-Umgebung und führt kein Deployment aus.
+Der Export erzeugt ein Repository-Quellenpaket einschließlich aller Referenzen
+und Originalarchive sowie ein eigenständiges Flutter-Quellenpaket, beide mit
+Commit-ID und SHA-256. Caches und Build-Ausgaben gehören nicht zu den Quellen.

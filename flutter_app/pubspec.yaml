@@ -1,7 +1,7 @@
 name: flex_notizbuch
 description: Lokales FLEX-Notizbuch für Windows, Android und Web.
 publish_to: none
-version: 0.1.0+1
+version: 0.16.0-rebuild.1+21
 environment:
   sdk: '>=3.10.0 <4.0.0'
   flutter: '>=3.38.0'
@@ -15,6 +15,9 @@ dependencies:
   sqlite3: 3.8.0
   uuid: 4.5.1
   path_provider: 2.1.5
+  cryptography: 2.9.0
+  file_selector: ^1.1.0
+  cupertino_icons: ^2.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -23,3 +26,20 @@ flutter:
   uses-material-design: true
   assets:
     - assets/schema.sql
+  fonts:
+    - family: FlexSans
+      fonts:
+        - asset: assets/fonts/Selawik-Regular.ttf
+        - asset: assets/fonts/Selawik-Semibold.ttf
+          weight: 600
+        - asset: assets/fonts/Selawik-Bold.ttf
+          weight: 700
+    - family: FlexSerif
+      fonts:
+        - asset: assets/fonts/Gelasio-Regular.ttf
+        - asset: assets/fonts/Gelasio-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Gelasio-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Gelasio-Bold.ttf
+          weight: 700

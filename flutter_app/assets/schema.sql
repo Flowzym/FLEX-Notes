@@ -1,4 +1,4 @@
--- Flutter schema 1. The prototype's proposed schema remains untouched.
+-- Flutter schema 7. The prototype's proposed schema remains untouched.
 -- One workspace per database. No invented public key or pairing credentials.
 CREATE TABLE devices (id TEXT PRIMARY KEY);
 CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -10,14 +10,15 @@ CREATE TABLE pupils (
 CREATE TABLE orga (
  id TEXT PRIMARY KEY, pupil_id TEXT REFERENCES pupils(id),
  title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 1 AND 160),
- body TEXT NOT NULL, is_task INTEGER NOT NULL CHECK(is_task IN (0,1)),
+ deleted INTEGER NOT NULL DEFAULT 0 CHECK(deleted IN (0,1)),
+ body TEXT NOT NULL, reminder_text TEXT NOT NULL DEFAULT '', observed_on TEXT NOT NULL DEFAULT '', observed_time TEXT NOT NULL DEFAULT '', is_task INTEGER NOT NULL CHECK(is_task IN (0,1)),
  done INTEGER NOT NULL CHECK(done IN (0,1)), due_date TEXT,
  reminder_at_utc TEXT, reminder_zone TEXT NOT NULL,
  reminder_state TEXT NOT NULL CHECK(reminder_state IN ('none','planned','acknowledged','cancelled')),
  needs_completion INTEGER NOT NULL CHECK(needs_completion IN (0,1)),
  revision INTEGER NOT NULL CHECK(revision>0), created_at_utc TEXT NOT NULL, updated_at_utc TEXT NOT NULL,
  CHECK(is_task=1 OR (done=0 AND due_date IS NULL)),
- CHECK(done=0 OR reminder_state!='planned'),
+ CHECK((done=0 AND deleted=0) OR reminder_state!='planned'),
  CHECK((reminder_at_utc IS NULL AND reminder_state='none') OR (reminder_at_utc IS NOT NULL AND reminder_state!='none')),
  CHECK(due_date IS NULL OR (length(due_date)=10 AND due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'))
 );
@@ -48,3 +49,12 @@ CREATE TABLE legacy_backups (id TEXT PRIMARY KEY, original_json TEXT NOT NULL CH
 CREATE INDEX orga_pupil ON orga(pupil_id);
 CREATE INDEX orga_due ON orga(due_date,done);
 CREATE INDEX orga_reminder ON orga(reminder_at_utc,reminder_state);
+
+CREATE TABLE situations (id TEXT PRIMARY KEY, revision INTEGER NOT NULL CHECK(revision>0), payload TEXT NOT NULL CHECK(json_valid(payload)));
+CREATE TABLE situation_pupils (situation_id TEXT NOT NULL REFERENCES situations(id), pupil_id TEXT NOT NULL REFERENCES pupils(id), PRIMARY KEY(situation_id,pupil_id));
+CREATE TABLE context_drafts (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, payload TEXT NOT NULL CHECK(json_valid(payload)), updated_at_utc TEXT NOT NULL);
+CREATE TABLE group_drafts (id TEXT PRIMARY KEY, payload TEXT NOT NULL CHECK(json_valid(payload)), updated_at_utc TEXT NOT NULL);
+CREATE TABLE group_saves (id TEXT PRIMARY KEY, request TEXT NOT NULL CHECK(json_valid(request)), saved_at_utc TEXT NOT NULL, undone_at_utc TEXT, recovery_draft_id TEXT);
+CREATE TABLE school_records (id TEXT PRIMARY KEY, pupil_id TEXT NOT NULL REFERENCES pupils(id), situation_id TEXT REFERENCES situations(id), revision INTEGER NOT NULL CHECK(revision>0), payload TEXT NOT NULL CHECK(json_valid(payload)));
+CREATE TABLE school_drafts (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, payload TEXT NOT NULL CHECK(json_valid(payload)), updated_at_utc TEXT NOT NULL);
+CREATE TABLE pupil_drafts (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>0), payload TEXT NOT NULL CHECK(json_valid(payload)), updated_at_utc TEXT NOT NULL);

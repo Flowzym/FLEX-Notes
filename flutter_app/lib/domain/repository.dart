@@ -1,4 +1,5 @@
 import 'models.dart';
+import 'school.dart';
 
 abstract interface class NotebookRepository {
   Future<void> initialize();
@@ -18,8 +19,26 @@ abstract interface class NotebookRepository {
   Future<void> stageLegacy(String text);
   Future<int> legacyCount();
   Future<void> close();
+  Future<List<SchoolRecord>> schoolRecords();
+  Future<SchoolRecord> saveSchoolRecord(SchoolRecord record, {String? draftId});
+  Future<List<SchoolRecord>> saveSchoolGroup(
+    SchoolRecord record,
+    List<String> recipients,
+    String requestId,
+  );
+  Future<List<Json>> schoolGroups();
+  Future<void> undoSchoolGroup(String id);
+  Future<List<SchoolDraft>> schoolDrafts();
+  Future<SchoolDraft> saveSchoolDraft(SchoolDraft draft);
+  Future<void> discardSchoolDraft(String id);
 }
+
 class LegacyReport {
-  const LegacyReport({required this.pupils, required this.entries, required this.classTasks, required this.drafts});
+  const LegacyReport({
+    required this.pupils,
+    required this.entries,
+    required this.classTasks,
+    required this.drafts,
+  });
   final int pupils, entries, classTasks, drafts;
 }
