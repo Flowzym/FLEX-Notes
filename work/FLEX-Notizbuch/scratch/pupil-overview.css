@@ -1,0 +1,34 @@
+#studentDialog[data-section="overview"] .identity #modalName{font-family:Georgia,"Times New Roman",serif;font-size:23px;font-weight:500;line-height:1.3;color:var(--text);margin:0}
+#studentDialog[data-section="overview"] #modalSectionLabel{display:none}
+#studentDialog[data-section="overview"] .modal-head{padding-block:10px;min-height:56px}
+#studentDialog[data-section="overview"] .pupil-category-links{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.pupil-category-links button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:48px;padding:6px 2px;font-size:11px;border:0;background:transparent;color:var(--text)}
+.pupil-category-links svg{width:20px;height:20px}
+.pupil-summary-section{margin-block:18px}
+.pupil-summary-section>h3{display:flex;align-items:baseline;gap:8px;margin:0 0 9px;font-size:14px;font-weight:650;color:var(--text)}
+.pupil-summary-section>h3>span{font-size:11px;font-weight:400;color:var(--muted)}
+.pupil-record-list{display:grid;gap:8px}
+#studentDialog .pupil-record{border:1px solid var(--line);border-radius:14px;background:transparent;overflow:hidden;min-width:0}
+#studentDialog .pupil-record.is-due{border-inline-start:3px solid var(--accent)}
+#studentDialog .pupil-record>.overview-record{border:0;margin:0;background:none}
+#studentDialog .pupil-record>.overview-record>summary,.pupil-record-open{display:flex;align-items:flex-start;gap:8px;padding:11px 12px;list-style:none;text-align:left;width:100%;background:none;color:var(--text);border:0}
+.pupil-record-summary{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}
+.pupil-record-meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:3px 10px;color:var(--muted);font-size:10px;line-height:1.4}
+.pupil-record-status{font-size:10px}.pupil-record-status.pending{color:var(--text)}.pupil-record-status.done{color:var(--muted)}
+.pupil-preview-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:pre-line;font-size:13px;line-height:1.5;color:var(--text)}
+.pupil-list-preview{display:grid;gap:3px;font-size:13px;line-height:1.45;color:var(--text)}
+.pupil-preview-line{display:flex;align-items:baseline;gap:7px;min-width:0}.pupil-preview-line>span:last-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}.pupil-preview-line.is-checked>span:last-child{text-decoration:line-through;color:var(--muted)}
+.pupil-check-mark{flex:none;font-size:15px}.pupil-list-progress{font-size:10px;color:var(--muted)}
+.pupil-record-dates{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px;color:var(--muted);line-height:1.5}
+.pupil-record.is-due .pupil-record-dates{color:var(--text)}
+.pupil-record-chevron{font-size:18px;color:var(--muted);flex:none;line-height:1}
+.pupil-record details[open] .pupil-record-chevron{transform:rotate(180deg)}
+.pupil-record details[open] .pupil-preview-text,.pupil-record details[open] .pupil-list-preview,.pupil-record details[open] .pupil-list-progress{display:none}
+.pupil-record .overview-record-full{padding:0 12px 10px}.pupil-record .overview-record-full>.entry{border:0;margin:0;background:none}
+.pupil-record-action{display:flex;justify-content:flex-end;padding:0 12px 8px;margin-top:-3px}
+.pupil-record-action>button{min-height:32px;padding:4px 12px;font-size:11px;border-radius:999px}
+.pupil-needs-completion{font-size:10px;color:var(--muted)}
+.pupil-section-empty{font-size:12px;line-height:1.5;color:var(--muted);margin:16px 0}
+.pupil-history-link{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:none;color:var(--text);font-size:12px;min-height:44px}
+.pupil-legacy{margin:16px 0;font-size:12px}.pupil-record-open{display:block}.pupil-record-open>span{display:block;margin-bottom:5px}
+@media(max-width:360px){.pupil-record-meta{font-size:10px}.pupil-overview-toolbar .overview-filters button{padding-inline:6px}.pupil-category-links button{font-size:10px}.pupil-record-status{max-width:160px}}

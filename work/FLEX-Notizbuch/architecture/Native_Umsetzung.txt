@@ -1,0 +1,85 @@
+FLEX: verbindlicher Arbeitsstand für den nativen Neubau
+Stand 30.10.2026 – beschlossen durch Umsetzung des Reviews
+
+Ziel: eine Lehrperson, ein Arbeitsbereich, mehrere eigene Geräte. Flutter für
+Android und Windows, Dart für Fachlogik, Drift/SQLite für lokale Daten. Kein
+Cloudkonto und kein externer Server als Voraussetzung. Mehrbenutzerbetrieb mit
+unterschiedlichen Rechten ist nicht Bestandteil dieser ersten Ausbaustufe.
+
+Maßgebliche Begriffe
+Eine Situation beschreibt gemeinsamen Kontext. Eine Beobachtung gehört genau
+einem Schüler. Beteiligung verleiht keine Verhaltensbewertung. Für mehrere Schüler
+erfassen heißt: gemeinsamer Kontext und individuelle Notizen bzw. Auswahltexte.
+Einzelne Beobachtungen dürfen auch ohne gemeinsame Kontextbeschreibung existieren.
+Kontextcodes sind before/during/after/break. Deutschsprachige Labels sind Ansicht.
+Quelle: selbst beobachtet, berichtet, eigene Einordnung. Keine Punktebilanz über
+Schüler aus positiven und negativen Auswahltexten.
+
+Dokumentationsstatus, Zielstatus, Aufgabenstatus und Abgabe sind unabhängig.
+Archiv bedeutet inaktiv; offene Verpflichtungen bleiben sichtbar. Löschen ist
+zunächst eine Löschmarkierung. Wiederherstellung ist eine neue Änderung. Ältere
+Geräte dürfen einen gelöschten Datensatz nicht durch einen Snapshot zurückbringen.
+
+Zielüberprüfungen besitzen eigene IDs. Zieltermin und nächster Prüftermin sind
+verschiedene Felder. Zielüberprüfung kann fortführen, erreichen, beenden oder
+wiederöffnen. Quellen und Schülerperspektive bleiben freiwillig.
+
+Aufgaben können einem Schüler oder der Klasse gehören. Checklistenpunkte besitzen
+eigene IDs. Eine Erinnerung gehört zu einem Vorgang; keine unabhängig editierbare
+Kopie als weiterer Eintrag. Das Zielmodell bindet Erinnerungen an Aufgaben; Notizen
+mit Erinnerung erhalten dafür eine verknüpfte Orga-Aufgabe.
+
+Bedienvertrag
+Hauptansichten Übersicht und Schüler; nur diese werden durch Wischen gewechselt.
+Archiv und Einstellungen sind Hilfsansichten mit Rückkehr zur letzten Hauptansicht.
+Suche und Scrollposition bleiben erhalten. Lange Bearbeitung als Detailansicht,
+kleine Auswahlen als vorübergehende Ebene. Zurück/Escape/Schließen sichern einen
+Entwurf. Erst Speichern veröffentlicht. Speicherfehler verhindern stilles Verlassen.
+Entwürfe werden nach Neustart angeboten. Exporte unterscheiden Vollsicherung und
+ausgewählte aktuelle Gesprächsunterlagen. Freitext ist nicht automatisch anonym.
+
+Persistenzvertrag
+SQLite-Transaktion: fachliche Änderung + Revision + Operation + Outbox-Eintrag.
+Erfolg wird erst nach Commit angezeigt. Datumsfelder ohne Uhrzeit bleiben Datum;
+technische Erfassungszeit und Erinnerungsinstant werden UTC gespeichert, zusätzlich
+die Erinnerungszeitzone. Kein fachlicher Konfliktentscheid anhand einer Geräteuhr.
+schema-v1.sql enthält das ausführbare Zielschema. Es ist noch nicht in Flutter
+eingebunden und ersetzt nicht die bisherige HTML-Speicherung.
+
+Synchronisationsvertrag (noch zu implementieren)
+Ein Nachrichtenformat für WLAN und später Bluetooth. Eine Operation enthält UUID,
+Arbeitsbereich, Ursprungsgerät, fortlaufende Sequenz, Protokollversion, Basisversion
+und typisierte Änderung. Empfang erfolgt nur von gekoppelten, nicht widerrufenen
+Geräten desselben Arbeitsbereichs über authentifizierte verschlüsselte Verbindung.
+Kein selbst erfundenes Kryptoverfahren; native geprüfte Bibliotheken verwenden.
+Eine zweite Zustellung derselben ID ist wirkungslos. Gleiche ID mit anderem Inhalt
+wird abgewiesen. Quittung nur nach Commit, nur bis zur lückenlosen Sequenz. Abbruch
+nach Commit vor Quittung wird durch erneute Zustellung aufgefangen.
+Unabhängige Datensätze und Prüfpunkte vereinigen; gleiche Textfelder und Löschung
+gegen Bearbeitung als sichtbaren Konflikt behandeln. Beide Fassungen behalten.
+Löschmarkierungen erst nach Quittung aller aktiven Gegenstellen bereinigen. Ein
+widerrufenes Gerät wird vor neuer Kopplung vollständig neu initialisiert.
+Erstsynchronisierung bindet Snapshot an einen definierten Operationsstand. Während
+der Übertragung entstandene Operationen werden danach übertragen. Schema- oder
+Protokollversionen ohne Migrationspfad werden vor Änderungen abgewiesen.
+Kein Versprechen von Hintergrundsynchronisierung: erster Abgleich bei geöffneten
+Apps. WLAN zuerst, Bluetooth erst nach Gerätetest. Native Benachrichtigung und
+Synchronisierung sind unterschiedliche Dienste.
+
+Migration
+Die alte Vollsicherung bleibt unverändert erhalten. Erst in einer neuen Datenbank
+importieren. Schüler- und Aufgaben-IDs bewahren, gemeinsame Ereignisse nur anhand
+vorhandener Gruppen-/Beteiligungsbezüge bilden. Keine Bewertung beim bloßen
+Beteiligten erzeugen. Historische Namen als Snapshot erhalten. Fehlende Zielbezüge
+als sichtbaren Importbefund behandeln, nicht einer anderen Person zuordnen.
+Neue Arbeitsbereiche enthalten keine vorgefüllten Beispielschüler.
+Ein vollständiger Probeexport und Wiederimport muss Beziehungen, Revisionen und
+Entwürfe erhalten, bevor der native Datenstand aktiviert wird.
+
+Offene technische Umsetzung – nicht durch HTML-Tests bestätigt
+Flutter-Projekt und Plattform-Builds; Drift-Einbindung und Migration; Betriebssystem-
+Schlüsselspeicher; Datenbankverschlüsselung; Kopplung/Schlüsselwiderruf; WLAN- und
+Bluetooth-Adapter; Transaktions-/Quittungslogik; native Benachrichtigungen; echte
+Touch-, Fokus-, Zurück-, Barrierefreiheits- und Unterbrechungstests.
+Flutter/Dart sind in der aktuellen Arbeitsumgebung nicht installiert. Es liegt
+deshalb ausdrücklich keine getestete APK oder Windows-EXE vor.

@@ -1,0 +1,25 @@
+/* Equal-width tone tabs, including the bulk form and option editor. */
+#studentDialog.entry-experience .switch:has([data-tone]),#bulkDialog .switch:has([data-bulk-tone]),#optionsDialog .switch:has([data-editor-tone]){display:flex;width:100%;max-width:none;gap:3px;padding:3px;border:1px solid #e0e7de;border-radius:9px;background:#eef3ed;box-sizing:border-box}
+#studentDialog.entry-experience .switch button[data-tone],#bulkDialog .switch button[data-bulk-tone],#optionsDialog .switch button[data-editor-tone]{flex:1 1 0;min-width:0;min-height:28px;padding:3px 10px;font-size:11px;line-height:1.4;border:0;border-radius:6px;background:transparent;color:#78847a;box-shadow:none}
+#studentDialog.entry-experience .switch button[data-tone=positive].active,#bulkDialog .switch button[data-bulk-tone=positive][aria-pressed=true],#optionsDialog .switch button[data-editor-tone=positive].active{background:#dfeade;color:#47654f}
+#studentDialog.entry-experience .switch button[data-tone=negative].active,#bulkDialog .switch button[data-bulk-tone=negative][aria-pressed=true],#optionsDialog .switch button[data-editor-tone=negative].active{background:#f0e7e4;color:#895f59}
+.tone-swipe-surface{position:relative;overflow-x:hidden}
+.tone-swipe-surface:has([data-tone],[data-bulk-tone],[data-editor-tone]){touch-action:pan-y pinch-zoom}
+.tone-swipe-ghost{z-index:1;user-select:none}
+.tone-swipe-surface input,.tone-swipe-surface textarea,.tone-swipe-surface .tag-input{touch-action:auto}
+dialog>.entry-persistent{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px 20px;flex:none;padding:10px 22px;background:#f7faf5;border-top:1px solid #e0e8dc}
+dialog>.entry-persistent .field,dialog>.entry-persistent .date-field{margin:0;min-width:0}
+dialog>.entry-persistent .field>label,dialog>.entry-persistent .field-label{margin:0 0 5px;font-size:11px;color:#74806d}
+dialog>.entry-persistent .followup-check{display:flex;align-items:center;gap:9px;margin:19px 0 0;min-height:44px;font-size:12px;white-space:nowrap;color:#64765b}
+dialog>.entry-persistent .followup-check span{font-size:12px}dialog>.entry-persistent .followup-check small{display:none}
+dialog>.entry-persistent .calendar-open{min-height:42px;font-size:13px;padding:8px 10px}
+dialog>.entry-persistent .optional-time{margin-top:4px;flex-wrap:wrap}dialog>.entry-persistent .optional-time label{margin:0;min-height:28px}
+dialog>.entry-persistent .optional-time input[type=time]{min-height:34px;padding:4px 8px;max-width:100%}
+@media(max-width:700px){dialog>.entry-persistent{padding:9px 16px;gap:10px}dialog>.entry-persistent .followup-check,dialog>.entry-persistent .followup-check span{font-size:11px}dialog>.entry-persistent .followup-check{gap:7px}dialog>.entry-persistent .calendar-open{font-size:12px;gap:7px}}
+@media(max-height:520px){dialog>.entry-persistent{padding-top:5px;padding-bottom:5px}dialog>.entry-persistent .optional-time{display:flex;gap:6px}dialog>.entry-persistent .field>label,dialog>.entry-persistent .field-label{display:none}dialog>.entry-persistent .followup-check{margin-top:0}}
+/* Compact available pills and smaller selected tags, still inside their fields. */
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap .option{min-height:30px;padding:5px 3px 5px 10px;font-size:11px;line-height:1.4}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap .favorite{min-height:30px;width:27px;min-width:27px;font-size:11px}
+#modalBody .reminder-options .option,dialog .extra-pill-source button,dialog .field:has(.tag-input) .situation-tags button,dialog .context-suggestions button,#bulkBody .bulk-options button{min-height:30px;padding:5px 10px;font-size:11px;line-height:1.4}
+dialog .tag-input .tag-input-tokens .input-tag,dialog .observation-input .selected-tag{min-height:22px;padding:2px 7px;font-size:10px;line-height:1.4;gap:5px}
+dialog .tag-input .tag-input-tokens .input-tag>span:last-child,dialog .observation-input .selected-tag span{font-size:12px}

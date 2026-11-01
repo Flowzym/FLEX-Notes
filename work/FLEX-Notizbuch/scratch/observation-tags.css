@@ -1,0 +1,8 @@
+dialog .observation-input{gap:6px;cursor:text}
+dialog .observation-input .observation-tags{margin:0!important;padding:0;gap:5px;display:flex;flex-wrap:wrap}
+dialog .observation-input .observation-tags[hidden]{display:none}
+dialog .observation-input .selected-tag{min-height:26px;font-size:11px;line-height:1.35;padding:4px 8px;gap:6px;border-radius:999px}
+dialog .observation-input .selected-tag span{font-size:14px;line-height:1}
+dialog .observation-input textarea.tag-input-free{margin:0;min-height:68px;padding:3px 1px;border:0;box-shadow:none;outline:none;resize:vertical;background:transparent;width:100%}
+dialog .observation-input textarea.tag-input-free:focus{outline:none;box-shadow:none;border:0}
+.record-choice-editor{margin:0 0 12px}.record-choice-editor>summary{padding:10px 0;min-height:40px;color:#8a7f6c;font-size:12px;cursor:pointer}

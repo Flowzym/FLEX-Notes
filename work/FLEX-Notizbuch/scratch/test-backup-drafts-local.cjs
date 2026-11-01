@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),{webcrypto}=require('crypto');
+const helpers=fs.readFileSync('scratch/test-concept-local.cjs','utf8').split('let passed=0;')[0],{context,fn,read,cp}=Function('require',helpers+'\nreturn {context,fn,read,cp};')(require);
+const c=context();c.crypto=webcrypto;c.TextEncoder=TextEncoder;c.TextDecoder=TextDecoder;c.Uint8Array=Uint8Array;c.atob=atob;c.btoa=btoa;
+for(const name of ['backupBase64','backupBytes','backupKey','encryptBackup','decryptBackup'])vm.runInContext(fn('backup-crypto.js',name),c);
+for(const name of ['validEditorDraft','allEditorDrafts','saveImportedEditorDraft','persistEditorDraft','captureEditor','editorIsDirty','editFingerprint','editorOwner','editorBase'])vm.runInContext(fn('edit-protection.js',name),c);
+c.protectedEditors=new Map();c.volatileEditorDrafts=new Map();c.active='s1';
+(async()=>{
+ const data={version:3,entries:[{text:'Synthetic note'}],savedDrafts:[{data:{text:'Draft'}}]},password='Synthetisches Testpasswort!';
+ const encrypted=await c.encryptBackup(data,password);assert.ok(!JSON.stringify(encrypted).includes('Synthetic note'));assert.deepEqual(cp(await c.decryptBackup(encrypted,password)),data);
+ await assert.rejects(()=>c.decryptBackup(encrypted,'Falsches Passwort!'),/Passwort/);
+ const damaged={...encrypted,ciphertext:encrypted.ciphertext.slice(0,8)+(encrypted.ciphertext[8]==='A'?'B':'A')+encrypted.ciphertext.slice(9)};await assert.rejects(()=>c.decryptBackup(damaged,password),/beschädigt/);
+ assert.notEqual((await c.encryptBackup(data,password)).ciphertext,encrypted.ciphertext);await assert.rejects(()=>c.encryptBackup(data,'short'),/12 Zeichen/);
+ console.log('PASS encrypted round-trip, authentication, wrong password, unique salt/nonce and minimum length');
+ const field={id:'pupilName',value:'Synthetic',checked:false,type:'text',name:'',closest:()=>null},dialog={id:'pupilDialog',open:true,querySelectorAll:s=>s==='.record-choice'?[]:[field],querySelector:()=>null};
+ c.protectedEditors.set(dialog,{baseline:c.editFingerprint(dialog),base:c.editorBase(dialog)});field.value='Changed';assert.equal(c.persistEditorDraft(dialog),true);assert.equal(c.allEditorDrafts().length,1);
+ c.localStorage.fail=()=>true;field.value='Only in memory';assert.equal(c.persistEditorDraft(dialog),false);assert.equal(c.allEditorDrafts()[0].data.fields[0].value,'Only in memory');c.appPreferences={};assert.ok(c.buildBackup().editorDrafts.some(d=>d.data.fields[0].value==='Only in memory'));
+ const exported=cp(c.allEditorDrafts()[0]);c.localStorage.fail=null;assert.equal(c.saveImportedEditorDraft(exported),true);assert.equal(c.validEditorDraft(exported),true);assert.equal(c.validEditorDraft({...exported,data:{fields:[{id:'x',value:42}]}}),false);
+ console.log('PASS editor autosave, failed-write memory retention, backup and validated import');
+ console.log('No browser tests.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
