@@ -25,7 +25,15 @@ def package(output, flutter_only):
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
             archive.writestr(info, git('show', f'HEAD:{item}'))
-        archive.writestr('SOURCE-COMMIT.txt', commit + '\n')
+        if flutter_only:
+            report = zipfile.ZipInfo('FLEX-Flutter/RESTORATION-STATUS.md')
+            report.compress_type = zipfile.ZIP_DEFLATED
+            report.external_attr = 0o100644 << 16
+            archive.writestr(report, git('show', 'HEAD:docs/rebuild/STATUS.md'))
+        stamp = zipfile.ZipInfo('SOURCE-COMMIT.txt')
+        stamp.compress_type = zipfile.ZIP_DEFLATED
+        stamp.external_attr = 0o100644 << 16
+        archive.writestr(stamp, commit + '\n')
     with zipfile.ZipFile(path) as archive:
         if archive.testzip() is not None:
             raise RuntimeError('ZIP verification failed')

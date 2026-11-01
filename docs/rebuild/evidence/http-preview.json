@@ -1,0 +1,101 @@
+{
+  "checked_at_utc": "2026-11-01T19:14:34.611621+00:00",
+  "bind": "0.0.0.0",
+  "port": 8081,
+  "browser_executed": false,
+  "javascript_executed": false,
+  "cross_origin_isolation_headers": true,
+  "resources": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "bytes": 349,
+      "sha256": "b1c4972bec1e19d02d56f381f69c1676e306b7cbbc14349dffffc91106b1d92f",
+      "content_type": "text/html"
+    },
+    {
+      "path": "version.json",
+      "status": 200,
+      "bytes": 110,
+      "sha256": "77076c17700b1e37d90455548e15ae9238c9a0c026969bd86a376f544ec479bc",
+      "content_type": "application/json"
+    },
+    {
+      "path": "flutter_bootstrap.js",
+      "status": 200,
+      "bytes": 13201,
+      "sha256": "b161bc3e6d4e3ae5b8ee2e2e4c961e456194af5909ca1b2e20688bf8c9140af1",
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "flutter.js",
+      "status": 200,
+      "bytes": 12136,
+      "sha256": "2beb1ce6b159c71540aa66030af1d7964b6a92377cc78473745e02f97b74effe",
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "main.dart.js",
+      "status": 200,
+      "bytes": 3679512,
+      "sha256": "2b4bf6aa3a449be9ced3ca53de46351819d48df3569185dd16e172225f3ca0f3",
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "drift_worker.js",
+      "status": 200,
+      "bytes": 388061,
+      "sha256": "956ec726bb7207384a3c30da583df324a3386c4099f7c8e21fe3c2b03c47c961",
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "sqlite3.wasm",
+      "status": 200,
+      "bytes": 758619,
+      "sha256": "efd308be92a34f3aa15f289a37f213b0230fd80888a1364326ee29579d892d37",
+      "content_type": "application/wasm"
+    },
+    {
+      "path": "canvaskit/canvaskit.js",
+      "status": 200,
+      "bytes": 86987,
+      "sha256": "bb559f6080c7d312ac2a912b4abec9f68ff3d3022d4a603c7796b9b31460642b",
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "canvaskit/canvaskit.wasm",
+      "status": 200,
+      "bytes": 7284602,
+      "sha256": "fbed517a43e82452404446683f00f2e876d835aed84410695759e67b6bb01cd3",
+      "content_type": "application/wasm"
+    },
+    {
+      "path": "assets/AssetManifest.bin",
+      "status": 200,
+      "bytes": 709,
+      "sha256": "d9dfdcccf1d1cc005f9ad9e5a5cd4874ba3b4768e79577e15d1d0abe9bedf7d2",
+      "content_type": "application/octet-stream"
+    },
+    {
+      "path": "assets/assets/schema.sql",
+      "status": 200,
+      "bytes": 4767,
+      "sha256": "90dcf284fe5ad543e9bb4b0d4049e25174d516a7f501f95fd9207ab975242d4e",
+      "content_type": "application/sql"
+    },
+    {
+      "path": "assets/assets/fonts/Selawik-Regular.ttf",
+      "status": 200,
+      "bytes": 44224,
+      "sha256": "e9d98518d8ac2817782a9a382430463a2e0793ea68350b695bb727d9a830ee1c",
+      "content_type": "font/ttf"
+    },
+    {
+      "path": "assets/assets/fonts/Gelasio-Regular.ttf",
+      "status": 200,
+      "bytes": 147572,
+      "sha256": "48c797fbe0e07c48a18cb962e7bdfa23f19618327dddf54093265328dc9eb39d",
+      "content_type": "font/ttf"
+    }
+  ]
+}

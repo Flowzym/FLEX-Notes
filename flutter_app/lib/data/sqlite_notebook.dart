@@ -8,6 +8,18 @@ import 'database.dart';
 part 'school_store.dart';
 
 class SqliteNotebook with SchoolStore implements NotebookRepository {
+  @override
+  Future<NotebookSnapshot> snapshot() => db.transaction(
+    () async => NotebookSnapshot(
+      pupils: await pupils(),
+      entries: await entries(),
+      drafts: await drafts(),
+      records: await schoolRecords(),
+      schoolDrafts: await schoolDrafts(),
+      appearance: await appearance(),
+      legacyCount: await legacyCount(),
+    ),
+  );
   SqliteNotebook(this.db);
   @override
   final NotebookDatabase db;
@@ -125,6 +137,10 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
       body: row['body'] as String,
       isTask: row['is_task'] == 1,
       done: row['done'] == 1,
+      deleted: row['deleted'] == 1,
+      observedOn: row['observed_on'] as String,
+      observedTime: row['observed_time'] as String,
+      reminderText: row['reminder_text'] as String,
       dueDate: row['due_date'] as String?,
       reminderAtUtc: row['reminder_at_utc'] as String?,
       reminderZone: row['reminder_zone'] as String,
@@ -203,6 +219,16 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
           [item.id, saved.id, i, item.text, item.checked ? 1 : 0],
         );
       }
+      await db.customStatement(
+        'UPDATE orga SET deleted=?,observed_on=?,observed_time=?,reminder_text=? WHERE id=?',
+        [
+          saved.deleted ? 1 : 0,
+          saved.observedOn,
+          saved.observedTime,
+          saved.reminderText,
+          saved.id,
+        ],
+      );
       await _audit(
         'orga',
         saved.id,

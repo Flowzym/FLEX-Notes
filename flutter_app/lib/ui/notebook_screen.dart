@@ -1,3 +1,4 @@
+import 'surfaces.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -353,7 +354,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ),
         ),
         if (drafts > 0)
-          Card(
+          FlexCard(
             child: ListTile(
               leading: const Icon(Icons.edit_note),
               title: Text('$drafts gesicherte Entwürfe'),
@@ -465,7 +466,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             icon: Icons.people,
           ),
         for (final pupil in pupils)
-          Card(
+          FlexCard(
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: Color(pupil.color),
@@ -702,8 +703,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   Widget _entryCard(OrgaEntry e) {
     final busy = _busyIds.contains(e.id);
-    return Card(
-      child: Padding(
+    return FlexCard(
+      builder: (context) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -808,6 +809,30 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     onPressed: busy ? null : () => _mutate(e.acknowledge()),
                     child: const Text('Erinnerung quittieren'),
                   ),
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          if (await confirmFlex(
+                            context,
+                            'Orga in den Papierkorb?',
+                            'Geplante Erinnerungen werden beendet. Der Eintrag bleibt wiederherstellbar.',
+                            accept: 'In den Papierkorb',
+                          )) {
+                            await _mutate(
+                              e.copyWith(
+                                deleted: true,
+                                reminderState:
+                                    e.reminderState == ReminderState.planned
+                                    ? ReminderState.cancelled
+                                    : e.reminderState,
+                              ),
+                            );
+                          }
+                        },
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Papierkorb'),
+                ),
                 TextButton(
                   onPressed: () => _history(e),
                   child: const Text('Änderungen'),
@@ -868,7 +893,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     padding: const EdgeInsets.all(24),
     children: [
       for (final d in c.schoolDrafts)
-        Card(
+        FlexCard(
           child: ListTile(
             leading: FlexIcon(FlexIcon.forKind(d.record.kind)),
             title: Text(
@@ -908,7 +933,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (c.drafts.isEmpty && c.schoolDrafts.isEmpty)
         const EmptyState('Keine gesicherten Entwürfe.'),
       for (final d in c.drafts)
-        Card(
+        FlexCard(
           child: ListTile(
             title: Text(d.entry.title.isEmpty ? 'Ohne Titel' : d.entry.title),
             subtitle: Text(

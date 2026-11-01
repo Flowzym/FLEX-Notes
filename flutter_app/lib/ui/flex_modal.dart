@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
+import 'surfaces.dart';
 
 /// Shared shell for entry editors, secondary dialogs and confirmations.
 class FlexModal extends StatelessWidget {
@@ -20,6 +21,19 @@ class FlexModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final surfaces = Theme.of(context).extension<FlexSurfaces>();
+    final headerForeground = legibleOn(
+      Color.alphaBlend(
+        surfaces?.header ?? scheme.surfaceContainerHigh,
+        scheme.surface,
+      ),
+    );
+    final footerForeground = legibleOn(
+      Color.alphaBlend(
+        surfaces?.footer ?? scheme.surfaceContainerHigh,
+        scheme.surface,
+      ),
+    );
     return Dialog(
       insetPadding: const EdgeInsets.all(12),
       clipBehavior: Clip.antiAlias,
@@ -30,39 +44,62 @@ class FlexModal extends StatelessWidget {
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 440;
             final header = Container(
-              color: scheme.surfaceContainerHigh,
+              color: surfaces?.header ?? scheme.surfaceContainerHigh,
               padding: EdgeInsets.fromLTRB(
                 20,
                 compact ? 4 : 12,
                 8,
                 compact ? 4 : 12,
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DefaultTextStyle(
-                      style: Theme.of(context).textTheme.titleLarge!,
-                      child: title,
+              child: IconTheme.merge(
+                data: IconThemeData(color: headerForeground),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DefaultTextStyle(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color: headerForeground,
+                        ),
+                        child: title,
+                      ),
                     ),
-                  ),
-                  if (onClose != null)
-                    IconButton(
-                      tooltip: 'Schließen und Eingaben sichern',
-                      onPressed: onClose,
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                ],
+                    if (onClose != null)
+                      IconButton(
+                        tooltip: 'Schließen und Eingaben sichern',
+                        onPressed: onClose,
+                        color: headerForeground,
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                  ],
+                ),
               ),
             );
             final footer = Container(
               width: double.infinity,
-              color: scheme.surfaceContainerHigh,
+              color: surfaces?.footer ?? scheme.surfaceContainerHigh,
               padding: EdgeInsets.all(compact ? 8 : 16),
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: actions,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: footerForeground,
+                    ),
+                  ),
+                  outlinedButtonTheme: OutlinedButtonThemeData(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: footerForeground,
+                    ),
+                  ),
+                ),
+                child: DefaultTextStyle.merge(
+                  style: TextStyle(color: footerForeground),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: actions,
+                  ),
+                ),
               ),
             );
             final body = Padding(

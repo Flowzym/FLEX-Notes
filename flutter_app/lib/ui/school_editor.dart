@@ -219,11 +219,16 @@ class _SchoolEditorState extends State<SchoolEditor>
     if (busy) return;
     setState(() => busy = true);
     debounce?.cancel();
-    if (await persist()) {
-      await c.reload();
-      if (mounted) await pop();
+    try {
+      if (await persist()) {
+        await c.reload();
+        if (mounted) await pop();
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
     }
-    if (mounted) setState(() => busy = false);
   }
 
   Future<void> save() async {
@@ -273,10 +278,15 @@ class _SchoolEditorState extends State<SchoolEditor>
       }
       r.validate();
       if (r.revision == 0 && r.kind == SchoolKind.homework) {
-        await c.repository.saveSchoolGroup(r, recipients.toList(), draftId);
+        await c.repository.saveSchoolGroup(
+          r,
+          recipients.toList(),
+          draftId,
+          draftRevision: draftRevision,
+        );
         await c.reload();
       } else {
-        await c.saveRecord(r, draftId: draftId);
+        await c.saveRecord(r, draftId: draftId, draftRevision: draftRevision);
       }
       if (mounted) await pop();
     } catch (e) {

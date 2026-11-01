@@ -128,12 +128,22 @@ void main() {
         find.descendant(of: card, matching: find.byType(Checkbox)),
         findsNothing,
       );
-      await tester.tap(find.byKey(const ValueKey('status-task-partial')));
-      await tester.pumpAndSettle();
-      expect(
-        (await repo.schoolRecords()).single.taskState(initial.tasks.single),
+      for (final state in [
+        TaskState.complete,
+        TaskState.missing,
+        TaskState.open,
         TaskState.partial,
-      );
+      ]) {
+        final button = find.byKey(ValueKey('status-task-${state.name}'));
+        await reveal(tester, button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(
+          (await repo.schoolRecords()).single.taskState(initial.tasks.single),
+          state,
+        );
+      }
+      await reveal(tester, find.byKey(const ValueKey('comment-task')));
       await tester.tap(find.byKey(const ValueKey('comment-task')));
       await tester.pumpAndSettle();
       final field = tester.widget<EditableText>(

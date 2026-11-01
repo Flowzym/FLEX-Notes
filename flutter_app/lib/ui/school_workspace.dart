@@ -1,3 +1,4 @@
+import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
@@ -219,8 +220,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
         : r.title.isEmpty
         ? r.kind.label
         : r.title;
-    return Card(
-      child: Padding(
+    return FlexCard(
+      builder: (context) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -538,9 +539,25 @@ class SchoolTools extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           const Text('Papierkorb · wiederherstellbare Einträge'),
+          for (final e in controller.trashedEntries)
+            FlexCard(
+              child: ListTile(
+                leading: const FlexIcon(FlexSymbol.orga),
+                title: Text(e.title),
+                subtitle: Text(controller.owner(e)),
+                trailing: TextButton(
+                  onPressed: () => guarded(
+                    context,
+                    () => controller.saveEntry(e.copyWith(deleted: false)),
+                  ),
+                  child: const Text('Wiederherstellen'),
+                ),
+              ),
+            ),
           for (final r in controller.records.where((v) => v.deleted))
             SchoolRecordCard(controller: controller, record: r),
-          if (!controller.records.any((v) => v.deleted))
+          if (!controller.records.any((v) => v.deleted) &&
+              controller.trashedEntries.isEmpty)
             const EmptyState('Der Papierkorb ist leer.'),
         ],
       );
@@ -561,7 +578,7 @@ class SchoolTools extends StatelessWidget {
           children: [
             const Text('Gruppenerfassungen'),
             for (final group in snapshot.data!)
-              Card(
+              FlexCard(
                 child: ListTile(
                   title: Text(displayDate(group['saved_at_utc'] as String)),
                   subtitle: Text(

@@ -62,10 +62,13 @@ Windows-/Android-Build ausgeführt oder auf Geräten getestet.
 python3 tool/package_sources.py --output /gewünschter/ausgabeordner
 ```
 
-Das Skript exportiert den aktuellen **Commit** als vollständiges Repository-
+Im Git-Checkout exportiert das Skript den aktuellen **Commit** als vollständiges Repository-
 Quellenpaket und als separates Flutter-Quellenpaket, jeweils mit SHA-256-Datei.
 Uncommittete Änderungen, SDK, Caches und Build-Ausgaben werden nicht eingepackt.
 
-Aktueller Umfang und Prüfstand: `../docs/rebuild/STATUS.md`. Historische
+Aktueller Umfang und Prüfstand: `../docs/rebuild/STATUS.md`; im separaten
+Flutter-Quellen-ZIP zusätzlich `RESTORATION-STATUS.md`. Das Paket kann ohne Git
+vorbereitet, getestet und gebaut werden; erneutes Exportieren erfordert einen
+Git-Checkout. Historische
 README-/Architekturdokumente von 0.1.0 sind unter `../reference/flutter-0.1.0/`
 erhalten; sie beschreiben nicht den aktuellen Implementierungsstand.

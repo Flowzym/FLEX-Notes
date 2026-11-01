@@ -8,6 +8,7 @@ class NotebookController extends ChangeNotifier {
   final NotebookRepository repository;
   List<Pupil> pupils = [];
   List<OrgaEntry> entries = [];
+  List<OrgaEntry> trashedEntries = [];
   List<EditDraft> drafts = [];
   List<SchoolRecord> records = [];
   List<SchoolDraft> schoolDrafts = [];
@@ -21,21 +22,16 @@ class NotebookController extends ChangeNotifier {
 
   Future<void> reload() async {
     final generation = ++_loadGeneration;
-    final nextPupils = await repository.pupils();
-    final nextEntries = await repository.entries();
-    final nextDrafts = await repository.drafts();
-    final nextAppearance = await repository.appearance();
-    final nextLegacy = await repository.legacyCount();
-    final nextRecords = await repository.schoolRecords();
-    final nextSchoolDrafts = await repository.schoolDrafts();
+    final next = await repository.snapshot();
     if (generation != _loadGeneration) return;
-    records = nextRecords;
-    schoolDrafts = nextSchoolDrafts;
-    pupils = nextPupils;
-    entries = nextEntries;
-    drafts = nextDrafts;
-    appearance = nextAppearance;
-    stagedLegacyCount = nextLegacy;
+    pupils = next.pupils;
+    entries = next.entries.where((e) => !e.deleted).toList();
+    trashedEntries = next.entries.where((e) => e.deleted).toList();
+    drafts = next.drafts;
+    records = next.records;
+    schoolDrafts = next.schoolDrafts;
+    appearance = next.appearance;
+    stagedLegacyCount = next.legacyCount;
     notifyListeners();
   }
 
@@ -49,8 +45,16 @@ class NotebookController extends ChangeNotifier {
     await reload();
   }
 
-  Future<void> saveRecord(SchoolRecord record, {String? draftId}) async {
-    await repository.saveSchoolRecord(record, draftId: draftId);
+  Future<void> saveRecord(
+    SchoolRecord record, {
+    String? draftId,
+    int? draftRevision,
+  }) async {
+    await repository.saveSchoolRecord(
+      record,
+      draftId: draftId,
+      draftRevision: draftRevision,
+    );
     await reload();
   }
 

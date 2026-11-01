@@ -1,0 +1,1 @@
+PASS schema, goal ownership, atomic data/outbox rollback, class task and unique origin sequence

@@ -3,6 +3,7 @@ import '../application/notebook_controller.dart';
 import 'common.dart';
 import 'flex_modal.dart';
 import 'backup_dialog.dart';
+import 'appearance_settings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.controller});
@@ -203,6 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 () => c.saveAppearance(c.appearance.copyWith(compact: v)),
               ),
       ),
+      AppearanceSettings(controller: c),
       const Divider(height: 40),
       Text('Bedienung', style: Theme.of(context).textTheme.titleLarge),
       const ListTile(

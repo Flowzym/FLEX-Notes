@@ -461,6 +461,34 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             ),
           ),
           actions: [
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () async {
+                        final selected = await pickFlexDate(
+                          context,
+                          date: _entry.observedOn.isEmpty
+                              ? dateOnly(DateTime.now())
+                              : _entry.observedOn,
+                          time: _entry.observedTime,
+                        );
+                        if (selected != null && mounted) {
+                          _change(
+                            _entry.copyWith(
+                              observedOn: selected.$1,
+                              observedTime: selected.$2,
+                            ),
+                          );
+                        }
+                      },
+                icon: const Icon(Icons.calendar_month),
+                label: Text(
+                  'Beobachtet am ${displayDate(_entry.observedOn.isEmpty ? dateOnly(DateTime.now()) : _entry.observedOn)} ${_entry.observedTime}',
+                ),
+              ),
+            ),
             Text(_draftStatus),
             OutlinedButton(
               onPressed: _busy ? null : _close,

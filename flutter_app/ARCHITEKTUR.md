@@ -18,12 +18,15 @@ Das Webpreview wird nicht modifiziert und nicht in die Flutter-App eingebettet.
   Zugriffe, Validierung, Transaktionen, Revisionen, Operationen und Outbox.
 - `application/notebook_controller.dart`: Laden und Mutationen. Generations-
   nummern verhindern, dass ältere Nachladevorgänge neuere Ergebnisse ersetzen.
+  Jeder Gesamtabzug wird in einer gemeinsamen SQLite-Lesetransaktion geladen.
 - `ui/flex_modal.dart`: gemeinsame Dialoghülle und Kalender mit optionaler Zeit.
 - `ui/school_editor.dart`: Editoren einschließlich Kommentar-Fokus,
   Empfänger-Tags, Entwürfen und Zielüberprüfung.
 - `ui/school_workspace.dart`: HÜ-Standbuttons, Rückmeldungsverlauf, Papierkorb,
   Gruppenrücknahme und Gesprächsauswahl.
 - `ui/flex_icons.dart`: fünf gefüllte, direkt durch Flutter gezeichnete Symbole.
+- `ui/appearance_settings.dart`, `ui/surfaces.dart`: getrennte Desktop-/Mobil-
+  Hintergrundbilder, Bildmodi, Farben, Deckkraft und kontrastabhängige Schrift.
 - `security/backup_codec.dart`: Standard-Kryptografie über `cryptography`.
 - `ui/backup_dialog.dart`: Sicherungsdialog, Datei-/Zwischenablage-Ausgabe und
   Wiederherstellung. Native Schlüsselableitung läuft über `compute` außerhalb
@@ -33,7 +36,8 @@ Das Webpreview wird nicht modifiziert und nicht in die Flutter-App eingebettet.
 
 Speichern schreibt Fachdatensatz, Revision, Operation und Outbox atomar. Das
 Entfernen des zugehörigen Entwurfs gehört zur selben Transaktion. Alte
-Basisrevisionen werden abgewiesen. Zusätzliche Personen in einem Kontext
+Basisrevisionen werden abgewiesen. Auch beim Veröffentlichen eines Entwurfs wird
+dessen aktuelle Revision innerhalb der Transaktion geprüft. Zusätzliche Personen in einem Kontext
 erhalten dadurch keine Einzelbewertung.
 
 HÜ-Aufgaben haben stabile IDs und unabhängige Zustände. Rückmeldungen enthalten
@@ -53,6 +57,10 @@ Fachliche Entwürfe enthalten Modus und Revision. Kommentare und Zielüberprüfu
 öffnen beim Fortsetzen ihren jeweiligen Editor. Fach-Payloads tragen
 `rebuildFormat: 1`. Fremde neuere Formate werden nicht still interpretiert.
 Die neue Datenbank hat einen getrennten Namen.
+
+Orga enthält fachliches Datum und optionale Uhrzeit unabhängig vom Erstellzeitpunkt.
+Weiches Löschen setzt eine geplante Erinnerung auf abgebrochen. Wiederherstellen
+erhält Aufgaben-/Checklistenstände und aktiviert die Erinnerung nicht automatisch.
 
 ## Prüfung und Grenzen
 

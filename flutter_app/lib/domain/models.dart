@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 typedef Json = Map<String, dynamic>;
@@ -98,6 +99,10 @@ class OrgaEntry {
     this.body = '',
     this.isTask = false,
     this.done = false,
+    this.deleted = false,
+    this.observedOn = '',
+    this.observedTime = '',
+    this.reminderText = '',
     this.dueDate,
     this.reminderAtUtc,
     this.reminderZone = 'UTC',
@@ -114,18 +119,20 @@ class OrgaEntry {
       id: newId(),
       pupilId: pupilId,
       title: '',
+      observedOn: dateOnly(DateTime.now()),
       createdAtUtc: now,
       updatedAtUtc: now,
     );
   }
   final String id, title, body, reminderZone, createdAtUtc, updatedAtUtc;
   final String? pupilId, dueDate, reminderAtUtc;
-  final bool isTask, done, needsCompletion;
+  final bool isTask, done, needsCompletion, deleted;
+  final String observedOn, observedTime, reminderText;
   final int revision;
   final ReminderState reminderState;
   final List<CheckItem> items;
   bool get pending =>
-      (isTask && !done) || reminderState == ReminderState.planned;
+      !deleted && ((isTask && !done) || reminderState == ReminderState.planned);
   String? get nextDate {
     final dates = [
       if (isTask && !done && dueDate != null) dueDate!,
@@ -140,6 +147,10 @@ class OrgaEntry {
     String? body,
     bool? isTask,
     bool? done,
+    bool? deleted,
+    String? observedOn,
+    String? observedTime,
+    String? reminderText,
     Object? dueDate = _unset,
     Object? reminderAtUtc = _unset,
     String? reminderZone,
@@ -155,6 +166,10 @@ class OrgaEntry {
     body: body ?? this.body,
     isTask: isTask ?? this.isTask,
     done: done ?? this.done,
+    deleted: deleted ?? this.deleted,
+    observedOn: observedOn ?? this.observedOn,
+    observedTime: observedTime ?? this.observedTime,
+    reminderText: reminderText ?? this.reminderText,
     dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as String?,
     reminderAtUtc: identical(reminderAtUtc, _unset)
         ? this.reminderAtUtc
@@ -186,6 +201,11 @@ class OrgaEntry {
   }
 
   void validate() {
+    if (observedOn.isNotEmpty && !validDate(observedOn) ||
+        observedTime.isNotEmpty &&
+            !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(observedTime)) {
+      throw const DomainError('Ungültiges Beobachtungsdatum.');
+    }
     if (id.isEmpty || title.trim().isEmpty || title.trim().length > 160) {
       throw const DomainError('Bitte einen Titel mit 1–160 Zeichen eingeben.');
     }
@@ -208,7 +228,7 @@ class OrgaEntry {
         'Erinnerungszeit muss UTC und eine Zeitzone enthalten.',
       );
     }
-    if (done && reminderState == ReminderState.planned) {
+    if ((done || deleted) && reminderState == ReminderState.planned) {
       throw const DomainError(
         'Erledigte Aufgaben haben keine aktive Erinnerung.',
       );
@@ -233,6 +253,10 @@ class OrgaEntry {
     'body': body,
     'isTask': isTask,
     'done': done,
+    'deleted': deleted,
+    'observedOn': observedOn,
+    'observedTime': observedTime,
+    'reminderText': reminderText,
     'dueDate': dueDate,
     'reminderAtUtc': reminderAtUtc,
     'reminderZone': reminderZone,
@@ -250,6 +274,10 @@ class OrgaEntry {
     body: j['body'] as String,
     isTask: j['isTask'] as bool,
     done: j['done'] as bool,
+    deleted: j['deleted'] as bool? ?? false,
+    observedOn: j['observedOn'] as String? ?? '',
+    observedTime: j['observedTime'] as String? ?? '',
+    reminderText: j['reminderText'] as String? ?? '',
     dueDate: j['dueDate'] as String?,
     reminderAtUtc: j['reminderAtUtc'] as String?,
     reminderZone: j['reminderZone'] as String,
@@ -280,27 +308,62 @@ class Appearance {
     this.accent = 0xffdae9a6,
     this.textScale = 1,
     this.compact = false,
+    this.dialogColor = 0,
+    this.cardColor = 0,
+    this.buttonColor = 0,
+    this.headerOpacity = 1,
+    this.footerOpacity = 1,
+    this.cardOpacity = 1,
+    this.buttonOpacity = 1,
+    this.desktopImage = '',
+    this.mobileImage = '',
+    this.desktopFit = 'cover',
+    this.mobileFit = 'cover',
+    this.backgroundOpacity = .35,
+    this.coupleSurfaces = false,
+    this.serifHeaders = false,
   });
-  final String mode;
-  final int accent;
-  final double textScale;
-  final bool compact;
+  final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
+  final int accent, dialogColor, cardColor, buttonColor;
+  final double textScale,
+      headerOpacity,
+      footerOpacity,
+      cardOpacity,
+      buttonOpacity,
+      backgroundOpacity;
+  final bool compact, coupleSurfaces, serifHeaders;
   Appearance copyWith({
     String? mode,
     int? accent,
     double? textScale,
     bool? compact,
-  }) => Appearance(
-    mode: mode ?? this.mode,
-    accent: accent ?? this.accent,
-    textScale: textScale ?? this.textScale,
-    compact: compact ?? this.compact,
-  );
+  }) => patch({
+    'mode': ?mode,
+    'accent': ?accent,
+    'textScale': ?textScale,
+    'compact': ?compact,
+  });
+  Appearance patch(Json changes) =>
+      Appearance.fromJson({...toJson(), ...changes});
   Json toJson() => {
     'mode': mode,
     'accent': accent,
     'textScale': textScale,
     'compact': compact,
+    'dialogColor': dialogColor,
+    'cardColor': cardColor,
+    'buttonColor': buttonColor,
+    'headerOpacity': headerOpacity,
+    'footerOpacity': footerOpacity,
+    'cardOpacity': cardOpacity,
+    'buttonOpacity': buttonOpacity,
+    'desktopImage': desktopImage,
+    'mobileImage': mobileImage,
+    'desktopFit': desktopFit,
+    'mobileFit': mobileFit,
+    'backgroundOpacity': backgroundOpacity,
+    'coupleSurfaces': coupleSurfaces,
+    'serifHeaders': serifHeaders,
   };
   factory Appearance.fromJson(Json j) {
     final a = Appearance(
@@ -308,13 +371,65 @@ class Appearance {
       accent: j['accent'] as int,
       textScale: (j['textScale'] as num).toDouble(),
       compact: j['compact'] as bool,
+      dialogColor: j['dialogColor'] as int? ?? 0,
+      cardColor: j['cardColor'] as int? ?? 0,
+      buttonColor: j['buttonColor'] as int? ?? 0,
+      headerOpacity: (j['headerOpacity'] as num? ?? 1).toDouble(),
+      footerOpacity: (j['footerOpacity'] as num? ?? 1).toDouble(),
+      cardOpacity: (j['cardOpacity'] as num? ?? 1).toDouble(),
+      buttonOpacity: (j['buttonOpacity'] as num? ?? 1).toDouble(),
+      desktopImage: j['desktopImage'] as String? ?? '',
+      mobileImage: j['mobileImage'] as String? ?? '',
+      desktopFit: j['desktopFit'] as String? ?? 'cover',
+      mobileFit: j['mobileFit'] as String? ?? 'cover',
+      backgroundOpacity: (j['backgroundOpacity'] as num? ?? .35).toDouble(),
+      coupleSurfaces: j['coupleSurfaces'] as bool? ?? false,
+      serifHeaders: j['serifHeaders'] as bool? ?? false,
     );
     if (!['system', 'dark', 'light'].contains(a.mode) ||
-        a.textScale < 0.9 ||
+        !a.textScale.isFinite ||
+        a.textScale < .9 ||
         a.textScale > 1.4 ||
-        a.accent < 0 ||
-        a.accent > 0xffffffff) {
+        [
+          a.accent,
+          a.dialogColor,
+          a.cardColor,
+          a.buttonColor,
+        ].any((c) => c < 0 || c > 0xffffffff) ||
+        [
+          a.headerOpacity,
+          a.footerOpacity,
+          a.cardOpacity,
+          a.buttonOpacity,
+          a.backgroundOpacity,
+        ].any((v) => !v.isFinite || v < 0 || v > 1) ||
+        ![
+          'cover',
+          'contain',
+          'fitWidth',
+          'fitHeight',
+          'fill',
+        ].contains(a.desktopFit) ||
+        ![
+          'cover',
+          'contain',
+          'fitWidth',
+          'fitHeight',
+          'fill',
+        ].contains(a.mobileFit) ||
+        [a.desktopImage, a.mobileImage].any(
+          (v) =>
+              v.length > 6800000 ||
+              !RegExp(r'^[A-Za-z0-9+/]*={0,2}$').hasMatch(v),
+        )) {
       throw const DomainError('Ungültige Darstellung.');
+    }
+    try {
+      for (final image in [a.desktopImage, a.mobileImage]) {
+        if (image.isNotEmpty) base64Decode(image);
+      }
+    } catch (_) {
+      throw const DomainError('Ungültige Bilddaten.');
     }
     return a;
   }

@@ -31,7 +31,11 @@ mixin SchoolStore {
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
     String? draftId,
+    int? draftRevision,
   }) => db.transaction(() async {
+    if (draftId != null && draftRevision != null) {
+      await _checkDraftRevision(draftId, draftRevision);
+    }
     record.validate();
     final previous = await _rows('SELECT * FROM school_records WHERE id=?', [
       record.id,
@@ -119,8 +123,9 @@ mixin SchoolStore {
   Future<List<SchoolRecord>> saveSchoolGroup(
     SchoolRecord record,
     List<String> recipients,
-    String requestId,
-  ) => db.transaction(() async {
+    String requestId, {
+    int? draftRevision,
+  }) => db.transaction(() async {
     final existing = await _rows('SELECT * FROM group_saves WHERE id=?', [
       requestId,
     ]);
@@ -144,6 +149,9 @@ mixin SchoolStore {
         );
       }
       return result;
+    }
+    if (draftRevision != null) {
+      await _checkDraftRevision(requestId, draftRevision);
     }
     if (record.revision != 0 ||
         recipients.isEmpty ||
@@ -292,4 +300,16 @@ mixin SchoolStore {
   });
   Future<void> discardSchoolDraft(String id) =>
       db.customStatement('DELETE FROM school_drafts WHERE id=?', [id]);
+
+  Future<void> _checkDraftRevision(String id, int expected) async {
+    final existing = await _rows(
+      'SELECT payload FROM school_drafts WHERE id=?',
+      [id],
+    );
+    final actual = existing.isEmpty
+        ? 0
+        : (jsonDecode(existing.single['payload'] as String)
+              as Map)['editRevision'];
+    if (actual != expected) throw const StaleRevision();
+  }
 }
