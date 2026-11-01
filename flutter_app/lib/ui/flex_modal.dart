@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
@@ -13,14 +12,17 @@ class FlexModal extends StatelessWidget {
     this.actions = const [],
     this.onClose,
     this.scrollable = true,
+    this.maxWidth = 640,
   });
   final Widget title, content;
   final List<Widget> actions;
   final VoidCallback? onClose;
   final bool scrollable;
+  final double maxWidth;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final mobile = MediaQuery.sizeOf(context).width <= 700;
     final surfaces = Theme.of(context).extension<FlexSurfaces>();
     final headerForeground = legibleOn(
       Color.alphaBlend(
@@ -35,21 +37,30 @@ class FlexModal extends StatelessWidget {
       ),
     );
     return Dialog(
-      insetPadding: const EdgeInsets.all(12),
+      insetPadding: EdgeInsets.all(mobile ? 10 : 16),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 880),
+        key: const ValueKey('flex-modal-frame'),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 440;
             final header = Container(
               color: surfaces?.header ?? scheme.surfaceContainerHigh,
               padding: EdgeInsets.fromLTRB(
-                20,
-                compact ? 4 : 12,
-                8,
-                compact ? 4 : 12,
+                mobile ? 12 : 20,
+                compact
+                    ? 4
+                    : mobile
+                    ? 9
+                    : 14,
+                mobile ? 8 : 14,
+                compact
+                    ? 4
+                    : mobile
+                    ? 9
+                    : 14,
               ),
               child: IconTheme.merge(
                 data: IconThemeData(color: headerForeground),
@@ -77,7 +88,14 @@ class FlexModal extends StatelessWidget {
             final footer = Container(
               width: double.infinity,
               color: surfaces?.footer ?? scheme.surfaceContainerHigh,
-              padding: EdgeInsets.all(compact ? 8 : 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: mobile ? 16 : 24,
+                vertical: compact
+                    ? 8
+                    : mobile
+                    ? 11
+                    : 12,
+              ),
               child: Theme(
                 data: Theme.of(context).copyWith(
                   textButtonTheme: TextButtonThemeData(
@@ -92,7 +110,11 @@ class FlexModal extends StatelessWidget {
                   ),
                 ),
                 child: DefaultTextStyle.merge(
-                  style: TextStyle(color: footerForeground),
+                  style: TextStyle(
+                    color: footerForeground,
+                    fontSize: 11,
+                    height: 1.3,
+                  ),
                   child: Wrap(
                     alignment: WrapAlignment.end,
                     spacing: 8,
@@ -103,7 +125,10 @@ class FlexModal extends StatelessWidget {
               ),
             );
             final body = Padding(
-              padding: EdgeInsets.all(compact ? 12 : 20),
+              padding: EdgeInsets.symmetric(
+                horizontal: mobile ? 16 : 24,
+                vertical: compact ? 12 : 22,
+              ),
               child: content,
             );
             if (constraints.maxHeight < 230) {
@@ -165,74 +190,82 @@ Future<(String, String)?> pickFlexDate(
   String title = 'Datum und Uhrzeit',
 }) async {
   var selected = DateTime.tryParse(date) ?? DateTime.now();
-  var withTime = requireTime || time.isNotEmpty;
-  final initial = time.isEmpty ? '09:00' : time;
-  var hour = initial.split(':').first, minute = initial.split(':').last;
+  final initial = time.isEmpty && requireTime ? '09:00' : time;
+  final hour = TextEditingController(
+    text: initial.isEmpty ? '' : initial.split(':').first,
+  );
+  final minute = TextEditingController(
+    text: initial.isEmpty ? '' : initial.split(':').last,
+  );
   String? error;
-  return showDialog<(String, String)>(
+  final result = await showDialog<(String, String)>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, update) => FlexModal(
+        maxWidth: 430,
         title: Text(title),
-        content: SizedBox(
-          width: 380,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: math.min(320, MediaQuery.sizeOf(context).height * .5),
-                child: CalendarDatePicker(
-                  initialDate: selected,
-                  firstDate: DateTime(1900),
-                  lastDate: DateTime(2200),
-                  onDateChanged: (d) => update(() => selected = d),
-                ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 300,
+              child: CalendarDatePicker(
+                initialDate: selected,
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2200),
+                onDateChanged: (d) => update(() => selected = d),
               ),
-              if (allowTime) ...[
-                if (!requireTime)
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Uhrzeit hinzufügen'),
-                    value: withTime,
-                    onChanged: (v) => update(() => withTime = v),
+            ),
+            if (allowTime) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(requireTime ? 'Uhrzeit' : 'Uhrzeit · optional'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: hour,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Stunde',
+                        hintText: 'hh',
+                      ),
+                    ),
                   ),
-                if (withTime)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: hour,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Stunde',
-                          ),
-                          onChanged: (v) => hour = v,
-                        ),
+                  const Padding(padding: EdgeInsets.all(8), child: Text(':')),
+                  Expanded(
+                    child: TextFormField(
+                      controller: minute,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Minute',
+                        hintText: 'mm',
                       ),
-                      const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Text(':'),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: minute,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Minute',
-                          ),
-                          onChanged: (v) => minute = v,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-              ],
-              if (error != null)
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ],
+              ),
+              if (!requireTime)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () {
+                      hour.clear();
+                      minute.clear();
+                      update(() => error = null);
+                    },
+                    child: const Text('Ohne Uhrzeit'),
+                  ),
                 ),
             ],
-          ),
+            if (error != null)
+              Text(
+                error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+          ],
         ),
         actions: [
           TextButton(
@@ -241,10 +274,12 @@ Future<(String, String)?> pickFlexDate(
           ),
           FilledButton(
             onPressed: () {
-              final value = withTime && allowTime
-                  ? '${hour.padLeft(2, '0')}:${minute.padLeft(2, '0')}'
-                  : '';
-              if (!validTime(value)) {
+              final empty =
+                  hour.text.trim().isEmpty && minute.text.trim().isEmpty;
+              final value = !allowTime || empty
+                  ? ''
+                  : '${hour.text.trim().padLeft(2, '0')}:${minute.text.trim().padLeft(2, '0')}';
+              if ((requireTime && value.isEmpty) || !validTime(value)) {
                 update(() => error = 'Bitte eine gültige Uhrzeit eingeben.');
                 return;
               }
@@ -256,4 +291,8 @@ Future<(String, String)?> pickFlexDate(
       ),
     ),
   );
+  await Future<void>.delayed(const Duration(milliseconds: 250));
+  hour.dispose();
+  minute.dispose();
+  return result;
 }

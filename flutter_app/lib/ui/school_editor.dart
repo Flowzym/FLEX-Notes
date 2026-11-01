@@ -349,10 +349,16 @@ class _SchoolEditorState extends State<SchoolEditor>
   });
   Widget comment() {
     final f = r.feedback.firstWhere((v) => v.id == feedbackId);
+    final task = r.tasks.where((t) => t.id == f.taskId).firstOrNull;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (task != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Stand: ${r.taskState(task).label}'),
+          ),
         if (f.taskText.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
@@ -781,7 +787,7 @@ class _SchoolEditorState extends State<SchoolEditor>
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Kontext / Quelle und Unterstützung'),
+          title: const Text('Kontext / Quelle'),
           value: extras,
           onChanged: (v) => setState(() => extras = v),
         ),
@@ -863,11 +869,29 @@ class _SchoolEditorState extends State<SchoolEditor>
         child: Focus(
           autofocus: true,
           child: FlexModal(
+            maxWidth: mode == 'comment' ? 430 : 640,
             title: Row(
               children: [
                 FlexIcon(FlexIcon.forKind(r.kind)),
                 const SizedBox(width: 12),
-                Expanded(child: Text(title)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (mode == 'entry')
+                        Text(
+                          c.pupils.firstWhere((p) => p.id == r.pupilId).name,
+                          style: const TextStyle(
+                            fontFamily: 'FlexSerif',
+                            fontSize: 21,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      Text(title),
+                    ],
+                  ),
+                ),
               ],
             ),
             onClose: busy ? null : close,
@@ -891,7 +915,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                         },
                       ),
                     ),
-                  if (r.revision > 0)
+                  if (r.revision > 0 && mode != 'entry')
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(

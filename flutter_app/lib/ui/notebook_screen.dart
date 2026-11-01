@@ -1,4 +1,7 @@
 import 'surfaces.dart';
+import 'prototype_navigation.dart';
+import 'pupil_card.dart';
+import 'backup_dialog.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -22,7 +25,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 0;
   SchoolKind? _schoolKind;
-  String? _aux, _selectedPupil;
+  String? _aux;
+  VoidCallback? _refreshPupilDialog;
+  final _pupilSearchFocus = FocusNode();
+  bool _showPupilSearch = false;
+  void _changeView(VoidCallback action) {
+    if (!mounted) return;
+    setState(action);
+    _refreshPupilDialog?.call();
+  }
+
   String _pupilQuery = '', _entryQuery = '', _filter = 'all';
   bool _orgaOnly = false;
   final _expandedSections = <String>{};
@@ -31,12 +43,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
   @override
   void dispose() {
     _pupilSearch.dispose();
+    _pupilSearchFocus.dispose();
     _entrySearch.dispose();
     super.dispose();
   }
 
   final _busyIds = <String>{};
-  void _main(int index) => setState(() {
+  void _main(int index) => _changeView(() {
     _primary = index;
     _aux = null;
   });
@@ -51,9 +64,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   Future<void> _mutate(OrgaEntry value) async {
     if (_busyIds.contains(value.id)) return;
-    setState(() => _busyIds.add(value.id));
+    _changeView(() => _busyIds.add(value.id));
     await guarded(context, () => c.saveEntry(value));
-    if (mounted) setState(() => _busyIds.remove(value.id));
+    if (mounted) _changeView(() => _busyIds.remove(value.id));
   }
 
   Future<void> _pupilEditor([Pupil? pupil]) async {
@@ -142,8 +155,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   PopupMenuButton<String> _more() => PopupMenuButton<String>(
     tooltip: 'Weitere Bereiche',
-    icon: const Icon(Icons.more_horiz),
-    onSelected: (value) => setState(() => _aux = value),
+    child: const SizedBox(
+      width: double.infinity,
+      height: 42,
+      child: Center(child: Text('…')),
+    ),
+    onSelected: (value) => _changeView(() => _aux = value),
     itemBuilder: (_) => [
       const PopupMenuItem(value: 'class', child: Text('Klassen-Orga')),
       PopupMenuItem(
@@ -157,136 +174,42 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ],
   );
   @override
-  Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 850;
-    final selected = c.pupils.where((p) => p.id == _selectedPupil).firstOrNull;
-    final title = switch (_aux) {
-      'class' => 'Klassen-Orga',
-      'drafts' => 'Entwürfe',
-      'archive' => 'Archiv',
-      'settings' => 'Einstellungen',
-      'trash' => 'Papierkorb',
-      'groups' => 'Gruppenerfassungen',
-      _ => _primary == 0 ? 'Übersicht' : selected?.name ?? 'Schüler',
-    };
-    return PopScope(
-      canPop: _aux == null && !(_primary == 1 && selected != null),
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          setState(() {
-            if (_aux != null) {
-              _aux = null;
-            } else {
-              _selectedPupil = null;
-              _orgaOnly = false;
-            }
-          });
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: _aux != null || (_primary == 1 && selected != null)
-              ? IconButton(
-                  tooltip: 'Zurück',
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => setState(() {
-                    if (_aux != null) {
-                      _aux = null;
-                    } else {
-                      _selectedPupil = null;
-                      _orgaOnly = false;
-                      _entryQuery = '';
-                      _entrySearch.clear();
-                      _filter = 'all';
-                    }
-                  }),
-                )
-              : null,
-          title: Text(title),
-          actions: [
-            IconButton(
-              tooltip: 'Daten erneut laden',
-              onPressed: () => guarded(context, c.reload),
-              icon: const Icon(Icons.refresh),
-            ),
-            _more(),
-            const SizedBox(width: 12),
-          ],
-        ),
-        body: Row(
+  Widget build(BuildContext context) => PopScope(
+    canPop: _aux == null,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) _changeView(() => _aux = null);
+    },
+    child: Scaffold(
+      body: SafeArea(
+        child: Column(
           children: [
-            if (wide)
-              NavigationRail(
-                extended: true,
-                minExtendedWidth: 190,
-                leading: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    'FLEX\nNotizbuch',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                selectedIndex: _primary,
-                onDestinationSelected: _main,
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.dashboard),
-                    selectedIcon: Icon(Icons.dashboard),
-                    label: Text('Übersicht'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.people),
-                    selectedIcon: Icon(Icons.people),
-                    label: Text('Schüler'),
-                  ),
-                ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+              child: FlexPagePills(
+                selected: _aux == null ? _primary : 2,
+                onSelected: _main,
+                more: _more(),
               ),
+            ),
             Expanded(
               child: Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1060),
-                  child: _body(selected),
+                  constraints: const BoxConstraints(maxWidth: 1400),
+                  child: _body(),
                 ),
               ),
             ),
           ],
         ),
-        bottomNavigationBar: wide
-            ? null
-            : NavigationBar(
-                selectedIndex: _primary,
-                onDestinationSelected: _main,
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.dashboard),
-                    label: 'Übersicht',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.people),
-                    label: 'Schüler',
-                  ),
-                ],
-              ),
       ),
-    );
-  }
+    ),
+  );
 
-  Widget _body(Pupil? selected) {
+  Widget _body() {
     if (_aux == 'settings') return SettingsPage(controller: c);
     if (_aux == 'trash' || _aux == 'groups') {
       return SchoolTools(controller: c, mode: _aux!);
-    }
-    if (_aux == null &&
-        _primary == 1 &&
-        selected != null &&
-        _schoolKind != null) {
-      return SchoolWorkspace(
-        controller: c,
-        pupil: selected,
-        kind: _schoolKind!,
-        onKind: (kind) => setState(() => _schoolKind = kind),
-      );
     }
     if (_aux == 'drafts') return _drafts();
     if (_aux == 'archive') return _pupils(archived: true);
@@ -298,16 +221,107 @@ class _NotebookScreenState extends State<NotebookScreen> {
         pupil: null,
       );
     }
-    if (_primary == 0) return _overview();
-    if (selected != null) {
-      return _entries(
-        c.entries.where((e) => e.pupilId == selected.id).toList(),
-        scope: selected.id,
-        orga: _orgaOnly,
-        pupil: selected,
+    return _primary == 0 ? _overview() : _pupils();
+  }
+
+  Future<void> _openPupil(Pupil pupil, {FlexSymbol? symbol}) async {
+    _schoolKind = switch (symbol) {
+      FlexSymbol.goal => SchoolKind.goal,
+      FlexSymbol.social => SchoolKind.social,
+      FlexSymbol.work => SchoolKind.work,
+      FlexSymbol.homework => SchoolKind.homework,
+      _ => null,
+    };
+    _orgaOnly = symbol == FlexSymbol.orga;
+    _entryQuery = '';
+    _entrySearch.clear();
+    _filter = 'all';
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (modalContext, refresh) {
+            _refreshPupilDialog = () {
+              if (modalContext.mounted) refresh(() {});
+            };
+            return AnimatedBuilder(
+              animation: c,
+              builder: (context, _) {
+                final current =
+                    c.pupils.where((p) => p.id == pupil.id).firstOrNull ??
+                    pupil;
+                return FlexModal(
+                  title: Row(
+                    children: [
+                      if (_schoolKind != null || _orgaOnly)
+                        IconButton(
+                          tooltip: 'Zur Schülerübersicht',
+                          icon: const Icon(Icons.arrow_back, size: 20),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 40,
+                          ),
+                          padding: const EdgeInsets.only(right: 8),
+                          onPressed: () => _changeView(() {
+                            _schoolKind = null;
+                            _orgaOnly = false;
+                          }),
+                        ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              current.name,
+                              style: const TextStyle(
+                                fontFamily: 'FlexSerif',
+                                fontSize: 23,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -.3,
+                              ),
+                            ),
+                            if (_schoolKind != null || _orgaOnly)
+                              Text(
+                                _schoolKind?.label ?? 'Orga',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  height: 1.3,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  onClose: () => Navigator.pop(dialogContext),
+                  scrollable: false,
+                  content: SizedBox(
+                    height: MediaQuery.sizeOf(context).height * .7,
+                    child: _schoolKind != null
+                        ? SchoolWorkspace(
+                            controller: c,
+                            pupil: current,
+                            kind: _schoolKind!,
+                          )
+                        : _entries(
+                            c.entries
+                                .where((e) => e.pupilId == pupil.id)
+                                .toList(),
+                            scope: pupil.id,
+                            orga: _orgaOnly,
+                            pupil: current,
+                          ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       );
+    } finally {
+      _refreshPupilDialog = null;
     }
-    return _pupils();
   }
 
   Widget _overview() {
@@ -359,7 +373,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               leading: const Icon(Icons.edit_note),
               title: Text('$drafts gesicherte Entwürfe'),
               subtitle: const Text('Bearbeitung wieder aufnehmen'),
-              onTap: () => setState(() => _aux = 'drafts'),
+              onTap: () => _changeView(() => _aux = 'drafts'),
             ),
           ),
         _combinedSection(
@@ -424,74 +438,176 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   Widget _pupils({bool archived = false}) {
-    final pupils = c.pupils
-        .where(
-          (p) =>
-              p.archived == archived &&
-              p.name.toLowerCase().contains(_pupilQuery.toLowerCase()),
-        )
+    final all = c.pupils.where((p) => p.archived == archived).toList();
+    final pupils = all
+        .where((p) => p.name.toLowerCase().contains(_pupilQuery.toLowerCase()))
         .toList();
+    final width = MediaQuery.sizeOf(context).width;
+    final gutter = width <= 360
+        ? 12.0
+        : width <= 700
+        ? 16.0
+        : 40.0;
     return ListView(
       key: PageStorageKey('pupils-$archived'),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 40),
       children: [
         Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: _pupilSearch,
-                key: ValueKey('search-$archived'),
-                decoration: const InputDecoration(
-                  labelText: 'Schüler suchen',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: (value) => setState(() => _pupilQuery = value),
+              child: Text(
+                '${all.length} ${archived ? 'im Archiv' : 'Schüler'}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-            const SizedBox(width: 12),
+            IconButton(
+              key: const ValueKey('toggle-pupil-search'),
+              tooltip: _showPupilSearch ? 'Suche schließen' : 'Schüler suchen',
+              icon: Icon(_showPupilSearch ? Icons.close : Icons.search),
+              onPressed: () {
+                _changeView(() {
+                  _showPupilSearch = !_showPupilSearch;
+                  if (!_showPupilSearch) {
+                    _pupilQuery = '';
+                    _pupilSearch.clear();
+                  }
+                });
+                if (_showPupilSearch) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _pupilSearchFocus.requestFocus();
+                  });
+                }
+              },
+            ),
             if (!archived)
-              FilledButton.icon(
+              IconButton(
+                tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
-                icon: const Icon(Icons.add),
-                label: const Text('Anlegen'),
+                icon: const Icon(Icons.person_add),
               ),
+            IconButton(
+              tooltip: 'Datensicherung herunterladen',
+              icon: const Icon(Icons.download),
+              onPressed: () => showDialog<void>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BackupDialog(controller: c, export: true),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 16),
+        if (_showPupilSearch)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextField(
+              controller: _pupilSearch,
+              focusNode: _pupilSearchFocus,
+              key: ValueKey('search-$archived'),
+              decoration: InputDecoration(
+                labelText: 'Schüler suchen',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  tooltip: 'Suchtext leeren',
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _changeView(() {
+                      _pupilQuery = '';
+                      _pupilSearch.clear();
+                    });
+                    _pupilSearchFocus.requestFocus();
+                  },
+                ),
+              ),
+              onChanged: (value) => _changeView(() => _pupilQuery = value),
+            ),
+          ),
+        const SizedBox(height: 10),
         if (pupils.isEmpty)
           EmptyState(
             archived
-                ? 'Keine archivierten Schüler.'
-                : 'Noch keine passenden Schüler. Neue Arbeitsbereiche starten leer.',
+                ? 'Keine passenden archivierten Schüler.'
+                : 'Noch keine passenden Schüler.',
             icon: Icons.people,
           ),
-        for (final pupil in pupils)
-          FlexCard(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Color(pupil.color),
-                foregroundColor: const Color(0xff23311e),
-                child: Text(pupil.name.characters.first.toUpperCase()),
-              ),
-              title: Text(pupil.name),
-              subtitle: Text(
-                '${c.entries.where((e) => e.pupilId == pupil.id && e.pending).length + c.records.where((r) => r.pupilId == pupil.id && r.pending).length} anstehend${pupil.archived ? ' · Archiv' : ''}',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => setState(() {
-                _selectedPupil = pupil.id;
-                _primary = 1;
-                _aux = null;
-                _orgaOnly = false;
-                _schoolKind = null;
-                _entryQuery = '';
-                _entrySearch.clear();
-                _filter = 'all';
-              }),
-            ),
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = ((constraints.maxWidth + 20) / 310).floor().clamp(
+              1,
+              4,
+            );
+            final cardWidth =
+                ((constraints.maxWidth - (columns - 1) * 20) / columns).clamp(
+                  0.0,
+                  420.0,
+                );
+            return Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              children: [
+                for (final pupil in pupils)
+                  SizedBox(
+                    width: cardWidth,
+                    child: PupilCard(
+                      key: ValueKey('pupil-card-${pupil.id}'),
+                      pupil: pupil,
+                      onOpen: () => _openPupil(pupil),
+                      onShortcut: (symbol) => _openPupil(pupil, symbol: symbol),
+                      counts: _shortcutCounts(pupil),
+                      due: _dueShortcuts(pupil),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ],
     );
+  }
+
+  Map<FlexSymbol, int> _shortcutCounts(Pupil pupil) {
+    final records = c.records.where((r) => r.pupilId == pupil.id && !r.deleted);
+    return {
+      FlexSymbol.goal: records
+          .where((r) => r.kind == SchoolKind.goal && r.pending)
+          .length,
+      FlexSymbol.social: records
+          .where((r) => r.kind == SchoolKind.social && r.needsCompletion)
+          .length,
+      FlexSymbol.work: records
+          .where((r) => r.kind == SchoolKind.work && r.needsCompletion)
+          .length,
+      FlexSymbol.homework: records
+          .where((r) => r.kind == SchoolKind.homework && r.pending)
+          .length,
+      FlexSymbol.orga: c.entries
+          .where((e) => e.pupilId == pupil.id && e.isTask && !e.done)
+          .length,
+    };
+  }
+
+  Set<FlexSymbol> _dueShortcuts(Pupil pupil) {
+    final today = dateOnly(DateTime.now());
+    return {
+      if (c.records.any(
+        (r) =>
+            r.pupilId == pupil.id &&
+            !r.deleted &&
+            r.kind == SchoolKind.homework &&
+            r.pending &&
+            r.dueDate != null &&
+            r.dueDate!.compareTo(today) <= 0,
+      ))
+        FlexSymbol.homework,
+      if (c.entries.any(
+        (e) =>
+            e.pupilId == pupil.id &&
+            e.isTask &&
+            !e.done &&
+            e.dueDate != null &&
+            e.dueDate!.compareTo(today) <= 0,
+      ))
+        FlexSymbol.orga,
+    };
   }
 
   Widget _entries(
@@ -511,9 +627,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
         .toList();
     return ListView(
       key: PageStorageKey('entries-$scope-$orga'),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(pupil == null ? 24 : 0),
       children: [
-        if (pupil != null) ...[
+        if (pupil == null)
+          Text('Klassen-Orga', style: Theme.of(context).textTheme.titleLarge),
+        if (pupil != null && !orga) ...[
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -543,10 +661,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   selected: category == (orga ? 'Orga' : 'Aktuell'),
                   onSelected: (_) {
                     if (category == 'Orga' || category == 'Aktuell') {
-                      setState(() => _orgaOnly = category == 'Orga');
+                      _changeView(() => _orgaOnly = category == 'Orga');
                       return;
                     }
-                    setState(
+                    _changeView(
                       () => _schoolKind = SchoolKind.values.firstWhere(
                         (kind) => kind.label == category,
                       ),
@@ -601,7 +719,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             labelText: 'Einträge durchsuchen',
             prefixIcon: Icon(Icons.search),
           ),
-          onChanged: (value) => setState(() => _entryQuery = value),
+          onChanged: (value) => _changeView(() => _entryQuery = value),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -615,7 +733,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               FilterChip(
                 label: Text(f.value),
                 selected: _filter == f.key,
-                onSelected: (_) => setState(() => _filter = f.key),
+                onSelected: (_) => _changeView(() => _filter = f.key),
               ),
           ],
         ),
@@ -683,7 +801,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ...entries.take(expanded ? entries.length : 4).map(_entryCard),
           if (entries.length > 4)
             TextButton(
-              onPressed: () => setState(() {
+              onPressed: () => _changeView(() {
                 if (expanded) {
                   _expandedSections.remove(key);
                 } else {

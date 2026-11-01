@@ -1,6 +1,6 @@
 # Aktueller Flutter-Stand
 
-Aktive Rekonstruktion: **0.16.0-rebuild.1+21**, Branch `rebuild/flutter`.
+Aktive Rekonstruktion: **0.16.0-rebuild.2+22**, Branch `rebuild/flutter`.
 
 Der maßgebliche aktuelle Prüfbericht steht unter
 [docs/rebuild/STATUS.md](docs/rebuild/STATUS.md), Startanweisungen unter

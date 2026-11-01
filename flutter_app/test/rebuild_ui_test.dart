@@ -20,11 +20,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     for (final pair in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
+      'FlexSans': [
+        'assets/fonts/Selawik-Regular.ttf',
+        'assets/fonts/Selawik-Semibold.ttf',
+        'assets/fonts/Selawik-Bold.ttf',
+      ],
+      'FlexSerif': [
+        'assets/fonts/Gelasio-Regular.ttf',
+        'assets/fonts/Gelasio-Medium.ttf',
+        'assets/fonts/Gelasio-SemiBold.ttf',
+        'assets/fonts/Gelasio-Bold.ttf',
+      ],
+      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
     }.entries) {
-      final loader = FontLoader(pair.key)..addFont(rootBundle.load(pair.value));
+      final loader = FontLoader(pair.key);
+      for (final asset in pair.value) {
+        loader.addFont(rootBundle.load(asset));
+      }
       await loader.load();
     }
   });

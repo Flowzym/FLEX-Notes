@@ -18,36 +18,83 @@ class FlexApp extends StatelessWidget {
       primary: dark ? Color(appearance.accent) : baseScheme.primary,
       surface: dark ? const Color(0xff303e2b) : const Color(0xfff7f8f0),
       onSurface: dark ? const Color(0xfff6f5eb) : const Color(0xff23311e),
+      onPrimary: dark
+          ? legibleOn(Color(appearance.accent))
+          : baseScheme.onPrimary,
+      surfaceContainerHigh: dark
+          ? const Color(0xff35432e)
+          : baseScheme.surfaceContainerHigh,
+      outlineVariant: dark
+          ? const Color(0x24e9efcf)
+          : baseScheme.outlineVariant,
+      outline: dark ? const Color(0x45dbe6bf) : baseScheme.outline,
+      onSurfaceVariant: dark
+          ? const Color(0xffc2cbb6)
+          : baseScheme.onSurfaceVariant,
     );
     final bar = appearance.dialogColor == 0
-        ? scheme.surfaceContainerHigh
+        ? dark
+              ? const Color(0xff2a3926)
+              : scheme.surfaceContainerHigh
         : Color(appearance.dialogColor);
     final button =
         (appearance.buttonColor == 0
-                ? scheme.primary
+                ? dark
+                      ? const Color(0xfff9f8ef)
+                      : scheme.primary
                 : Color(appearance.buttonColor))
             .withValues(alpha: appearance.buttonOpacity);
     final buttonText = legibleOn(Color.alphaBlend(button, scheme.surface));
-    final card =
-        (appearance.cardColor == 0
-                ? scheme.surfaceContainerLow
-                : Color(appearance.cardColor))
-            .withValues(alpha: appearance.cardOpacity);
+    final card = appearance.cardColor == 0
+        ? (dark ? const Color(0xfff2f7d5) : const Color(0xff253222)).withValues(
+            alpha: .07 * appearance.cardOpacity,
+          )
+        : Color(appearance.cardColor).withValues(alpha: appearance.cardOpacity);
     final base = ThemeData(colorScheme: scheme, fontFamily: 'FlexSans');
+    final textTheme = base.textTheme.copyWith(
+      bodyLarge: base.textTheme.bodyLarge?.copyWith(
+        fontSize: 14,
+        height: 1.5,
+        letterSpacing: 0,
+      ),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(
+        fontSize: 14,
+        height: 1.5,
+        letterSpacing: 0,
+      ),
+      bodySmall: base.textTheme.bodySmall?.copyWith(
+        fontSize: 12,
+        height: 1.4,
+        letterSpacing: 0,
+      ),
+      labelLarge: base.textTheme.labelLarge?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+      ),
+      titleLarge: base.textTheme.titleLarge?.copyWith(
+        fontSize: 18,
+        height: 1.3,
+        letterSpacing: 0,
+      ),
+      headlineSmall: base.textTheme.headlineSmall?.copyWith(
+        fontSize: 24,
+        height: 1.3,
+        letterSpacing: 0,
+      ),
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          appearance.desktopImage.isNotEmpty ||
-              appearance.mobileImage.isNotEmpty
-          ? Colors.transparent
-          : dark
-          ? const Color(0xff253222)
-          : const Color(0xffeef1e6),
+      scaffoldBackgroundColor: Colors.transparent,
       extensions: [
         FlexSurfaces(
           header: bar.withValues(alpha: appearance.headerOpacity),
-          footer: bar.withValues(alpha: appearance.footerOpacity),
+          footer:
+              (appearance.dialogColor == 0 && dark
+                      ? const Color(0xff263623)
+                      : bar)
+                  .withValues(alpha: appearance.footerOpacity),
           foreground: legibleOn(bar),
         ),
       ],
@@ -64,7 +111,15 @@ class FlexApp extends StatelessWidget {
         selectedColor: scheme.primary,
         labelStyle: TextStyle(
           fontFamily: 'FlexSans',
-          color: appearance.buttonColor == 0 ? scheme.onSurface : buttonText,
+          fontSize: 13,
+          height: 1.3,
+          color: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? legibleOn(scheme.primary)
+                : appearance.buttonColor == 0
+                ? scheme.onSurface
+                : buttonText,
+          ),
         ),
         secondaryLabelStyle: TextStyle(
           fontFamily: 'FlexSans',
@@ -72,18 +127,18 @@ class FlexApp extends StatelessWidget {
         ),
       ),
       textTheme: appearance.serifHeaders
-          ? base.textTheme.copyWith(
-              titleLarge: base.textTheme.titleLarge?.copyWith(
+          ? textTheme.copyWith(
+              titleLarge: textTheme.titleLarge?.copyWith(
                 fontFamily: 'FlexSerif',
               ),
-              headlineSmall: base.textTheme.headlineSmall?.copyWith(
+              headlineSmall: textTheme.headlineSmall?.copyWith(
                 fontFamily: 'FlexSerif',
               ),
               headlineMedium: base.textTheme.headlineMedium?.copyWith(
                 fontFamily: 'FlexSerif',
               ),
             )
-          : base.textTheme,
+          : textTheme,
       fontFamily: 'FlexSans',
       visualDensity: appearance.compact
           ? VisualDensity.compact
@@ -91,6 +146,11 @@ class FlexApp extends StatelessWidget {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         filled: true,
+        fillColor: dark ? const Color(0x0bffffff) : const Color(0x08ffffff),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
       ),
       appBarTheme: const AppBarTheme(centerTitle: false),
       cardTheme: CardThemeData(

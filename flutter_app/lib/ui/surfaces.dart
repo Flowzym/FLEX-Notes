@@ -88,10 +88,16 @@ class FlexBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final mobile = MediaQuery.sizeOf(context).width < 650;
     final image = mobile ? appearance.mobileImage : appearance.desktopImage;
-    return ColoredBox(
-      color: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xff253222)
-          : const Color(0xffeef1e6),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? const [Color(0xff1d2b21), Color(0xff4f6038), Color(0xff253522)]
+              : const [Color(0xfff7f8f0), Color(0xffeef1e6), Color(0xffe3e9d8)],
+        ),
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [

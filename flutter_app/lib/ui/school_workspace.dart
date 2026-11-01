@@ -39,12 +39,10 @@ class SchoolWorkspace extends StatefulWidget {
     required this.controller,
     required this.pupil,
     required this.kind,
-    required this.onKind,
   });
   final NotebookController controller;
   final Pupil pupil;
   final SchoolKind kind;
-  final ValueChanged<SchoolKind?> onKind;
   @override
   State<SchoolWorkspace> createState() => _SchoolWorkspaceState();
 }
@@ -71,34 +69,16 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
             ),
           );
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.zero,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ActionChip(
-              label: const Text('Aktuell / Orga'),
-              onPressed: () => widget.onKind(null),
-            ),
-            for (final kind in SchoolKind.values)
-              ChoiceChip(
-                avatar: FlexIcon(FlexIcon.forKind(kind), size: 20),
-                label: Text(kind.label),
-                selected: widget.kind == kind,
-                onSelected: (_) => widget.onKind(kind),
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
-              widget.kind.label,
-              style: Theme.of(context).textTheme.headlineMedium,
+              '${values.length} ${values.length == 1 ? 'Eintrag' : 'Einträge'}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (!widget.pupil.archived)
               FilledButton.icon(
@@ -170,6 +150,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   }
 
   Future<void> setTask(HomeworkTask task, TaskState state) async {
+    if (busy || r.taskState(task) == state) return;
     final now = DateTime.now();
     final f = SchoolFeedback(
       id: newId(),
@@ -216,7 +197,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   Widget build(BuildContext context) {
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
     final heading = r.kind == SchoolKind.homework
-        ? (r.subject.isEmpty ? 'Hausübung' : r.subject)
+        ? 'Hausübung'
         : r.title.isEmpty
         ? r.kind.label
         : r.title;
@@ -256,7 +237,13 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               ],
             ),
             if (r.kind == SchoolKind.homework) ...[
+              if (r.subject.isNotEmpty) Text(r.subject),
               if (r.dueDate != null) Text('Fällig: ${displayDate(r.dueDate)}'),
+              Text(
+                '${r.tasks.where((task) => r.taskState(task) == TaskState.complete).length} von ${r.tasks.length} vollständig',
+                key: ValueKey('homework-progress-${r.id}'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               for (final task in r.tasks)
                 Padding(
                   padding: EdgeInsets.only(
@@ -276,7 +263,15 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                           ),
                           IconButton(
                             key: ValueKey('comment-${task.id}'),
-                            tooltip: 'Kommentar zu ${task.text}',
+                            tooltip:
+                                '${r.liveFeedback.any((f) => f.taskId == task.id && f.note.isNotEmpty) ? 'Kommentar vorhanden' : 'Kommentar'} zu ${task.text}',
+                            color:
+                                r.liveFeedback.any(
+                                  (f) =>
+                                      f.taskId == task.id && f.note.isNotEmpty,
+                                )
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
                             onPressed: busy || r.deleted
                                 ? null
                                 : () => editSchool(

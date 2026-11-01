@@ -1,8 +1,8 @@
 {
-  "version": "0.16.0-rebuild.1+21",
+  "version": "0.16.0-rebuild.2+22",
   "flutter": "3.47.9",
   "dart": "3.13.7",
-  "tests_passed": 51,
+  "tests_passed": 56,
   "sql_tests_passed": 11,
   "architecture_sql_test": "passed",
   "analyzer_issues": 0,
@@ -16,5 +16,10 @@
   "original_archives_unchanged": true,
   "original_html_sources_unchanged": true,
   "original_newer_flutter_sources_available": false,
-  "cloud_environment_published": false
+  "cloud_environment_published": false,
+  "handover_widget_tests_passed": 5,
+  "original_reference_images_available": false,
+  "user_chalkboard_textures_available": false,
+  "pixel_parity_verified": false,
+  "new_zip_created": false
 }

@@ -1,6 +1,6 @@
 # Wiederaufbau – aktueller Prüfstand
 
-**0.16.0-rebuild.1+21** ist ein bearbeitbares Flutter-Projekt aus erhaltenen
+**0.16.0-rebuild.2+22** ist ein bearbeitbares Flutter-Projekt aus erhaltenen
 Quellen und neu rekonstruierten Funktionen. Es ist kein wiedergefundenes Original
 von 0.16.0+20 und noch kein vollständiger Funktions-/Pixelabgleich mit 0.15.3.
 
@@ -19,16 +19,25 @@ von 0.16.0+20 und noch kein vollständiger Funktions-/Pixelabgleich mit 0.15.3.
 
 ## Implementiert und lokal geprüft
 
+Die nachgereichte [App-Referenz aus dem alten Chat](APP-DETAILS-AUS-ALTEM-CHAT.md)
+präzisiert die jüngsten Vorgaben. Ihre historischen Testzahlen gelten nicht als
+Prüfnachweis dieser Rekonstruktion. Der vorherige Wiederaufbau hatte erhebliche
+UI-Abweichungen; der folgende Schritt korrigiert diese konkret, ohne einen
+visuellen Originalabgleich vorzutäuschen.
+
 | Bereich | Tatsächlicher Stand |
 | --- | --- |
+| Navigation und Schülerkarten | Zentrierte Pillen Übersicht / Schüler / …; Seiten- und untere Navigation entfernt. Karten mit farbigem Rand, Serifennamen, Pfeil und fünf gefüllten Symbolen in 3+2-Anordnung, einschließlich offener/fälliger Zähler. |
+| Schülersuche | Anfangs verborgen; Lupe bei Neuer Schüler und Download öffnet mit Textfokus. Leeren erhält die offene Suche; Schließen leert den Filter. |
 | Schüler / Orga | Überlieferte Anlage, Bearbeitung, Archiv, Aufgaben, Checklisten, unabhängige Erinnerung, Historie und Entwürfe; fachliches Datum und optionale Uhrzeit ergänzt; Editoren in gemeinsamer Dialoghülle. |
 | Sozial-/Arbeitsverhalten | Eigene persistente Einträge, positive/negative Tags und Freitext, Auftrag, Situation, Quelle, Unterstützung, Beteiligte ohne fremde Einzelbewertung, Zielbezug mit damaligem Zieltext. |
 | Ziele | Ziel, Kriterium, Unterstützung, Schülerperspektive, Zieltermin und separater Prüftermin; Überprüfungen mit Fortführen/Erreicht/Beendet/Wieder öffnen und verknüpften Beobachtungen. |
 | Hausübung | Aufgaben und Teilaufgaben mit stabilen IDs, Fach/Termin, unabhängige Aufgabenstände, Abgabe und Kommentar, chronologischer Rückmeldungsverlauf mit Korrektur/Löschung. |
-| **Direkte HÜ-Standbuttons** | **Offen / Vollständig / Teilweise / Nicht erledigt** direkt pro Aufgabe; keine HÜ-Checkboxen als Standbedienung. |
-| **Sprechblasen-Kommentar** | Gefüllte Sprechblase pro Aufgabe; Kommentar öffnet mit Textfokus. Kommentar und Abgabe verändern den Aufgabenstand nicht. |
+| **Direkte HÜ-Standbuttons** | **Offen / Vollständig / Teilweise / Nicht erledigt** direkt pro Aufgabe; keine HÜ-Checkboxen als Standbedienung. Gleicher Stand und Doppelklick erzeugen keine zusätzliche Historie; Speicherfehler erhält den gespeicherten Stand, Wiederholung ist möglich. Vollständig-Zähler ergänzt. |
+| **Sprechblasen-Kommentar** | Gefüllte Sprechblase pro Aufgabe, vorhandene Kommentare hervorgehoben; Kommentar öffnet mit Textfokus und Standinformation. Kommentar und Abgabe verändern den Aufgabenstand nicht. |
 | **Schüler-Tags** | Empfänger bei HÜ sowie Schüler-/Beteiligtenauswahl als Chips/Tags. Mehrere HÜ-Empfänger werden atomar gespeichert; Aufgaben-IDs und Zustände bleiben je Kind getrennt. |
-| **Einheitliche Modals** | Gemeinsame Flutter-Hülle für Orga, Beobachtungen, Ziele, HÜ, Kommentare, Überprüfungen, Kalender, Stammdaten, Bestätigungen und Sicherungen. |
+| **Einheitliche Modals** | Auch die Schülerbereichslisten öffnen als Modals. Außenabstand mobil 10 / Desktop 16, Radius 24, Standard-Maximalbreite 640; Kommentar/Kalender 430. Alle fünf Bereichslisten und Editoren auf Desktop und bei 320 px mit Tastatur geprüft. |
+| Eintragsdarstellung | Kompakter Entwurfsstatus, exakte Zeitpunkt-Tags, Abschnitt Kontext / Quelle, Reaktion / Unterstützung. Optionale Uhrzeit direkt im Kalender ohne eigenen Schalter. Schrift/Farbe ausgewählter Chips im tatsächlich gerenderten Widget geprüft. |
 | **Gefüllte Icons** | Zielscheibe/Pfeil, Personen, Dokument, Haus und Kalender in gemeinsamer skalierbarer Flutter-Zeichnung. |
 | Entwürfe | Fachliche Editoren speichern nach Schreibpause, bei Escape/Schließen und Lebenszykluswechsel. Kommentar-/Überprüfungsentwürfe behalten ihren Dialogmodus. Revisionen schützen auch beim endgültigen Speichern vor dem Entfernen neuerer Entwürfe. |
 | Gruppenrücknahme | HÜ-Gruppen idempotent gespeichert; Rücknahme nur bei unveränderten Einträgen ohne Bearbeitungsentwurf, Wiederherstellung der Eingaben als neuer Entwurf. |
@@ -44,25 +53,27 @@ von 0.16.0+20 und noch kein vollständiger Funktions-/Pixelabgleich mit 0.15.3.
 
 - Flutter **3.47.9**, Dart **3.13.7**, aufgelöste Pakete in `pubspec.lock`.
 - `flutter analyze --no-pub`: **keine Befunde**.
-- `flutter test`: **51 Tests bestanden**. Einschließlich echter SQLite-
+- `flutter test`: **56 Tests bestanden**. Einschließlich echter SQLite-
   Migration, atomarem Rollback, Revisionen, Rückmeldungsreihenfolge, Gruppen,
-  Entwürfen, Backup-Rundlauf, Passwort-/Manipulationsprüfung und neun neuen
-  Widgettests zu den gewünschten Änderungen. Zusätzlich geprüft: Orga-Papierkorb,
+  Entwürfen, Backup-Rundlauf, Passwort-/Manipulationsprüfung und Widgettests
+  zu den gewünschten Änderungen. Zusätzlich geprüft: Orga-Papierkorb,
   Darstellungs-/Bilddaten im Sicherungsrundlauf, gleichzeitiges Lesen/Schreiben
-  und konkurrierende Entwurfsänderungen.
+  und konkurrierende Entwurfsänderungen. Fünf zusätzliche Fälle prüfen die
+  nachgereichten UI-Vorgaben, Suchfokus, Kartengeometrie, Standänderungen bei
+  Doppelklick/Fehler, Chip-Schrift/-Farbe und direkte Flutter-Renderings.
 - Der Kryptografie-Kompatibilitätstest nutzt einen synthetischen Container,
   den die ursprünglichen HTML-Kryptofunktionen unter **Node/Web Crypto** erzeugt
   haben. Dies ist kein Browserlauf.
-- Widgettests prüfen unter anderem 320 Pixel Breite mit simulierter Tastatur,
+- Widgettests prüfen unter anderem 320 Pixel Breite mit 1,35-facher Schrift und simulierter Tastatur,
   Fokus nach Sprechblasen-Klick, Tag-Empfänger, Ziele und Mitternacht/fehlende Zeit.
 - Direkte Flutter-Bildausgabe mit geladenen Originalschriften unter `renderings/`.
-  Die Desktopansicht wurde visuell angesehen. Kein pixelgenauer Abgleich mit der
+  Die neuen Desktop-/Mobilansichten wurden visuell angesehen. Kein pixelgenauer Abgleich mit der
   kompilierten Referenz-Web-App und keine Browseraufnahme.
 - `flutter build web --no-web-resources-cdn`: erfolgreich; Wasm-Vorprüfung bestanden.
 - Lokaler Server auf **0.0.0.0:8081** gestartet. 13 Ressourcen einschließlich
   App-JavaScript, SQLite-Wasm, Drift-Worker, CanvasKit, Schema und Schriften per
   HTTP geprüft: Status 200, bytegleiche Inhalte und erforderliche COOP-/COEP-
-  Header. `version.json` meldet `0.16.0-rebuild.1+21`. Dies bestätigt die
+  Header. `version.json` meldet `0.16.0-rebuild.2+22`. Dies bestätigt die
   Auslieferung, nicht die Ausführung im Browser oder OPFS-Persistenz.
 - Die elf ursprünglichen SQL-Tests und der Architektur-SQL-Test bestanden.
 - Alle Originalarchive und der gesicherte Prüfbericht wurden bytegleich geprüft.
@@ -75,8 +86,8 @@ der Cloud weiterhin HTTP 200 lieferte. Eine Weiterleitung in den eingebetteten
 Browser ist hier nicht verfügbar; eine Portauswahl in dessen Oberfläche ist
 nicht belegt. Die frühere Anleitung, dort Port 8081 auszuwählen, war unzutreffend.
 
-Als lokale Alternative erzeugt `tool/package_preview.py` ein Windows-ZIP mit
-dem geprüften Web-Build, Server-EXEs für x64/ARM64 und `Webvorschau-starten.cmd`.
+Als lokale Alternative kann `tool/package_preview.py` ein Windows-ZIP mit
+dem geprüften Web-Build, Server-EXEs für x64/ARM64 und `Webvorschau-starten.cmd` erzeugen.
 Das vollständige ZIP wird auf dem Windows-PC entpackt; der Starter öffnet dessen
 Standardbrowser und bindet nur die dortige Loopback-Adresse. Flutter, Python und
 Go sind beim Empfänger nicht nötig. Go-Serverquellen sind im Paket und Repository
@@ -84,12 +95,16 @@ enthalten. Der Hilfsserver wurde unter Linux per HTTP geprüft; Windows-Ausführ
 und Browserpersistenz bleiben ungetestet. Keine Cloud-Veröffentlichung oder
 Konfigurationspublikation, kein öffentlicher Tunnel.
 
-Der Vorschau-Starter besteht drei lokale Tests: Auslieferung aus seinem eigenen
+Das zuvor gelieferte Windows-Paket gehört zu **0.16.0-rebuild.1+21** und enthält
+die aktuellen UI-Korrekturen noch nicht. In dieser Runde wurde kein neues ZIP
+erstellt. Die folgenden Starterprüfungen beziehen sich auf jenes frühere Paket.
+
+Der Vorschau-Starter bestand drei lokale Tests: Auslieferung aus seinem eigenen
 Paketordner unabhängig vom Arbeitsverzeichnis (auch mit Leerzeichen im Pfad),
 Erkennung fehlender Webdateien und Konflikte mit einem belegten Port. Die
 Windows-Binaries wurden mit Go 1.27.3 erzeugt und ihre PE-Zielarchitekturen geprüft.
-Alle Dateien im ZIP wurden anhand der enthaltenen SHA-256-Liste geprüft; der
-Flutter-Web-Build entspricht bytegleich dem zuvor geprüften Stand `4e79901`.
+Alle Dateien jenes ZIP wurden anhand der enthaltenen SHA-256-Liste geprüft; sein
+Flutter-Web-Build entspricht bytegleich dem Stand `4e79901`.
 Nachweise: `evidence/local-preview.json` und `evidence/local-preview-tests.txt`.
 
 ## Noch offen gegenüber der 0.15.3-Referenz
@@ -98,6 +113,9 @@ Nachweise: `evidence/local-preview.json` und `evidence/local-preview-tests.txt`.
   sind rekonstruiert; exakte Geometrie, gekoppelte Transparenzen und sämtliche
   ursprünglichen Reglerstufen sind nicht vollständig abgeglichen.
 - Vollständige Katalog-/Favoritenpflege für Auswahltexte und Auftragsvorschläge.
+- Noch nicht vollständig angeglichen: Aufklappverhalten der HÜ-Karten,
+  „Speichern & weiter“, sämtliche Übersichtsgruppen und Wischbedienung zwischen
+  Hauptseiten. Die beschriebenen Original-Screenshots und Tafeltexturen fehlen.
 - Eigener gemeinsamer Kontexteditor mit Konfliktauflösung; Gruppenerfassung
   individueller Verhaltensbeobachtungen und Orga-Gruppen entsprechend der Referenz.
 - Dauerhafte Stammdatenentwürfe, Stammdaten-Papierkorb und endgültiges Leeren

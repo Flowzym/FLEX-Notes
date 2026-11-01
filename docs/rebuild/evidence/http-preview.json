@@ -1,9 +1,10 @@
 {
-  "checked_at_utc": "2026-11-01T19:14:34.611621+00:00",
+  "checked_at_utc": "2026-11-01T20:27:28.015193+00:00",
   "bind": "0.0.0.0",
   "port": 8081,
   "browser_executed": false,
   "javascript_executed": false,
+  "user_browser_port_forwarding_verified": false,
   "cross_origin_isolation_headers": true,
   "resources": [
     {
@@ -17,14 +18,14 @@
       "path": "version.json",
       "status": 200,
       "bytes": 110,
-      "sha256": "77076c17700b1e37d90455548e15ae9238c9a0c026969bd86a376f544ec479bc",
+      "sha256": "9461d4b1c4a6cb4624ba7b11ad5177ff079a95f05ef48fb32fb079260af54d73",
       "content_type": "application/json"
     },
     {
       "path": "flutter_bootstrap.js",
       "status": 200,
       "bytes": 13201,
-      "sha256": "b161bc3e6d4e3ae5b8ee2e2e4c961e456194af5909ca1b2e20688bf8c9140af1",
+      "sha256": "f8e6869f3946ea6b1092926ab0dc49a251337831f0b80720c0ed904b42751b94",
       "content_type": "application/javascript"
     },
     {
@@ -37,8 +38,8 @@
     {
       "path": "main.dart.js",
       "status": 200,
-      "bytes": 3679512,
-      "sha256": "2b4bf6aa3a449be9ced3ca53de46351819d48df3569185dd16e172225f3ca0f3",
+      "bytes": 3644039,
+      "sha256": "fd297b226e423b70e5a5fa9f05d2c237ff7da202b3f4bad1cfd5fa8cb8ad7599",
       "content_type": "application/javascript"
     },
     {

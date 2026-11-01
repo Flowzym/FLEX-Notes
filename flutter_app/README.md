@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.1+21** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.2+22** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 

@@ -20,6 +20,11 @@ Das Webpreview wird nicht modifiziert und nicht in die Flutter-App eingebettet.
   nummern verhindern, dass ältere Nachladevorgänge neuere Ergebnisse ersetzen.
   Jeder Gesamtabzug wird in einer gemeinsamen SQLite-Lesetransaktion geladen.
 - `ui/flex_modal.dart`: gemeinsame Dialoghülle und Kalender mit optionaler Zeit.
+- `ui/prototype_navigation.dart`, `ui/pupil_card.dart`: zentrierte Pillennavigation
+  und Schülerkarten nach den endgültigen HTML-Regeln. `notebook_screen.dart`
+  öffnet Schülerbereichslisten in derselben gerahmten Dialogfamilie wie Editoren.
+  Die jüngeren Vorgaben aus dem alten Chat bestimmen Außenabstand, Radius und
+  Standardbreite; Hauptseiten bleiben außerhalb der Dialoge.
 - `ui/school_editor.dart`: Editoren einschließlich Kommentar-Fokus,
   Empfänger-Tags, Entwürfen und Zielüberprüfung.
 - `ui/school_workspace.dart`: HÜ-Standbuttons, Rückmeldungsverlauf, Papierkorb,

@@ -4,11 +4,18 @@ Arbeitsbranch: **`rebuild/flutter`**, ausgehend von der unveränderten Sicherung
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.1+21** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.2+22** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
 beschreibt den tatsächlichen Umfang.
+
+Nachgereichte App-Details und ihre Umsetzung sind unter
+[App-Referenz aus dem alten Chat](docs/rebuild/APP-DETAILS-AUS-ALTEM-CHAT.md)
+festgehalten. Der aktuelle UI-Schritt korrigiert Navigation, Schülerkarten,
+Suchbedienung und Modalrahmen; neue direkte Flutter-Ansichten stehen unter
+[Renderings](docs/rebuild/renderings/). Die beschriebenen Original-Screenshots
+und Tafeltexturen wurden mit dem Übergabetext nicht mitgeliefert.
 
 ## Start und Prüfung
 
