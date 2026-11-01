@@ -68,9 +68,29 @@ von 0.16.0+20 und noch kein vollständiger Funktions-/Pixelabgleich mit 0.15.3.
 - Alle Originalarchive und der gesicherte Prüfbericht wurden bytegleich geprüft.
 
 Prüfprotokolle stehen unter `evidence/`; die Bildausgabe unter `renderings/`.
-In der Vorschauansicht ist **Port 8081** zu wählen. Der Server ist ein temporärer
-lokaler Prozess und muss nach einem Neustart der Umgebung erneut gestartet werden.
-Es wurde keine Cloud-Umgebung veröffentlicht oder deren Konfiguration publiziert.
+Der Cloud-Server ist ein temporärer interner Prozess und muss nach einem Neustart
+der Umgebung erneut gestartet werden. Der Nutzerbrowser meldete für
+`http://127.0.0.1:8081/` **ERR_CONNECTION_REFUSED**, während der Server innerhalb
+der Cloud weiterhin HTTP 200 lieferte. Eine Weiterleitung in den eingebetteten
+Browser ist hier nicht verfügbar; eine Portauswahl in dessen Oberfläche ist
+nicht belegt. Die frühere Anleitung, dort Port 8081 auszuwählen, war unzutreffend.
+
+Als lokale Alternative erzeugt `tool/package_preview.py` ein Windows-ZIP mit
+dem geprüften Web-Build, Server-EXEs für x64/ARM64 und `Webvorschau-starten.cmd`.
+Das vollständige ZIP wird auf dem Windows-PC entpackt; der Starter öffnet dessen
+Standardbrowser und bindet nur die dortige Loopback-Adresse. Flutter, Python und
+Go sind beim Empfänger nicht nötig. Go-Serverquellen sind im Paket und Repository
+enthalten. Der Hilfsserver wurde unter Linux per HTTP geprüft; Windows-Ausführung
+und Browserpersistenz bleiben ungetestet. Keine Cloud-Veröffentlichung oder
+Konfigurationspublikation, kein öffentlicher Tunnel.
+
+Der Vorschau-Starter besteht drei lokale Tests: Auslieferung aus seinem eigenen
+Paketordner unabhängig vom Arbeitsverzeichnis (auch mit Leerzeichen im Pfad),
+Erkennung fehlender Webdateien und Konflikte mit einem belegten Port. Die
+Windows-Binaries wurden mit Go 1.27.3 erzeugt und ihre PE-Zielarchitekturen geprüft.
+Alle Dateien im ZIP wurden anhand der enthaltenen SHA-256-Liste geprüft; der
+Flutter-Web-Build entspricht bytegleich dem zuvor geprüften Stand `4e79901`.
+Nachweise: `evidence/local-preview.json` und `evidence/local-preview-tests.txt`.
 
 ## Noch offen gegenüber der 0.15.3-Referenz
 
@@ -94,7 +114,7 @@ Es wurde keine Cloud-Umgebung veröffentlicht oder deren Konfiguration publizier
 ## Nicht ausgeführt / keine entsprechende Zusage
 
 Keine Browsertests, keine praktische Prüfung von OPFS/IndexedDB oder mehreren
-Browserfenstern, keine Windows-/Android-Gerätetests, kein nativer Release-Build
+Browserfenstern, keine Windows-/Android-Gerätetests, kein nativer Flutter-Release-Build
 und keine Release-Signierung. Native Dateiwähler wurden nicht praktisch geprüft.
 Die lokale Datenbank bleibt unverschlüsselt. HTML-Altdaten werden nur vorgemerkt;
 die vollständige Migration, Synchronisation, Scanner und native Benachrichtigungen

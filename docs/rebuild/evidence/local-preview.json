@@ -1,0 +1,27 @@
+{
+  "app_version": "0.16.0-rebuild.1+21",
+  "app_build_source_commit": "4e7990100f0df1ee52ff385d9224265fcbb8e4b9",
+  "app_js_sha256": "2b4bf6aa3a449be9ced3ca53de46351819d48df3569185dd16e172225f3ca0f3",
+  "app_build_unchanged": true,
+  "go": "1.27.3",
+  "http_server_tests_passed": 3,
+  "server_test_platform": "linux/amd64",
+  "windows_compilation": [
+    {
+      "architecture": "amd64",
+      "binary_sha256": "3eb712369f031738fb18ff67d6fad44b16237b09bc3a2410fba8a1881b4ca0a9",
+      "portable_executable_machine_verified": true
+    },
+    {
+      "architecture": "arm64",
+      "binary_sha256": "e685535e346849f25f90c439085edf7ce7287251785cfd9f03a178cd1b78cf59",
+      "portable_executable_machine_verified": true
+    }
+  ],
+  "windows_execution_tested": false,
+  "browser_tests": false,
+  "cloud_environment_published": false,
+  "original_archives_unchanged": true,
+  "archive_checksums_verified": 55,
+  "launcher_source_sha256": "2664cce873ae5f3f4d66f01aa25ea51b5fb6707dfebc873fd113e8c7212475d6"
+}

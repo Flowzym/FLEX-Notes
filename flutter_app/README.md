@@ -22,10 +22,43 @@ flutter build web --no-web-resources-cdn
 python3 tool/serve_preview.py --port 8081
 ```
 
-Unter Windows kann `py` statt `python3` verwendet werden. Dann im eigenen Browser
-`http://127.0.0.1:8081` öffnen. In einer Cloud-Vorschau benötigt der Server
-`--bind 0.0.0.0`; die Vorschau muss auf Port 8081 zeigen. Das Skript öffnet selbst
-keinen Browser und veröffentlicht keine Cloud-Umgebung.
+Unter Windows kann `py` statt `python3` verwendet werden. Wenn der Server auf
+dem eigenen Computer läuft, im dortigen Browser `http://127.0.0.1:8081` öffnen.
+In einer Cloud-Umgebung bindet `--bind 0.0.0.0` den Server an deren Netzwerkschnittstellen.
+Das erzeugt jedoch keinen externen Vorschau-Link und keine Portweiterleitung.
+Der eingebettete Chat-Browser konnte den Cloud-Server unter `127.0.0.1:8081`
+nicht erreichen. Eine Portauswahl in dieser Oberfläche ist nicht belegt.
+Das Python-Skript öffnet selbst keinen Browser und veröffentlicht keine Cloud-Umgebung.
+
+## Windows-Vorschau ohne Flutter-Installation
+
+Das gesonderte Windows-Vorschau-ZIP enthält den gebauten Flutter-Webstand und
+kleine Serverprogramme für x64 und ARM64:
+
+1. Das komplette ZIP auf dem Windows-PC in einen neuen Ordner entpacken.
+2. `Webvorschau-starten.cmd` doppelklicken.
+3. Der Standardbrowser wird geöffnet; das Serverfenster bleibt offen.
+   Falls erforderlich, dort `http://127.0.0.1:8081/` selbst aufrufen.
+
+Flutter, Python und Go müssen beim Empfänger nicht installiert sein. Der Server
+bindet ausschließlich `127.0.0.1`; es gibt keine Veröffentlichung und keinen Tunnel.
+Eine vorhandene Anwendung auf Port 8081 führt zu einer Fehlermeldung und wird
+nicht beendet. Browserprofil und Adresse bestimmen den lokalen Datenstand.
+
+Das Paket im Repository-Checkout erzeugen (Go erforderlich; vorhandener Web-Build):
+
+```sh
+python3 tool/test_preview_server.py
+python3 tool/package_preview.py --output /gewünschter/ausgabeordner
+```
+
+`GO_BINARY` wählt für den Test den Go-Compiler; das Paketwerkzeug akzeptiert
+`--go /pfad/zu/go`. Der Starterquelltext liegt in `tool/preview_server.go` und
+zusätzlich im Vorschau-ZIP. Geprüft sind ein Linux-Lauf ohne Browser und die
+Windows-Kompilierung. Windows-Ausführung und Browserpersistenz sind ungetestet;
+die Server-EXEs sind nicht signiert. Sie sind keine native Flutter-Windows-App.
+
+## Entwicklung und native Plattformen
 
 Alternativ für die Entwicklung:
 
