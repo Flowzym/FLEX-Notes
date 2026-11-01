@@ -1,0 +1,233 @@
+[
+  {
+    "path": "FLUTTER_STATUS.md",
+    "beforeSha256": "d1ccdc0f83717bbc404f7f905bfae5369fa1a566443d98eedf776c552defd447",
+    "afterSha256": "5b880a3384ac40a26e3f8550e3026f7840e00f4f534b5fc41480b6e6a5230e75",
+    "beforeBytes": 535,
+    "afterBytes": 552
+  },
+  {
+    "path": "README.md",
+    "beforeSha256": "c81039338469a5b5b868e9b68e4e1795f1bdd33558a82a1a905acc52b5ec640c",
+    "afterSha256": "7da437f01a8b5967ac2ba63fa7dd9186cee089690c868a9f4cef309f7b8cd23d",
+    "beforeBytes": 2956,
+    "afterBytes": 3664
+  },
+  {
+    "path": "docs/rebuild/STATUS.md",
+    "beforeSha256": "31eeec2b780a1a06740a23c12c2c6478ff995ad57fa4a50680f7926c5a477ccf",
+    "afterSha256": "4a8afb7e375d96f17f50b2036faca44410824e35e69341cb9b355946fefd3259",
+    "beforeBytes": 14658,
+    "afterBytes": 15796
+  },
+  {
+    "path": "flutter_app/README.md",
+    "beforeSha256": "cef779a6a4f6f748919fddf4cd6310d07d752dd7e9a2bdf6ff9c0934420dc4f8",
+    "afterSha256": "d84072bb7ad8fc393ddc16045699a211e7cfe933dc1e3e425e65038556e86f48",
+    "beforeBytes": 5190,
+    "afterBytes": 5565
+  },
+  {
+    "path": "flutter_app/lib/application/notebook_controller.dart",
+    "beforeSha256": "6e64bd0b73aae340ab5996277ae1061f7a91d06d02022ea8ce8bc92d6d2cc5ec",
+    "afterSha256": "292197ab09a1951f461ef8e477ba0ebf5bd73fa2399d5675d072078e50b99bd0",
+    "beforeBytes": 2417,
+    "afterBytes": 2676
+  },
+  {
+    "path": "flutter_app/lib/data/school_store.dart",
+    "beforeSha256": "a7c6c3c1cef8a420c1f3913721a28a9eb1bbb8b20f4f9335b94c6c649af03749",
+    "afterSha256": "49abde779972d3f7eb51eda28ae92df7481df4c2df1a8b89e5d34ba037934d5a",
+    "beforeBytes": 10657,
+    "afterBytes": 12853
+  },
+  {
+    "path": "flutter_app/lib/data/sqlite_notebook.dart",
+    "beforeSha256": "444d3805e28ad06cd584322001e1922f2035297639b9c82e6ca85a3ef2f7e4ce",
+    "afterSha256": "35e1213a138e135c3a4dff254854479e69e52fc9bfd8c4d7fb25afa67c310c9e",
+    "beforeBytes": 18931,
+    "afterBytes": 37672
+  },
+  {
+    "path": "flutter_app/lib/domain/models.dart",
+    "beforeSha256": "f0b5c4da7e1d35a924c653dd904a13154e675c8750e02c1a813b3f13a956c3d1",
+    "afterSha256": "8c58d28e3f414c12d3fe6eb5cbb5a076c1043eb386255d2a25b602c516ae331b",
+    "beforeBytes": 13756,
+    "afterBytes": 16667
+  },
+  {
+    "path": "flutter_app/lib/domain/observation_catalog.dart",
+    "beforeSha256": "6cd02aaa425aa6cc4137104adf5befa9bd1b50fdfeb8b893fc1afbfbde0d2e97",
+    "afterSha256": "8ff8b712270a2f8c58ac9aa9746cf7eaef77d08cc3c147ee09c41038b87d0f1d",
+    "beforeBytes": 2237,
+    "afterBytes": 2235
+  },
+  {
+    "path": "flutter_app/lib/domain/repository.dart",
+    "beforeSha256": "3474a71699f3930029af2dc3d461cd7304edf80ed9f6a26d0e77d5b462267c7d",
+    "afterSha256": "70736c67846a23c7643c964fb7a2a504747033fe2c84d55fcced5c09c0977953",
+    "beforeBytes": 2333,
+    "afterBytes": 3245
+  },
+  {
+    "path": "flutter_app/lib/domain/school.dart",
+    "beforeSha256": "55410e0cbe146a31498fcc476056a02a6150dccd77d7492f0e5088a3844252f4",
+    "afterSha256": "3e612a88bcdfdac8e878a591f7aaf58b5314aae562f4ec61fd616215a4f47200",
+    "beforeBytes": 13927,
+    "afterBytes": 15463
+  },
+  {
+    "path": "flutter_app/lib/ui/app.dart",
+    "beforeSha256": "84ee6f899b241687f59ed6592bdd6160834afe45c36cfb8e5449fff0fe29b5e4",
+    "afterSha256": "18bb2697e7a26a59c7c34f0682f51b0076310d5cf2d0083e0bfd7590ef0b4e32",
+    "beforeBytes": 6947,
+    "afterBytes": 6804
+  },
+  {
+    "path": "flutter_app/lib/ui/backup_dialog.dart",
+    "beforeSha256": "62b5c094e3bc68d6c2b5a68f8f97fe09ea22da5906be7ae93eb21ac00623dbd2",
+    "afterSha256": "cc8604461ed4a4f298d76f3a4186bcb8ad409cc792200f361d0129cb6a7b1226",
+    "beforeBytes": 7809,
+    "afterBytes": 13415
+  },
+  {
+    "path": "flutter_app/lib/ui/common.dart",
+    "beforeSha256": "066fb7c6b250772c0e63c5d4bbf3ecb6c2e6360042b523edd058d89fa3657016",
+    "afterSha256": "53585bce47bd113f0d09be79906ee63f0b753ad429090da6d18658823d6dd75a",
+    "beforeBytes": 1540,
+    "afterBytes": 1793
+  },
+  {
+    "path": "flutter_app/lib/ui/conflict_dialog.dart",
+    "beforeSha256": null,
+    "afterSha256": "cba1b81154c8448f7ebda245d5ffa69f6c3f4ad4b70208614212d037c5002fa7",
+    "beforeBytes": 0,
+    "afterBytes": 9119
+  },
+  {
+    "path": "flutter_app/lib/ui/dialog_workflows.dart",
+    "beforeSha256": null,
+    "afterSha256": "d0e09fea04be6175a6fe17a42898df9e21dba83b59b2f5cd5a222b7c7048f41a",
+    "beforeBytes": 0,
+    "afterBytes": 30667
+  },
+  {
+    "path": "flutter_app/lib/ui/draft_buffer.dart",
+    "beforeSha256": null,
+    "afterSha256": "2172f06c189682c526b70e32966f7324d110d5ef525296bd1d9e39d09a898dc9",
+    "beforeBytes": 0,
+    "afterBytes": 5348
+  },
+  {
+    "path": "flutter_app/lib/ui/flex_date_picker.dart",
+    "beforeSha256": "14c3930dfb36e3346d65657aac6eca0e959789f2b7ff656c0230c07ceb2f23fd",
+    "afterSha256": "2473b54c7bbe7d1351fe56a9c7e91e8fa44b3e60c86d5755d6590dc8df169833",
+    "beforeBytes": 10628,
+    "afterBytes": 13345
+  },
+  {
+    "path": "flutter_app/lib/ui/flex_modal.dart",
+    "beforeSha256": "8d6e8b6741c6d8d2ca38d8b372955714a3a0097b4550d5ce6c19e6fe68641746",
+    "afterSha256": "dbe2bcbb600cba5bdf35c3b0aacd4098c6ed754dd10245faa94b90b8a225afcf",
+    "beforeBytes": 13188,
+    "afterBytes": 13941
+  },
+  {
+    "path": "flutter_app/lib/ui/maintenance_dialog.dart",
+    "beforeSha256": null,
+    "afterSha256": "3ed429aa1de69f01b12131dc65c41eac43f1cf92fd38d0c7014e6cf81340144b",
+    "beforeBytes": 0,
+    "afterBytes": 4277
+  },
+  {
+    "path": "flutter_app/lib/ui/notebook_screen.dart",
+    "beforeSha256": "28ab1d60209aff3408b96229ef373faee064e917005fe04752c029938c3f15cd",
+    "afterSha256": "f27823e99553b6e60511fd6b529f068b6d07579f307a965186708b6bc065ac6e",
+    "beforeBytes": 37923,
+    "afterBytes": 42845
+  },
+  {
+    "path": "flutter_app/lib/ui/orga_editor.dart",
+    "beforeSha256": "8a91ad9f97c87f936dd3e769bcdeeadeddd7ac1e4c08922c75d6e2b0c2a39104",
+    "afterSha256": "aa95702994679fc5b6c3f71a9fbf9edcf16738801ff0bc9a2d543d8981a295a4",
+    "beforeBytes": 17637,
+    "afterBytes": 20925
+  },
+  {
+    "path": "flutter_app/lib/ui/pupil_editor.dart",
+    "beforeSha256": null,
+    "afterSha256": "719cdb64e4aaf4eda12d3e48e982400aed7caaf3c09d91361f6038c35bc9b954",
+    "beforeBytes": 0,
+    "afterBytes": 9185
+  },
+  {
+    "path": "flutter_app/lib/ui/pupil_history.dart",
+    "beforeSha256": null,
+    "afterSha256": "fade4f05e650df3cac0b578c7e3b375fb26aa7dd4c4efc96e419be41475a970d",
+    "beforeBytes": 0,
+    "afterBytes": 11121
+  },
+  {
+    "path": "flutter_app/lib/ui/school_editor.dart",
+    "beforeSha256": "125ee90346fe4294c1440bd2688c55e0a9e0e9e966035e40bf229c5df08200ac",
+    "afterSha256": "e78c2dd414be97cf92af701d4aa0c59e7871d77f6a7a4f2a47d41d3f65a64b26",
+    "beforeBytes": 51720,
+    "afterBytes": 70571
+  },
+  {
+    "path": "flutter_app/lib/ui/school_workspace.dart",
+    "beforeSha256": "3c00af04a00305512ed9d74a91911b7b6f703437d217af9e139f62cd793b6d1a",
+    "afterSha256": "7f3815c628bccc80dcd28241da5eafbb6e82e8ee3d54f91700a42f55ced3c888",
+    "beforeBytes": 27670,
+    "afterBytes": 34910
+  },
+  {
+    "path": "flutter_app/lib/ui/settings.dart",
+    "beforeSha256": "e59dff2f93f0e29c41ebed6ddb1e032e8093a975bd2b90c7b2a26753d752d7d9",
+    "afterSha256": "a1c86fcdca36a42da538907abcb967b5ba20480c8ae584e518544f70a7d0bf4b",
+    "beforeBytes": 9638,
+    "afterBytes": 9920
+  },
+  {
+    "path": "flutter_app/lib/ui/tag_text_field.dart",
+    "beforeSha256": null,
+    "afterSha256": "a77226f59b5071ae56c22003bd589c7d37869688703a06737c31ca2cc66de3a8",
+    "beforeBytes": 0,
+    "afterBytes": 4364
+  },
+  {
+    "path": "flutter_app/pubspec.yaml",
+    "beforeSha256": "f515073708a65446b3be212a38ebc36c9db24009db645a21b5d80289b1720104",
+    "afterSha256": "7ff3f2f68e78266ec5a11ea3a1ba4c2697e1048c9de2f40e0353f22daabb4229",
+    "beforeBytes": 1169,
+    "afterBytes": 1169
+  },
+  {
+    "path": "flutter_app/test/dialog_reference_test.dart",
+    "beforeSha256": null,
+    "afterSha256": "c854ad94891e0e27cce32e8b39c2a50f66c09ff638237cc51de9f35da1818d9a",
+    "beforeBytes": 0,
+    "afterBytes": 43244
+  },
+  {
+    "path": "flutter_app/test/editor_test.dart",
+    "beforeSha256": "32f35da7813d8ea4d1c71775a3a59abe53fcab7722ad73a7187c375ba9b073ac",
+    "afterSha256": "24879bbf1a7f70239046ad45df2fcf7d1e0f980f247700c94ba4d70abbebca18",
+    "beforeBytes": 3443,
+    "afterBytes": 3465
+  },
+  {
+    "path": "flutter_app/test/handover_ui_test.dart",
+    "beforeSha256": "290d2a81cdb004c21013c32bc5a2127f74005fdfc52df7a180642857b0338dfc",
+    "afterSha256": "05b5a342134b4899c4f55db4ce4507e9072b54ff22ddd48be73ec06fe000566f",
+    "beforeBytes": 21301,
+    "afterBytes": 21536
+  },
+  {
+    "path": "flutter_app/test/rebuild_ui_test.dart",
+    "beforeSha256": "ce2d069e1da902af7be991a1fdbf84b2de257faa74eb706350f8e5e122def8c9",
+    "afterSha256": "6b7214c88ab0bc85c6b2beba0c71029c234cdc19948496ff07a6196e4ae5c006",
+    "beforeBytes": 13735,
+    "afterBytes": 14242
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "path": "index.html",
+    "status": 200,
+    "sha256": "b1c4972bec1e19d02d56f381f69c1676e306b7cbbc14349dffffc91106b1d92f",
+    "coop": "same-origin",
+    "coep": "require-corp"
+  },
+  {
+    "path": "version.json",
+    "status": 200,
+    "sha256": "9e089a18604609e38a0825a16e26d792300fdbbd2a9b22eef7502789a6b14d9a",
+    "coop": "same-origin",
+    "coep": "require-corp"
+  },
+  {
+    "path": "main.dart.js",
+    "status": 200,
+    "sha256": "ace76cbc4a2f1d2049dc05197a99c189ff4e98f5c767e61166111d2983a7670d",
+    "coop": "same-origin",
+    "coep": "require-corp"
+  },
+  {
+    "path": "assets/assets/backgrounds/dark-texture.png",
+    "status": 200,
+    "sha256": "3bdab985e55e5369ca4aad8add136c37475c6d691846976630e23f22400492db",
+    "coop": "same-origin",
+    "coep": "require-corp"
+  }
+]

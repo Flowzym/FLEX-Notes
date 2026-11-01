@@ -1,0 +1,36 @@
+/* Centered, raised active segment; no space reserved for the former sidebar. */
+.has-pill-navigation .shell,.has-pill-navigation .shell.is-collapsed{display:block;--rail:0px;grid-template-columns:none}
+.has-pill-navigation .workspace{grid-column:auto;width:100%;margin-inline:auto}
+.has-pill-navigation .sidebar,.has-pill-navigation #railBackdrop{display:none!important}
+.has-pill-navigation .page-head{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;width:100%}
+.has-pill-navigation .page-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.has-pill-navigation .page-head .head-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;width:100%;margin:0;gap:8px}
+.page-pills{position:relative;width:min(100%,340px);padding-block:7px;margin-inline:auto;flex:none}
+.page-pill-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;min-height:34px;padding:0 3px;border:1px solid var(--border);border-radius:999px;background:var(--button-fill,var(--panel-bg));box-shadow:0 4px 18px var(--shadow-color);overflow:visible}
+.page-pill-track>button{position:relative;display:grid;place-items:center;min-width:0;min-height:34px;padding:6px 8px;border:0;border-radius:999px;background:transparent;color:var(--button-ink,var(--text));font:650 13px/1.2 "Segoe UI",system-ui,sans-serif;white-space:nowrap;transition:background-color .15s,color .15s;z-index:1}
+.page-pill-track>button:hover:not(.active){background:var(--surface-hover)}
+/* Cover the track's 3px padding and 1px border, then extend 3px past its edge. */
+.page-pill-track>button.active{min-height:42px;margin-block:-4px;margin-inline:-7px;z-index:2;background:var(--accent);color:var(--on-accent);font-size:16px;font-weight:750;box-shadow:0 5px 15px var(--shadow-color)}
+.page-pill-track>button:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.page-pills.has-more-active #pageMoreButton{font-size:15px;padding-inline:4px}
+#pageMoreMenu{position:absolute;top:calc(100% + 4px);right:0;width:min(100%,320px);padding:10px;border:1px solid var(--border-strong);border-radius:20px;background:var(--panel-bg);color:var(--text);box-shadow:var(--shadow-dialog);max-height:min(65dvh,520px);overflow-y:auto;overscroll-behavior:contain;z-index:30}
+#pageMoreMenu #nav{display:grid;gap:4px;margin:0}
+#pageMoreMenu #nav button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:44px;padding:10px 12px;text-align:left;font-size:14px;border-radius:12px;color:var(--text);opacity:1}
+#pageMoreMenu #nav button>span{display:inline}
+#pageMoreMenu #nav button.active{background:var(--accent);color:var(--on-accent);font-weight:650}
+#pageMoreMenu #nav button:not(:disabled):not(.active):hover{background:var(--surface-hover)}
+#pageMoreMenu #nav button:disabled{color:var(--text-secondary);opacity:.55}
+#pageMoreMenu #nav .later{font-size:10px;margin-left:auto}
+#pageMoreMenu .page-menu-status{border-top:1px solid var(--border);margin-top:8px;padding:10px 8px 4px;font-size:11px;line-height:1.5}
+#pageMoreMenu .save-state{display:flex;gap:6px;align-items:center;margin:0;padding:0;color:var(--text-secondary);background:transparent;font-size:11px}
+#pageMoreMenu .save-state.failed{color:var(--error-text);background:var(--error-bg);padding:8px;border-radius:8px}
+.has-pill-navigation .page-head{margin-bottom:6px;gap:6px}
+.has-pill-navigation .student-tools{grid-template-columns:max-content minmax(0,1fr) auto;gap:4px 8px;align-items:center;margin-bottom:10px}
+.has-pill-navigation .student-tools .head-actions{grid-column:3;grid-row:2;display:flex;align-items:center;justify-content:flex-end;justify-self:end;flex-wrap:nowrap;width:auto;margin:0;gap:5px}
+.has-pill-navigation .student-tools .head-actions .icon-btn{width:32px;min-width:32px;height:32px;min-height:32px}
+.has-pill-navigation .student-tools .head-actions .icon-btn svg{width:18px;height:18px}
+@media(max-width:360px){.page-pill-track>button{font-size:12px;padding-inline:5px}.page-pill-track>button.active{font-size:15px}.page-pills.has-more-active #pageMoreButton{font-size:13.5px}.has-pill-navigation .student-tools{column-gap:6px}}
+@media(prefers-reduced-motion:reduce){.page-pill-track>button{transition:none}}
+.page-pill-track,.student-card{touch-action:pan-y pinch-zoom}
+.workspace.is-swipe-tracking,.workspace.is-swipe-tracking *{user-select:none;-webkit-user-select:none}
+@media print{.page-pills,.has-pill-navigation .head-actions{display:none!important}.has-pill-navigation .page-title{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none}}

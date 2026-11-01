@@ -1,0 +1,21 @@
+/* Selection sources sit above their field; chosen pills live only in the field. */
+dialog input::placeholder,dialog textarea::placeholder,dialog .tag-input .tag-input-free::placeholder{color:#9c978e;opacity:1}
+dialog [data-situation-tag][hidden],dialog [data-context-field][hidden],dialog [data-reminder-template][hidden]{display:none!important}
+dialog .situation-tags,dialog .context-suggestions{margin:0 0 10px!important;gap:6px}
+dialog .situation-tags:not(:has(button:not([hidden]))),dialog .context-suggestions:not(:has(button:not([hidden]))),dialog .extra-pill-source:not(:has(button:not([hidden]))){display:none}
+dialog .context-suggestions>span{display:block;margin-bottom:6px;font-size:11px;color:#8a8172}
+dialog .context-suggestions>div,.extra-pill-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.reminder-quick-area{margin:0 0 18px}.reminder-quick-area .options-toolbar{margin:0 0 7px!important}.reminder-quick-area .options-toolbar>span{font-size:12px;color:#827665}
+#modalBody .reminder-options,dialog .extra-pill-source{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+#modalBody .reminder-options .option,dialog .extra-pill-source button,dialog .field:has(.tag-input) .situation-tags button,dialog .context-suggestions button{display:inline-flex;align-items:center;min-height:36px;max-width:100%;width:auto;padding:7px 12px;border:1px solid #dcd5c8;border-radius:999px!important;background:#faf8f3;color:#746650;font-size:12px;line-height:1.4;white-space:normal;text-align:left;overflow-wrap:anywhere;box-shadow:none}
+#modalBody .reminder-options .option:hover,dialog .extra-pill-source button:hover,dialog .context-suggestions button:hover{background:#f0eade;border-color:#b9ab93}
+dialog .tag-input .input-tag,dialog .selected-tag{border-radius:999px!important;padding-inline:12px}
+/* Observation choices use the same pill language and retain their selected tags. */
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .options{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap{display:flex;gap:0;max-width:100%;border:1px solid #ddd6ca;border-radius:22px;background:#fffefb;overflow:hidden;align-items:stretch}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap:has(.option[aria-pressed=true]){display:none}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap .option{flex:0 1 auto;min-width:0;min-height:38px;padding:8px 4px 8px 12px;border:0;background:transparent;border-radius:0;font-size:12px;line-height:1.5;text-align:left;box-shadow:none}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap .marker{display:none}
+#studentDialog:is([data-section="Sozialverhalten"],[data-section="Arbeitsverhalten"]) #modalBody .option-wrap .favorite{width:31px;min-width:31px;min-height:38px;padding:0 7px 0 3px;border:0;background:transparent;font-size:12px}
+#modalBody .selected-row{margin:8px 0 15px;gap:6px}#bulkBody .bulk-options{display:flex;flex-wrap:wrap;gap:7px}#bulkBody .bulk-options button{width:auto;min-height:38px;border-radius:999px;padding:7px 12px;font-size:12px}#bulkBody .bulk-options button[aria-pressed=true]{display:none}.bulk-selected-pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.bulk-selected-pills:empty{display:none}.bulk-selected-pills button{font-size:12px;min-height:36px}
+@media(max-width:700px){#modalBody .reminder-options .option,dialog .extra-pill-source button,dialog .field:has(.tag-input) .situation-tags button,dialog .context-suggestions button{font-size:11px;padding-inline:11px}}

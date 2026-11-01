@@ -1,0 +1,45 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.16.0-rebuild.4",
+    "build_number": "24",
+    "package_name": "flex_notizbuch"
+  },
+  "resources": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "sha256": "b1c4972bec1e19d02d56f381f69c1676e306b7cbbc14349dffffc91106b1d92f",
+      "coop": "same-origin",
+      "coep": "require-corp"
+    },
+    {
+      "path": "version.json",
+      "status": 200,
+      "sha256": "93352ad46699c7f72cd0e16f482887b86866237db0c07d53eaae48c14cf4aab9",
+      "coop": "same-origin",
+      "coep": "require-corp"
+    },
+    {
+      "path": "main.dart.js",
+      "status": 200,
+      "sha256": "830f74088227b29ee21e92ecfb8a4e793830a40f759625734a6b07dced15dbad",
+      "coop": "same-origin",
+      "coep": "require-corp"
+    },
+    {
+      "path": "drift_worker.js",
+      "status": 200,
+      "sha256": "956ec726bb7207384a3c30da583df324a3386c4099f7c8e21fe3c2b03c47c961",
+      "coop": "same-origin",
+      "coep": "require-corp"
+    },
+    {
+      "path": "assets/assets/backgrounds/dark-texture.png",
+      "status": 200,
+      "sha256": "3bdab985e55e5369ca4aad8add136c37475c6d691846976630e23f22400492db",
+      "coop": "same-origin",
+      "coep": "require-corp"
+    }
+  ]
+}

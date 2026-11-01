@@ -1,0 +1,10 @@
+flutter_app/.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins*
+flutter_app/android/.gradle/
+flutter_app/android/local.properties
+flutter_app/windows/flutter/ephemeral/
+flutter_app/linux/flutter/ephemeral/
+flutter_app/macos/Flutter/ephemeral/
+**/__pycache__/
+audit/tools/node_modules/

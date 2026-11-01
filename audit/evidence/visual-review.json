@@ -1,0 +1,53 @@
+{
+  "scope": "Selected PNGs manually opened with view_image; no browser, no claim that every PNG was inspected. Intermediate views may contain earlier layout corrections; finalPass lists the exact final artifacts viewed again after the full successful run.",
+  "finalPass": [
+    {
+      "file": "goal-review-wide.png",
+      "sha256": "7971da59d212ec7861ba019ba87c7c18c189c1ea800e7103d9165978b9851255"
+    },
+    {
+      "file": "menu-drafts-filled-narrow.png",
+      "sha256": "993e65389d94f303311bb957c4e37ccc3dc7b1381812fb626cce895e3130e3b0"
+    },
+    {
+      "file": "social-error-large-keyboard.png",
+      "sha256": "d106531f8b0a5b51660f1ec6a8fb543b1442d6c65883bdbb8e13ceb7c67b4b41"
+    },
+    {
+      "file": "calendar-narrow.png",
+      "sha256": "d60e89795e737b450d8d81489fc93bdca1493074dac241ecf92a17ff16bddd15"
+    },
+    {
+      "file": "work-empty-wide.png",
+      "sha256": "7313bcc5d84f668666777801a8a456584071a5534ac45ce9289d7ef82ed0e6a2"
+    },
+    {
+      "file": "homework-new-narrow.png",
+      "sha256": "880b5d85a1d54ead238ee60fc9279e4b6eded5d03a5585d35b81e40e3c6aeada"
+    }
+  ],
+  "additionallyViewedDuringCorrections": [
+    "pupil-edit-narrow.png",
+    "goal-new-wide.png",
+    "homework-edit-wide.png",
+    "history-narrow.png",
+    "social-filled-wide.png",
+    "conflicts-filled-narrow.png",
+    "bulk-wide.png",
+    "context-wide.png",
+    "brief-wide.png",
+    "unsaved-narrow.png",
+    "menu-class-narrow.png",
+    "goal-review-large-keyboard.png",
+    "homework-comment-large-keyboard.png",
+    "orga-filled-narrow.png",
+    "social-error-narrow.png",
+    "maintenance-error-narrow.png",
+    "import-review-narrow.png",
+    "catalog-narrow.png",
+    "backup-narrow.png",
+    "password-open-narrow.png",
+    "pupil-error-large-keyboard.png"
+  ],
+  "notPixelComparedWithRenderedHtml": true
+}

@@ -1,0 +1,29 @@
+.student-grid{grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:18px;align-items:stretch}
+.student-card{--card-accent:#476a59;--card-tint:#eaf1ea;display:flex;flex-direction:column;align-items:stretch;min-width:0;min-height:232px;padding:22px;border:1px solid #e0e5db;border-radius:20px;background:#fff;box-shadow:0 2px 3px #253d2903,0 7px 22px #253d2904;overflow:hidden;text-align:left}
+.student-card.palette-1{--card-accent:#53747e;--card-tint:#eaf1f3}.student-card.palette-2{--card-accent:#82704d;--card-tint:#f4efe5}.student-card.palette-3{--card-accent:#756582;--card-tint:#f0ecf4}
+.student-card .student-line{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;gap:8px}
+.student-card .avatar,.student-card:nth-child(2n) .avatar{width:46px;height:46px;flex:0 0 46px;border-radius:15px;background:var(--card-tint);color:var(--card-accent);font-size:18px;font-weight:650;letter-spacing:-.5px;box-shadow:inset 0 0 0 1px #ffffff80}
+.student-card .arrow{width:28px;height:28px;flex:0 0 28px;background:transparent;border:0;color:#7c8c80}
+.student-card .student-name{display:block;font-size:22px;font-weight:650;letter-spacing:-.6px;line-height:1.22;color:#2c4035;overflow-wrap:anywhere}
+.student-card .student-meta{display:block;font-size:11px;line-height:1.5;color:#6f7d72;margin:6px 0 20px}
+.student-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:auto;padding-top:15px;border-top:1px solid #edf0e9}
+.student-stat{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;color:#728075}
+.stat-value{font-size:18px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums;color:#7b877c}
+.stat-label{font-size:10px;line-height:1.45;color:#647369}
+.has-homework .stat-value{color:#385e48}.has-reminders .stat-value{color:#946535}.has-reminders .stat-label{color:#805a31}
+.student-card .label-mobile{display:none}.student-card:hover{border-color:#b5c6b8;box-shadow:0 8px 24px #324b3210;transform:translateY(-2px)}.student-card:hover .arrow{background:var(--card-tint);color:var(--card-accent)}.student-card:focus-visible{outline:3px solid #5d8268;outline-offset:3px}.student-card.is-archived{background:#fafbf8}
+@media(max-width:700px){
+ .student-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .student-card{padding:14px 12px;border-radius:16px;min-height:218px}
+ .student-card .student-line{margin-bottom:14px;gap:4px}
+ .student-card .avatar,.student-card:nth-child(2n) .avatar{width:38px;height:38px;flex-basis:38px;border-radius:12px;font-size:15px}
+ .student-card .arrow{width:21px;height:26px;flex-basis:21px}.student-card .arrow svg{width:15px;height:15px}
+ .student-card .student-name{font-size:18px;letter-spacing:-.4px;line-height:1.25}
+ .student-card .student-meta{font-size:10px;margin:5px 0 15px}
+ .student-stats{grid-template-columns:1fr;gap:9px;padding-top:12px}
+ .student-stat{flex-direction:row;align-items:center;gap:8px}
+ .stat-value{font-size:15px;min-width:14px;flex:none}.stat-label{font-size:10px;line-height:1.3}
+ .student-card .label-desktop{display:none}.student-card .label-mobile{display:inline}
+}
+@media(max-width:360px){.workspace{padding-left:12px;padding-right:12px}.student-grid{gap:8px}.student-card{padding:12px 10px}.student-card .student-name{font-size:16px}.student-stat{gap:6px}}
+@media(hover:none){.student-card:hover{transform:none;box-shadow:0 2px 3px #253d2903,0 7px 22px #253d2904}}

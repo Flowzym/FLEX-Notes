@@ -1,0 +1,205 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart
+00:00 +0 -1: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart": Failed to create server socket (OS Error: Operation not permitted, errno = 1), address = 127.0.0.1, port = 0
+  dart:io-patch/socket_patch.dart 1248:7                           _NativeSocket.bind
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2195:12                          _RawServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2515:12                          _ServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:_http/http_impl.dart 3479:24                                _HttpServer.bind.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_tester_device.dart 89:15  FlutterTesterTestDevice.start
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_platform.dart 679:51      FlutterPlatform._startTest.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/base/async_guard.dart 108:24           asyncGuard.<fn>
+  
+lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+ - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+    final bytes = BytesBuilder();
+                  ^^^^^^^^^^^^
+00:00 +0 -2: loading /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart":
+  Compilation failed for testPath=/workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+   - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+      final bytes = BytesBuilder();
+                    ^^^^^^^^^^^^
+  .
+00:00 +0 -2: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+ - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+    final bytes = BytesBuilder();
+                  ^^^^^^^^^^^^
+00:00 +0 -3: loading /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart":
+  Compilation failed for testPath=/workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+   - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+      final bytes = BytesBuilder();
+                    ^^^^^^^^^^^^
+  .
+00:00 +0 -3: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -4: loading /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/notebook_test.dart": Failed to create server socket (OS Error: Operation not permitted, errno = 1), address = 127.0.0.1, port = 0
+  dart:io-patch/socket_patch.dart 1248:7                           _NativeSocket.bind
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2195:12                          _RawServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2515:12                          _ServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:_http/http_impl.dart 3479:24                                _HttpServer.bind.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_tester_device.dart 89:15  FlutterTesterTestDevice.start
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_platform.dart 679:51      FlutterPlatform._startTest.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/base/async_guard.dart 108:24           asyncGuard.<fn>
+  
+00:00 +0 -5: loading /workspace/FLEX-Notes/flutter_app/test/school_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/school_test.dart": Failed to create server socket (OS Error: Operation not permitted, errno = 1), address = 127.0.0.1, port = 0
+  dart:io-patch/socket_patch.dart 1248:7                           _NativeSocket.bind
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2195:12                          _RawServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2515:12                          _ServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:_http/http_impl.dart 3479:24                                _HttpServer.bind.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_tester_device.dart 89:15  FlutterTesterTestDevice.start
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_platform.dart 679:51      FlutterPlatform._startTest.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/base/async_guard.dart 108:24           asyncGuard.<fn>
+  
+lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+ - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+    final bytes = BytesBuilder();
+                  ^^^^^^^^^^^^
+00:00 +0 -6: loading /workspace/FLEX-Notes/flutter_app/test/editor_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/editor_test.dart":
+  Compilation failed for testPath=/workspace/FLEX-Notes/flutter_app/test/editor_test.dart: lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+   - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+      final bytes = BytesBuilder();
+                    ^^^^^^^^^^^^
+  .
+00:00 +0 -6: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+ - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+    final bytes = BytesBuilder();
+                  ^^^^^^^^^^^^
+00:00 +0 -7: loading /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart":
+  Compilation failed for testPath=/workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: lib/ui/backup_dialog.dart:147:19: Error: The method 'BytesBuilder' isn't defined for the type '_BackupDialogState'.
+   - '_BackupDialogState' is from 'package:flex_notizbuch/ui/backup_dialog.dart' ('lib/ui/backup_dialog.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'BytesBuilder'.
+      final bytes = BytesBuilder();
+                    ^^^^^^^^^^^^
+  .
+00:00 +0 -7: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -8: loading /workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart [E]
+  Failed to load "/workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart": Failed to create server socket (OS Error: Operation not permitted, errno = 1), address = 127.0.0.1, port = 0
+  dart:io-patch/socket_patch.dart 1248:7                           _NativeSocket.bind
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2195:12                          _RawServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:io-patch/socket_patch.dart 2515:12                          _ServerSocket.bind.<fn>
+  ===== asynchronous gap ===========================
+  dart:_http/http_impl.dart 3479:24                                _HttpServer.bind.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_tester_device.dart 89:15  FlutterTesterTestDevice.start
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_platform.dart 679:51      FlutterPlatform._startTest.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/base/async_guard.dart 108:24           asyncGuard.<fn>
+  
+00:00 +0 -8: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart: loading /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart
+  /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: loading /workspace/FLEX-Notes/flutter_app/test/editor_test.dart
+  /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: loading /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart
+  /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: loading /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart
+  ... and 4 more

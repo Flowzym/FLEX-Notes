@@ -1,0 +1,9 @@
+{
+  "format": "FLEX-Encrypted",
+  "version": 1,
+  "kdf": "PBKDF2-SHA256",
+  "iterations": 310000,
+  "salt": "BTRf3iRGkuBBdF3YP6Ah9g==",
+  "iv": "WuPKFe1wdSFcbJNN",
+  "ciphertext": "18PSzlASvhRbHm46LRYbWmwSkBvmaXiyMqslYMJHLiEsSx02Y3Y/lstj8mBO/RHT7nmZX9eMPPJZLFBaUOLhSaPzNWt93F0="
+}

@@ -1,0 +1,14 @@
+{
+  "version": "0.16.0-rebuild.5+25",
+  "flutter": "3.47.9",
+  "dart": "3.13.7",
+  "testsPassed": 81,
+  "analysis": "No issues found",
+  "matrixPngs": 111,
+  "additionalPngs": 10,
+  "sourceManifestSha256": "7a7d51d8d4bfa3bfab23b45a7be10f51f5c8d948b04af70e7b93284b76b8eae3",
+  "testLogSha256": "6db4d14aa56cdc189736c61db252d2370a7964cfe2e612e62b426acca6b2f0de",
+  "analysisLogSha256": "b10d4e836651621c14f38856571eb5527505e2d6e26eae377cc36188712ee09a",
+  "browserTests": false,
+  "originalFaithfulnessApproved": false
+}

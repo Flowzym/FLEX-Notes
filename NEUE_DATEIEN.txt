@@ -1,0 +1,30 @@
+Neue Dateien gegenüber dem hochgeladenen Quellenbestand.
+Alle Originaldateien unter work/FLEX-Notizbuch sind unverändert.
+
+FLUTTER_STATUS.md
+NEUE_DATEIEN.txt
+flutter_app/.gitignore
+flutter_app/ARCHITEKTUR.md
+flutter_app/README.md
+flutter_app/analysis_options.yaml
+flutter_app/assets/schema.sql
+flutter_app/lib/application/notebook_controller.dart
+flutter_app/lib/data/database.dart
+flutter_app/lib/data/sqlite_notebook.dart
+flutter_app/lib/domain/models.dart
+flutter_app/lib/domain/repository.dart
+flutter_app/lib/main.dart
+flutter_app/lib/ui/app.dart
+flutter_app/lib/ui/common.dart
+flutter_app/lib/ui/notebook_screen.dart
+flutter_app/lib/ui/orga_editor.dart
+flutter_app/lib/ui/settings.dart
+flutter_app/pubspec.yaml
+flutter_app/test/editor_test.dart
+flutter_app/test/notebook_test.dart
+flutter_app/third_party/sqlite3-LICENSE
+flutter_app/tool/drift_worker.dart
+flutter_app/tool/prepare.py
+flutter_app/tool/test_schema.py
+flutter_app/web/index.html
+flutter_app/web/sqlite3.wasm

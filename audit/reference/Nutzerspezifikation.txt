@@ -1,0 +1,637 @@
+1. Gemeinsamer Aufbau aller Dialoge
+Darstellung als Modal
+Deine letzte Vorgabe lautet eindeutig:
+- Sozialverhalten, Arbeitsverhalten und Orga erscheinen als Modals.
+- Ziele, HÜ und die übrigen Dialoge müssen sich genauso verhalten.
+- Auch auf dem Smartphone bleiben sie erkennbar über der bisherigen Ansicht liegende Dialoge.
+- Die Hauptseiten „Übersicht“ und „Schüler“ bleiben Hauptseiten.
+Der Dialog besteht aus drei optisch unterscheidbaren Teilen:
+1. Kopfbereich mit Kontext, Titel und Navigation.
+2. Inhaltsbereich, der bei Bedarf scrollt.
+3. Fußbereich mit zugehörigen Abschlussangaben und Aktionen.
+Das bedeutet für den Nachbau:
+- Der Hintergrund der App bleibt außerhalb des Dialogs erkennbar.
+- Abgerundete äußere Ecken.
+- Ein sichtbarer Außenabstand zum Bildschirmrand.
+- Eine begrenzte Breite auf großen Bildschirmen.
+- Lange Inhalte werden innerhalb des Dialogs gescrollt.
+- Der Dialog darf nicht durch eine beliebige Vollbildseite ersetzt werden.
+- Die Bildschirmtastatur darf Speichern und Schließen nicht dauerhaft unzugänglich machen.
+- Ein kleiner Kommentar benötigt weniger Breite als ein umfangreicher Eintragsdialog.
+Bisherige Umsetzung, nicht aus dem HTML vermessene Originalwerte: Im zuletzt bearbeiteten Flutter-Stand wurden unter anderem 10 Pixel Außenabstand auf Mobilgeräten, 16 auf großen Ansichten, ein Radius von 24 und eine Standard-Maximalbreite von 640 verwendet. Diese Werte sind Anhaltspunkte aus dem Arbeitsstand, keine verbindlichen Messwerte des Prototyps.
+Kopfbereich
+Im Sozialverhalten-Screenshot ist Folgendes sichtbar:
+- Links oben ein Zurückpfeil.
+- Daneben der Schülername in kleinerer Schrift.
+- Darunter der große Titel „Sozialverhalten“.
+- Rechts oben ein Schließen-Symbol.
+- Der Titel verwendet eine Serifenschrift.
+- Schülername, Formularbeschriftungen und Buttons verwenden eine andere, sachliche Schrift.
+- Eine schmale farbige Markierung am linken Rand kennzeichnet den Bereich.
+- Der Kopfbereich besitzt eine eigene Hintergrundfläche.
+- Die oberen Ecken bilden gemeinsam die Rundung des äußeren Dialograhmens.
+Das kleine Betriebssystemfenster beziehungsweise die überlagernden Systemsymbole im Screenshot gehören nicht zur App.
+
+Nicht eindeutig erkennbar ist die Funktion eines teilweise verdeckten Symbols neben dem Schließen-Button. Dieses darf nicht anhand der Bildreste neu erfunden werden.
+Kopf- und Fußfarbe
+Dein Wunsch:
+Kopf und Fußzeile der Dialoge: eigene Farbwahl, gemeinsam.
+
+Daraus folgt:
+- Eine gemeinsame Farbeinstellung steuert beide Bereiche.
+- Eine Änderung muss an sämtlichen betroffenen Dialogen sichtbar werden.
+- Der Inhaltsbereich darf unabhängig davon gestaltet sein.
+- Die Lesbarkeit von Text und Symbolen muss erhalten bleiben.
+- Die Einstellung darf nicht nur den äußeren Dialogcontainer ändern, während Kopf oder Fuß eine fest verdrahtete Farbe behalten.
+Schließen und Zurück
+Belegt ist der Wunsch nach Entwurfsschutz. Daher muss geprüft werden:
+- Was passiert beim Schließen über das X?
+- Was passiert beim Zurückpfeil?
+- Was passiert durch Escape?
+- Was passiert durch die Android-Zurückaktion?
+- Was passiert bei einem Klick außerhalb?
+- Wird ein veränderter Entwurf gesichert, abgefragt oder ausdrücklich verworfen?
+Die genauen ursprünglichen Regeln müssen aus dem Prototyp übernommen werden. Entscheidend ist, dass kein Schließweg unbeabsichtigt Eingaben verliert.
+2. Gemeinsame Eingabeelemente und Tagbuttons
+Tagbuttons
+Die Tags im Screenshot sind kompakte, abgerundete Schaltflächen:
+- Kurze Beschriftung.
+- Abgerundete, pillenartige Außenform.
+- Eine zusammenhängende Hintergrundfläche.
+- Mehrere Tags fließen nebeneinander.
+- Wenn der Platz nicht reicht, folgt ein sauberer Zeilenumbruch.
+- Kein horizontaler Überlauf bei langen Bezeichnungen.
+- Die Textgröße ist deutlich kleiner als die Dialogüberschrift.
+- Die ausgewählte Variante muss sich klar von der nicht ausgewählten unterscheiden.
+Dein früherer Hinweis war ausdrücklich, dass aktive Tagbuttons und ihre Beziehung zu den Eingabefeldern nicht korrekt nachgebildet waren.
+
+Daher reicht es nicht, irgendeine Chip-Liste oberhalb eines Textfelds einzubauen. Für jede Taggruppe muss im HTML geprüft werden:
+- Welche Eingabe gehört zu dieser Gruppe?
+- Wird ein ausgewählter Tag innerhalb der Eingabefläche angezeigt?
+- Wird zusätzlich Text übernommen?
+- Wird die Auswahl separat gespeichert?
+- Wie wird ein ausgewählter Tag entfernt?
+- Wie werden bestehender Freitext und Tags zusammen dargestellt?
+- Was passiert bei erneutem Laden?
+- Sind mehrere Tags gleichzeitig erlaubt?
+Diese Beziehungen dürfen nicht frei vereinheitlicht werden.
+Zusammengesetzte Tags mit Symbolen
+Im Sozialverhalten-Screenshot besitzen Beobachtungs-Tags rechts einen Stern.
+
+Optisch wichtig:
+- Text und Stern gehören zu einer gemeinsamen äußeren Form.
+- Hinter dem Stern darf kein andersfarbiges Rechteck entstehen.
+- Die Rundung darf nicht mitten im Button abbrechen.
+- Auswahl-, Hover- und Fokuszustände müssen zur gesamten Komponente passen.
+Die genaue Sternfunktion ist aus dem Screenshot allein nicht sicher abzulesen. Sie muss aus dem Originalcode übernommen werden. Insbesondere darf ein Klick auf eine mögliche Sternaktion nicht unbeabsichtigt zusätzlich die Beobachtung auswählen.
+Schriftfehler aus dem letzten Arbeitsstand
+Im damaligen Flutter-Nachbau wurden falsch gerenderte Chip-Beschriftungen gefunden. Die Korrektur verwendete:
+- Einen normalen TextStyle.
+- Die Schriftfamilie FlexSans.
+- Zustandsabhängige Farbe über WidgetStateColor.resolveWith.
+Der andere Chat sollte nicht nur die Theme-Konfiguration ansehen, sondern die tatsächlich gerenderte Beschriftung prüfen: Schrift, Größe, Kontrast und Auswahlzustand.
+3. Sozialverhalten: der am genauesten belegte Eintragsdialog
+Dieser Dialog ist durch deine Screenshots am besten dokumentiert.
+Reihenfolge
+Der sichtbare Aufbau lautet:
+1. Schülerkontext und Titel im Kopf.
+2. Gegebenenfalls vorhandene Entwurfshinweise.
+3. Auswahl „Positiv“ / „Negativ“.
+4. Bereich „Beobachtung“.
+5. Beobachtungs-Tags.
+6. Bereich „Was ist passiert?“.
+7. Zeitpunkt-Tags.
+8. Freitext für die Beobachtung.
+9. Weitere optionale Bereiche entsprechend den aktivierten Schaltern.
+10. Datumsbereich und Abschlussaktionen im Fuß.
+Die genaue Reihenfolge der zusätzlichen, im Screenshot nicht vollständig sichtbaren Bereiche muss am HTML geprüft werden.
+Positiv und Negativ
+Im Screenshot:
+- Zwei nebeneinander angeordnete Auswahlmöglichkeiten.
+- „Positiv“ ist ausgewählt und besitzt eine helle, grünliche Pillenfläche.
+- „Negativ“ ist unauffälliger dargestellt.
+- Beide bilden eine zusammengehörige Auswahl.
+Dein Änderungswunsch:
+Abstand zwischen Positiv-/Negativbuttons zur folgenden Auswahl verringern.
+
+Also:
+- Der unnötig große Leerraum vor „Beobachtung“ wird reduziert.
+- Die Gruppen bleiben optisch unterscheidbar.
+- Es darf kein Eindruck entstehen, als beginne nach der Bewertung ein komplett anderer Dialog.
+Beim Umschalten muss die vorhandene Fachlogik erhalten bleiben. Insbesondere ist am Original zu prüfen, welche Taggruppe wechselt und wie bereits eingegebener Freitext behandelt wird.
+Beobachtung
+Die Überschrift lautet „Beobachtung“.
+
+Rechts davon ist ein kleines Stiftsymbol sichtbar.
+
+Die im positiven Zustand sichtbaren Tags lauten:
+- Hilft anderen
+- Nimmt Hilfe an
+- Hält Gesprächsregeln ein
+- Geht respektvoll mit anderen um
+- Klärt einen Konflikt im Gespräch
+- Hält gemeinsame Absprachen ein
+An jedem dieser Tags ist rechts ein Stern sichtbar.
+
+Der Nachbau muss berücksichtigen:
+- Unterschiedliche Textlängen.
+- Mehrere Zeilen.
+- Gleiche Form und Innenabstände.
+- Gemeinsame Hinterlegung von Beschriftung und Stern.
+- Einen Bearbeitungszugang über das Stiftsymbol.
+Der genaue Inhalt des durch den Stift geöffneten Editors ist in den hier sichtbaren Bildern nicht belegt. Deshalb dürfen dort nicht beliebige neue Verwaltungsfunktionen eingeführt werden.
+„Was ist passiert?“
+Im Screenshot steht:
+
+Was ist passiert? daneben kleiner optional bei Auswahl.
+
+Darunter befinden sich Zeitpunkt-Tags und eine größere Texteingabe.
+
+Die Texteingabe:
+- Ist mehrzeilig.
+- Hat abgerundete Ecken.
+- Besitzt eine sichtbare, zurückhaltende Umrandung.
+- Zeigt den Platzhalter „Beobachtung …“.
+- Ist deutlich höher als ein einzeiliges Eingabefeld.
+- Verwendet eine zum Dialog passende, teilweise transparente Fläche.
+„Optional bei Auswahl“ bedeutet für den Abgleich: Der Nachbau darf nicht pauschal immer Freitext erzwingen, wenn eine passende Auswahl bereits genügt. Die konkrete Validierungsregel muss dem Original entsprechen.
+Zeitpunkt-Tags
+In den älteren Bildern stehen längere Texte. Deine spätere Vorgabe ersetzt diese durch exakt:
+- Vor Unterricht
+- Unterricht
+- Nach Unterricht
+- Pause
+Diese Bezeichnungen gehören in die neue Fassung.
+
+Nicht wieder verwenden:
+- „Vor dem Unterricht“
+- „Während des Unterrichts“
+- „Nach dem Unterricht“
+Ob die Auswahl einfach oder mehrfach ist, muss aus der vorhandenen Fachlogik ermittelt werden. Der Screenshot allein belegt das nicht.
+Datumsbereich
+Im Screenshot:
+- Beschriftung „Beobachtet am“.
+- Ein Datumsfeld mit Kalendersymbol.
+- Deutsches Datumsformat, beispielsweise 01.11.2026.
+- Daneben „Später ergänzen“ mit Schalter.
+- In der alten Fassung darunter ein weiterer Schalter „Uhrzeit“.
+Deine Änderung:
+- Den separaten Uhrzeit-Schalter entfernen.
+- Die optionale Uhrzeit in die Kalender-/Datumsauswahl integrieren.
+Wichtig: „Später ergänzen“ und eine fehlende Uhrzeit sind fachlich nicht automatisch dasselbe. Diese Zustände dürfen nicht zusammengelegt werden.
+Fußaktionen
+Sichtbar sind:
+- Links „Speichern & weiter“ mit Pfeil nach rechts.
+- Rechts „Speichern“ als deutlich hervorgehobene Aktion.
+Im Screenshot:
+- Beide Buttons sind breit und stark abgerundet.
+- „Speichern“ besitzt eine helle Fläche mit dunkler Beschriftung.
+- „Speichern & weiter“ ist zurückhaltender hinterlegt.
+- Die Aktionen liegen in einem eigenen unteren Bereich.
+- Zwischen Abschlussangaben und Aktionen ist eine optische Trennung sichtbar.
+„Speichern & weiter“ darf erst nach erfolgreicher Speicherung fortsetzen. Welcher Folgezustand genau geöffnet wird, ist aus den Bildern nicht vollständig ersichtlich und muss aus dem Original übernommen werden.
+4. Arbeitsverhalten
+Belegt ist:
+- Arbeitsverhalten gehört zu den fünf Schülerbereichen.
+- Es verwendet bereits die Modal-Darstellung.
+- Die allgemeinen Vorgaben zu Bewertung, Tags, optionalen Bereichen, Datum, Entwurfsschutz und Dialogfarben müssen auch dort konsistent berücksichtigt werden, soweit diese Elemente im Original vorkommen.
+Nicht belegt sind hier:
+- Die vollständigen positiven und negativen Arbeitsverhaltens-Tags.
+- Ihre Reihenfolge.
+- Sämtliche Platzhalter.
+- Die vollständige Liste zusätzlicher Felder.
+- Die genaue Konfiguration des Tag-Editors.
+Deshalb muss der andere Chat für diesen Bereich gezielt aus dem HTML übernehmen:
+1. Titel und Beschriftungen.
+2. Bewertungszustände.
+3. Taggruppen mit Originaltexten.
+4. Zuordnung der Tags zu den Eingabefeldern.
+5. Optionale Abschnitte.
+6. Pflichtfeldregeln.
+7. Datums- und Zeitverhalten.
+8. Speicher- und Fortsetzungsablauf.
+Die Sozialverhalten-Oberfläche ist ein belegtes Gestaltungsbeispiel, aber kein Ersatz für die tatsächlichen Arbeitsverhaltens-Inhalte.
+5. HÜ: Arbeitsbereich und bestehende Hausübungen
+Hier gibt es mehrere unterschiedliche Ebenen, die im Nachbau nicht vermischt werden dürfen:
+- HÜ-Arbeitsbereich des Schülers.
+- Karte einer vorhandenen Hausübung.
+- Anlegen beziehungsweise Bearbeiten einer Hausübung.
+- Bearbeitungsstand einer einzelnen Aufgabe.
+- Kommentar zu einer einzelnen Aufgabe.
+- Notiz und Verlauf.
+Arbeitsbereich
+Deine letzte Vorgabe:
+- Der HÜ-Bereich öffnet sich als Modal.
+- Kein Wechsel auf eine eigenständige Vollbildseite.
+- Derselbe erkennbare Dialograhmen wie bei Sozialverhalten, Arbeit und Orga.
+- Überschrift und Hinzufügen-Aktion müssen auch auf schmalen Ansichten ohne Überlauf funktionieren.
+Im zuletzt bearbeiteten Flutter-Stand wurden bei geringer Breite Überschrift und Hinzufügen-Aktion untereinander angeordnet.
+Hausübungskarte
+Dein Screenshot zeigt:
+- Eine große abgerundete Karte.
+- Eine feine Umrandung.
+- Oben links die Metazeile „HÜ · 01.11.2026“.
+- Darunter den Titel „Hausübung“.
+- Oben rechts einen Chevron zum Ein- beziehungsweise Ausklappen.
+- Darunter mehrere Aufgabenzeilen.
+- Unten einen Button „Notiz & Verlauf“.
+Die Karte liegt innerhalb des HÜ-Bereichs. Sie ist nicht selbst der gesamte Dialog.
+Ursprüngliche Aufgabenzeilen
+Im Screenshot hat jede Aufgabe:
+- Links eine Checkbox.
+- Daneben den Aufgabentext.
+- Rechts eine Sprechblase.
+- Einen relativ großzügigen vertikalen Abstand zur nächsten Aufgabe.
+Die bisherige Sprechblasen-Aktion zeigt den Tooltip:
+
+„Kommentar und Bearbeitungsstand“
+
+Genau diese Vermischung soll geändert werden.
+Neue direkte Standauswahl
+Dein Wunsch:
+Die Standauswahl soll direkt erscheinen und die Checkboxen ersetzen.
+
+Der zuletzt bearbeitete Entwurf verwendete vier sichtbare Buttons:
+- Offen
+- Vollständig
+- Teilweise
+- Nicht erledigt
+Der konkrete Aufbau dieses Entwurfs:
+1. Aufgabenname.
+2. Rechts davon der Kommentar-Shortcut.
+3. Direkt darunter die Standbuttons.
+4. Gegebenenfalls eine kurze Kommentarvorschau.
+Dadurch bleibt der Aufgabenname auch bei längeren Texten lesbar.
+
+Die Buttons:
+- Sind kompakt.
+- Bleiben beschriftet.
+- Zeigen den ausgewählten Zustand deutlich.
+- Dürfen auf schmalen Ansichten sauber umbrechen.
+- Sind ohne zusätzliches Menü erreichbar.
+- Ersetzen die Checkbox vollständig.
+Im damaligen Entwurf:
+- „Vollständig“ war mit der Akzentfarbe hervorgehoben.
+- „Teilweise“ mit einem gelblichen Farbton.
+- „Nicht erledigt“ mit einem rosafarbenen Farbton.
+- „Offen“ blieb zurückhaltender.
+- Vollständig erledigte Aufgaben konnten durchgestrichen erscheinen.
+Diese Farbzuordnung war eine Umsetzungsidee des letzten Arbeitsstands, keine aus deinem ursprünglichen HTML abgelesene Festlegung.
+Speicherverhalten der Standbuttons
+Ein Klick soll direkt speichern.
+
+Dabei müssen erhalten bleiben:
+- Der bisherige Kommentar.
+- Andere Aufgaben derselben Hausübung.
+- Unteraufgaben.
+- Sonstige Angaben des Eintrags.
+- Die nachvollziehbare Änderungshistorie.
+Zusätzlich:
+- Ein erneuter Klick auf denselben Stand soll keine unnötige Änderung erzeugen.
+- Schnelle doppelte Klicks dürfen keine doppelten Ereignisse erzeugen.
+- Bei Speicherfehlern darf kein falscher Erfolg stehen bleiben.
+- Der vorherige gespeicherte Stand bleibt maßgeblich.
+- Eine Fehlermeldung muss an der betroffenen Karte sichtbar sein.
+- Ein späterer erneuter Versuch muss möglich sein.
+Im dokumentierten Entwurf gab es dafür eine Meldung nach dem Muster:
+
+„Stand nicht gespeichert. …“
+Kommentarvorschau
+Der letzte Entwurf sah vor:
+- Eine gefüllte beziehungsweise hervorgehobene Sprechblase bei vorhandenem Kommentar.
+- Einen aufgabenspezifischen Tooltip.
+- Eine kurze, begrenzte Kommentarvorschau.
+- Vollständige Bearbeitung über die Sprechblase.
+Die Statusauswahl darf durch den Kommentarzugang nicht wieder versteckt werden.
+Unteraufgaben
+Unteraufgaben waren in der damaligen Umsetzung berücksichtigt:
+- Eingerückte Darstellung.
+- Eine visuelle Kennzeichnung der Unterordnung.
+- Eigene Standauswahl entsprechend der vorhandenen Fachlogik.
+Die genaue Bearbeitung von Unteraufgaben beim Anlegen einer Hausübung muss aus den ursprünglichen Formularen übernommen werden.
+6. HÜ: Kommentar-Modal
+Dein Wunsch:
+Kommentar über Shortcutbutton erreichbar.
+
+Daraus wurde im letzten Arbeitsstand ein eigener Kommentar-Modus des vorhandenen Feedback-Editors.
+Öffnen
+- Klick auf die Sprechblase der betreffenden Aufgabe.
+- Öffnung als kleineres Modal.
+- Der Kontext muss eindeutig dieselbe Aufgabe betreffen.
+- Die Texteingabe erhält sofort Fokus.
+- Auf Mobilgeräten darf dadurch die Speichern-Aktion nicht hinter der Tastatur verschwinden.
+Inhalt
+Im dokumentierten Entwurf:
+- Titel „Kommentar“.
+- Der aktuelle Bearbeitungsstand als Information.
+- Ein Textfeld für den Kommentar.
+- Keine erneute Standbutton-Gruppe im Kommentar-Modus.
+Der ältere allgemeine Editor konnte weiterhin „Kommentar & Stand“ heißen. Der direkte Kommentar-Shortcut soll jedoch den verkürzten Modus öffnen.
+Entwurfsschutz
+- Nicht gespeicherter Kommentartext muss nach den bestehenden Entwurfsregeln geschützt werden.
+- Beim Fortsetzen muss wieder der Kommentar-Modus erscheinen.
+- Es darf nicht plötzlich ein anderes, umfangreicheres Formular geöffnet werden.
+- Aufgabe und Kommentarentwurf müssen korrekt miteinander verbunden bleiben.
+Gleichzeitige Änderungen
+Ein besonders wichtiger bereits bearbeiteter Fall:
+1. Ein Kommentar wird begonnen.
+2. Der Aufgabenstand wird zwischenzeitlich geändert.
+3. Der Nutzer übernimmt ausdrücklich den neueren Datensatz.
+4. Der Kommentar wird gespeichert.
+Dabei darf der Kommentar nicht den neueren Aufgabenstand durch einen alten Stand ersetzen.
+7. HÜ: Anlegen und Bearbeiten
+Die vollständige Feldliste dieses Editors ist in den hier sichtbaren Screenshots nicht enthalten. Belegt sind aber:
+- Verwaltung von Aufgaben.
+- Schülerzuordnung.
+- Kommentar- beziehungsweise Feedbackfunktionen.
+- Notiz und Verlauf.
+- Entwurfsfortsetzung.
+Schülerzuordnung
+Der alte Screenshot zeigt:
+- Einen übergeordneten Abschnitt „Für welche Schüler?“ mit Schalter.
+- Darunter einzelne Schüler, ebenfalls mit jeweils eigenem Schalter.
+Deine Änderung betrifft die einzelnen Schüler:
+- Jeder Schüler wird als Tagbutton dargestellt.
+- Mehrere Schüler können ausgewählt werden.
+- Ausgewählte Tags sind klar hervorgehoben.
+- Ein erneuter Klick entfernt die Auswahl.
+- Die Tags fließen in mehrere Zeilen.
+- Lange Namen bleiben lesbar.
+- Die Auswahl übersteht das Schließen und Fortsetzen eines Entwurfs.
+Der übergeordnete Abschnitt „Für welche Schüler?“ kann weiterhin schaltbar bleiben. Die einzelnen Personen sollen keine Schalter mehr sein.
+
+Die Auswahl darf nicht nur optisch funktionieren: Beim Speichern müssen tatsächlich die ausgewählten Schüler verwendet werden.
+Noch aus dem Original zu ermitteln
+Für eine vollständige Nachbildung fehlen hier die belegten Details zu:
+- Reihenfolge sämtlicher Formularfelder.
+- Aufgabenerstellung und Reihenfolgeänderung.
+- Unteraufgaben-Editor.
+- Eventuellen Terminangaben.
+- Pflichtfeldern.
+- Den genauen Fußaktionen.
+- Bearbeitung einer bereits bestehenden Zuordnung.
+Diese Punkte dürfen nicht durch einen neuen Standard-Formularentwurf ersetzt werden.
+8. Ziele
+Sicher festgelegt
+- Eigener Schülerbereich „Ziele“.
+- Öffnung als Modal.
+- Keine abweichende Vollbildseite auf Mobilgeräten.
+- Derselbe erkennbare Rahmen und dieselben grundlegenden Navigationsregeln.
+- Vorhandene Zielverwaltung und zugehörige Rückmeldungen erhalten.
+- Entwürfe, Verlauf und Bearbeitung dürfen durch die Umstellung nicht verloren gehen.
+Im letzten Arbeitsstand wurde die besondere Seitendarstellung für Ziele entfernt.
+Unbedingt am Original prüfen
+Die konkrete Ziel-Oberfläche ist in den hier sichtbaren Bildern nicht enthalten. Deshalb kann ich nicht zuverlässig angeben:
+- Welche Zielzustände angeboten werden.
+- Wie Zielbeschreibung und Teilziele angeordnet sind.
+- Welche Bewertungsskalen existieren.
+- Welche Termin- oder Überprüfungsfelder dazugehören.
+- Wie Rückmeldungen dargestellt werden.
+- Welche Buttons in welcher Reihenfolge stehen.
+Die vier HÜ-Stände dürfen nicht einfach auf Ziele übertragen werden. Für Ziele muss die vorhandene Fachlogik aus dem Projekt übernommen werden.
+
+Der andere Chat soll separat erfassen:
+1. Ziele-Arbeitsbereich.
+2. Ziel anlegen.
+3. Ziel bearbeiten.
+4. Rückmeldung zu einem Ziel.
+5. Verlauf und gegebenenfalls weitere vorhandene Unterdialoge.
+9. Orga
+Die fachlichen Regeln sind klarer belegt als die vollständige visuelle Feldanordnung.
+
+Orga vereint:
+- Notizen.
+- Aufgaben.
+- Checklisten.
+- Erinnerungen.
+Gemeinsame Anforderungen
+- Öffnung als Modal.
+- Anlegen, Bearbeiten, Speichern und erneutes Laden müssen vollständig funktionieren.
+- Vorhandene Entwürfe schützen.
+- Änderungen nachvollziehbar erhalten.
+- Schülerbezogene und klassenbezogene Nutzung unterstützen.
+Aufgabentermin und Erinnerung
+Diese beiden Angaben sind getrennt:
+- Der Aufgabentermin beschreibt die Aufgabe.
+- Die Erinnerung beschreibt eine Benachrichtigung beziehungsweise einen Erinnerungszeitpunkt.
+Sie dürfen weder als ein gemeinsames Feld gespeichert noch im Verhalten gleichgesetzt werden.
+Erledigen und Quittieren
+Verbindlich:
+Aktion	Wirkung
+Aufgabe erledigen	Aufgabe wird erledigt; zugehörige Erinnerung wird beendet.
+Erinnerung quittieren	Erinnerung wird quittiert; Aufgabe bleibt unabhängig davon offen oder erledigt.
+
+
+Ein gemeinsamer unspezifischer „Fertig“-Button wäre fachlich falsch, wenn dadurch beide Aktionen vermischt werden.
+Klassen-Orga
+- Muss ohne einzelne Schülerzuordnung funktionieren.
+- Es darf kein zufälliger Schüler ausgewählt werden müssen.
+- Der Kontext muss als Klasse erkennbar bleiben.
+- Schülerauswahl darf nicht pauschal zum Pflichtfeld werden.
+Visuell noch zu prüfen
+Nicht eindeutig aus den hier verfügbaren Bildern bestimmbar sind:
+- Die genaue Typauswahl.
+- Ob und wie Notiz, Aufgabe, Checkliste und Erinnerung im Original kombiniert werden.
+- Feldreihenfolge und Originalbeschriftungen.
+- Checklisten-Bedienung.
+- Originaltexte für Erledigen, Quittieren und Wiederöffnen.
+- Die vollständige Gestaltung der Detail- und Verlaufsansichten.
+Diese Informationen müssen aus HTML, Dokumentation und Datenmodell zusammengeführt werden.
+10. Optionale Abschnitte: „Kontext / Quelle“ und „Reaktion / Unterstützung“
+Deine Vorgabe gilt bereichsübergreifend:
+- Optionale Bereiche über Schalter zugänglich machen.
+- Keine zusätzliche Überschrift „Weitere Angaben“.
+- Keine dafür eingeführte zusätzliche Trennlinie.
+- Auch „Quelle & gemeinsamer Kontakt“ soll schaltbar sein.
+- Die Bezeichnung wird ersetzt durch „Kontext / Quelle“.
+- Die weitere Bezeichnung lautet „Reaktion / Unterstützung“.
+Aufbau
+Ein solcher Abschnitt besteht aus:
+1. Schalter.
+2. Zugehöriger Bezeichnung.
+3. Eingeblendetem Inhalt, wenn aktiviert.
+Die Schalter dienen der Sichtbarkeit beziehungsweise Aktivierung eines Bereichs. Das ist von einer Auswahl einzelner Schüler zu unterscheiden.
+Datenverhalten
+Beim Ein- und Ausblenden muss aus dem Original geklärt werden:
+- Bleibt bereits eingegebener Inhalt erhalten?
+- Bedeutet Ausschalten nur Ausblenden oder bewusstes Entfernen?
+- Wie wird das beim Bearbeiten eines vorhandenen Eintrags dargestellt?
+- Was wird in Entwürfen gespeichert?
+Die Oberfläche darf nicht durch bloßes Einklappen unbemerkt Daten löschen.
+
+Die vollständigen Felder innerhalb dieser beiden Abschnitte sind im sichtbaren Material nicht belegt.
+11. Entwurfshinweise und Entwurfsfortsetzung
+Im Sozialverhalten-Screenshot sind zwei große Karten sichtbar:
+- Text „Ungespeicherter Entwurf“.
+- Button „Entwurf fortsetzen“.
+- Viel vertikaler Innenraum.
+- Große Abstände zwischen Text und Aktion.
+Dein Wunsch:
+Entwurfshinweise bitte in der Höhe deutlich reduzieren.
+
+Neue Darstellung
+Der Hinweis soll:
+- Wesentlich kompakter sein.
+- Den verfügbaren Formulierraum nicht unnötig verkleinern.
+- Weiterhin klar erkennbar bleiben.
+- Einen gut erreichbaren Fortsetzen-Button besitzen.
+- Den Zusammenhang mit dem tatsächlichen Entwurf erhalten.
+Eine kompakte Zeile beziehungsweise bei sehr schmalen Ansichten eine kleine zweizeilige Darstellung erfüllt diese Richtung. Die endgültige Gestaltung muss zum übrigen Dialog passen.
+Mehrere Entwürfe
+Der Screenshot zeigt zwei Hinweise. Daraus folgt nicht, dass immer zwei Karten gerendert werden sollen.
+
+Zu prüfen:
+- Sind tatsächlich zwei unterschiedliche Entwürfe vorhanden?
+- Sind sie unterscheidbar?
+- Gibt es einen Darstellungsfehler mit doppelten Hinweisen?
+- Öffnet jeder Hinweis den zugehörigen Entwurf?
+Entwürfe dürfen weder doppelt angezeigt noch beim Fortsetzen versehentlich gegeneinander ausgetauscht werden.
+12. Notiz, Verlauf und Änderungsansichten
+Belegt ist insbesondere der HÜ-Zugang:
+
+„Notiz & Verlauf“
+
+Daneben sind nachvollziehbare Änderungen eine ausdrückliche Grundanforderung.
+
+Für den Nachbau wichtig:
+- Der Button gehört zum konkreten Eintrag.
+- Er darf nicht einen unbezogenen globalen Verlauf öffnen.
+- Kommentare, Standänderungen und Eintragsbearbeitungen müssen fachlich korrekt zugeordnet bleiben.
+- Ein Unterdialog verwendet denselben Modalstil.
+- Zurück führt zum bisherigen Eintrag beziehungsweise Arbeitsbereich.
+Die genaue Darstellung einzelner Verlaufseinträge, ihre Sortierung und ihre Aktionsmöglichkeiten kann ich ohne Originaldateien nicht verlässlich beschreiben.
+
+Insbesondere dürfen keine frei erfundenen Funktionen wie das beliebige Überschreiben vergangener Änderungen eingeführt werden.
+13. Datum und Uhrzeit
+Dieser Teil verdient einen eigenen Abgleich, weil du ihn ausdrücklich geändert hast.
+Außenansicht im Formular
+- Ein gemeinsamer Zugang über das Datums-/Kalenderfeld.
+- Verständliche Anzeige des gewählten Datums.
+- Wenn vorhanden, erkennbare zusätzliche Uhrzeit.
+- Kein separater vorgeschalteter „Uhrzeit“-Schalter mehr im Formular.
+Im Kalenderdialog
+Dein Wunsch legt fest, dass die Zeit dort integriert sein soll. Er legt nicht eindeutig fest, ob das Original dafür beispielsweise ein Zeitfeld, einen weiteren Auswahlbereich oder einen Unterdialog verwendet.
+
+Das muss am vorhandenen Stand geprüft werden.
+
+Unabhängig davon:
+- Ein Datum ohne Uhrzeit muss möglich bleiben, wo die Fachlogik das vorsieht.
+- Eine fehlende Uhrzeit darf nicht als bewusste Mitternachtsangabe ausgegeben werden.
+- Beim Bearbeiten darf eine vorhandene Uhrzeit nicht verschwinden.
+- Das Abbrechen der Auswahl darf den vorherigen Wert nicht unbeabsichtigt verändern.
+- Aufgabentermin und Erinnerungszeit bleiben getrennte Werte.
+Zeitpunkt-Tags sind etwas anderes
+„Vor Unterricht“, „Unterricht“, „Nach Unterricht“ und „Pause“ sind fachliche Kontextangaben. Sie dürfen nicht automatisch als konkrete Uhrzeiten interpretiert werden.
+14. Schülerverwaltung und Schülerauswahl
+Hier müssen zwei unterschiedliche Funktionen getrennt betrachtet werden.
+Schülerverwaltung
+Die App muss Schüler lokal verwalten können:
+- Anlegen.
+- Bearbeiten.
+- Speichern.
+- Erneut laden.
+- Die vorhandene Zuordnung zu Klassen beziehungsweise Gruppen berücksichtigen, soweit sie im Original vorgesehen ist.
+Die vollständigen ursprünglichen Schülerfelder sind hier nicht sichtbar. Deshalb sollten keine neuen Pflichtfelder erfunden werden.
+Schülerauswahl innerhalb anderer Dialoge
+Deine aktuelle Gestaltungsvorgabe:
+- Tagbuttons.
+- Sichtbare Auswahl.
+- Mehrfachauswahl dort, wo mehrere Schüler zugeordnet werden können.
+- Geeigneter Zeilenumbruch.
+- Gleiche Taggestaltung wie in den übrigen Formularen.
+- Kein einzelner Schalter pro Person.
+Das ist nicht identisch mit der Hauptseitenfunktion „Mehrere auswählen“ in der Schülerübersicht. Diese beiden Auswahlkontexte müssen im Nachbau unterschieden werden.
+15. Erscheinungsbild, Farbe und Hintergrundbilder
+Gemeinsame Dialoggestaltung
+Eine Einstellung muss an allen vorgesehenen Dialogen wirken:
+- Sozialverhalten.
+- Arbeit.
+- Orga.
+- Ziele.
+- HÜ.
+- Kommentare.
+- Weitere Unterdialoge.
+Dabei dürfen nicht einzelne Dialoge auf Material-Standardfarben zurückfallen.
+Transparenz
+Du hattest ausdrücklich gemeldet, dass Transparenzanpassungen nicht zuverlässig funktionieren.
+
+Deshalb muss geprüft werden:
+- Welche konkrete Fläche verändert der Regler?
+- Überdeckt eine zweite undurchsichtige Fläche den Effekt?
+- Werden Kopf, Inhalt, Fuß, Karten und Eingabefelder unterschiedlich behandelt?
+- Wird eine Änderung nach erneutem Laden wiederhergestellt?
+- Bleibt Text lesbar?
+- Sind ausgewählte Buttons weiterhin erkennbar?
+Eine Änderung nur des äußeren Containers reicht nicht, wenn der sichtbare Bereich von einem anderen Container verdeckt wird.
+Bildhintergründe
+Du hast zwei Originalbilder geliefert:
+- Eine grüne Tafeltextur im Querformat für Desktop.
+- Eine grüne Tafeltextur im Hochformat für Mobilgeräte.
+Die App soll verschiedene Darstellungsweisen unterstützen. Fachlich müssen diese klar voneinander getrennt sein:
+- Gestreckt: Die Fläche wird vollständig gefüllt; das Seitenverhältnis kann sich verändern.
+- Füllend: Das Seitenverhältnis bleibt erhalten; überstehende Teile werden beschnitten.
+- Eingepasst beziehungsweise skaliert: Das ganze Bild bleibt sichtbar; freie Randflächen können entstehen.
+Welche zusätzlichen Modi und welche genauen Beschriftungen bereits implementiert waren, muss aus dem erhaltenen Stand ermittelt werden.
+Farbwähler und Bildauswahl
+Diese wurden zuvor als noch nicht vollständig originalgetreu benannt.
+
+Nicht ausreichend wäre:
+- Einen beliebigen Systemfarbwähler einzubauen und ihn als identisch zu bezeichnen.
+- Die ursprüngliche Auswahlbedienung zu ersetzen, ohne den Unterschied zu dokumentieren.
+- Eine Bildvorschau zu zeigen, die anders skaliert wird als der tatsächliche App-Hintergrund.
+Die konkreten Originaldialoge müssen hier aus dem HTML beziehungsweise den vorhandenen Unterlagen ausgelesen werden.
+16. Icons in den Dialogen und Bereichszugängen
+Deine Vorlage zeigt eine zusammenhängende Symbolfamilie:
+Bereich	Symbol
+Ziele	Zielscheibe mit Pfeil
+Sozialverhalten	Zwei Personen
+Arbeitsverhalten	Dokument mit Textlinien
+HÜ	Haus
+Orga	Kalender
+
+
+Gestaltung:
+- Weiße beziehungsweise über das Theme färbbare Symbole.
+- Kräftige Formen.
+- Weiche, saubere Konturen.
+- Ähnliche optische Größe.
+- Vergleichbares Gewicht.
+- Erkennbarkeit auch in kleinen Größen.
+Der letzte Chat hat Bildentwürfe erzeugt, aber keinen Einbau in die App bestätigt.
+
+Für den Nachbau sollten diese Bereichssymbole konsistent verwendet werden. Sie dürfen nicht zwischen Schülerkarte, Dialogkopf und weiteren Zugängen zufällig wechseln.
+17. Weitere Dialoge: keine Vollständigkeit vortäuschen
+Aus dem Arbeitsprotokoll sind weitere Funktionen beziehungsweise Zugänge bekannt, etwa:
+- Tagbearbeitung.
+- Feedback zu Zielen.
+- Kontextansichten.
+- Änderungsverlauf.
+- Gesprächsvorbereitung.
+- Einstellungen.
+- Farbwahl.
+- Bildauswahl.
+- Datenübernahme und Sicherung.
+Das ist kein aus dem HTML ausgelesenes vollständiges Dialogverzeichnis.
+
+Für diese Dialoge fehlen mir hier die Originalansichten beziehungsweise die vollständigen Feldlisten. Eine angeblich detailgenaue Beschreibung wäre deshalb erfunden.
+
+Der andere Chat muss für jeden tatsächlich vorhandenen Dialog diese Punkte auslesen:
+Zu erfassender Punkt	Benötigte Information
+Öffnung	Welcher Button oder Menüpunkt öffnet ihn?
+Kontext	Schüler, Klasse, konkreter Eintrag oder globale Einstellung?
+Kopf	Exakter Titel, Untertitel, Symbole und Navigation
+Inhalt	Vollständige Reihenfolge aller Felder und Gruppen
+Texte	Originalbeschriftungen, Platzhalter, Hinweise und Fehlermeldungen
+Vorauswahl	Welche Werte sind beim Öffnen gesetzt?
+Zustände	Neu, bearbeiten, leer, befüllt, deaktiviert, Fehler
+Abhängigkeiten	Welche Auswahl blendet welche Felder ein?
+Tags	Mehrfachauswahl, Einfügung in Felder, Entfernen
+Fuß	Exakte Buttons, Reihenfolge und Gewichtung
+Speichern	Validierung, Zielzustand und Fehlerverhalten
+Schließen	X, Zurück, Escape, Außenklick, Entwurfsschutz
+Mobil	Umbruch, Scrollbereich, Bildschirmtastatur
+Darstellung	Farben, Transparenzen, Schrift, Abstände und Rundungen
+
+
+18. So muss der nächste Abgleich durchgeführt werden
+Damit der Nachbau tatsächlich besser wird, sollte nicht erneut die gesamte Oberfläche aus dieser Beschreibung heraus frei gestaltet werden.

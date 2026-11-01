@@ -1,0 +1,32 @@
+// Read old split records without changing them. Only an explicit save replaces
+// situation/text with the combined narrative; the journal keeps the old revision.
+function socialNarrative(value){return [value.situation||'',value.text||''].map(text=>text.trim()).filter(Boolean).join('\n\n');}
+function mergeSocialDraft(value){if(!value.situation)return value;value.text=socialNarrative(value);value.situation='';if(value.tagFields){delete value.tagFields.situation;}return value;}
+function socialContextLabels(){return ['Vor dem Unterricht','Während des Unterrichts','Nach dem Unterricht','Pause'];}
+// Contexts are a plain-text first paragraph, so exports and old readers retain them.
+// Only an exact context paragraph is interpreted; ordinary narrative stays untouched.
+function splitSocialContext(text){const match=/^([^\n]+)(?:\n\n|$)/.exec(text),parts=match?.[1].split(' · ');return parts?.length&&parts.every(part=>socialContextLabels().includes(part))?{tags:[...new Set(parts)],text:text.slice(match[0].length)}:{tags:[],text};}
+function normalizeSocialContextText(text){const state=splitSocialContext(text),legacy={'Vor Unterricht':'Vor dem Unterricht','Unterricht':'Während des Unterrichts','Nach Unterricht':'Nach dem Unterricht'},tag=legacy[state.text.trim()];return tag?(state.tags.at(-1)||tag):text;}
+function toggleSocialContext(text,tag){const value=splitSocialContext(text);if(!socialContextLabels().includes(tag))return text;return [value.tags.length===1&&value.tags[0]===tag?'':tag,value.text].filter(Boolean).join('\n\n');}
+function configureSocialContextButtons(input,label){
+ const groupId=input.id+'ContextTags';let group=document.getElementById(groupId);
+ if(!group){group=document.createElement('div');group.id=groupId;group.className='social-context-tags';group.setAttribute('role','group');group.setAttribute('aria-label','Zeitpunkt der Situation');for(const tag of socialContextLabels()){const button=document.createElement('button');button.type='button';button.textContent=tag;button.dataset.socialContext=tag;group.append(button);}label.after(group);}
+ const box=observationTagField(input,null);let editor=input._socialNarrativeEditor;
+ if(!editor){const tags=document.createElement('div');tags.className='selected-row social-context-selected';const free=document.createElement('textarea');free.id=input.id+'NarrativeFree';free.className='tag-input-free';free.rows=3;box.prepend(tags);box.append(free);input.hidden=true;input.classList.add('social-narrative-canonical');editor={tags,free,tag:''};input._socialNarrativeEditor=editor;
+  free.addEventListener('input',()=>{input.value=[editor.tag,free.value].filter(Boolean).join('\n\n');input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+ }
+ const refresh=()=>{const state=splitSocialContext(input.value),tag=state.tags.at(-1)||'';editor.tag=tag;if(editor.free.value!==state.text)editor.free.value=state.text;editor.free.maxLength=Math.max(0,input.maxLength-(tag?tag.length+2:0));editor.free.placeholder=input.placeholder;editor.free.removeAttribute('aria-describedby');editor.tags.replaceChildren();editor.tags.hidden=!tag;if(tag){const pill=document.createElement('button');pill.type='button';pill.className='selected-tag social-time-tag';pill.textContent=tag+' ×';pill.setAttribute('aria-label','Zeit entfernen: '+tag);pill.onclick=()=>{input.value=splitSocialContext(input.value).text;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));editor.free.focus();};editor.tags.append(pill);}group.querySelectorAll('button').forEach(button=>{const selected=button.dataset.socialContext===tag;button.setAttribute('aria-pressed',String(selected));button.hidden=selected;});label.htmlFor=editor.free.id;};
+ group.onclick=event=>{const button=event.target.closest('[data-social-context]');if(!button)return;const next=toggleSocialContext(input.value,button.dataset.socialContext);if(input.maxLength>0&&next.length>input.maxLength){toast('Der Text ist zu lang für einen weiteren Tag. Bitte zuerst kürzen.');return;}input.value=next;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));refresh();editor.free.focus();};
+ if(!input._socialContextBound){input._socialContextBound=true;input.addEventListener('input',()=>input._socialContextRefresh?.());input.addEventListener('change',()=>input._socialContextRefresh?.());}input._socialContextRefresh=refresh;
+ const previous=input.value;input.value=normalizeSocialContextText(input.value);const initial=splitSocialContext(input.value);if(initial.tags.length>1)input.value=[initial.tags.at(-1),initial.text].filter(Boolean).join('\n\n');if(input.value!==previous)input.dispatchEvent(new Event('input',{bubbles:true}));refresh();
+}
+function configureSocialNarrative(input,enabled){
+ if(!input)return;const field=input.closest('.field'),label=field?.querySelector('label'),helpId=input.id+'NarrativeHelp';
+ if(!enabled){if(input.dataset.socialNarrative){if(label){label.textContent='Notiz';label.htmlFor=input.id;}input.placeholder='';input.removeAttribute('aria-describedby');delete input.dataset.socialNarrative;document.getElementById(helpId)?.remove();document.getElementById(input.id+'ContextTags')?.remove();input._socialNarrativeEditor?.free.remove();input._socialNarrativeEditor?.tags.remove();delete input._socialNarrativeEditor;input._socialContextRefresh=null;input.hidden=false;input.classList.remove('social-narrative-canonical');}return;}
+ input.dataset.socialNarrative='true';input.maxLength=Math.max(4000,input.value.length);input.rows=3;input.required=false;
+ input.placeholder='Beobachtung …';
+ if(label){label.htmlFor=input.id;label.innerHTML='Was ist passiert? <small>optional bei Auswahl</small>';configureSocialContextButtons(input,label);}
+ document.getElementById(helpId)?.remove();input.removeAttribute('aria-describedby');
+}
+AppFlows.use('renderModal','social-narrative',next=>function(...args){const result=next.apply(this,args);if(section==='Sozialverhalten')configureSocialNarrative($('#entryText'),true);return result;});
+AppFlows.use('editRecord','social-narrative',next=>function(id){const result=next.call(this,id),entry=db.entries.find(e=>e.id===id&&!e.deletedAt);if(!entry)return result;const category=$('#recordCategory'),refresh=()=>configureSocialNarrative($('#recordText'),(category?.value||entry.category)==='Sozialverhalten');refresh();category?.addEventListener('change',refresh);return result;});

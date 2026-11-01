@@ -1,0 +1,334 @@
+{
+  "observation-tags.css": {
+    "html_start_line": 353,
+    "html_end_line": 360
+  },
+  "save-undo.js": {
+    "html_start_line": 1487,
+    "html_end_line": 1495
+  },
+  "homework-checklist.js": {
+    "html_start_line": 1521,
+    "html_end_line": 1526
+  },
+  "navigation-reliability.js": {
+    "html_start_line": 2190,
+    "html_end_line": 2208
+  },
+  "participants.js": {
+    "html_start_line": 2304,
+    "html_end_line": 2323
+  },
+  "pill-selection.css": {
+    "html_start_line": 305,
+    "html_end_line": 325
+  },
+  "observation-tags.js": {
+    "html_start_line": 1767,
+    "html_end_line": 1774
+  },
+  "preference-store.js": {
+    "html_start_line": 1957,
+    "html_end_line": 1963
+  },
+  "homework-simple.js": {
+    "html_start_line": 1582,
+    "html_end_line": 1610
+  },
+  "workspace-navigation.js": {
+    "html_start_line": 2357,
+    "html_end_line": 2366
+  },
+  "field-tags.css": {
+    "html_start_line": 303,
+    "html_end_line": 303
+  },
+  "goals-refined.css": {
+    "html_start_line": 290,
+    "html_end_line": 296
+  },
+  "storage-feedback.js": {
+    "html_start_line": 2258,
+    "html_end_line": 2269
+  },
+  "goal-review.js": {
+    "html_start_line": 2210,
+    "html_end_line": 2221
+  },
+  "review-interface.js": {
+    "html_start_line": 2491,
+    "html_end_line": 2533
+  },
+  "data-validation.js": {
+    "html_start_line": 1039,
+    "html_end_line": 1112
+  },
+  "review-interface.css": {
+    "html_start_line": 855,
+    "html_end_line": 863
+  },
+  "settings.js": {
+    "html_start_line": 2011,
+    "html_end_line": 2076
+  },
+  "concept.css": {
+    "html_start_line": 732,
+    "html_end_line": 816
+  },
+  "compact-modals.js": {
+    "html_start_line": 1447,
+    "html_end_line": 1452
+  },
+  "background-image.js": {
+    "html_start_line": 1916,
+    "html_end_line": 1955
+  },
+  "goal-links.css": {
+    "html_start_line": 272,
+    "html_end_line": 272
+  },
+  "pill-navigation.css": {
+    "html_start_line": 818,
+    "html_end_line": 853
+  },
+  "categorized-overview.css": {
+    "html_start_line": 268,
+    "html_end_line": 268
+  },
+  "calendar.css": {
+    "html_start_line": 165,
+    "html_end_line": 165
+  },
+  "flow-core.js": {
+    "html_start_line": 1199,
+    "html_end_line": 1206
+  },
+  "pupil-overview.css": {
+    "html_start_line": 884,
+    "html_end_line": 917
+  },
+  "orga-unified.css": {
+    "html_start_line": 865,
+    "html_end_line": 882
+  },
+  "pill-selection.js": {
+    "html_start_line": 1732,
+    "html_end_line": 1739
+  },
+  "quick-followup.js": {
+    "html_start_line": 1467,
+    "html_end_line": 1473
+  },
+  "entry-switches.js": {
+    "html_start_line": 1759,
+    "html_end_line": 1765
+  },
+  "modal-interaction.css": {
+    "html_start_line": 362,
+    "html_end_line": 386
+  },
+  "visual-polish.js": {
+    "html_start_line": 1562,
+    "html_end_line": 1563
+  },
+  "calendar-unified.js": {
+    "html_start_line": 1346,
+    "html_end_line": 1383
+  },
+  "compact-layout.css": {
+    "html_start_line": 197,
+    "html_end_line": 237
+  },
+  "bulk-entries.css": {
+    "html_start_line": 274,
+    "html_end_line": 276
+  },
+  "reliable.css": {
+    "html_start_line": 161,
+    "html_end_line": 163
+  },
+  "control-appearance.js": {
+    "html_start_line": 1965,
+    "html_end_line": 2009
+  },
+  "modal-interaction.js": {
+    "html_start_line": 1776,
+    "html_end_line": 1852
+  },
+  "quick-followup.css": {
+    "html_start_line": 270,
+    "html_end_line": 270
+  },
+  "modal-appearance.js": {
+    "html_start_line": 1888,
+    "html_end_line": 1893
+  },
+  "social-narrative.js": {
+    "html_start_line": 2271,
+    "html_end_line": 2302
+  },
+  "compact-layout.js": {
+    "html_start_line": 1405,
+    "html_end_line": 1438
+  },
+  "homework-task-comments.css": {
+    "html_start_line": 288,
+    "html_end_line": 288
+  },
+  "homework-tasks-model.js": {
+    "html_start_line": 1565,
+    "html_end_line": 1580
+  },
+  "page-swipe.js": {
+    "html_start_line": 2420,
+    "html_end_line": 2489
+  },
+  "surface-appearance.js": {
+    "html_start_line": 1895,
+    "html_end_line": 1914
+  },
+  "button-fixes.js": {
+    "html_start_line": 1528,
+    "html_end_line": 1533
+  },
+  "compact-modals.css": {
+    "html_start_line": 239,
+    "html_end_line": 266
+  },
+  "import-recovery.js": {
+    "html_start_line": 2093,
+    "html_end_line": 2148
+  },
+  "entry-switches.css": {
+    "html_start_line": 343,
+    "html_end_line": 351
+  },
+  "bulk-entries.js": {
+    "html_start_line": 1497,
+    "html_end_line": 1519
+  },
+  "pill-navigation.js": {
+    "html_start_line": 2368,
+    "html_end_line": 2418
+  },
+  "cards.js": {
+    "html_start_line": 1385,
+    "html_end_line": 1402
+  },
+  "pupil-colors.js": {
+    "html_start_line": 1544,
+    "html_end_line": 1560
+  },
+  "entry-experience.css": {
+    "html_start_line": 327,
+    "html_end_line": 341
+  },
+  "appearance-controls.js": {
+    "html_start_line": 2078,
+    "html_end_line": 2091
+  },
+  "work-overview.js": {
+    "html_start_line": 2223,
+    "html_end_line": 2224
+  },
+  "situation-tags.css": {
+    "html_start_line": 280,
+    "html_end_line": 280
+  },
+  "data-management.js": {
+    "html_start_line": 2226,
+    "html_end_line": 2256
+  },
+  "overview-refined.css": {
+    "html_start_line": 298,
+    "html_end_line": 301
+  },
+  "pupil-colors.css": {
+    "html_start_line": 282,
+    "html_end_line": 282
+  },
+  "field-tags.js": {
+    "html_start_line": 1707,
+    "html_end_line": 1730
+  },
+  "homework-task-comments.js": {
+    "html_start_line": 1612,
+    "html_end_line": 1617
+  },
+  "goals.js": {
+    "html_start_line": 1440,
+    "html_end_line": 1445
+  },
+  "homework-checklist.css": {
+    "html_start_line": 278,
+    "html_end_line": 278
+  },
+  "goal-links.js": {
+    "html_start_line": 1475,
+    "html_end_line": 1484
+  },
+  "pupil-overview.js": {
+    "html_start_line": 1630,
+    "html_end_line": 1688
+  },
+  "edit-protection.js": {
+    "html_start_line": 2150,
+    "html_end_line": 2188
+  },
+  "domain-model.js": {
+    "html_start_line": 944,
+    "html_end_line": 1037
+  },
+  "backup-crypto.js": {
+    "html_start_line": 2535,
+    "html_end_line": 2544
+  },
+  "situation-tags.js": {
+    "html_start_line": 1535,
+    "html_end_line": 1542
+  },
+  "homework-simple.css": {
+    "html_start_line": 284,
+    "html_end_line": 286
+  },
+  "overview-refined.js": {
+    "html_start_line": 1690,
+    "html_end_line": 1705
+  },
+  "org-lists.js": {
+    "html_start_line": 2325,
+    "html_end_line": 2355
+  },
+  "design-system.css": {
+    "html_start_line": 390,
+    "html_end_line": 680
+  },
+  "entry-refinement.js": {
+    "html_start_line": 1854,
+    "html_end_line": 1886
+  },
+  "cards.css": {
+    "html_start_line": 167,
+    "html_end_line": 195
+  },
+  "orga-unified.js": {
+    "html_start_line": 2546,
+    "html_end_line": 2569
+  },
+  "categorized-overview.js": {
+    "html_start_line": 1454,
+    "html_end_line": 1465
+  },
+  "entry-experience.js": {
+    "html_start_line": 1741,
+    "html_end_line": 1757
+  },
+  "goals-refined.js": {
+    "html_start_line": 1619,
+    "html_end_line": 1628
+  },
+  "settings.css": {
+    "html_start_line": 682,
+    "html_end_line": 730
+  }
+}

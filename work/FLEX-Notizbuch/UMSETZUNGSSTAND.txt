@@ -1,0 +1,149 @@
+FLEX-Notizbuch – Umsetzung des Reviews
+Stand: 31.10.2026
+
+LAYOUTKORREKTUR: MOBILE DETAILDIALOGE
+Horizontale automatische Außenabstände zentrieren auch die schmaleren
+Detaildialoge (Ziele, Hausübung und Verlauf). Ursache war margin:0 in der
+mobilen Detailansicht bei weiterhin begrenzter Dialogbreite.
+Build geprüft; weiterhin keine Browsertests.
+
+AKTUELLE ÜBERARBEITUNG: SCHÜLERÜBERSICHT
+
+„Aktuell“ gliedert Anstehendes, noch zu ergänzende Dokumentation und letzte
+Einträge. Fällige Vorgänge erscheinen zuerst; abgeschlossene Aufgaben und Notizen
+stehen darunter. Aufgaben und ihre Erinnerungen werden gemeinsam angezeigt,
+mit getrennten Terminangaben. Direkte Aktionen: Erledigen, Überprüfen, Prüfen.
+Die großen verschachtelten Bereichskarten entfallen in der Einstiegsansicht.
+Fünf kompakte Direktzugänge öffnen die bestehenden Erfassungsbereiche.
+Checklisten erhalten lesbare Zeilen und Fortschrittsangabe statt Rohmarkierungen.
+Der Kopf zeigt den Schülernamen prominent, ohne zusätzlichen großen Seitentitel.
+Suche, Wochenfilter, offene Vorgänge, frühere Einträge und vollständiger Verlauf
+bleiben erreichbar. Die Übersicht verändert keine gespeicherten Inhalte.
+Zwölf lokale Node-Suiten bestanden, darunter neun neue Übersichtsprüfgruppen.
+Keine Browsertests; die visuelle Darstellung wurde nicht im Browser geprüft.
+
+VORHERIGE ÜBERARBEITUNG: ORGA UND REMINDER ZUSAMMENGEFÜHRT
+
+Ein gemeinsamer Orga-Editor bietet Notizen, Aufgaben und Checklisten.
+„Als Aufgabe“, optionaler Termin und optionale Erinnerung sind getrennt.
+Reine Notizen zählen nicht als offen. Filter: Alle / Offen / Erledigt.
+Erledigen beendet die Erinnerung; Quittieren erledigt die Aufgabe nicht.
+Wiederöffnen einer Aufgabe reaktiviert Erinnerungen nicht automatisch.
+Checklistenpunkte bleiben unabhängig vom Abschluss der gesamten Aufgabe.
+Der Reminder-Shortcut entfällt; fünf gleich große Shortcuts bleiben erhalten.
+Klassen-Orga verwendet dieselben Felder, Filter und Zustandsregeln.
+Die Übersicht zeigt Aufgabentermine und Erinnerungen getrennt beschriftet.
+
+Bestehende Einzel-Erinnerungen werden mit ihren IDs, Texten und Revisionen zu
+Orga-Aufgaben. Bereits verknüpfte Notizen behalten ihren Notizstatus und werden
+nicht dupliziert. Entwürfe werden beim Öffnen übernommen; die ursprünglichen
+Speicherfassungen bleiben bis zum erfolgreichen Speichern erhalten.
+Synthetische Tests prüfen auch wiederholten Import, Laden aus dem Journal,
+gelöschte/verwaiste Erinnerungen, Fehlerschreibvorgänge und getrennte Termine.
+Elf lokale Node-Suiten bestanden, davon 14 neue Orga-Integrationsgruppen.
+Keine Browsertests. Erinnerungen erscheinen weiterhin innerhalb der App.
+
+NACHFOLGENDE ÜBERARBEITUNG: EINSTELLUNGEN
+
+Die Einstellungen sind jetzt nach Darstellung, Bedienung und Daten getrennt.
+Stilvorlagen und gemeinsames Einstellen der Flächen sind direkt sichtbar.
+Hintergrund, Hauptansicht, Buttons/Eingabefelder und Dialoge haben eigene
+aufklappbare Gruppen. Dialoghintergrund und Kopf-/Fußzeilen stehen zusammen.
+Die Live-Vorschau steht am Desktop daneben, mobil aufklappbar darüber.
+Die Shortcut-Reihenfolge ist unter Bedienung; Sicherung, Import, Papierkorb und
+Speicherpflege sind unter Daten. Alle bisherigen Einstellmöglichkeiten bleiben
+erhalten. Der gewählte Bereich und geöffnete Gruppen bleiben in der Sitzung
+erhalten. Pfeiltasten sowie Pos1/Ende wechseln zwischen den Einstellungsbereichen.
+Eine zusätzliche lokale Suite prüft vollständige und eindeutige Eingabefelder,
+Gruppierung, Tastaturnavigation, Zustandsbeibehaltung und den Speicherfehlerfall.
+Diese Überarbeitung ergänzte die damals zehnte lokale Node-Suite.
+
+UMGESETZT UND LOKAL GEPRÜFT
+
+R01 Zielüberprüfungen werden als einzelne Objekte mit IDs zusammengeführt.
+Konkurrierende Änderungen an Status/Termin bleiben als Konflikt erhalten.
+
+R02 Beim Import bleiben lokale und mitgebrachte frühere Fassungen erhalten.
+Abweichende Felder werden in einer Konfliktliste sichtbar. Die gewählte Import-
+strategie bestimmt die zunächst angezeigte Fassung, nicht die Löschung der anderen.
+
+R03 Die Abgabe wird bei jeder Ableitung vom gespeicherten Ausgangswert neu aufgebaut.
+Eine gelöschte Rückmeldung hinterlässt dadurch keinen veralteten Abgabestatus.
+
+R04 Backups berücksichtigen aktuelle Mehrfachentwürfe im Arbeitsspeicher und
+Entwürfe der Bearbeitungsformulare. Fehlgeschlagene Import-/Entwurfsschreibvorgänge
+bleiben im Arbeitsspeicher verfügbar. Der Export übernimmt diese Fassung.
+
+R05 Gemeinsame Situationen haben eigene IDs, Kontexttext und Beteiligte. Individuelle
+Beobachtungen bleiben personenbezogen. Eine bloß beteiligte Person sieht einen
+Kontextverweis ohne fremde Bewertung. Bei Erfassung für mehrere Schüler werden
+Notizen und Auswahltexte pro Person gesetzt. Alte Mehrfachkopien werden nicht
+nachträglich als gemeinsame Bewertung umgedeutet; sie behalten ihre Inhalte.
+
+R06 Aktive Zielverweise werden auf Existenz, Kategorie und passenden Schüler
+geprüft. Historische Zieltexte ohne aktiven Verweis dürfen erhalten bleiben.
+Beschädigte Altverweise werden nicht still einer anderen Person zugeordnet.
+
+R07 Noch zu ergänzende Dokumentation steht separat mit ihrem Alter. Sie erhält
+keine täglich verschobene künstliche Fälligkeit. Offene Vorgänge bleiben nach
+Archivierung sichtbar und tragen den Hinweis Archiv.
+
+R08 Orga-Listen erhalten stabile Punkt-IDs. Unabhängige Änderungen verschiedener
+Punkte bleiben beim lokalen Operationsmerge erhalten. Änderungen am selben Feld
+werden als Konflikt bewahrt. Klartext bleibt als Darstellung/Export verfügbar.
+
+WEITERE ÄNDERUNGEN
+
+- Kontextzeit als sprachunabhängiger Code statt Bestandteil des gespeicherten
+  Beobachtungstexts; alte exakte Zeitabsätze werden nachvollziehbar gelesen.
+- Quelle: selbst beobachtet, berichtet, eigene Einordnung. Freiwillige Angaben.
+- Schülerperspektive im Zieleditor; Zieltermin und Prüftermin sind getrennt.
+- Statuswechsel von Zielen halten eine Überprüfung fest, auch beim Wiederöffnen.
+- Orga-Erinnerungen erzeugen keine neuen doppelten Erinnerungseinträge. Alte
+  Projektionen bleiben im Datenbestand erhalten, werden aber nicht separat bearbeitet.
+- Klassenaufgaben ohne künstlichen Schülerbezug, mit Termin und Listenformatierung.
+- Entwürfe unter einem eigenen Menüpunkt, Wiederaufnahme beim betreffenden Editor.
+- Bearbeitungsformulare sichern beim Schließen; Speichern übernimmt in den Verlauf.
+  Auch nach externen Änderungen bleibt die ursprüngliche Bearbeitungsbasis erhalten,
+  damit ein offener Editor fremde Änderungen nicht still überschreibt.
+- Wischen nur zwischen Übersicht und Schüler; Archiv/Einstellungen mit Zurück und
+  Erhalt von Scrollposition und Suche.
+- Lange Bearbeitungen nutzen größere Detailflächen, mobil bildschirmfüllend.
+- Darstellungsvorgaben bleiben sichtbar, Einzelregler sind unter Details gebündelt.
+- Optionale AES-GCM-Verschlüsselung für Sicherungsdateien mit PBKDF2-SHA256.
+  Passwörter werden nicht gespeichert. Alte unverschlüsselte JSON-Dateien bleiben
+  importierbar. Dies verschlüsselt nicht automatisch die lokale Browserdatenbank.
+- Gesprächsexport enthält ausgewählte aktuelle Einträge. Namen aus der strukturierten
+  Beteiligtenliste werden standardmäßig ausgelassen. Freitext wird nicht anonymisiert.
+- Neue leere Arbeitsbereiche starten ohne vorgefüllte Beispielschüler.
+- Änderungen enthalten Basiswerte und logische Reihenfolge. Konflikte sind zugänglich
+  und auflösbar; das ist noch kein Netzwerk-Synchronisationsdienst.
+
+PRÜFUNGEN
+
+Neun lokale Node-Suiten bestanden, darunter 15 neue Review-Regressionsgruppen,
+die ursprünglichen 13 Konzeptgruppen, Datenimport, konkurrierende Schreibvorgänge,
+Mehrfacherfassung, Entwurfsfehler und Verschlüsselung. Zusätzlich wurde das native
+SQLite-Zielschema in einer isolierten In-Memory-Datenbank geprüft: Fremdschlüssel,
+schülergebundene Zielreferenzen, Transaktions-Rollback und eindeutige Sequenzen.
+Nur synthetische Daten; kein Zugriff auf persönliche Browserspeicher.
+
+Keine Browsertests gemäß Auftrag. Tatsächliches Layout, Fokus, Touch, Screenreader
+und native Plattformfunktionen sind nicht durch diese Tests freigegeben.
+
+NOCH OFFEN – NATIVE UMSETZUNG
+
+Das ausführbare SQLite-Zielschema und die verbindlichen Fach-/Synchronisationsregeln
+liegen unter architecture/. Es gibt weiterhin kein Flutter-Projekt und keine APK
+oder EXE. Flutter/Dart sind in der Arbeitsumgebung nicht installiert.
+
+Die vollständige native Umsetzung aus dem Review ist deshalb noch nicht erledigt:
+Flutter-Ansichten, Drift-Repositories/Migration, Transaktionen mit Outbox,
+Gerätekopplung und Schlüsselverwaltung, WLAN-/Bluetooth-Transport samt Quittungen,
+Schutz der lokalen Datenbank, native Erinnerungen, echte Gerätetests. Größere
+HTML-Dialogflächen sind außerdem noch kein vollständiger nativer Ansichtenrouter.
+Ein manipulationsgeschütztes Audit-Protokoll wird weiterhin nicht zugesichert.
+
+Vorhandene Schülerdaten werden nicht gelöscht. Die vorherige App wurde vor den
+Änderungen lokal gesichert. Die Datenmigration erfolgt additiv; eine vollständige
+Sicherung vor dem Wechsel bleibt der Weg zur Wiederherstellung des alten Stands.

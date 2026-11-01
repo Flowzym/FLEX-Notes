@@ -1,0 +1,18 @@
+.org-task-panel,.org-reminder-panel{margin-block:8px;padding-block:4px}
+.org-task-fields,.org-reminder-fields{padding-top:8px}
+.org-task-fields[hidden],.org-reminder-fields[hidden]{display:none!important}
+.org-entry-state{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:.8rem}
+.org-entry-state button{padding:7px 12px;min-height:34px}
+.org-linked-reminder{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%}
+.org-linked-reminder small{width:100%}
+.org-saved{margin-top:24px;border-top:1px solid var(--line);padding-top:14px}
+.org-saved-items{display:grid;gap:10px;margin-top:12px}
+.org-reminder-scope{display:block;opacity:.65;font-size:.75rem}
+#classTasksBody article>button{width:100%;text-align:left}
+#classTasksBody article small{display:block}
+/* Five equal shortcuts; the final two retain the same size and are centered. */
+.card-shortcuts{grid-template-columns:repeat(6,minmax(0,1fr))}
+.card-shortcuts>.card-shortcut{grid-column:span 2}
+.card-shortcuts>.card-shortcut:nth-child(4){grid-column:2/span 2}
+.card-shortcuts>.card-shortcut:nth-child(5){grid-column:4/span 2}
+.card-shortcuts>.card-shortcut:nth-child(5)::after{display:none}

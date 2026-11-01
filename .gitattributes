@@ -1,0 +1,8 @@
+# Preserve exact uploaded/reference bytes, licenses and raw command output.
+audit/reference/** -whitespace
+reference/** -whitespace
+work/** -whitespace
+docs/rebuild/evidence/** -whitespace
+audit/evidence/*.log -whitespace
+audit/evidence/*.patch -whitespace
+flutter_app/assets/fonts/*-OFL.txt -whitespace

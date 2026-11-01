@@ -1,0 +1,65 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+00:03 +1: assignment alone, multiple recent tags and legacy free text remain distinct
+00:03 +2: last pupil stays open with a fresh identity after save and next
+00:04 +3: comment conflict rebase preserves newer task status and other feedback
+00:05 +4: Orga and generic drafts reject stale writes and publishing does not delete a newer draft
+00:05 +5: group records have distinct observations and one shared context; undo is atomic
+00:05 +6: maintenance rejects changed snapshots and removes only trash after validated export
+00:05 +7: date-only reminders, task metadata and pupil drafts survive a real SQLite reopen
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:458:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:463:18)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:458:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:500:14)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:523:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:05 +8: pupil fields resume together and validation leaves the editor open
+00:06 +9: direct Flutter dialog matrix wide
+00:20 +10: direct Flutter dialog matrix narrow
+00:26 +11: direct Flutter dialog matrix large-keyboard
+00:30 +12: (tearDownAll)
+00:30 +12: All tests passed!

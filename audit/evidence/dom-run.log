@@ -1,0 +1,176 @@
+{
+  "dialogs": [
+    {
+      "id": "studentDialog",
+      "title": "",
+      "classes": ""
+    },
+    {
+      "id": "addDialog",
+      "title": "Schüler hinzufügen",
+      "classes": "small-dialog"
+    },
+    {
+      "id": "backupDialog",
+      "title": "Datensicherung",
+      "classes": "small-dialog"
+    },
+    {
+      "id": "optionsDialog",
+      "title": "Auswahl bearbeiten",
+      "classes": "option-editor"
+    },
+    {
+      "id": "recordDialog",
+      "title": "Eintrag bearbeiten",
+      "classes": ""
+    },
+    {
+      "id": "pupilDialog",
+      "title": "Schüler verwalten",
+      "classes": "small-dialog"
+    },
+    {
+      "id": "draftDialog",
+      "title": "Gesicherte Entwürfe",
+      "classes": ""
+    },
+    {
+      "id": "briefDialog",
+      "title": "Gespräch vorbereiten",
+      "classes": "detail-view"
+    },
+    {
+      "id": "importReview",
+      "title": "Sicherung prüfen",
+      "classes": ""
+    },
+    {
+      "id": "calendarDialog",
+      "classes": ""
+    },
+    {
+      "id": "bulkDialog",
+      "title": "Für mehrere erfassen",
+      "classes": ""
+    },
+    {
+      "id": "homeworkEditDialog",
+      "title": "Hausübung bearbeiten",
+      "classes": "detail-view"
+    },
+    {
+      "id": "homeworkTaskDialog",
+      "title": "Kommentar & Stand",
+      "classes": "small-dialog"
+    },
+    {
+      "id": "discardEditDialog",
+      "title": "Entwurf nicht gesichert",
+      "classes": "small-dialog"
+    },
+    {
+      "id": "goalReviewDialog",
+      "title": "Ziel überprüfen",
+      "classes": "detail-view"
+    },
+    {
+      "id": "trashDialog",
+      "title": "Papierkorb",
+      "classes": ""
+    },
+    {
+      "id": "maintenanceDialog",
+      "title": "Speicher pflegen",
+      "classes": ""
+    },
+    {
+      "id": "situationDialog",
+      "title": "Gemeinsame Situation",
+      "classes": "detail-view"
+    },
+    {
+      "id": "conflictDialog",
+      "title": "Änderungskonflikte",
+      "classes": "detail-view"
+    },
+    {
+      "id": "classTasksDialog",
+      "title": "Klassen-Orga",
+      "classes": "detail-view"
+    },
+    {
+      "id": "classTaskDialog",
+      "title": "Klassen-Orga",
+      "classes": ""
+    }
+  ],
+  "states": [
+    "add-empty",
+    "overview-empty",
+    "Sozialverhalten-empty",
+    "Sozialverhalten-negative",
+    "Sozialverhalten-filled",
+    "Arbeitsverhalten-empty",
+    "Arbeitsverhalten-negative",
+    "Arbeitsverhalten-filled",
+    "Organisatorisches-empty",
+    "Ziele-empty",
+    "Hausübung-empty",
+    "Verlauf-empty",
+    "goal-new",
+    "homework-new",
+    "orga-expanded",
+    "options-positive",
+    "options-negative",
+    "pupil",
+    "drafts",
+    "brief-empty",
+    "class-list-empty",
+    "class-new",
+    "trash-empty",
+    "maintenance",
+    "purge",
+    "conflicts-empty",
+    "backup",
+    "Sozialverhalten-edit",
+    "Arbeitsverhalten-edit",
+    "Organisatorisches-edit",
+    "Ziele-edit",
+    "goal-review-continue",
+    "goal-review-reached",
+    "goal-review-error",
+    "goal-list-filled",
+    "homework-list-filled",
+    "homework-edit",
+    "homework-comment-open",
+    "homework-note-history",
+    "bulk-Sozialverhalten",
+    "bulk-Arbeitsverhalten",
+    "bulk-Hausübung",
+    "bulk-Organisatorisches",
+    "bulk-error",
+    "calendar-date",
+    "calendar-time",
+    "situation",
+    "history-filled",
+    "brief-filled",
+    "import-configured",
+    "import-recovery",
+    "maintenance-error",
+    "calendar-midnight",
+    "conflicts-filled",
+    "trash-filled",
+    "editor-draft-resume",
+    "editor-draft-offer",
+    "editor-draft-resumed",
+    "drafts-filled",
+    "comment-save-error",
+    "draft-close-error",
+    "Sicherung öffnen",
+    "Sicherung verschlüsseln",
+    "settings-page",
+    "discardEditDialog"
+  ],
+  "errors": []
+}
