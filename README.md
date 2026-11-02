@@ -16,7 +16,10 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-Aktuell: Wischen, Größenregler und Symbolbedienung — [Änderungen und Prüfungen](audit/SWIPE_DESIGN_ABGLEICH.md).
+Aktuell: [Android-Testapp installieren und bauen](flutter_app/ANDROID-TEST.md),
+[Android-Anpassungen und Prüfungen](audit/ANDROID_TESTAPP.md).
+
+Wischen, Größenregler und Symbolbedienung — [Änderungen und Prüfungen](audit/SWIPE_DESIGN_ABGLEICH.md).
 
 Vorherige Übersicht, Flächen, Orga-Listen und Modalzugänge: [Änderungen und Prüfungen](audit/UEBERSICHT_ORGA_ABGLEICH.md).
 

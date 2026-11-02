@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../domain/models.dart';
 import '../domain/drafts.dart';
 import '../domain/repository.dart';
@@ -14,11 +15,18 @@ Future<bool> saveTextFile(
   String text, {
   String mime = 'text/plain',
 }) async {
-  final file = XFile.fromData(
-    Uint8List.fromList(utf8.encode(text)),
-    name: name,
-    mimeType: mime,
-  );
+  final bytes = Uint8List.fromList(utf8.encode(text));
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return await const MethodChannel(
+          'at.flowzym.flex_notizbuch/files',
+        ).invokeMethod<bool>('saveFile', {
+          'name': name,
+          'mime': mime,
+          'bytes': bytes,
+        }) ??
+        false;
+  }
+  final file = XFile.fromData(bytes, name: name, mimeType: mime);
   if (kIsWeb) {
     await file.saveTo(name);
     return true;

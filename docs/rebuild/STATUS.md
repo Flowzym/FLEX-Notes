@@ -1,5 +1,9 @@
 # Aktueller Stand: 0.16.0-rebuild.9+29
 
+Android-Testapp **FLEX Test** mit eigener App-ID und Android-Speicherdialog:
+[Installation und Bau](../../flutter_app/ANDROID-TEST.md),
+[Prüfbericht](../../audit/ANDROID_TESTAPP.md). Kein Android-Gerätelauf.
+
 Übersicht und Schüler lassen sich horizontal durch Wischen wechseln.
 Settings bieten getrennte App-Skalierung (80–120 %) und Schriftgröße (80–160 %)
 sowie Feld-, Button- und Dialogrundungen. Systemschrift wirkt zusätzlich.
@@ -8,7 +12,8 @@ HÜ zeigt den gewählten Zustand zusätzlich als Text.
 
 Maßgeblich: [aktueller Prüfbericht](../../audit/SWIPE_DESIGN_ABGLEICH.md),
 [186 direkte Flutter-Renderings](../../audit/swipe-renderings/).
-157 Flutter-Tests bestanden, Analyse und Release-Webbuild erfolgreich.
+160 Flutter-Tests bestanden, Analyse und Android-Releasebuild erfolgreich.
+Release-Webbuild und direkte Renderings wurden in der vorherigen UI-Runde geprüft.
 Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
 Sehr große kombinierte Skalierungen brauchen viel Scrollen und erzeugen starke Wortumbrüche.
 Import-Zusammenführung, feldweise Konfliktauflösung und geführter Notfall-Reimport bleiben offen.

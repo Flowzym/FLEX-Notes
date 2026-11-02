@@ -15,8 +15,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "at.flowzym.flex_notizbuch"
+        // Separate identity and storage for the installable Android test app.
+        applicationId = "at.flowzym.flex_notizbuch.test"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -31,8 +31,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // This is a sideloaded test app, not a store release. Keep the local
+            // debug keystore for update installs; never commit signing keys.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -2,7 +2,8 @@
 
 Maßgeblicher Arbeitsstand: **0.16.0-rebuild.9+29**, korrigiert auf Grundlage des nachgereichten Quellen-ZIP **0.16.0-rebuild.4+24**. Keine Freigabe als „originalgetreu“.
 
-- [Aktueller Prüfstand](SWIPE_DESIGN_ABGLEICH.md): Wischen, unabhängige App-/Schriftgröße, zusätzliche Rundungen und Symbolbedienung; 157 Tests und 186 direkte Renderings.
+- [Android-Testapp](ANDROID_TESTAPP.md): Universal-APK, eigene App-ID und Android-Speicherdialog.
+- [UI-Prüfstand](SWIPE_DESIGN_ABGLEICH.md): Wischen, unabhängige App-/Schriftgröße, zusätzliche Rundungen und Symbolbedienung; 157 Tests und 186 direkte Renderings.
 - [Vorheriger UI-Abgleich](UEBERSICHT_ORGA_ABGLEICH.md): Übersicht, neutrale Flächen, Orga-Listen, Zahlenbadges und Zugänge über den Modalkopf; 145 Tests und 168 direkte Renderings.
 - [Dialogverzeichnis](DIALOGVERZEICHNIS.md): alle 22 tatsächlich vorhandenen Dialogtypen; Originalfolge, Texte, Zustände, Datenbeziehungen und spätere Nutzeränderungen.
 - [Flutter-Abgleich](FLUTTER_ABGLEICH.md): je Dialog Abweichung im gefundenen Quellstand, konkrete Korrektur und noch offene Unterschiede.

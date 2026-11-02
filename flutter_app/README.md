@@ -9,6 +9,7 @@ Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
 Aktueller UI-Abgleich und Prüfstand: [Wischen, Größenregler und Symbole](../audit/SWIPE_DESIGN_ABGLEICH.md).
+Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Prüfbericht](../audit/ANDROID_TESTAPP.md).
 Das aktuelle Vorschau-ZIP enthält den neu gebauten Webstand; die historischen Web-Vorschaupakete
 im Repository bleiben unverändert. Geprüft wurden lokale Flutter-Tests, direkte Engine-Renderings,
 Analyse und Release-Webbuild. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
@@ -71,10 +72,11 @@ Alternativ für die Entwicklung:
 flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8081
 ```
 
-Windows- und Android-Runnerquellen sind enthalten. Zum nativen Start sind die
-jeweiligen Plattformwerkzeuge erforderlich (`flutter doctor`, danach
-`flutter run -d windows` oder `flutter run -d <Android-Gerät>`). Hier wurde kein
-Windows-/Android-Build ausgeführt oder auf Geräten getestet.
+Windows- und Android-Runnerquellen sind enthalten. Die [Android-Testapp](ANDROID-TEST.md)
+wird mit `flutter build apk --release` gebaut und als **FLEX Test** installiert.
+Zum nativen Entwicklungsstart sind die jeweiligen Plattformwerkzeuge erforderlich
+(`flutter doctor`, danach `flutter run -d windows` oder `flutter run -d <Android-Gerät>`).
+Kein nativer Windows-Build und keine Tests auf Android-/Windows-Geräten.
 
 ## Daten und Versionsgrenzen
 

@@ -2,7 +2,8 @@
 
 Aktive Rekonstruktion: **0.16.0-rebuild.9+29**, Branch `fix/dialog-reference-audit`.
 
-Der maßgebliche aktuelle Prüfbericht steht unter
+Android-Testapp: [Installation und Bau](flutter_app/ANDROID-TEST.md),
+[Prüfbericht](audit/ANDROID_TESTAPP.md). Der UI-Prüfbericht steht unter
 [audit/SWIPE_DESIGN_ABGLEICH.md](audit/SWIPE_DESIGN_ABGLEICH.md), Startanweisungen unter
 [flutter_app/README.md](flutter_app/README.md).
 
