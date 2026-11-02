@@ -1,0 +1,24 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: automatic surfaces use neutral role colors and migrate only unchanged old defaults
+00:00 +1: list styling replaces and toggles prefixes across selected lines; Enter renumbers following items
+00:00 +2: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:02 +3: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+00:03 +4: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:05 +5: homework header opens assigned homework and keeps unpublished tasks separate
+00:06 +6: Orga header filters pupil and class drafts and preserves current note
+00:07 +7: header navigation waits for draft storage and stays in editor after a failed write
+00:08 +8: numeric pupil badges and both homework header routes 320.0 font 1.0
+00:08 +9: overview summaries and neutral surfaces 320.0 font 1.0
+00:08 +10: shared positive negative pill and header access 320.0 font 1.0
+00:09 +11: numeric pupil badges and both homework header routes 390.0 font 1.0
+00:10 +12: overview summaries and neutral surfaces 390.0 font 1.0
+00:10 +13: shared positive negative pill and header access 390.0 font 1.0
+00:11 +14: numeric pupil badges and both homework header routes 1200.0 font 1.0
+00:12 +15: overview summaries and neutral surfaces 1200.0 font 1.0
+00:13 +16: shared positive negative pill and header access 1200.0 font 1.0
+00:14 +17: numeric pupil badges and both homework header routes 320.0 font 2.0
+00:15 +18: overview summaries and neutral surfaces 320.0 font 2.0
+00:15 +19: shared positive negative pill and header access 320.0 font 2.0
+00:16 +20: (tearDownAll)
+00:16 +20: All tests passed!

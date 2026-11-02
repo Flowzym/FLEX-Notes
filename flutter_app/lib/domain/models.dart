@@ -402,10 +402,10 @@ class Appearance {
     this.dialogColor = 0,
     this.cardColor = 0,
     this.buttonColor = 0,
-    this.headerOpacity = .65,
-    this.footerOpacity = .65,
-    this.cardOpacity = .82,
-    this.buttonOpacity = .94,
+    this.headerOpacity = .18,
+    this.footerOpacity = .18,
+    this.cardOpacity = .28,
+    this.buttonOpacity = .20,
     this.desktopImage = '',
     this.mobileImage = '',
     this.desktopFit = 'cover',
@@ -417,8 +417,8 @@ class Appearance {
     this.workspaceColor = 0,
     this.fieldColor = 0,
     this.modalColor = 0,
-    this.workspaceOpacity = .88,
-    this.fieldOpacity = .94,
+    this.workspaceOpacity = .12,
+    this.fieldOpacity = .22,
     this.modalOpacity = 0,
     this.backgroundTint = 0xff203a2d,
     this.backgroundTintStrength = 0,
@@ -548,6 +548,7 @@ class Appearance {
   Appearance patch(Json changes) =>
       Appearance.fromJson({...toJson(), ...changes});
   Json toJson() => {
+    'surfaceDefaultsVersion': 2,
     'mode': mode,
     'accent': accent,
     'textScale': textScale,
@@ -584,7 +585,32 @@ class Appearance {
     'cardRadius': cardRadius,
     'shortcutOrder': shortcutOrder,
   };
-  factory Appearance.fromJson(Json j) {
+  factory Appearance.fromJson(Json source) {
+    final j = {...source};
+    const old = {
+      'headerOpacity': .65,
+      'footerOpacity': .65,
+      'cardOpacity': .82,
+      'buttonOpacity': .94,
+      'fieldOpacity': .94,
+      'workspaceOpacity': .88,
+    };
+    // Only migrate the unchanged automatic palette; preserve custom colors and alpha values.
+    if (!j.containsKey('surfaceDefaultsVersion') &&
+        j['coupleSurfaces'] != true &&
+        surfaceColors.every((key) => (j[key] ?? 0) == 0) &&
+        old.entries.every(
+          (entry) => (j[entry.key] ?? entry.value) == entry.value,
+        )) {
+      j.addAll({
+        'headerOpacity': .18,
+        'footerOpacity': .18,
+        'cardOpacity': .28,
+        'buttonOpacity': .20,
+        'fieldOpacity': .22,
+        'workspaceOpacity': .12,
+      });
+    }
     final a = Appearance(
       mode: j['mode'] as String? ?? 'dark',
       accent: j['accent'] as int? ?? 0xffdae9a6,
@@ -593,10 +619,10 @@ class Appearance {
       dialogColor: j['dialogColor'] as int? ?? 0,
       cardColor: j['cardColor'] as int? ?? 0,
       buttonColor: j['buttonColor'] as int? ?? 0,
-      headerOpacity: (j['headerOpacity'] as num? ?? .65).toDouble(),
-      footerOpacity: (j['footerOpacity'] as num? ?? .65).toDouble(),
-      cardOpacity: (j['cardOpacity'] as num? ?? .82).toDouble(),
-      buttonOpacity: (j['buttonOpacity'] as num? ?? .94).toDouble(),
+      headerOpacity: (j['headerOpacity'] as num? ?? .18).toDouble(),
+      footerOpacity: (j['footerOpacity'] as num? ?? .18).toDouble(),
+      cardOpacity: (j['cardOpacity'] as num? ?? .28).toDouble(),
+      buttonOpacity: (j['buttonOpacity'] as num? ?? .20).toDouble(),
       desktopImage: j['desktopImage'] as String? ?? '',
       mobileImage: j['mobileImage'] as String? ?? '',
       desktopFit: j['desktopFit'] as String? ?? 'cover',
@@ -608,8 +634,8 @@ class Appearance {
       workspaceColor: j['workspaceColor'] as int? ?? 0,
       fieldColor: j['fieldColor'] as int? ?? 0,
       modalColor: j['modalColor'] as int? ?? 0,
-      workspaceOpacity: (j['workspaceOpacity'] as num? ?? .88).toDouble(),
-      fieldOpacity: (j['fieldOpacity'] as num? ?? .94).toDouble(),
+      workspaceOpacity: (j['workspaceOpacity'] as num? ?? .12).toDouble(),
+      fieldOpacity: (j['fieldOpacity'] as num? ?? .22).toDouble(),
       modalOpacity: (j['modalOpacity'] as num? ?? 0).toDouble(),
       backgroundTint: j['backgroundTint'] as int? ?? 0xff203a2d,
       backgroundTintStrength: (j['backgroundTintStrength'] as num? ?? 0)

@@ -42,6 +42,9 @@ void main() {
       );
       await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
+      final saved = (await repo.entries()).single;
+      await tester.tap(find.byKey(ValueKey('overview-open-${saved.id}')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Erledigen'));
       await tester.pumpAndSettle();
       expect((await repo.entries()).single.done, isTrue);

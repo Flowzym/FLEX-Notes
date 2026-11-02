@@ -1,4 +1,21 @@
-# Aktueller Stand: 0.16.0-rebuild.7+27
+# Aktueller Stand: 0.16.0-rebuild.8+28
+
+Schwarze transparente Karten/Felder, weiße transparente Kopf-/Fußbereiche und Buttons.
+Neue Übersicht mit Zusammenfassungen ohne Auswahl-/Abhakbuttons; gemeinsame Positiv/Negativ-Pille.
+Alle Schülerkartenbadges enthalten nur eine Anzahl (offene Vorgänge + Entwürfe).
+Entwürfe sind über den Kopf des Eintragsmodals ausdrücklich fortsetzbar; aufgegebene HÜ
+haben dort einen eigenen Zugang. Neue Eingaben bleiben beim Wechsel erhalten.
+Orga-Nummerierung, Aufzählung und Checkliste setzen sich mit Enter korrekt fort.
+
+Maßgeblich: [aktueller Abgleich und Prüfumfang](../../audit/UEBERSICHT_ORGA_ABGLEICH.md),
+[168 direkte Flutter-Renderings](../../audit/overview-renderings/).
+145 Flutter-Tests, 11 Schematests, 3 Vorschau-Servertests; Analyse und Release-Webbuild erfolgreich.
+Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf. Import-Zusammenführung,
+feldweise Konfliktauflösung und geführter Notfall-Reimport bleiben offen; keine Freigabe als originalgetreu.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.7+27
 
 Neue Einträge und „Speichern & weiter“ starten immer frisch. Entwürfe werden ausdrücklich
 über Liste/Badge geöffnet; leere Formulare erzeugen keinen Entwurf. Nach vollständigem

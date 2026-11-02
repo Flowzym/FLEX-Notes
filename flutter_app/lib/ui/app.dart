@@ -85,8 +85,8 @@ class FlexApp extends StatelessWidget {
       ],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: palette.modalInk,
-          foregroundColor: legibleOn(palette.modalInk),
+          backgroundColor: button,
+          foregroundColor: buttonText,
         ),
       ),
       textButtonTheme: TextButtonThemeData(

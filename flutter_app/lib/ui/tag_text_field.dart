@@ -1,3 +1,4 @@
+import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -82,33 +83,39 @@ class _TagTextFieldState extends State<TagTextField> {
                     runSpacing: 4,
                     children: [
                       for (final tag in widget.tags)
-                        InputChip(
-                          key: ValueKey('selected-${tag.id}'),
-                          focusNode: tagFocus.putIfAbsent(
-                            tag.id,
-                            () => FocusNode(),
+                        transparentChip(
+                          InputChip(
+                            key: ValueKey('selected-${tag.id}'),
+                            focusNode: tagFocus.putIfAbsent(
+                              tag.id,
+                              () => FocusNode(),
+                            ),
+                            visualDensity: const VisualDensity(
+                              horizontal: -2,
+                              vertical: -2,
+                            ),
+                            materialTapTargetSize: MaterialTapTargetSize.padded,
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            labelPadding: const EdgeInsets.only(
+                              left: 4,
+                              right: 2,
+                            ),
+                            deleteIcon: const Icon(Icons.close, size: 15),
+                            label: Text(
+                              tag.label,
+                              softWrap: true,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                height: 1.15,
+                              ),
+                            ),
+                            deleteButtonTooltipMessage:
+                                '${tag.label} entfernen',
+                            onDeleted: () {
+                              tag.remove();
+                              focus.requestFocus();
+                            },
                           ),
-                          visualDensity: const VisualDensity(
-                            horizontal: -2,
-                            vertical: -2,
-                          ),
-                          materialTapTargetSize: MaterialTapTargetSize.padded,
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          labelPadding: const EdgeInsets.only(
-                            left: 4,
-                            right: 2,
-                          ),
-                          deleteIcon: const Icon(Icons.close, size: 15),
-                          label: Text(
-                            tag.label,
-                            softWrap: true,
-                            style: const TextStyle(fontSize: 12, height: 1.15),
-                          ),
-                          deleteButtonTooltipMessage: '${tag.label} entfernen',
-                          onDeleted: () {
-                            tag.remove();
-                            focus.requestFocus();
-                          },
                         ),
                     ],
                   ),

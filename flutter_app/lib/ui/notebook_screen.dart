@@ -4,6 +4,7 @@ import 'maintenance_dialog.dart';
 import 'pupil_editor.dart';
 import 'dialog_workflows.dart';
 import 'surfaces.dart';
+import 'overview_entry.dart';
 import 'prototype_navigation.dart';
 import 'pupil_card.dart';
 import 'backup_dialog.dart';
@@ -118,10 +119,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         'open': 'Offen',
                         'done': 'Erledigt',
                       }.entries)
-                        ChoiceChip(
-                          label: Text(option.value),
-                          selected: filter == option.key,
-                          onSelected: (_) => update(() => filter = option.key),
+                        transparentChip(
+                          ChoiceChip(
+                            label: Text(option.value),
+                            selected: filter == option.key,
+                            onSelected: (_) =>
+                                update(() => filter = option.key),
+                          ),
                         ),
                     ],
                   ),
@@ -441,113 +445,237 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   Widget _overview() {
-    final pendingRecords = c.records.where((r) => r.pending).toList();
+    final records = c.records.where((r) => !r.deleted).toList();
+    final pendingRecords = records.where((r) => r.pending).toList();
     final pendingOrga = c.upcoming(c.entries);
-    final drafts = c.draftCount;
+    final pending = pendingRecords.length + pendingOrga.length;
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final todo = _combinedSection(
+      'Anstehend',
+      pendingOrga,
+      pendingRecords,
+      'Gerade stehen keine Aufgaben, Hausübungen oder Ziele an.',
+      upcoming: true,
+    );
+    final complete = _combinedSection(
+      'Noch ergänzen',
+      c.entries.where((e) => e.needsCompletion && !e.pending).toList(),
+      records.where((r) => !r.pending && r.needsCompletion).toList(),
+      'Alle Einträge sind ergänzt.',
+    );
+    final recent = _combinedSection(
+      'Zuletzt dokumentiert',
+      c.entries.where((e) => !e.pending && !e.needsCompletion).toList(),
+      records.where((r) => !r.pending && !r.needsCompletion).toList(),
+      'Noch keine weiteren Einträge.',
+    );
     return ListView(
       key: const PageStorageKey('overview'),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(
+        width <= 360 ? 12 : 24,
+        20,
+        width <= 360 ? 12 : 24,
+        32,
+      ),
       children: [
-        Text(
-          'Dein Unterricht. Gut im Blick.',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Ziele, Hausübungen, Aufgaben und Beobachtungen an einem Ort.',
-        ),
-        const SizedBox(height: 24),
         Wrap(
-          spacing: 12,
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
           runSpacing: 12,
           children: [
-            Chip(
-              label: Text(
-                '${c.pupils.where((p) => !p.archived).length} Schüler',
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Überblick',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontFamily: 'FlexSerif',
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${displayDate(dateOnly(DateTime.now()))} · ${c.pupils.where((p) => !p.archived).length} Schüler · $pending anstehend',
+                ),
+              ],
             ),
-            Chip(
-              label: Text(
-                '${pendingOrga.length + pendingRecords.length} anstehend',
-              ),
+            FilledButton.icon(
+              onPressed: () => _editor(OrgaEntry.empty()),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Klassen-Orga anlegen'),
             ),
-            Chip(label: Text('$drafts Entwürfe')),
           ],
         ),
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton.icon(
-            onPressed: () => _editor(OrgaEntry.empty()),
-            icon: const Icon(Icons.add),
-            label: const Text('Klassen-Orga anlegen'),
-          ),
-        ),
-        if (drafts > 0)
-          FlexCard(
-            child: ListTile(
-              leading: const Icon(Icons.edit_note),
-              title: Text('$drafts gesicherte Entwürfe'),
-              subtitle: const Text('Bearbeitung wieder aufnehmen'),
-              onTap: () => _changeView(() => _aux = 'drafts'),
+        if (c.draftCount > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: FlexCard(
+              child: ListTile(
+                key: const ValueKey('overview-drafts'),
+                leading: const Icon(Icons.edit_note),
+                title: Text(
+                  '${c.draftCount} ${c.draftCount == 1 ? 'Entwurf' : 'Entwürfe'}',
+                ),
+                subtitle: const Text('Gesicherte Eingaben öffnen'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _auxDialog('drafts'),
+              ),
             ),
           ),
-        _combinedSection(
-          'Anstehend',
-          pendingOrga,
-          pendingRecords,
-          'Keine offenen Ziele, Hausübungen, Aufgaben oder Erinnerungen.',
-        ),
-        _combinedSection(
-          'Noch ergänzen',
-          c.entries.where((e) => e.needsCompletion && !e.pending).toList(),
-          c.records
-              .where((r) => !r.deleted && !r.pending && r.needsCompletion)
-              .toList(),
-          'Keine Dokumentation nachzutragen.',
-        ),
-        _combinedSection(
-          'Zuletzt',
-          c.entries.where((e) => !e.pending && !e.needsCompletion).toList(),
-          c.records
-              .where((r) => !r.deleted && !r.pending && !r.needsCompletion)
-              .toList(),
-          'Noch keine weiteren Einträge.',
-        ),
+        if (width >= 1000)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: Column(children: [todo, complete])),
+              const SizedBox(width: 24),
+              Expanded(flex: 2, child: recent),
+            ],
+          )
+        else ...[
+          todo,
+          complete,
+          recent,
+        ],
       ],
     );
   }
+
+  Future<void> _overviewDetails({SchoolRecord? record, OrgaEntry? entry}) =>
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AnimatedBuilder(
+          animation: c,
+          builder: (_, _) {
+            final school = record == null
+                ? null
+                : c.records
+                      .where((r) => r.id == record.id && !r.deleted)
+                      .firstOrNull;
+            final orga = entry == null
+                ? null
+                : c.entries.where((e) => e.id == entry.id).firstOrNull;
+            return FlexModal(
+              title: Text(school?.kind.label ?? 'Orga'),
+              onClose: () => Navigator.pop(ctx),
+              content: school != null
+                  ? SchoolRecordCard(
+                      key: ValueKey(school.id),
+                      controller: c,
+                      record: school,
+                    )
+                  : orga != null
+                  ? _entryCard(orga)
+                  : const Text('Dieser Eintrag wurde entfernt.'),
+            );
+          },
+        ),
+      );
 
   Widget _combinedSection(
     String title,
     List<OrgaEntry> orga,
     List<SchoolRecord> records,
-    String empty,
-  ) {
-    final sorted = [...records]
-      ..sort(
-        (a, b) => '${b.observedOn} ${b.observedTime}'.compareTo(
-          '${a.observedOn} ${a.observedTime}',
+    String empty, {
+    bool upcoming = false,
+  }) {
+    final items = <OverviewEntry>[
+      for (final e in orga)
+        OverviewEntry(
+          id: e.id,
+          title: e.title,
+          meta:
+              '${c.owner(e)} · ${e.isTask ? 'Aufgabe' : 'Notiz'} · ${displayDate(e.observedOn)}',
+          summary: e.body.trim() == e.title.trim() ? '' : e.body,
+          status: [
+            if (e.items.isNotEmpty)
+              '${e.items.where((i) => i.checked).length} von ${e.items.length} Listenpunkten erledigt',
+            if (e.isTask) e.done ? 'Erledigt' : 'Offen',
+            if (e.dueDate != null) 'Fällig ${displayDate(e.dueDate)}',
+            if (e.reminderState == ReminderState.planned)
+              'Erinnerung ${displayReminder(e)}',
+            if (e.needsCompletion) 'Noch ergänzen',
+          ].join(' · '),
+          order: upcoming
+              ? ([
+                      if (e.dueDate != null) e.dueDate!,
+                      if (e.reminderState == ReminderState.planned)
+                        e.reminderAtUtc!,
+                    ].toList()..sort()).firstOrNull ??
+                    '9999'
+              : '${e.observedOn} ${e.observedTime}',
+          symbol: FlexSymbol.orga,
+          onOpen: () => _overviewDetails(entry: e),
+          onEdit: () => _editor(e),
         ),
-      );
+      for (final r in records)
+        OverviewEntry(
+          id: r.id,
+          title: r.kind == SchoolKind.homework
+              ? (r.subject.isEmpty ? 'Hausübung' : 'Hausübung · ${r.subject}')
+              : r.title.isNotEmpty
+              ? r.title
+              : r.kind.label,
+          meta:
+              '${c.pupils.where((p) => p.id == r.pupilId).firstOrNull?.name ?? 'Schüler'} · ${displayDate(r.observedOn)}',
+          summary: r.kind == SchoolKind.homework
+              ? r.tasks.map((t) => t.text).join(' · ')
+              : [
+                  r.body,
+                  ...r.positive.map((v) => '+ $v'),
+                  ...r.negative.map((v) => '− $v'),
+                ].where((v) => v.isNotEmpty).join(' · '),
+          status: [
+            if (r.kind == SchoolKind.homework)
+              '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} von ${r.tasks.length} Aufgaben vollständig',
+            if (r.kind == SchoolKind.goal)
+              r.goalStatus == 'active'
+                  ? 'In Arbeit'
+                  : r.goalStatus == 'achieved'
+                  ? 'Ziel erreicht'
+                  : 'Beendet',
+            if (r.dueDate != null) 'Termin ${displayDate(r.dueDate)}',
+            if (r.kind == SchoolKind.goal && r.nextReviewDate != null)
+              'Überprüfen ${displayDate(r.nextReviewDate)}',
+            if (r.needsCompletion) 'Noch ergänzen',
+          ].join(' · '),
+          order: upcoming
+              ? (r.kind == SchoolKind.goal
+                        ? r.nextReviewDate ?? r.dueDate
+                        : r.dueDate) ??
+                    '9999'
+              : '${r.observedOn} ${r.observedTime}',
+          symbol: FlexSymbol.values.byName(r.kind.name),
+          onOpen: () => _overviewDetails(record: r),
+          onEdit: () => editSchool(context, c, r),
+        ),
+    ]..sort((a, b) => upcoming ? a.order.compareTo(b.order) : b.order.compareTo(a.order));
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '$title · ${orga.length + records.length}',
-            style: Theme.of(context).textTheme.titleLarge,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              Text(
+                '${items.length}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          if (orga.isEmpty && records.isEmpty)
+          if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(empty),
             ),
-          ...orga.map(_entryCard),
-          for (final r in sorted)
-            SchoolRecordCard(key: ValueKey(r.id), controller: c, record: r),
+          ...items,
         ],
       ),
     );
@@ -673,7 +801,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         for (final symbol in FlexSymbol.values)
                           symbol: _pupilDraftCount(pupil.id, symbol),
                       },
-                      onDrafts: (symbol) => _pupilDrafts(pupil, symbol),
                       due: _dueShortcuts(pupil),
                     ),
                   ),
@@ -722,22 +849,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 (d.data['recipients'] as List).contains(pupilId),
           )
           .length;
-
-  Future<void> _pupilDrafts(Pupil pupil, FlexSymbol symbol) => showDialog<void>(
-    context: context,
-    builder: (ctx) => AnimatedBuilder(
-      animation: c,
-      builder: (_, _) => FlexModal(
-        title: Text('${pupil.name} · Entwürfe'),
-        onClose: () => Navigator.pop(ctx),
-        scrollable: false,
-        content: SizedBox(
-          height: MediaQuery.sizeOf(ctx).height * .6,
-          child: _drafts(pupilId: pupil.id, symbol: symbol),
-        ),
-      ),
-    ),
-  );
 
   Map<FlexSymbol, int> _shortcutCounts(Pupil pupil) {
     final records = c.records.where((r) => r.pupilId == pupil.id && !r.deleted);
@@ -819,32 +930,34 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 'Hausübung',
                 'Orga',
               ])
-                ChoiceChip(
-                  avatar: category == 'Aktuell'
-                      ? null
-                      : FlexIcon(
-                          category == 'Orga'
-                              ? FlexSymbol.orga
-                              : FlexIcon.forKind(
-                                  SchoolKind.values.firstWhere(
-                                    (kind) => kind.label == category,
+                transparentChip(
+                  ChoiceChip(
+                    avatar: category == 'Aktuell'
+                        ? null
+                        : FlexIcon(
+                            category == 'Orga'
+                                ? FlexSymbol.orga
+                                : FlexIcon.forKind(
+                                    SchoolKind.values.firstWhere(
+                                      (kind) => kind.label == category,
+                                    ),
                                   ),
-                                ),
-                          size: 20,
+                            size: 20,
+                          ),
+                    label: Text(category),
+                    selected: category == (orga ? 'Orga' : 'Aktuell'),
+                    onSelected: (_) {
+                      if (category == 'Orga' || category == 'Aktuell') {
+                        _changeView(() => _orgaOnly = category == 'Orga');
+                        return;
+                      }
+                      _changeView(
+                        () => _schoolKind = SchoolKind.values.firstWhere(
+                          (kind) => kind.label == category,
                         ),
-                  label: Text(category),
-                  selected: category == (orga ? 'Orga' : 'Aktuell'),
-                  onSelected: (_) {
-                    if (category == 'Orga' || category == 'Aktuell') {
-                      _changeView(() => _orgaOnly = category == 'Orga');
-                      return;
-                    }
-                    _changeView(
-                      () => _schoolKind = SchoolKind.values.firstWhere(
-                        (kind) => kind.label == category,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
             ],
           ),
@@ -905,10 +1018,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
               'open': 'Offene Aufgaben',
               'done': 'Erledigte Aufgaben',
             }.entries)
-              FilterChip(
-                label: Text(f.value),
-                selected: _filter == f.key,
-                onSelected: (_) => _changeView(() => _filter = f.key),
+              transparentChip(
+                FilterChip(
+                  label: Text(f.value),
+                  selected: _filter == f.key,
+                  onSelected: (_) => _changeView(() => _filter = f.key),
+                ),
               ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'pupil_history.dart';
+import 'entry_navigation.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,21 +35,23 @@ class PupilTags extends StatelessWidget {
     runSpacing: 8,
     children: [
       for (final p in pupils)
-        FilterChip(
-          key: ValueKey('pupil-tag-${p.id}'),
-          showCheckmark: false,
-          avatar: CircleAvatar(backgroundColor: Color(p.color), radius: 9),
-          label: Text(p.name),
-          selected: selected.contains(p.id),
-          onSelected: (active) {
-            final next = multiple ? {...selected} : <String>{};
-            if (active) {
-              next.add(p.id);
-            } else {
-              next.remove(p.id);
-            }
-            onChanged(next);
-          },
+        transparentChip(
+          FilterChip(
+            key: ValueKey('pupil-tag-${p.id}'),
+            showCheckmark: false,
+            avatar: CircleAvatar(backgroundColor: Color(p.color), radius: 9),
+            label: Text(p.name),
+            selected: selected.contains(p.id),
+            onSelected: (active) {
+              final next = multiple ? {...selected} : <String>{};
+              if (active) {
+                next.add(p.id);
+              } else {
+                next.remove(p.id);
+              }
+              onChanged(next);
+            },
+          ),
         ),
     ],
   );
@@ -282,6 +285,19 @@ class _SchoolEditorState extends State<SchoolEditor>
         });
       }
       return false;
+    }
+  }
+
+  Future<void> navigateEntry(Future<void> Function() open) async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (await persist() && mounted) {
+        await open();
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
     }
   }
 
@@ -632,11 +648,13 @@ class _SchoolEditorState extends State<SchoolEditor>
                       'missing': 'Nicht vorgelegt',
                       'absent': 'Abwesend',
                     }.entries.where((choice) => r.situation != choice.key))
-                      ChoiceChip(
-                        label: Text(option.value),
-                        selected: (f.delivery ?? r.delivery) == option.key,
-                        onSelected: (_) =>
-                            changeFeedback(f.copyWith(delivery: option.key)),
+                      transparentChip(
+                        ChoiceChip(
+                          label: Text(option.value),
+                          selected: (f.delivery ?? r.delivery) == option.key,
+                          onSelected: (_) =>
+                              changeFeedback(f.copyWith(delivery: option.key)),
+                        ),
                       ),
                   ],
                 ),
@@ -734,28 +752,33 @@ class _SchoolEditorState extends State<SchoolEditor>
             'Zwei Wochen',
             'Ein Monat',
           ])
-            ActionChip(
-              label: Text(label),
-              onPressed: () {
-                final now = DateUtils.dateOnly(DateTime.now());
-                final nextMonth = DateTime(now.year, now.month + 1);
-                final target = switch (label) {
-                  'Bis Freitag' => now.add(
-                    Duration(days: (DateTime.friday - now.weekday + 7) % 7),
-                  ),
-                  'Eine Woche' => now.add(const Duration(days: 7)),
-                  'Zwei Wochen' => now.add(const Duration(days: 14)),
-                  _ => DateTime(
-                    nextMonth.year,
-                    nextMonth.month,
-                    now.day.clamp(
-                      1,
-                      DateUtils.getDaysInMonth(nextMonth.year, nextMonth.month),
+            transparentChip(
+              ActionChip(
+                label: Text(label),
+                onPressed: () {
+                  final now = DateUtils.dateOnly(DateTime.now());
+                  final nextMonth = DateTime(now.year, now.month + 1);
+                  final target = switch (label) {
+                    'Bis Freitag' => now.add(
+                      Duration(days: (DateTime.friday - now.weekday + 7) % 7),
                     ),
-                  ),
-                };
-                edit({'dueDate': dateOnly(target)});
-              },
+                    'Eine Woche' => now.add(const Duration(days: 7)),
+                    'Zwei Wochen' => now.add(const Duration(days: 14)),
+                    _ => DateTime(
+                      nextMonth.year,
+                      nextMonth.month,
+                      now.day.clamp(
+                        1,
+                        DateUtils.getDaysInMonth(
+                          nextMonth.year,
+                          nextMonth.month,
+                        ),
+                      ),
+                    ),
+                  };
+                  edit({'dueDate': dateOnly(target)});
+                },
+              ),
             ),
         ],
       ),
@@ -771,10 +794,12 @@ class _SchoolEditorState extends State<SchoolEditor>
               'achieved': 'Erreicht',
               'ended': 'Beendet',
             }.entries)
-              ChoiceChip(
-                label: Text(option.value),
-                selected: r.goalStatus == option.key,
-                onSelected: (_) => edit({'goalStatus': option.key}),
+              transparentChip(
+                ChoiceChip(
+                  label: Text(option.value),
+                  selected: r.goalStatus == option.key,
+                  onSelected: (_) => edit({'goalStatus': option.key}),
+                ),
               ),
           ],
         ),
@@ -860,10 +885,12 @@ class _SchoolEditorState extends State<SchoolEditor>
               'achieved': 'Ziel erreicht',
               'ended': 'Beenden, ohne es als erreicht zu markieren',
             }.entries)
-              ChoiceChip(
-                label: Text(option.value),
-                selected: value.decision == option.key,
-                onSelected: (_) => change({'decision': option.key}),
+              transparentChip(
+                ChoiceChip(
+                  label: Text(option.value),
+                  selected: value.decision == option.key,
+                  onSelected: (_) => change({'decision': option.key}),
+                ),
               ),
           ],
         ),
@@ -1020,33 +1047,46 @@ class _SchoolEditorState extends State<SchoolEditor>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            for (final value in [true, false])
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: TextButton(
-                    key: ValueKey('tone-$value'),
-                    onPressed: () => setState(() => positive = value),
-                    style: TextButton.styleFrom(
-                      backgroundColor: positive == value
-                          ? (value ? scheme.primary : const Color(0xffefcbb9))
-                          : Colors.transparent,
-                      foregroundColor: positive == value
-                          ? const Color(0xff182014)
-                          : scheme.onSurface,
-                      minimumSize: const Size(0, 40),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
+        Container(
+          key: const ValueKey('tone-pill'),
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Theme.of(context).extension<FlexSurfaces>()?.palette?.button,
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              for (final value in [true, false])
+                Expanded(
+                  child: Semantics(
+                    selected: positive == value,
+                    inMutuallyExclusiveGroup: true,
+                    child: TextButton(
+                      key: ValueKey('tone-$value'),
+                      onPressed: () => setState(() => positive = value),
+                      style: TextButton.styleFrom(
+                        shape: const StadiumBorder(),
+                        backgroundColor: positive == value
+                            ? (value ? scheme.primary : const Color(0xffefcbb9))
+                            : Colors.transparent,
+                        foregroundColor: positive == value
+                            ? const Color(0xff182014)
+                            : Theme.of(
+                                context,
+                              ).extension<FlexSurfaces>()?.palette?.buttonInk,
+                        minimumSize: const Size(0, 40),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
+                      child: Text(value ? 'Positiv' : 'Negativ'),
                     ),
-                    child: Text(value ? 'Positiv' : 'Negativ'),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         if (r.kind == SchoolKind.work) ...[
@@ -1061,10 +1101,12 @@ class _SchoolEditorState extends State<SchoolEditor>
                     in recentAssignments
                         .where((s) => !r.taskTags.contains(s))
                         .take(6))
-                  ActionChip(
-                    label: Text(text),
-                    onPressed: () =>
-                        assignment([...r.taskTags, text], r.assignmentFree),
+                  transparentChip(
+                    ActionChip(
+                      label: Text(text),
+                      onPressed: () =>
+                          assignment([...r.taskTags, text], r.assignmentFree),
+                    ),
                   ),
               ],
             ),
@@ -1222,25 +1264,27 @@ class _SchoolEditorState extends State<SchoolEditor>
                 'after': 'Nach Unterricht',
                 'break': 'Pause',
               }.entries.where((choice) => r.situation != choice.key))
-                ChoiceChip(
-                  label: Text(choice.value),
-                  backgroundColor:
-                      Theme.of(
-                        context,
-                      ).extension<FlexSurfaces>()?.palette?.button ??
-                      scheme.onSurface.withValues(alpha: .07),
-                  color: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? scheme.primary
-                        : Theme.of(
-                                context,
-                              ).extension<FlexSurfaces>()?.palette?.button ??
-                              scheme.onSurface.withValues(alpha: .07),
+                transparentChip(
+                  ChoiceChip(
+                    label: Text(choice.value),
+                    backgroundColor:
+                        Theme.of(
+                          context,
+                        ).extension<FlexSurfaces>()?.palette?.button ??
+                        scheme.onSurface.withValues(alpha: .07),
+                    color: WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                          ? scheme.primary
+                          : Theme.of(
+                                  context,
+                                ).extension<FlexSurfaces>()?.palette?.button ??
+                                scheme.onSurface.withValues(alpha: .07),
+                    ),
+                    selected: r.situation == choice.key,
+                    showCheckmark: false,
+                    onSelected: (active) =>
+                        edit({'situation': active ? choice.key : ''}),
                   ),
-                  selected: r.situation == choice.key,
-                  showCheckmark: false,
-                  onSelected: (active) =>
-                      edit({'situation': active ? choice.key : ''}),
                 ),
             ],
           ),
@@ -1322,13 +1366,15 @@ class _SchoolEditorState extends State<SchoolEditor>
                         v.pupilId == r.pupilId &&
                         !v.deleted,
                   ))
-                    FilterChip(
-                      label: Text(g.title),
-                      selected: r.goalId == g.id,
-                      onSelected: (active) => edit({
-                        'goalId': active ? g.id : null,
-                        'goalSnapshot': active ? g.title : '',
-                      }),
+                    transparentChip(
+                      FilterChip(
+                        label: Text(g.title),
+                        selected: r.goalId == g.id,
+                        onSelected: (active) => edit({
+                          'goalId': active ? g.id : null,
+                          'goalSnapshot': active ? g.title : '',
+                        }),
+                      ),
                     ),
                 ],
               ),
@@ -1369,10 +1415,12 @@ class _SchoolEditorState extends State<SchoolEditor>
                     'reported': 'Berichtet',
                     'interpretation': 'Eigene Einordnung',
                   }.entries)
-                    ChoiceChip(
-                      label: Text(source.value),
-                      selected: r.source == source.key,
-                      onSelected: (_) => edit({'source': source.key}),
+                    transparentChip(
+                      ChoiceChip(
+                        label: Text(source.value),
+                        selected: r.source == source.key,
+                        onSelected: (_) => edit({'source': source.key}),
+                      ),
                     ),
                 ],
               ),
@@ -1399,15 +1447,17 @@ class _SchoolEditorState extends State<SchoolEditor>
           spacing: 8,
           children: [
             for (final kind in [SchoolKind.social, SchoolKind.work])
-              ChoiceChip(
-                label: Text(kind.label),
-                selected: r.kind == kind,
-                onSelected: (_) => edit({
-                  'kind': kind.name,
-                  'situation': '',
-                  'goalId': null,
-                  'goalSnapshot': '',
-                }),
+              transparentChip(
+                ChoiceChip(
+                  label: Text(kind.label),
+                  selected: r.kind == kind,
+                  onSelected: (_) => edit({
+                    'kind': kind.name,
+                    'situation': '',
+                    'goalId': null,
+                    'goalSnapshot': '',
+                  }),
+                ),
               ),
           ],
         ),
@@ -1429,9 +1479,11 @@ class _SchoolEditorState extends State<SchoolEditor>
                 'break': 'Pause',
               }.entries)
                 if (r.situation != choice.key)
-                  ActionChip(
-                    label: Text(choice.value),
-                    onPressed: () => edit({'situation': choice.key}),
+                  transparentChip(
+                    ActionChip(
+                      label: Text(choice.value),
+                      onPressed: () => edit({'situation': choice.key}),
+                    ),
                   ),
             ],
           ),
@@ -1478,10 +1530,12 @@ class _SchoolEditorState extends State<SchoolEditor>
                   in recentAssignments
                       .where((t) => !r.taskTags.contains(t))
                       .take(6))
-                ActionChip(
-                  label: Text(text),
-                  onPressed: () =>
-                      assignment([...r.taskTags, text], r.assignmentFree),
+                transparentChip(
+                  ActionChip(
+                    label: Text(text),
+                    onPressed: () =>
+                        assignment([...r.taskTags, text], r.assignmentFree),
+                  ),
                 ),
             ],
           ),
@@ -1611,10 +1665,12 @@ class _SchoolEditorState extends State<SchoolEditor>
             spacing: 8,
             runSpacing: 8,
             children: [
-              ChoiceChip(
-                label: const Text('Ohne Zielzuordnung'),
-                selected: r.goalId == null,
-                onSelected: (_) => edit({'goalId': null, 'goalSnapshot': ''}),
+              transparentChip(
+                ChoiceChip(
+                  label: const Text('Ohne Zielzuordnung'),
+                  selected: r.goalId == null,
+                  onSelected: (_) => edit({'goalId': null, 'goalSnapshot': ''}),
+                ),
               ),
               for (final goal in c.records.where(
                 (g) =>
@@ -1623,11 +1679,13 @@ class _SchoolEditorState extends State<SchoolEditor>
                     !g.deleted &&
                     (g.goalStatus == 'active' || g.id == r.goalId),
               ))
-                ChoiceChip(
-                  label: Text(goal.title),
-                  selected: r.goalId == goal.id,
-                  onSelected: (_) =>
-                      edit({'goalId': goal.id, 'goalSnapshot': goal.title}),
+                transparentChip(
+                  ChoiceChip(
+                    label: Text(goal.title),
+                    selected: r.goalId == goal.id,
+                    onSelected: (_) =>
+                        edit({'goalId': goal.id, 'goalSnapshot': goal.title}),
+                  ),
                 ),
             ],
           ),
@@ -1666,10 +1724,12 @@ class _SchoolEditorState extends State<SchoolEditor>
                     'reported': 'Berichtet',
                     'interpretation': 'Eigene Einordnung',
                   }.entries)
-                    ChoiceChip(
-                      label: Text(source.value),
-                      selected: r.source == source.key,
-                      onSelected: (_) => edit({'source': source.key}),
+                    transparentChip(
+                      ChoiceChip(
+                        label: Text(source.value),
+                        selected: r.source == source.key,
+                        onSelected: (_) => edit({'source': source.key}),
+                      ),
                     ),
                 ],
               ),
@@ -1723,6 +1783,53 @@ class _SchoolEditorState extends State<SchoolEditor>
               onPressed: busy ? null : observationHistory,
               icon: const Icon(Icons.history),
             ),
+            AnimatedBuilder(
+              animation: c,
+              builder: (_, _) => EntryHeaderButton(
+                key: const ValueKey('entry-drafts'),
+                label: 'Entwürfe',
+                icon: Icons.edit_note,
+                count: entryDraftCount(
+                  c,
+                  pupilId: r.pupilId,
+                  kind: r.kind,
+                  exclude: draftId,
+                ),
+                onPressed: busy
+                    ? null
+                    : () => navigateEntry(
+                        () => showEntryDrafts(
+                          context,
+                          c,
+                          pupilId: r.pupilId,
+                          kind: r.kind,
+                          exclude: draftId,
+                        ),
+                      ),
+              ),
+            ),
+            if (r.kind == SchoolKind.homework)
+              AnimatedBuilder(
+                animation: c,
+                builder: (_, _) => EntryHeaderButton(
+                  key: const ValueKey('assigned-homework'),
+                  label: 'Aufgegebene Hausübungen',
+                  icon: Icons.home_work_outlined,
+                  count: c.records
+                      .where(
+                        (v) =>
+                            !v.deleted &&
+                            v.pupilId == r.pupilId &&
+                            v.kind == SchoolKind.homework,
+                      )
+                      .length,
+                  onPressed: busy
+                      ? null
+                      : () => navigateEntry(
+                          () => showAssignedHomework(context, c, r.pupilId),
+                        ),
+                ),
+              ),
             IconButton(
               iconSize: 20,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -2025,12 +2132,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                               ),
                             ),
                           ),
-                          FilterChip(
-                            label: const Text('Später ergänzen'),
-                            selected: r.needsCompletion,
-                            onSelected: busy
-                                ? null
-                                : (v) => edit({'needsCompletion': v}),
+                          transparentChip(
+                            FilterChip(
+                              label: const Text('Später ergänzen'),
+                              selected: r.needsCompletion,
+                              onSelected: busy
+                                  ? null
+                                  : (v) => edit({'needsCompletion': v}),
+                            ),
                           ),
                         ],
                       ),

@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.7+27** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.8+28** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-Aktuelle Entwürfe, HÜ und kompaktere UI: [Änderungen und vollständiger Prüfumfang](audit/UI_UX_PRUEFUNG.md).
+Aktuelle Übersicht, Flächen, Orga-Listen und Modalzugänge: [Änderungen und Prüfungen](audit/UEBERSICHT_ORGA_ABGLEICH.md).
+
+Vorherige Entwurfs-, HÜ- und Kompaktkorrekturen: [Änderungen und vollständiger Prüfumfang](audit/UI_UX_PRUEFUNG.md).
 
 Vorheriger Settings-Abgleich und direkte Karten-Shortcuts: [Abgleich und Prüfungen](audit/SETTINGS_ABGLEICH.md).
 

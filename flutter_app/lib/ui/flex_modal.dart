@@ -12,6 +12,7 @@ class FlexModal extends StatelessWidget {
     required this.title,
     required this.content,
     this.actions = const [],
+    this.headerActions = const [],
     this.onClose,
     this.scrollable = true,
     this.maxWidth = 640,
@@ -24,7 +25,7 @@ class FlexModal extends StatelessWidget {
   final Widget? headerContent, footerContent;
   final Appearance? appearance;
   final Color? accentColor;
-  final List<Widget> actions;
+  final List<Widget> actions, headerActions;
   final VoidCallback? onClose;
   final bool scrollable;
   final double maxWidth;
@@ -77,8 +78,8 @@ class FlexModal extends StatelessWidget {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: appearance?.buttonColor == 0 ? Colors.white : null,
-          foregroundColor: appearance?.buttonColor == 0 ? Colors.black : null,
+          backgroundColor: palette?.button,
+          foregroundColor: palette?.buttonInk,
           textStyle: const TextStyle(
             fontFamily: 'FlexSans',
             fontSize: 16,
@@ -186,6 +187,7 @@ class FlexModal extends StatelessWidget {
                                 child: title,
                               ),
                             ),
+                            ...headerActions,
                             if (onClose != null)
                               IconButton(
                                 tooltip: 'Schließen und Eingaben sichern',

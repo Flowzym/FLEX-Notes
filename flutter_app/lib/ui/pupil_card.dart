@@ -12,13 +12,11 @@ class PupilCard extends StatelessWidget {
     required this.counts,
     required this.due,
     this.draftCounts = const {},
-    this.onDrafts,
   });
   final Pupil pupil;
   final VoidCallback onOpen;
   final ValueChanged<FlexSymbol> onShortcut;
   final Map<FlexSymbol, int> counts, draftCounts;
-  final ValueChanged<FlexSymbol>? onDrafts;
   final Set<FlexSymbol> due;
 
   @override
@@ -26,6 +24,14 @@ class PupilCard extends StatelessWidget {
     final theme = Theme.of(context), scheme = Theme.of(context).colorScheme;
     final color = theme.cardTheme.color ?? scheme.surfaceContainerLow;
     final appearance = theme.extension<FlexSurfaces>()?.appearance;
+    final palette = theme.extension<FlexSurfaces>()?.palette;
+    final headerColor = theme.extension<FlexSurfaces>()?.header;
+    final headerInk = legibleOn(
+      Color.alphaBlend(
+        headerColor ?? Colors.transparent,
+        Color.alphaBlend(color, palette?.backdrop ?? scheme.surface),
+      ),
+    );
     final foreground =
         theme.extension<FlexSurfaces>()?.palette?.cardInk ??
         legibleOn(Color.alphaBlend(color, scheme.surface));
@@ -34,18 +40,17 @@ class PupilCard extends StatelessWidget {
                 FlexSymbol.values.map((e) => e.name).toList())
             .map((name) => FlexSymbol.values.byName(name))
             .toList();
-    final separateDrafts = MediaQuery.textScalerOf(context).scale(1) > 1.3;
-    final hasDrafts = draftCounts.values.any((count) => count > 0);
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
     Widget shortcut(FlexSymbol symbol) {
-      final count = counts[symbol] ?? 0;
+      final openCount = counts[symbol] ?? 0;
+      final count = openCount + (draftCounts[symbol] ?? 0);
       final drafts = draftCounts[symbol] ?? 0;
       final label = labels[symbol.index];
       return Expanded(
         child: Semantics(
           button: true,
           label:
-              '$label für ${pupil.name} öffnen${count == 0 ? '' : ', $count offen'}',
+              '$label für ${pupil.name} öffnen, $openCount offen, $drafts Entwürfe',
           child: InkWell(
             key: ValueKey('shortcut-${pupil.id}-${symbol.name}'),
             onTap: () => onShortcut(symbol),
@@ -60,17 +65,12 @@ class PupilCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    width: 76,
-                    height: separateDrafts && hasDrafts ? 68 : 34,
+                    width: 64,
+                    height: 34,
                     child: Stack(
-                      clipBehavior: Clip.none,
                       children: [
                         Positioned(
-                          left: separateDrafts || drafts == 0
-                              ? 26
-                              : drafts > 99
-                              ? 40
-                              : 32,
+                          left: 16,
                           top: 5,
                           child: FlexIcon(symbol, size: 24, color: foreground),
                         ),
@@ -79,91 +79,36 @@ class PupilCard extends StatelessWidget {
                             right: 0,
                             top: 0,
                             child: Tooltip(
-                              message: '$count offene Einträge',
+                              message:
+                                  '$openCount offene Einträge · $drafts Entwürfe',
                               child: Container(
+                                key: ValueKey(
+                                  'count-${pupil.id}-${symbol.name}',
+                                ),
                                 constraints: const BoxConstraints(
                                   minWidth: 17,
                                   minHeight: 17,
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 3,
+                                  horizontal: 4,
+                                  vertical: 1,
                                 ),
                                 decoration: BoxDecoration(
                                   color: due.contains(symbol)
                                       ? const Color(0xffe9d399)
                                       : scheme.primary,
                                   borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(
-                                    color: scheme.surface,
-                                    width: 2,
-                                  ),
                                 ),
                                 child: Text(
                                   count > 99 ? '99+' : '$count',
                                   textAlign: TextAlign.center,
+                                  textScaler: TextScaler.noScaling,
                                   style: TextStyle(
-                                    fontFamily: 'FlexSans',
                                     fontSize: 10,
-                                    height: 1.3,
                                     fontWeight: FontWeight.w600,
                                     color: due.contains(symbol)
                                         ? const Color(0xff3b321b)
                                         : scheme.onPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (drafts > 0)
-                          Positioned(
-                            left: separateDrafts ? 6 : 0,
-                            top: separateDrafts ? 34 : 0,
-                            child: Tooltip(
-                              message:
-                                  '$drafts ${drafts == 1 ? 'Entwurf' : 'Entwürfe'} · öffnen',
-                              child: Semantics(
-                                button: true,
-                                label: '$label: $drafts Entwürfe öffnen',
-                                child: InkWell(
-                                  key: ValueKey(
-                                    'drafts-${pupil.id}-${symbol.name}',
-                                  ),
-                                  onTap: onDrafts == null
-                                      ? null
-                                      : () => onDrafts!(symbol),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: scheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: scheme.outlineVariant,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.edit_note,
-                                          size: 13,
-                                          color: scheme.onPrimaryContainer,
-                                        ),
-                                        Text(
-                                          drafts > 99 ? '99+' : '$drafts',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: scheme.onPrimaryContainer,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ),
                                 ),
                               ),
@@ -223,6 +168,7 @@ class PupilCard extends StatelessWidget {
                       appearance?.compact == true ? 4 : 10,
                     ),
                     decoration: BoxDecoration(
+                      color: headerColor,
                       border: Border(
                         bottom: BorderSide(color: scheme.outlineVariant),
                       ),
@@ -238,12 +184,12 @@ class PupilCard extends StatelessWidget {
                               height: 1.3,
                               fontWeight: FontWeight.w500,
                               letterSpacing: -.3,
-                              color: foreground,
+                              color: headerInk,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(Icons.chevron_right, size: 20, color: foreground),
+                        Icon(Icons.chevron_right, size: 20, color: headerInk),
                       ],
                     ),
                   ),

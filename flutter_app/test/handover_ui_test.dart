@@ -293,6 +293,8 @@ void main() {
       await c.reload();
       repo.attempts = 0;
       await app(tester, const Size(1100, 1000));
+      await tester.tap(find.byKey(ValueKey('overview-open-${record.id}')));
+      await tester.pumpAndSettle();
       final button = find.byKey(const ValueKey('status-task-complete'));
       await tester.ensureVisible(button);
       repo.hold = Completer<void>();

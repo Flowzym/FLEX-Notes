@@ -556,14 +556,20 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             'none': 'Originalgröße',
             'tile': 'Kacheln',
           }.entries)
-            ChoiceChip(
-              label: Text(fit.value),
-              selected: a.toJson()[fitKey] == fit.key,
-              onSelected: (_) => change({fitKey: fit.key}),
+            transparentChip(
+              ChoiceChip(
+                label: Text(fit.value),
+                selected: a.toJson()[fitKey] == fit.key,
+                onSelected: (_) => change({fitKey: fit.key}),
+              ),
             ),
           if (['fitWidth', 'fitHeight'].contains(a.toJson()[fitKey]))
-            Chip(
-              label: Text(a.toJson()[fitKey] == 'fitWidth' ? 'Breite' : 'Höhe'),
+            transparentChip(
+              Chip(
+                label: Text(
+                  a.toJson()[fitKey] == 'fitWidth' ? 'Breite' : 'Höhe',
+                ),
+              ),
             ),
         ],
       ),
@@ -664,9 +670,11 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                                       ),
                                       Align(
                                         alignment: Alignment.centerLeft,
-                                        child: ActionChip(
-                                          label: const Text('Hilft anderen'),
-                                          onPressed: () {},
+                                        child: transparentChip(
+                                          ActionChip(
+                                            label: const Text('Hilft anderen'),
+                                            onPressed: () {},
+                                          ),
                                         ),
                                       ),
                                       TextField(
@@ -848,10 +856,12 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               spacing: 8,
               children: [
                 for (final scale in [.9, 1.0, 1.15, 1.3])
-                  ChoiceChip(
-                    label: Text('${(scale * 100).round()} %'),
-                    selected: a.textScale == scale,
-                    onSelected: (_) => change({'textScale': scale}),
+                  transparentChip(
+                    ChoiceChip(
+                      label: Text('${(scale * 100).round()} %'),
+                      selected: a.textScale == scale,
+                      onSelected: (_) => change({'textScale': scale}),
+                    ),
                   ),
               ],
             ),
@@ -875,10 +885,12 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                   'light': 'Papier · hell',
                   'system': 'Wie das System',
                 }.entries)
-                  ChoiceChip(
-                    label: Text(mode.value),
-                    selected: a.mode == mode.key,
-                    onSelected: (_) => change({'mode': mode.key}),
+                  transparentChip(
+                    ChoiceChip(
+                      label: Text(mode.value),
+                      selected: a.mode == mode.key,
+                      onSelected: (_) => change({'mode': mode.key}),
+                    ),
                   ),
               ],
             ),

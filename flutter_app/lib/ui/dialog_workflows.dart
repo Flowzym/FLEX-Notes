@@ -1,3 +1,4 @@
+import 'surfaces.dart';
 import 'tag_text_field.dart';
 import 'homework_task_editor.dart';
 import 'package:flutter/material.dart';
@@ -262,10 +263,12 @@ Future<void> showCatalog(
               spacing: 8,
               children: [
                 for (final t in ['positive', 'negative'])
-                  ChoiceChip(
-                    label: Text(t == 'positive' ? '＋ Positiv' : '− Negativ'),
-                    selected: tone == t,
-                    onSelected: (_) => change({'tone': t}),
+                  transparentChip(
+                    ChoiceChip(
+                      label: Text(t == 'positive' ? '＋ Positiv' : '− Negativ'),
+                      selected: tone == t,
+                      onSelected: (_) => change({'tone': t}),
+                    ),
                   ),
               ],
             ),
@@ -505,10 +508,12 @@ Future<void> showBulk(
                   'homework': 'Hausübung',
                   'orga': 'Organisatorisches',
                 }.entries)
-                  ChoiceChip(
-                    label: Text(option.value),
-                    selected: kind == option.key,
-                    onSelected: (_) => change({'kind': option.key}),
+                  transparentChip(
+                    ChoiceChip(
+                      label: Text(option.value),
+                      selected: kind == option.key,
+                      onSelected: (_) => change({'kind': option.key}),
+                    ),
                   ),
               ],
             ),
@@ -532,19 +537,25 @@ Future<void> showBulk(
                                 !(data['taskTags'] as List? ?? []).contains(t),
                           )
                           .take(6))
-                    ActionChip(
-                      label: Text(text),
-                      onPressed: () {
-                        final tags = [...data['taskTags'] as List? ?? [], text];
-                        change({
-                          'taskTags': tags,
-                          'subject': [
-                            ...tags,
-                            if ((data['taskFree'] as String? ?? '').isNotEmpty)
-                              data['taskFree'],
-                          ].join(' · '),
-                        });
-                      },
+                    transparentChip(
+                      ActionChip(
+                        label: Text(text),
+                        onPressed: () {
+                          final tags = [
+                            ...data['taskTags'] as List? ?? [],
+                            text,
+                          ];
+                          change({
+                            'taskTags': tags,
+                            'subject': [
+                              ...tags,
+                              if ((data['taskFree'] as String? ?? '')
+                                  .isNotEmpty)
+                                data['taskFree'],
+                            ].join(' · '),
+                          });
+                        },
+                      ),
                     ),
                 ],
               ),
@@ -597,9 +608,11 @@ Future<void> showBulk(
                       'break': 'Pause',
                     }.entries)
                       if (data['situation'] != time.key)
-                        ActionChip(
-                          label: Text(time.value),
-                          onPressed: () => change({'situation': time.key}),
+                        transparentChip(
+                          ActionChip(
+                            label: Text(time.value),
+                            onPressed: () => change({'situation': time.key}),
+                          ),
                         ),
                   ],
                 ),
@@ -678,21 +691,24 @@ Future<void> showBulk(
                                       (v) => !(individual[tone] as List? ?? [])
                                           .contains(v),
                                     ))
-                                  FilterChip(
-                                    label: Text(
-                                      '${tone == 'positive' ? '+' : '−'} $option',
+                                  transparentChip(
+                                    FilterChip(
+                                      label: Text(
+                                        '${tone == 'positive' ? '+' : '−'} $option',
+                                      ),
+                                      selected:
+                                          (individual[tone] as List? ?? [])
+                                              .contains(option),
+                                      onSelected: (v) {
+                                        final next = List<String>.from(
+                                          individual[tone] as List? ?? [],
+                                        );
+                                        v
+                                            ? next.add(option)
+                                            : next.remove(option);
+                                        update({tone: next});
+                                      },
                                     ),
-                                    selected: (individual[tone] as List? ?? [])
-                                        .contains(option),
-                                    onSelected: (v) {
-                                      final next = List<String>.from(
-                                        individual[tone] as List? ?? [],
-                                      );
-                                      v
-                                          ? next.add(option)
-                                          : next.remove(option);
-                                      update({tone: next});
-                                    },
                                   ),
                               ],
                             ),

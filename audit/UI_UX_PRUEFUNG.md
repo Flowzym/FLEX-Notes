@@ -1,5 +1,7 @@
 # UI-/UX-Prüfung und Entwurfskorrektur · rebuild.7
 
+Historischer Bericht für rebuild.7. Die späteren Änderungen an Badges, Zugängen und Flächen stehen im [aktuellen Abgleich](UEBERSICHT_ORGA_ABGLEICH.md).
+
 Stand: **0.16.0-rebuild.7+27**, 02.11.2026. Bearbeitbare Grundlage ist der nachgereichte
 Quellenfund, weitergeführt auf `fix/dialog-reference-audit`. Die jüngste Nutzervorgabe
 ersetzt die frühere automatische Entwurfsfortsetzung ausdrücklich.

@@ -169,7 +169,7 @@ void main() {
       final a = Appearance.fromJson({'accent': 0xffabcdef, 'cardOpacity': .3});
       expect(a.accent, 0xffabcdef);
       expect(a.cardOpacity, .3);
-      expect(a.workspaceOpacity, .88);
+      expect(a.workspaceOpacity, .12);
       for (final change in <Json>[
         {'fieldOpacity': double.nan},
         {'modalOpacity': -1},
@@ -229,7 +229,7 @@ void main() {
       final protected = FlexPalette(a, Brightness.dark);
       expect(protected.card.a, 1);
       expect(protected.modal.a, 1);
-      expect(a.cardOpacity, .82);
+      expect(a.cardOpacity, .28);
     },
   );
   test(
@@ -367,7 +367,7 @@ void main() {
         await t.runAsync(c.flushAppearance);
         await t.pumpAndSettle();
         expect(c.appearance.dialogColor, 0xffdce5d7);
-        expect(c.appearance.headerOpacity, .65);
+        expect(c.appearance.headerOpacity, .18);
         t.view.resetViewInsets();
         FocusManager.instance.primaryFocus?.unfocus();
         await t.pumpAndSettle();

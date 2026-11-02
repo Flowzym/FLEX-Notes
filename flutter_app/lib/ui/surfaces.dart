@@ -30,24 +30,51 @@ class FlexPalette {
     .16,
   )!;
   Color base(int value) => value == 0 ? panel : Color(value);
-  Color paint(int value, double opacity, {bool reading = false}) =>
-      base(value).withValues(alpha: protected && reading ? 1 : opacity);
+  Color paint(
+    int value,
+    double opacity, {
+    bool reading = false,
+    Color? fallback,
+  }) => (value == 0 ? fallback ?? panel : Color(value)).withValues(
+    alpha: protected && reading ? 1 : opacity,
+  );
   Color get workspace => paint(
     appearance.workspaceColor,
     appearance.workspaceOpacity,
     reading: true,
+    fallback: Colors.white,
   );
-  Color get card =>
-      paint(appearance.cardColor, appearance.cardOpacity, reading: true);
+  Color get card => paint(
+    appearance.cardColor,
+    appearance.cardOpacity,
+    reading: true,
+    fallback: Colors.black,
+  );
   Color get modal =>
       paint(appearance.modalColor, appearance.modalOpacity, reading: true);
   Color get modalPerceived => Color.alphaBlend(modal, backdrop);
-  Color get header =>
-      paint(appearance.dialogColor, appearance.headerOpacity, reading: true);
-  Color get footer =>
-      paint(appearance.dialogColor, appearance.footerOpacity, reading: true);
-  Color get button => paint(appearance.buttonColor, appearance.buttonOpacity);
-  Color get field => paint(appearance.fieldColor, appearance.fieldOpacity);
+  Color get header => paint(
+    appearance.dialogColor,
+    appearance.headerOpacity,
+    reading: true,
+    fallback: Colors.white,
+  );
+  Color get footer => paint(
+    appearance.dialogColor,
+    appearance.footerOpacity,
+    reading: true,
+    fallback: Colors.white,
+  );
+  Color get button => paint(
+    appearance.buttonColor,
+    appearance.buttonOpacity,
+    fallback: Colors.white,
+  );
+  Color get field => paint(
+    appearance.fieldColor,
+    appearance.fieldOpacity,
+    fallback: Colors.black,
+  );
   Color get buttonInk => legibleOn(Color.alphaBlend(button, modalPerceived));
   Color get fieldInk => legibleOn(Color.alphaBlend(field, modalPerceived));
   Color get modalInk => legibleOn(modalPerceived);
@@ -87,6 +114,15 @@ BoxFit backgroundFit(String value) => switch (value) {
   'none' || 'tile' => BoxFit.none,
   _ => BoxFit.cover,
 };
+
+// RawChip's Material defaults to canvasColor, which otherwise paints an opaque
+// green layer below translucent chip colors. Scope this override to chips only.
+Widget transparentChip(Widget chip) => Builder(
+  builder: (context) => Theme(
+    data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
+    child: chip,
+  ),
+);
 
 class FlexCard extends StatelessWidget {
   const FlexCard({super.key, this.child, this.builder})

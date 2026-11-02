@@ -135,10 +135,12 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
         if ([SchoolKind.homework, SchoolKind.goal].contains(widget.kind))
           Align(
             alignment: Alignment.centerLeft,
-            child: FilterChip(
-              label: const Text('Nur offen'),
-              selected: onlyOpen,
-              onSelected: (v) => setState(() => onlyOpen = v),
+            child: transparentChip(
+              FilterChip(
+                label: const Text('Nur offen'),
+                selected: onlyOpen,
+                onSelected: (v) => setState(() => onlyOpen = v),
+              ),
             ),
           ),
         const SizedBox(height: 16),
@@ -292,45 +294,64 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 ],
               ),
 
-            Row(
-              children: [
-                FlexIcon(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final icon = FlexIcon(
                   FlexIcon.forKind(r.kind),
                   color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        heading,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      Text(
-                        '${owner?.name ?? 'Unbekannt'} · ${displayDate(r.observedOn)} ${r.observedTime}',
-                      ),
-                    ],
-                  ),
-                ),
-                if (r.kind == SchoolKind.homework)
-                  IconButton(
-                    tooltip: homeworkExpanded
-                        ? 'Hausübung einklappen'
-                        : 'Hausübung aufklappen',
-                    onPressed: () =>
-                        setState(() => homeworkExpanded = !homeworkExpanded),
-                    icon: Icon(
-                      homeworkExpanded ? Icons.expand_less : Icons.expand_more,
+                );
+                final headings = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      heading,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  ),
-                if (!r.deleted)
-                  IconButton(
-                    tooltip: 'Eintrag bearbeiten',
-                    onPressed: busy ? null : () => editSchool(context, c, r),
-                    icon: const Icon(Icons.edit),
-                  ),
-              ],
+                    Text(
+                      '${owner?.name ?? 'Unbekannt'} · ${displayDate(r.observedOn)} ${r.observedTime}',
+                    ),
+                  ],
+                );
+                final actions = [
+                  if (r.kind == SchoolKind.homework)
+                    IconButton(
+                      tooltip: homeworkExpanded
+                          ? 'Hausübung einklappen'
+                          : 'Hausübung aufklappen',
+                      onPressed: () =>
+                          setState(() => homeworkExpanded = !homeworkExpanded),
+                      icon: Icon(
+                        homeworkExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                      ),
+                    ),
+                  if (!r.deleted)
+                    IconButton(
+                      tooltip: 'Eintrag bearbeiten',
+                      onPressed: busy ? null : () => editSchool(context, c, r),
+                      icon: const Icon(Icons.edit),
+                    ),
+                ];
+                if (constraints.maxWidth < 300 ||
+                    MediaQuery.textScalerOf(context).scale(14) > 21) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [icon, const Spacer(), ...actions]),
+                      headings,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    icon,
+                    const SizedBox(width: 12),
+                    Expanded(child: headings),
+                    ...actions,
+                  ],
+                );
+              },
             ),
             if (r.kind == SchoolKind.homework && homeworkExpanded) ...[
               if (r.subject.isNotEmpty) Text(r.subject),
@@ -386,14 +407,18 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                         runSpacing: 6,
                         children: [
                           for (final state in TaskState.values)
-                            ChoiceChip(
-                              key: ValueKey('status-${task.id}-${state.name}'),
-                              showCheckmark: false,
-                              label: Text(state.label),
-                              selected: r.taskState(task) == state,
-                              onSelected: busy || r.deleted
-                                  ? null
-                                  : (_) => setTask(task, state),
+                            transparentChip(
+                              ChoiceChip(
+                                key: ValueKey(
+                                  'status-${task.id}-${state.name}',
+                                ),
+                                showCheckmark: false,
+                                label: Text(state.label),
+                                selected: r.taskState(task) == state,
+                                onSelected: busy || r.deleted
+                                    ? null
+                                    : (_) => setTask(task, state),
+                              ),
                             ),
                         ],
                       ),
@@ -506,8 +531,10 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               Wrap(
                 spacing: 6,
                 children: [
-                  for (final text in r.positive) Chip(label: Text('+ $text')),
-                  for (final text in r.negative) Chip(label: Text('− $text')),
+                  for (final text in r.positive)
+                    transparentChip(Chip(label: Text('+ $text'))),
+                  for (final text in r.negative)
+                    transparentChip(Chip(label: Text('− $text'))),
                 ],
               ),
               if (r.context.isNotEmpty) Text('Kontext: ${r.context}'),

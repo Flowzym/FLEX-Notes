@@ -330,7 +330,7 @@ void main() {
   );
 
   testWidgets(
-    'social and work badges count own and group drafts; badge opens filtered explicit continuation',
+    'social and work badges count own and group drafts; header opens filtered explicit continuation',
     (t) async {
       for (final kind in [SchoolKind.social, SchoolKind.work]) {
         await repo.saveSchoolDraft(
@@ -375,17 +375,18 @@ void main() {
         expect(card.draftCounts[FlexSymbol.work], 1);
         expect(card.draftCounts[FlexSymbol.homework], 0);
       }
-      await tap(t, find.byKey(const ValueKey('drafts-a-social')));
-      expect(find.byType(SchoolEditor), findsNothing);
+      await tap(t, find.byKey(const ValueKey('shortcut-a-social')));
+      expect(t.widget<SchoolEditor>(find.byType(SchoolEditor)).draft, isNull);
+      await tap(t, find.byKey(const ValueKey('entry-drafts')));
       expect(find.text('Entwurf social'), findsOneWidget);
       expect(find.text('Entwurf work'), findsNothing);
       await tap(t, find.text('Fortsetzen'));
       expect(
-        t.widget<SchoolEditor>(find.byType(SchoolEditor)).draft!.id,
+        t.widget<SchoolEditor>(find.byType(SchoolEditor).last).draft!.id,
         'social',
       );
       await t.enterText(
-        find.byKey(const ValueKey('record-body')),
+        find.byKey(const ValueKey('record-body')).last,
         'Bewusst fortgesetzt',
       );
       await tap(t, find.byKey(const ValueKey('save-school-record')));
@@ -808,7 +809,7 @@ void main() {
         const size = Size(320, 800);
         await app(t, size: size, boundary: boundary, scale: scale);
         await tap(t, find.byKey(const ValueKey('page-1')));
-        final badge = find.byKey(const ValueKey('drafts-a-social'));
+        final badge = find.byKey(const ValueKey('count-a-social'));
         await t.ensureVisible(badge);
         await t.pumpAndSettle();
         expect(t.takeException(), isNull);
@@ -825,9 +826,9 @@ void main() {
           scale,
           0,
         );
-        await tap(t, badge);
+        await tap(t, find.byKey(const ValueKey('shortcut-a-social')));
+        await tap(t, find.byKey(const ValueKey('entry-drafts')));
         expect(find.text('Fortsetzen'), findsWidgets);
-        expect(find.byType(SchoolEditor), findsNothing);
         await finish(t);
       },
     );

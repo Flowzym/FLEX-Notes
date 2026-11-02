@@ -7,6 +7,8 @@ import '../domain/drafts.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
+import 'orga_list_editing.dart';
+import 'entry_navigation.dart';
 
 class OrgaEditor extends StatefulWidget {
   const OrgaEditor({
@@ -28,6 +30,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   late TextEditingController note, reminder;
   final itemText = TextEditingController();
   final itemFocus = FocusNode();
+  final noteFocus = FocusNode();
+  final itemNodes = <String, FocusNode>{};
+  final itemControllers = <String, TextEditingController>{};
   String itemId = newId(), status = '';
   int draftRevision = 0, editGeneration = 0;
   late String baseline;
@@ -55,7 +60,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     note = TextEditingController(
       text: entry.body.isEmpty
           ? entry.title
-          : entry.body.startsWith(entry.title)
+          : entry.body.startsWith(entry.title) ||
+                OrgaLine.parse(entry.body.split('\n').first).text == entry.title
           ? entry.body
           : '${entry.title}\n${entry.body}',
     );
@@ -69,14 +75,19 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
           pupilId: entry.pupilId,
         ).copyWith(observedOn: entry.observedOn, isTask: isClass);
     baseline =
-        draft?.baseline ??
-        draftSignature((widget.draftId == null ? value : original).toJson());
-    dirty = draft != null && draftSignature(value.toJson()) == baseline;
+        draft?.baseline ?? signature(widget.draftId == null ? value : original);
+    dirty = draft != null && signature(value) == baseline;
   }
 
+  String signature(OrgaEntry value) => draftSignature({
+    ...value.toJson(),
+    'body': meaningfulOrgaText(value.body),
+  });
+
   OrgaEntry get value {
-    final text = note.text.trim();
-    final first = text.split('\n').first;
+    final first = OrgaLine.parse(
+      note.text.trimLeft().split('\n').first,
+    ).text.trim();
     return entry.copyWith(
       title: first.substring(0, first.length.clamp(0, 160)),
       body: note.text,
@@ -104,7 +115,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     final snapshot = value, generation = editGeneration;
     if (dirty) {
       pending = pending.catchError((Object _) {}).then((_) async {
-        if (draftSignature(snapshot.toJson()) == baseline) {
+        if (signature(snapshot) == baseline) {
           if (draftRevision > 0) {
             await c.repository.discardDraft(
               draftId,
@@ -167,7 +178,27 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     reminder.dispose();
     itemText.dispose();
     itemFocus.dispose();
+    noteFocus.dispose();
+    for (final node in itemNodes.values) {
+      node.dispose();
+    }
+    for (final controller in itemControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> navigateEntry(Future<void> Function() open) async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (await persist() && mounted) {
+        await open();
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Future<void> pop() async {
@@ -247,7 +278,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
           editGeneration = 0;
           reminderOpen = false;
           listOpen = false;
-          baseline = draftSignature(value.toJson());
+          baseline = signature(value);
           status = owner == saved.pupilId
               ? 'Gespeichert. Letzter Schüler erreicht.'
               : '';
@@ -261,25 +292,64 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  void addItem() {
-    if (itemText.text.trim().isEmpty) return;
+  void addItem({bool fromEnter = false}) {
+    if (itemText.text.trim().isEmpty) {
+      if (!fromEnter) return;
+      setState(() => listOpen = false);
+      noteFocus.requestFocus();
+      return;
+    }
     final next = value;
     itemText.clear();
     itemId = newId();
     change(next);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) itemFocus.requestFocus();
+    });
   }
 
-  void insertPrefix(String prefix) {
-    final cursor = note.selection.isValid
-        ? note.selection.start
-        : note.text.length;
-    final start = note.text.lastIndexOf('\n', cursor > 0 ? cursor - 1 : 0) + 1;
-    note.value = TextEditingValue(
-      text: note.text.replaceRange(start, start, prefix),
-      selection: TextSelection.collapsed(offset: cursor + prefix.length),
+  void nextItem(String id) {
+    final index = entry.items.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    if (entry.items[index].text.trim().isEmpty) {
+      change(
+        entry.copyWith(
+          items: entry.items.where((item) => item.id != id).toList(),
+        ),
+      );
+      setState(() => listOpen = false);
+      noteFocus.requestFocus();
+      return;
+    }
+    final controller = itemControllers[id]!;
+    final selection = controller.selection.isValid
+        ? controller.selection
+        : TextSelection.collapsed(offset: controller.text.length);
+    final before = controller.text.substring(0, selection.start),
+        after = controller.text.substring(selection.end);
+    controller.value = TextEditingValue(
+      text: before,
+      selection: TextSelection.collapsed(offset: before.length),
     );
+    final nextId = newId(), items = [...entry.items];
+    items[index] = items[index].copyWith(text: before);
+    items.insert(index + 1, CheckItem(id: nextId, text: after));
+    change(entry.copyWith(items: items));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) itemNodes[nextId]?.requestFocus();
+    });
+  }
+
+  void applyList(TextEditingValue result) {
+    if (result.text.length > 12000) return;
+    note.value = result;
+    noteFocus.requestFocus();
     change();
   }
+
+  void insertPrefix(String prefix) => applyList(
+    styleOrgaLines(note.value, prefix == '1. ' ? 'number' : 'bullet'),
+  );
 
   Future<void> date({bool due = false, bool remind = false}) async {
     final initial = remind && entry.reminderAtUtc != null
@@ -375,6 +445,31 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
           accentColor: isClass
               ? null
               : Color(c.pupils.firstWhere((p) => p.id == entry.pupilId).color),
+          headerActions: [
+            AnimatedBuilder(
+              animation: c,
+              builder: (_, _) => EntryHeaderButton(
+                key: const ValueKey('entry-drafts'),
+                label: 'Entwürfe',
+                icon: Icons.edit_note,
+                count: entryDraftCount(
+                  c,
+                  pupilId: entry.pupilId,
+                  exclude: draftId,
+                ),
+                onPressed: busy
+                    ? null
+                    : () => navigateEntry(
+                        () => showEntryDrafts(
+                          context,
+                          c,
+                          pupilId: entry.pupilId,
+                          exclude: draftId,
+                        ),
+                      ),
+              ),
+            ),
+          ],
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,
@@ -412,6 +507,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                 ),
                 DecoratedBox(
                   decoration: BoxDecoration(
+                    color: Theme.of(context).inputDecorationTheme.fillColor,
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outline,
                     ),
@@ -421,22 +517,64 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       children: [
-                        TextField(
-                          key: const ValueKey('orga-note'),
-                          controller: note,
-                          autofocus: true,
-                          minLines: 4,
-                          maxLines: 12,
-                          maxLength: 12000,
-                          decoration: const InputDecoration(
-                            hintText: 'Notiz …',
-                            counterText: '',
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            filled: false,
+                        Focus(
+                          onKeyEvent: (_, event) {
+                            final keyboard = HardwareKeyboard.instance;
+                            if (event is KeyDownEvent &&
+                                (event.logicalKey == LogicalKeyboardKey.enter ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.numpadEnter) &&
+                                !keyboard.isControlPressed &&
+                                !keyboard.isAltPressed &&
+                                !keyboard.isMetaPressed) {
+                              if (keyboard.isShiftPressed &&
+                                  note.selection.isValid &&
+                                  note.value.composing.isCollapsed) {
+                                final start = note.selection.start,
+                                    end = note.selection.end;
+                                applyList(
+                                  TextEditingValue(
+                                    text: note.text.replaceRange(
+                                      start,
+                                      end,
+                                      '\n',
+                                    ),
+                                    selection: TextSelection.collapsed(
+                                      offset: start + 1,
+                                    ),
+                                  ),
+                                );
+                                return KeyEventResult.handled;
+                              }
+                              final result = continueOrgaLine(note.value);
+                              if (result != null) {
+                                applyList(result);
+                                return KeyEventResult.handled;
+                              }
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: TextField(
+                            key: const ValueKey('orga-note'),
+                            focusNode: noteFocus,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            inputFormatters: [OrgaListFormatter()],
+                            controller: note,
+                            autofocus: true,
+                            minLines: 4,
+                            maxLines: 12,
+                            maxLength: 12000,
+                            decoration: const InputDecoration(
+                              hintText: 'Notiz …',
+                              counterText: '',
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              filled: false,
+                            ),
+                            onChanged: (_) => change(),
                           ),
-                          onChanged: (_) => change(),
                         ),
                         for (final item in entry.items)
                           Row(
@@ -458,7 +596,18 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                               ),
                               Expanded(
                                 child: TextFormField(
-                                  initialValue: item.text,
+                                  key: ValueKey('orga-item-${item.id}'),
+                                  focusNode: itemNodes.putIfAbsent(
+                                    item.id,
+                                    () => FocusNode(),
+                                  ),
+                                  textInputAction: TextInputAction.next,
+                                  onFieldSubmitted: (_) => nextItem(item.id),
+                                  controller: itemControllers.putIfAbsent(
+                                    item.id,
+                                    () =>
+                                        TextEditingController(text: item.text),
+                                  ),
                                   decoration: const InputDecoration(
                                     labelText: 'Listenpunkt',
                                   ),
@@ -493,13 +642,15 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                             children: [
                               Expanded(
                                 child: TextField(
+                                  key: const ValueKey('orga-new-item'),
+                                  textInputAction: TextInputAction.next,
                                   controller: itemText,
                                   focusNode: itemFocus,
                                   decoration: const InputDecoration(
                                     labelText: 'Neuer Listenpunkt',
                                   ),
                                   onChanged: (_) => change(),
-                                  onSubmitted: (_) => addItem(),
+                                  onSubmitted: (_) => addItem(fromEnter: true),
                                 ),
                               ),
                               IconButton(
