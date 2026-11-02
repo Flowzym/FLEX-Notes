@@ -16,6 +16,8 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
+[**Android-Testapp Build 31 herunterladen**](releases/android/build-31/README.md)
+
 Aktuell: [Schülerkarten, Schülerdialog und Entwürfe](audit/SCHUELERKARTEN_ABGLEICH.md),
 [Android-Tastaturkorrektur](audit/ANDROID_TASTATUR_FIX.md),
 [Android-Testapp installieren und bauen](flutter_app/ANDROID-TEST.md),

@@ -12,6 +12,8 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
+[APK Build 31 auf GitHub herunterladen](../releases/android/build-31/README.md).
+
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten
    Browser bzw. Dateimanager „Unbekannte Apps installieren“ erlauben.

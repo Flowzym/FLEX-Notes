@@ -1,0 +1,8 @@
+FLEX Test Build 31
+
+APK herunterladen und auf dem Android-Gerät öffnen. Über die vorhandene FLEX Test installieren. Nicht deinstallieren.
+Android 7.0 oder neuer. App-ID und Testsignatur sind unverändert.
+
+Neu: Entwürfe löschen, kleinere Sozial-/Arbeitstags, größere zentrierte Symbole, kompaktere Kartenköpfe, größere Seitennavigation, neuer Schülerdialog und zentrierte Buttontexte. Tastatur-Fix enthalten.
+
+182 Flutter-Tests bestanden; kein Test auf einem Android-Gerät.
