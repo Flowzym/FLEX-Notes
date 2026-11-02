@@ -13,6 +13,7 @@ import '../domain/models.dart';
 import 'common.dart';
 import 'orga_editor.dart';
 import 'settings.dart';
+import 'appearance_settings.dart';
 import '../domain/school.dart';
 import 'flex_icons.dart';
 import 'flex_modal.dart';
@@ -28,6 +29,7 @@ class NotebookScreen extends StatefulWidget {
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 0;
+  final _settingsLayout = SettingsLayoutState();
   SchoolKind? _schoolKind;
   String? _aux;
   VoidCallback? _refreshPupilDialog;
@@ -35,6 +37,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   bool _showPupilSearch = false;
   void _changeView(VoidCallback action) {
     if (!mounted) return;
+    c.flushAppearance();
     setState(action);
     _refreshPupilDialog?.call();
   }
@@ -276,6 +279,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            if (c.appearanceError != null)
+              MaterialBanner(
+                content: Text(c.appearanceError!),
+                actions: [
+                  TextButton(
+                    onPressed: () => _changeView(() => _aux = 'settings'),
+                    child: const Text('Einstellungen'),
+                  ),
+                ],
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
               child: FlexPagePills(
@@ -300,7 +313,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
   );
 
   Widget _body() {
-    if (_aux == 'settings') return SettingsPage(controller: c);
+    if (_aux == 'settings') {
+      return SettingsPage(controller: c, layout: _settingsLayout);
+    }
     if (_aux == 'trash' || _aux == 'groups') {
       return SchoolTools(controller: c, mode: _aux!);
     }
@@ -652,7 +667,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       key: ValueKey('pupil-card-${pupil.id}'),
                       pupil: pupil,
                       onOpen: () => _openPupil(pupil),
-                      onShortcut: (symbol) => _openPupil(pupil, symbol: symbol),
+                      onShortcut: (symbol) => _entryShortcut(pupil, symbol),
                       counts: _shortcutCounts(pupil),
                       due: _dueShortcuts(pupil),
                     ),
@@ -662,6 +677,53 @@ class _NotebookScreenState extends State<NotebookScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Future<void> _entryShortcut(Pupil pupil, FlexSymbol symbol) async {
+    if (pupil.archived) {
+      await _openPupil(pupil, symbol: symbol);
+      return;
+    }
+    if (symbol == FlexSymbol.orga) {
+      final drafts =
+          c.drafts
+              .where(
+                (d) => d.entry.pupilId == pupil.id && d.entry.revision == 0,
+              )
+              .toList()
+            ..sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
+      final draft = drafts.firstOrNull;
+      await _editor(
+        draft?.entry ?? OrgaEntry.empty(pupilId: pupil.id),
+        draftId: draft?.id,
+      );
+      return;
+    }
+    final kind = switch (symbol) {
+      FlexSymbol.goal => SchoolKind.goal,
+      FlexSymbol.social => SchoolKind.social,
+      FlexSymbol.work => SchoolKind.work,
+      _ => SchoolKind.homework,
+    };
+    final drafts =
+        c.schoolDrafts
+            .where(
+              (d) =>
+                  d.record.pupilId == pupil.id &&
+                  d.record.kind == kind &&
+                  d.record.revision == 0 &&
+                  d.mode == 'entry' &&
+                  d.recipients.length <= 1,
+            )
+            .toList()
+          ..sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
+    final draft = drafts.firstOrNull;
+    await editSchool(
+      context,
+      c,
+      draft?.record ?? SchoolRecord.empty(kind, pupil.id),
+      draft: draft,
     );
   }
 

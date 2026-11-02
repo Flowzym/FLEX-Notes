@@ -396,10 +396,10 @@ class Appearance {
     this.dialogColor = 0,
     this.cardColor = 0,
     this.buttonColor = 0,
-    this.headerOpacity = 1,
-    this.footerOpacity = 1,
-    this.cardOpacity = 1,
-    this.buttonOpacity = 1,
+    this.headerOpacity = .65,
+    this.footerOpacity = .65,
+    this.cardOpacity = .82,
+    this.buttonOpacity = .94,
     this.desktopImage = '',
     this.mobileImage = '',
     this.desktopFit = 'cover',
@@ -407,6 +407,23 @@ class Appearance {
     this.backgroundOpacity = .35,
     this.coupleSurfaces = false,
     this.serifHeaders = false,
+    this.backgroundColor = 0xff4f6038,
+    this.workspaceColor = 0,
+    this.fieldColor = 0,
+    this.modalColor = 0,
+    this.workspaceOpacity = .88,
+    this.fieldOpacity = .94,
+    this.modalOpacity = 0,
+    this.backgroundTint = 0xff203a2d,
+    this.backgroundTintStrength = 0,
+    this.backgroundDim = 0,
+    this.imageEnabled = true,
+    this.defaultTexture = true,
+    this.readabilityProtection = false,
+    this.desktopImageName = '',
+    this.mobileImageName = '',
+    this.cardRadius = 22,
+    this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
   final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
   final int accent, dialogColor, cardColor, buttonColor;
@@ -417,6 +434,100 @@ class Appearance {
       buttonOpacity,
       backgroundOpacity;
   final bool compact, coupleSurfaces, serifHeaders;
+  final int backgroundColor,
+      workspaceColor,
+      fieldColor,
+      modalColor,
+      backgroundTint;
+  final double workspaceOpacity,
+      fieldOpacity,
+      modalOpacity,
+      backgroundTintStrength,
+      backgroundDim,
+      cardRadius;
+  final bool imageEnabled, defaultTexture, readabilityProtection;
+  final String desktopImageName, mobileImageName;
+  final List<String> shortcutOrder;
+  bool get hasImage => desktopImage.isNotEmpty || mobileImage.isNotEmpty;
+  bool get imageActive => imageEnabled && (hasImage || defaultTexture);
+  String imageForWidth(double width) => width <= 700
+      ? (mobileImage.isEmpty ? desktopImage : mobileImage)
+      : (desktopImage.isEmpty ? mobileImage : desktopImage);
+  String fitForWidth(double width) => width <= 700 ? mobileFit : desktopFit;
+  static const surfaceColors = [
+    'workspaceColor',
+    'cardColor',
+    'buttonColor',
+    'fieldColor',
+    'modalColor',
+    'dialogColor',
+  ];
+  static const surfaceOpacities = [
+    'workspaceOpacity',
+    'cardOpacity',
+    'buttonOpacity',
+    'fieldOpacity',
+    'modalOpacity',
+    'headerOpacity',
+    'footerOpacity',
+  ];
+  Appearance change(Json changes) {
+    final next = {...toJson(), ...changes};
+    if (next['coupleSurfaces'] == true) {
+      final color = !coupleSurfaces
+          ? 'buttonColor'
+          : surfaceColors.where((k) => changes.containsKey(k)).firstOrNull;
+      final opacity = !coupleSurfaces
+          ? 'buttonOpacity'
+          : surfaceOpacities.where((k) => changes.containsKey(k)).firstOrNull;
+      if (color != null) {
+        for (final key in surfaceColors) {
+          next[key] = next[color];
+        }
+      }
+      if (opacity != null) {
+        for (final key in surfaceOpacities) {
+          next[key] = next[opacity];
+        }
+      }
+    }
+    if (!changes.containsKey('readabilityProtection') &&
+        surfaceOpacities.any(
+          (key) =>
+              changes.containsKey(key) &&
+              (next['coupleSurfaces'] == true ||
+                  !['buttonOpacity', 'fieldOpacity'].contains(key)),
+        )) {
+      next['readabilityProtection'] = false;
+    }
+    return Appearance.fromJson(next);
+  }
+
+  Appearance preset(String id) => change({
+    'imageEnabled': id != 'calm',
+    'defaultTexture': false,
+    'backgroundColor': 0xff4f6038,
+    'workspaceColor': 0,
+    'cardColor': 0,
+    if (id != 'calm') ...{
+      'backgroundTint': 0xff203a2d,
+      'backgroundTintStrength': id == 'image-soft' ? .25 : .1,
+      'backgroundDim': id == 'image-soft' ? .45 : .3,
+    },
+    'workspaceOpacity': id == 'calm'
+        ? .88
+        : id == 'image-soft'
+        ? .65
+        : .2,
+    'cardOpacity': id == 'calm'
+        ? .82
+        : id == 'image-soft'
+        ? .6
+        : .2,
+    'headerOpacity': id == 'image-clear' ? .2 : .65,
+    'footerOpacity': id == 'image-clear' ? .2 : .65,
+    'readabilityProtection': id != 'image-clear',
+  });
   Appearance copyWith({
     String? mode,
     int? accent,
@@ -449,20 +560,37 @@ class Appearance {
     'backgroundOpacity': backgroundOpacity,
     'coupleSurfaces': coupleSurfaces,
     'serifHeaders': serifHeaders,
+    'backgroundColor': backgroundColor,
+    'workspaceColor': workspaceColor,
+    'fieldColor': fieldColor,
+    'modalColor': modalColor,
+    'workspaceOpacity': workspaceOpacity,
+    'fieldOpacity': fieldOpacity,
+    'modalOpacity': modalOpacity,
+    'backgroundTint': backgroundTint,
+    'backgroundTintStrength': backgroundTintStrength,
+    'backgroundDim': backgroundDim,
+    'imageEnabled': imageEnabled,
+    'defaultTexture': defaultTexture,
+    'readabilityProtection': readabilityProtection,
+    'desktopImageName': desktopImageName,
+    'mobileImageName': mobileImageName,
+    'cardRadius': cardRadius,
+    'shortcutOrder': shortcutOrder,
   };
   factory Appearance.fromJson(Json j) {
     final a = Appearance(
-      mode: j['mode'] as String,
-      accent: j['accent'] as int,
-      textScale: (j['textScale'] as num).toDouble(),
-      compact: j['compact'] as bool,
+      mode: j['mode'] as String? ?? 'dark',
+      accent: j['accent'] as int? ?? 0xffdae9a6,
+      textScale: (j['textScale'] as num? ?? 1).toDouble(),
+      compact: j['compact'] as bool? ?? false,
       dialogColor: j['dialogColor'] as int? ?? 0,
       cardColor: j['cardColor'] as int? ?? 0,
       buttonColor: j['buttonColor'] as int? ?? 0,
-      headerOpacity: (j['headerOpacity'] as num? ?? 1).toDouble(),
-      footerOpacity: (j['footerOpacity'] as num? ?? 1).toDouble(),
-      cardOpacity: (j['cardOpacity'] as num? ?? 1).toDouble(),
-      buttonOpacity: (j['buttonOpacity'] as num? ?? 1).toDouble(),
+      headerOpacity: (j['headerOpacity'] as num? ?? .65).toDouble(),
+      footerOpacity: (j['footerOpacity'] as num? ?? .65).toDouble(),
+      cardOpacity: (j['cardOpacity'] as num? ?? .82).toDouble(),
+      buttonOpacity: (j['buttonOpacity'] as num? ?? .94).toDouble(),
       desktopImage: j['desktopImage'] as String? ?? '',
       mobileImage: j['mobileImage'] as String? ?? '',
       desktopFit: j['desktopFit'] as String? ?? 'cover',
@@ -470,18 +598,68 @@ class Appearance {
       backgroundOpacity: (j['backgroundOpacity'] as num? ?? .35).toDouble(),
       coupleSurfaces: j['coupleSurfaces'] as bool? ?? false,
       serifHeaders: j['serifHeaders'] as bool? ?? false,
+      backgroundColor: j['backgroundColor'] as int? ?? 0xff4f6038,
+      workspaceColor: j['workspaceColor'] as int? ?? 0,
+      fieldColor: j['fieldColor'] as int? ?? 0,
+      modalColor: j['modalColor'] as int? ?? 0,
+      workspaceOpacity: (j['workspaceOpacity'] as num? ?? .88).toDouble(),
+      fieldOpacity: (j['fieldOpacity'] as num? ?? .94).toDouble(),
+      modalOpacity: (j['modalOpacity'] as num? ?? 0).toDouble(),
+      backgroundTint: j['backgroundTint'] as int? ?? 0xff203a2d,
+      backgroundTintStrength: (j['backgroundTintStrength'] as num? ?? 0)
+          .toDouble(),
+      backgroundDim: (j['backgroundDim'] as num? ?? 0).toDouble(),
+      imageEnabled: j['imageEnabled'] as bool? ?? true,
+      defaultTexture: j['defaultTexture'] as bool? ?? true,
+      readabilityProtection: j['readabilityProtection'] as bool? ?? false,
+      desktopImageName: j['desktopImageName'] as String? ?? '',
+      mobileImageName: j['mobileImageName'] as String? ?? '',
+      cardRadius: (j['cardRadius'] as num? ?? 22).toDouble(),
+      shortcutOrder: List<String>.unmodifiable(
+        (j['shortcutOrder'] as List? ??
+                const ['goal', 'social', 'work', 'homework', 'orga'])
+            .cast<String>(),
+      ),
     );
-    if (!['system', 'dark', 'light'].contains(a.mode) ||
+    if (!a.cardRadius.isFinite ||
+        a.cardRadius < 0 ||
+        a.cardRadius > 32 ||
+        !a.backgroundDim.isFinite ||
+        a.backgroundDim < 0 ||
+        a.backgroundDim > .8 ||
+        !a.backgroundTintStrength.isFinite ||
+        a.backgroundTintStrength < 0 ||
+        a.backgroundTintStrength > .8 ||
+        a.desktopImageName.length > 120 ||
+        a.mobileImageName.length > 120 ||
+        a.shortcutOrder.length != 5 ||
+        a.shortcutOrder.toSet().length != 5 ||
+        !a.shortcutOrder.toSet().containsAll(const [
+          'goal',
+          'social',
+          'work',
+          'homework',
+          'orga',
+        ]) ||
+        !['system', 'dark', 'light'].contains(a.mode) ||
         !a.textScale.isFinite ||
         a.textScale < .9 ||
         a.textScale > 1.4 ||
         [
           a.accent,
+          a.backgroundColor,
+          a.workspaceColor,
+          a.fieldColor,
+          a.modalColor,
+          a.backgroundTint,
           a.dialogColor,
           a.cardColor,
           a.buttonColor,
         ].any((c) => c < 0 || c > 0xffffffff) ||
         [
+          a.workspaceOpacity,
+          a.fieldOpacity,
+          a.modalOpacity,
           a.headerOpacity,
           a.footerOpacity,
           a.cardOpacity,
@@ -494,6 +672,8 @@ class Appearance {
           'fitWidth',
           'fitHeight',
           'fill',
+          'none',
+          'tile',
         ].contains(a.desktopFit) ||
         ![
           'cover',
@@ -501,6 +681,8 @@ class Appearance {
           'fitWidth',
           'fitHeight',
           'fill',
+          'none',
+          'tile',
         ].contains(a.mobileFit) ||
         [a.desktopImage, a.mobileImage].any(
           (v) =>

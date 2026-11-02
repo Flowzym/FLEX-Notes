@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
 import '../domain/repository.dart';
@@ -17,6 +18,14 @@ class NotebookController extends ChangeNotifier {
       drafts.length + schoolDrafts.length + dialogDrafts.length;
   int _loadGeneration = 0;
   Appearance appearance = const Appearance();
+  Appearance _savedAppearance = const Appearance();
+  Timer? _appearanceTimer;
+  Future<void> _appearanceWrites = Future.value();
+  int _appearanceGeneration = 0, _appearancePending = 0;
+  bool _disposed = false;
+  String? appearanceError;
+  bool get appearanceSaving =>
+      _appearanceTimer != null || _appearancePending > 0;
   int stagedLegacyCount = 0;
   Future<void> initialize() async {
     await repository.initialize();
@@ -25,6 +34,7 @@ class NotebookController extends ChangeNotifier {
 
   Future<void> reload() async {
     final generation = ++_loadGeneration;
+    final appearanceGeneration = _appearanceGeneration;
     final next = await repository.snapshot();
     if (generation != _loadGeneration) return;
     pupils = next.pupils;
@@ -34,7 +44,10 @@ class NotebookController extends ChangeNotifier {
     records = next.records;
     schoolDrafts = next.schoolDrafts;
     dialogDrafts = next.dialogDrafts;
-    appearance = next.appearance;
+    if (!appearanceSaving && appearanceGeneration == _appearanceGeneration) {
+      appearance = next.appearance;
+      _savedAppearance = appearance;
+    }
     stagedLegacyCount = next.legacyCount;
     notifyListeners();
   }
@@ -71,9 +84,67 @@ class NotebookController extends ChangeNotifier {
   }
 
   Future<void> saveAppearance(Appearance value) async {
-    await repository.saveAppearance(value);
+    _appearanceTimer?.cancel();
+    _appearanceTimer = null;
+    final generation = ++_appearanceGeneration;
     appearance = value;
+    appearanceError = null;
+    final queued = _appearancePending > 0;
+    _appearancePending++;
     notifyListeners();
+    Future<void> performWrite() async {
+      try {
+        await repository.saveAppearance(value);
+        _savedAppearance = value;
+      } catch (_) {
+        if (generation == _appearanceGeneration) {
+          appearance = _savedAppearance;
+          appearanceError = 'Nicht gespeichert. Bitte erneut versuchen.';
+        }
+        rethrow;
+      } finally {
+        _appearancePending--;
+        if (!_disposed) notifyListeners();
+      }
+    }
+
+    final write = queued
+        ? _appearanceWrites.then((_) => performWrite())
+        : performWrite();
+    _appearanceWrites = write.catchError((Object _) {});
+    await write;
+  }
+
+  void previewAppearance(Json changes) {
+    appearance = appearance.change(changes);
+    _appearanceGeneration++;
+    appearanceError = null;
+    _appearanceTimer?.cancel();
+    _appearanceTimer = Timer(
+      const Duration(milliseconds: 250),
+      flushAppearance,
+    );
+    notifyListeners();
+  }
+
+  Future<void> flushAppearance() async {
+    if (_appearanceTimer != null) {
+      _appearanceTimer!.cancel();
+      _appearanceTimer = null;
+      try {
+        await saveAppearance(appearance);
+      } catch (_) {
+        /* Visible status stays available. */
+      }
+    }
+    await _appearanceWrites;
+  }
+
+  @override
+  void dispose() {
+    _appearanceTimer?.cancel();
+    _disposed = true;
+    super.dispose();
   }
 
   String owner(OrgaEntry e) {

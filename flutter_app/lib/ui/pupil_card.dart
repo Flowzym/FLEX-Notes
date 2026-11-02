@@ -22,7 +22,15 @@ class PupilCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context), scheme = Theme.of(context).colorScheme;
     final color = theme.cardTheme.color ?? scheme.surfaceContainerLow;
-    final foreground = legibleOn(Color.alphaBlend(color, scheme.surface));
+    final appearance = theme.extension<FlexSurfaces>()?.appearance;
+    final foreground =
+        theme.extension<FlexSurfaces>()?.palette?.cardInk ??
+        legibleOn(Color.alphaBlend(color, scheme.surface));
+    final order =
+        (appearance?.shortcutOrder ??
+                FlexSymbol.values.map((e) => e.name).toList())
+            .map((name) => FlexSymbol.values.byName(name))
+            .toList();
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
     Widget shortcut(FlexSymbol symbol) {
       final count = counts[symbol] ?? 0;
@@ -36,8 +44,12 @@ class PupilCard extends StatelessWidget {
             key: ValueKey('shortcut-${pupil.id}-${symbol.name}'),
             onTap: () => onShortcut(symbol),
             borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 56),
+              padding: EdgeInsets.symmetric(
+                vertical: appearance?.compact == true ? 4 : 8,
+                horizontal: 2,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -106,11 +118,11 @@ class PupilCard extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(appearance?.cardRadius ?? 22),
       child: Material(
         color: color,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(appearance?.cardRadius ?? 22),
           side: BorderSide(color: scheme.outlineVariant),
         ),
         child: Stack(
@@ -130,7 +142,12 @@ class PupilCard extends StatelessWidget {
                   onTap: onOpen,
                   child: Container(
                     constraints: const BoxConstraints(minHeight: 52),
-                    padding: const EdgeInsets.fromLTRB(22, 10, 18, 10),
+                    padding: EdgeInsets.fromLTRB(
+                      22,
+                      appearance?.compact == true ? 4 : 10,
+                      18,
+                      appearance?.compact == true ? 4 : 10,
+                    ),
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(color: scheme.outlineVariant),
@@ -169,17 +186,14 @@ class PupilCard extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          shortcut(FlexSymbol.goal),
-                          shortcut(FlexSymbol.social),
-                          shortcut(FlexSymbol.work),
+                          for (final symbol in order.take(3)) shortcut(symbol),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          shortcut(FlexSymbol.homework),
-                          shortcut(FlexSymbol.orga),
+                          for (final symbol in order.skip(3)) shortcut(symbol),
                           const Expanded(child: SizedBox()),
                         ],
                       ),

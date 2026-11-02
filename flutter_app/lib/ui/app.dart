@@ -10,17 +10,16 @@ class FlexApp extends StatelessWidget {
   final NotebookController controller;
   ThemeData _theme(Appearance appearance, Brightness brightness) {
     final dark = brightness == Brightness.dark;
+    final palette = FlexPalette(appearance, brightness);
     final baseScheme = ColorScheme.fromSeed(
       seedColor: Color(appearance.accent),
       brightness: brightness,
     );
     final scheme = baseScheme.copyWith(
-      primary: dark ? Color(appearance.accent) : baseScheme.primary,
-      surface: dark ? const Color(0xff303e2b) : const Color(0xfff7f8f0),
-      onSurface: dark ? const Color(0xfff6f5eb) : const Color(0xff23311e),
-      onPrimary: dark
-          ? legibleOn(Color(appearance.accent))
-          : baseScheme.onPrimary,
+      primary: Color(appearance.accent),
+      surface: palette.panel,
+      onSurface: palette.modalInk,
+      onPrimary: legibleOn(Color(appearance.accent)),
       surfaceContainerHigh: dark
           ? const Color(0xff35432e)
           : baseScheme.surfaceContainerHigh,
@@ -32,27 +31,13 @@ class FlexApp extends StatelessWidget {
           ? const Color(0xffc2cbb6)
           : baseScheme.onSurfaceVariant,
     );
-    final bar = appearance.dialogColor == 0
-        ? dark
-              ? const Color(0xff2a3926)
-              : scheme.surfaceContainerHigh
-        : Color(appearance.dialogColor);
-    final button =
-        (appearance.buttonColor == 0
-                ? dark
-                      ? const Color(0xfff9f8ef)
-                      : scheme.primary
-                : Color(appearance.buttonColor))
-            .withValues(alpha: appearance.buttonOpacity);
-    final buttonText = legibleOn(Color.alphaBlend(button, scheme.surface));
-    final card = appearance.cardColor == 0
-        ? (dark ? const Color(0xfff2f7d5) : const Color(0xff253222)).withValues(
-            alpha: .07 * appearance.cardOpacity,
-          )
-        : Color(appearance.cardColor).withValues(alpha: appearance.cardOpacity);
+    final button = palette.button;
+    final buttonText = palette.buttonInk;
+    final card = palette.card;
     final base = ThemeData(colorScheme: scheme, fontFamily: 'FlexSans');
     final textTheme = base.textTheme.copyWith(
       bodyLarge: base.textTheme.bodyLarge?.copyWith(
+        color: palette.fieldInk,
         fontSize: 14,
         height: 1.5,
         letterSpacing: 0,
@@ -90,21 +75,36 @@ class FlexApp extends StatelessWidget {
       extensions: [
         FlexSurfaces(
           appearance: appearance,
-          header: bar.withValues(alpha: appearance.headerOpacity),
-          footer: bar.withValues(alpha: appearance.footerOpacity),
-          foreground: legibleOn(bar),
+          palette: palette,
+          header: palette.header,
+          footer: palette.footer,
+          foreground: legibleOn(
+            Color.alphaBlend(palette.header, palette.modalPerceived),
+          ),
         ),
       ],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: palette.modalInk,
+          foregroundColor: legibleOn(palette.modalInk),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          backgroundColor: button,
+          foregroundColor: buttonText,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
           backgroundColor: button,
           foregroundColor: buttonText,
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: button.withValues(
-          alpha: appearance.buttonColor == 0 ? 0.12 : appearance.buttonOpacity,
-        ),
+        shape: const StadiumBorder(),
+        side: BorderSide.none,
+        backgroundColor: button,
         selectedColor: scheme.primary,
         labelStyle: TextStyle(
           fontFamily: 'FlexSans',
@@ -113,8 +113,6 @@ class FlexApp extends StatelessWidget {
           color: WidgetStateColor.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? legibleOn(scheme.primary)
-                : appearance.buttonColor == 0
-                ? scheme.onSurface
                 : buttonText,
           ),
         ),
@@ -143,7 +141,9 @@ class FlexApp extends StatelessWidget {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         filled: true,
-        fillColor: dark ? const Color(0x0bffffff) : const Color(0x08ffffff),
+        fillColor: palette.field,
+        labelStyle: TextStyle(color: palette.fieldInk),
+        hintStyle: TextStyle(color: palette.fieldInk),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 10,
@@ -154,7 +154,9 @@ class FlexApp extends StatelessWidget {
         color: card,
         elevation: 0,
         margin: const EdgeInsets.symmetric(vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(appearance.cardRadius),
+        ),
       ),
     );
   }
@@ -165,6 +167,7 @@ class FlexApp extends StatelessWidget {
     builder: (_, child) => MaterialApp(
       title: 'FLEX-Notizbuch',
       debugShowCheckedModeBanner: false,
+      themeAnimationDuration: Duration.zero,
       locale: const Locale('de', 'AT'),
       supportedLocales: const [Locale('de', 'AT'), Locale('de'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

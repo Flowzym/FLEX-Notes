@@ -1,4 +1,18 @@
-# Aktueller Dialogaudit: 0.16.0-rebuild.5+25
+# Aktueller Stand: 0.16.0-rebuild.6+26
+
+Die Schülerkarten-Shortcuts öffnen sofort das zugehörige Eintragsmodal und setzen
+passende neue Einzelentwürfe fort. Die Einstellungen wurden anhand der HTML-Struktur
+und der später dokumentierten Änderungen ergänzt und korrigiert.
+
+Maßgeblich für diese Runde: [Settings-Abgleich mit vollständiger Wertzuordnung](../../audit/SETTINGS_ABGLEICH.md),
+[aktuelle direkte Renderings](../../audit/settings-renderings/), Tests und Buildnachweise unter `audit/evidence/settings-*`.
+Vorschau ist ein lokaler Flutter-Webbuild; keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
+Die grünen Originalhintergrunddateien fehlen weiterhin. Die offenen Import- und Konfliktlücken des
+Dialogaudits bleiben dokumentiert; **keine Freigabe als vollständig originalgetreu**.
+
+---
+
+# Vorheriger Dialogaudit: 0.16.0-rebuild.5+25
 
 Der Nutzer hat das Quellenpaket `FLEX-Notes-Quellen-9e5e4b6b8e8c.zip`
 nachgereicht. Sein vollständiger Stand 0.16.0-rebuild.4+24 wurde übernommen;

@@ -1,0 +1,421 @@
+1. Grundaufbau der Einstellungen
+Aufgabe der Einstellungen
+Die App soll ein anpassbares Erscheinungsbild besitzen. Deine bisherigen Änderungswünsche betreffen insbesondere:
+- Farben.
+- Transparenzen.
+- Bildhintergründe.
+- Unterschiedliche Bilddarstellungen.
+- Die gemeinsame Farbe von Dialogkopf und Dialogfuß.
+- Die konsistente Hinterlegung von Buttons und Tags.
+Diese Einstellungen müssen zusammenpassen. Eine Änderung darf nicht nur in der Einstellungsansicht sichtbar werden, während die eigentlichen Schülerkarten oder Eintragsdialoge unverändert bleiben.
+Darstellung
+Soweit eine Einstellung als Dialog geöffnet wird, gilt deine allgemeine Vorgabe:
+- Darstellung als Modal.
+- Gleicher Dialograhmen wie in den anderen Bereichen.
+- Abgerundete Ecken.
+- Sichtbarer Außenabstand.
+- Begrenzte Breite auf Desktop.
+- Scrollbarer Inhalt bei vielen Optionen.
+- Bedienbarkeit bei großer Schrift und auf kleinen Bildschirmen.
+Nicht belegt ist die ursprüngliche Aufteilung in einzelne Einstellungsseiten, Unterdialoge, Register oder aufklappbare Gruppen. Diese muss aus dem HTML übernommen werden.
+
+Die folgende Gliederung beschreibt deshalb die Inhalte, nicht eine frei erfundene neue Menüstruktur.
+2. App-Hintergrund
+Gewünschte Funktion
+Du möchtest eigene Bildhintergründe verwenden. Dafür hast du zwei Bilder bereitgestellt:
+- Eine grüne Tafeltextur im Querformat für Desktop.
+- Eine grüne Tafeltextur im Hochformat für Mobilgeräte.
+Diese Bilder sind die vorgesehenen Originale. Sie sollen nicht durch ähnlich aussehende generierte Bilder ersetzt werden.
+Desktop- und Mobilhintergrund
+Die App muss die beiden vorgesehenen Darstellungen berücksichtigen.
+
+Für den Nachbau ist zu klären:
+- Werden beide Bilder getrennt gespeichert?
+- Nach welcher vorhandenen Regel wird zwischen ihnen gewechselt?
+- Reagiert die Auswahl auf die tatsächliche Fenstergröße oder nur auf die Plattform?
+- Was passiert, wenn nur ein Bild vorhanden ist?
+- Was passiert beim Drehen eines mobilen Geräts?
+Eine konkrete Umschaltbreite ist im bisherigen Verlauf nicht festgelegt. Eine Zahl wie 600 oder 800 Pixel darf deshalb nicht als ursprüngliche Vorgabe ausgegeben werden.
+Bildauswahl
+Die Bildauswahl muss mit der tatsächlich verwendeten Hintergrunddatei verbunden sein.
+
+Zu prüfen sind:
+- Auswahl eines neuen Bildes.
+- Vorschau des ausgewählten Bildes.
+- Übernahme in die App.
+- Ersetzen eines vorhandenen Bildes.
+- Wiederherstellung nach einem Neustart.
+Falls der ursprüngliche Dialog zusätzlich Entfernen, Zurücksetzen oder weitere Auswahlmöglichkeiten besitzt, müssen diese originalgetreu übernommen werden.
+
+Nicht ausreichend wäre, nur eine temporäre Vorschau anzuzeigen, während nach dem nächsten Start wieder der alte Hintergrund erscheint.
+Verhalten hinter der Oberfläche
+Das Hintergrundbild liegt hinter den vorgesehenen App-Flächen.
+
+Dadurch muss es:
+- Außerhalb der Karten und Dialoge sichtbar sein.
+- Durch transparente Flächen entsprechend deren Einstellung hindurchscheinen.
+- Mit der Fenstergröße korrekt dargestellt werden.
+Ob das Bild im Original beim Scrollen fest stehen bleibt oder mit dem Inhalt bewegt wird, muss am Prototyp geprüft werden. Das ist eine sichtbare UX-Eigenschaft und darf nicht beiläufig verändert werden.
+3. Darstellungsmodi für Hintergrundbilder
+Dein ausdrücklicher Wunsch war:
+Verschiedene Ansichtsmöglichkeiten: stretched, filled, scaled, …
+
+Dabei müssen die Begriffe eindeutige Wirkungen haben.
+Gestreckt – „Stretched“
+Das Bild wird unabhängig von seinem Seitenverhältnis auf die gesamte vorgesehene Fläche gezogen.
+
+Wirkung:
+- Keine freien Ränder.
+- Das ganze Bild bleibt grundsätzlich innerhalb der Fläche.
+- Breite und Höhe können unterschiedlich stark verändert werden.
+- Das Bild kann sichtbar verzerrt werden.
+Bei einer Tafeltextur kann das durchaus gewünscht sein. Die Einstellung darf aber nicht versehentlich dieselbe Wirkung wie „Füllend“ haben.
+Füllend – „Filled“
+Das Bild füllt die gesamte Fläche, während sein Seitenverhältnis erhalten bleibt.
+
+Wirkung:
+- Keine freien Ränder.
+- Keine geometrische Verzerrung.
+- Teile des Bildes können außerhalb des sichtbaren Bereichs liegen.
+- Je nach Fensterformat wird oben/unten oder links/rechts beschnitten.
+Die Ausrichtung des Ausschnitts – beispielsweise mittig – muss der vorhandenen Einstellung beziehungsweise dem Originalverhalten entsprechen. Eine zusätzliche frei verschiebbare Bildposition ist bislang nicht als Nutzerwunsch belegt.
+Proportional eingepasst
+Das gesamte Bild wird proportional in der verfügbaren Fläche dargestellt.
+
+Wirkung:
+- Das ganze Bild bleibt sichtbar.
+- Keine Verzerrung.
+- Es können freie Flächen neben oder über dem Bild entstehen.
+- Diese freien Flächen müssen eine definierte Hintergrundfarbe besitzen.
+Bedeutung von „Scaled“
+„Scaled“ ist ohne den ursprünglichen Code nicht eindeutig. Es kann beispielsweise proportional einpassen oder nur verkleinern bedeuten.
+
+Deshalb muss der andere Chat prüfen:
+- Darf das Bild größer als seine ursprüngliche Größe werden?
+- Wird es nur verkleinert?
+- Soll es vollständig sichtbar bleiben?
+- Darf es beschnitten werden?
+Die Beschriftung und das tatsächliche Verhalten müssen übereinstimmen.
+Auswahl und Vorschau
+Unabhängig von der konkreten ursprünglichen Bedienform gilt:
+- Der gewählte Modus muss eindeutig sichtbar sein.
+- Die Vorschau muss denselben Modus verwenden wie die eigentliche App.
+- Der Modus muss nach erneutem Öffnen weiterhin ausgewählt sein.
+- Ein Wechsel des Fensterformats muss korrekt behandelt werden.
+Weitere Modi wie Kacheln oder Originalgröße sind im bisherigen Verlauf nicht ausdrücklich bestätigt. Sie dürfen nicht als bereits vorhandene Funktionen beschrieben werden, ohne sie im Original zu finden.
+4. Transparenz
+Das ist besonders wichtig, weil du ausdrücklich gemeldet hast, dass diese Anpassung teilweise nicht funktioniert.
+Was die Einstellung bewirken muss
+Eine Transparenzeinstellung verändert die Durchsichtigkeit der Fläche, auf die sie sich bezieht.
+
+Beispielsweise:
+- Eine Fläche wird durchsichtiger.
+- Das dahinterliegende Bild wird stärker sichtbar.
+- Die Beschriftung bleibt weiterhin lesbar.
+Ein häufiger Fehler wäre, die gesamte Komponente einschließlich Text und Symbolen abzublenden. Dann wird zwar alles schwächer, aber der gewünschte Eindruck einer transparenten Oberfläche entsteht nicht richtig.
+Transparenz und Deckkraft unterscheiden
+Die Beschriftung muss zur Richtung des Reglers passen.
+Begriff	Niedriger Wert	Hoher Wert
+Transparenz	Weniger durchsichtig	Stärker durchsichtig
+Deckkraft	Stärker durchsichtig	Weniger durchsichtig
+
+
+Falls eine Prozentanzeige verwendet wird:
+- 0 % Transparenz: vollständig deckend.
+- 100 % Transparenz: vollständig durchsichtig.
+Bei einer als Deckkraft bezeichneten Einstellung ist es umgekehrt.
+
+Der tatsächliche Wertebereich des ursprünglichen Reglers ist hier nicht belegt. Entscheidend ist, dass Beschriftung, Reglerbewegung und sichtbare Wirkung zusammenpassen.
+Unterschiedliche Flächen
+Beim Prüfen müssen verschiedene Ebenen auseinandergehalten werden:
+- App-Hintergrund.
+- Bildhintergrund.
+- Schülerkarten.
+- Dialogkopf.
+- Dialoginhalt.
+- Dialogfuß.
+- Eingabefelder.
+- Buttons und Tags.
+- Eine mögliche Abdunklung hinter geöffneten Dialogen.
+Damit ist nicht behauptet, dass für jede Ebene ein eigener Regler existiert. Es beschreibt die Flächen, die beim Abgleich untersucht werden müssen.
+
+Ein vorhandener Regler darf nicht unbemerkt auf die falsche Ebene wirken.
+Typische Fehler, die gezielt geprüft werden müssen
+Eine undurchsichtige Fläche verdeckt die Änderung
+
+Der äußere Dialog wird transparent, aber ein vollständig deckender innerer Container liegt darüber. Der Nutzer sieht keinen Effekt.
+
+Falsche Richtung
+
+Der Regler heißt „Transparenz“, erhöht intern aber die Deckkraft.
+
+Nur die Vorschau ändert sich
+
+Die Settings zeigen den richtigen Effekt, die übrige App verwendet weiterhin alte Werte.
+
+Änderung erst nach erneutem Öffnen
+
+Ein bereits geöffneter Dialog verwendet einen zwischengespeicherten Stil und reagiert nicht auf die Änderung.
+
+Werte verschwinden nach dem Neustart
+
+Die Einstellung wird zwar im Speicher verändert, aber nicht dauerhaft gespeichert.
+
+Ausgewählte Buttons werden unlesbar
+
+Die Flächenfarbe wird verändert, die Textfarbe aber nicht passend behandelt.
+Abnahme der Transparenzfunktion
+Für jeden tatsächlich vorhandenen Transparenzregler sollte geprüft werden:
+1. Minimalwert.
+2. Mittlerer Wert.
+3. Maximalwert.
+4. Wirkung auf die zugehörige Fläche.
+5. Wirkung bei Bildhintergrund.
+6. Lesbarkeit von Text und Symbolen.
+7. Erhaltung nach erneutem Start.
+5. Gemeinsame Farbe für Dialogkopf und Dialogfuß
+Das ist eine ausdrücklich von dir gewünschte Einstellmöglichkeit:
+Kopf und Fußzeile der Dialoge: eigene Farbwahl, gemeinsam.
+
+Bedeutung
+Es gibt eine gemeinsame Farbwahl für beide Bereiche.
+
+Wenn diese Farbe geändert wird:
+- Ändert sich der Kopfbereich.
+- Ändert sich der Fußbereich.
+- Beide bleiben optisch zusammengehörig.
+- Der Inhaltsbereich muss dadurch nicht dieselbe Farbe bekommen.
+Welche Elemente dazugehören
+Im Kopfbereich beispielsweise:
+- Schülerkontext.
+- Dialogtitel.
+- Zurück- und Schließen-Aktionen.
+- Die dahinterliegende Kopf-Fläche.
+Im Fußbereich beispielsweise:
+- Die zum Fuß gehörenden Abschlussangaben.
+- Der Bereich um die Speicheraktionen.
+Ob ein Datumsteil und die eigentliche Buttonzeile im Original exakt dieselbe Fläche verwenden, muss am jeweiligen Dialog geprüft werden. Im Screenshot sind diese Bereiche erkennbar gegliedert.
+Geltungsbereich
+Die Einstellung muss bei allen entsprechenden Dialogen berücksichtigt werden:
+- Sozialverhalten.
+- Arbeitsverhalten.
+- Orga.
+- Ziele.
+- HÜ.
+- Kommentar- und weitere Unterdialoge, soweit diese Kopf- und Fußbereiche besitzen.
+Es darf nicht passieren, dass nur die drei zuerst umgesetzten Modals diese Farbe verwenden und Ziele oder HÜ bei festen Standardfarben bleiben.
+Zusammenspiel mit Transparenz
+Farbe und Transparenz dürfen sich nicht gegenseitig unbeabsichtigt überschreiben.
+
+Beispiel:
+1. Die Transparenz wird eingestellt.
+2. Anschließend wird eine andere Kopf-/Fußfarbe ausgewählt.
+3. Die zuvor gewählte Transparenz muss entsprechend dem vorgesehenen Einstellungsmodell erhalten bleiben.
+Ob Farbe und Transparenz hierfür gemeinsam oder über getrennte vorhandene Bedienelemente gewählt werden, muss aus dem Original beziehungsweise der bisherigen Implementierung übernommen werden.
+6. Weitere Farben und ihre Rollen
+Die App soll ein anpassbares Erscheinungsbild besitzen. Im sichtbaren Verlauf ist jedoch nicht belegt, welche weiteren Farbrollen bereits einzeln in den Settings angeboten werden.
+
+Deshalb darf der andere Chat nicht beliebige neue Farbfelder hinzufügen und behaupten, diese seien originalgetreu.
+
+Zu untersuchen sind insbesondere diese Rollen:
+Farbrolle	Wo ihre Wirkung zu prüfen ist
+Allgemeine Hintergrundfarbe	Hinter Bildern beziehungsweise in freien Bildrändern
+Kartenfläche	Schülerkarten und Eintragskarten
+Dialogfläche	Inhaltsbereich der Modals
+Eingabefläche	Textfelder und andere Eingaben
+Akzentfarbe	Aktive Navigation, ausgewählte Elemente
+Buttonfläche	Normale und hervorgehobene Aktionen
+Text- und Symbolfarbe	Lesbarkeit auf den jeweiligen Flächen
+Linienfarbe	Umrandungen und vorhandene Trennungen
+
+
+Welche davon tatsächlich eine eigene Einstellung besitzen, muss im HTML oder in den erhaltenen Unterlagen festgestellt werden.
+Akzentfarbe und ausgewählte Zustände
+Wenn die App eine Akzentfarbe verwendet, muss ihre Anwendung konsistent sein.
+
+Zu prüfen sind:
+- Aktiver Hauptbereich.
+- Ausgewählte Schüler-Tags.
+- Ausgewählte Beobachtungs-Tags.
+- Positiv-/Negativauswahl.
+- HÜ-Standbuttons.
+- Weitere ausgewählte Optionen.
+Dabei muss nicht jeder fachliche Zustand dieselbe Farbe besitzen. Beispielsweise kann eine fachliche Warnfarbe unabhängig von einer allgemeinen Akzentfarbe sein. Diese Zuordnung muss dem vorhandenen Konzept entsprechen.
+7. Button- und Taghinterlegung
+Du hast gemeldet:
+Problem bei Buttonhinterlegung: Nicht alles wird gleich hinterlegt.
+
+Das betrifft die Wirkung des Erscheinungsbilds auf die Komponenten.
+Zusammenhängende Fläche
+Bei einem Button mit Text und zusätzlichem Symbol muss die Hintergrundfläche korrekt zusammenpassen.
+
+Beispiele:
+- Beobachtungs-Tag mit Stern.
+- Button mit Pfeil.
+- Kommentar-Shortcut.
+- Tag mit ausgewähltem Zustand.
+Die Fläche darf nicht:
+- Vor dem Symbol enden.
+- Unter einem Teil eine andere Farbe besitzen.
+- An einer inneren Widget-Grenze eine zusätzliche Rundung zeigen.
+- Im ausgewählten Zustand nur die Hälfte des Buttons verändern.
+Unterschiedliche Zustände
+Folgende Zustände müssen zur gewählten Gestaltung passen:
+- Normal.
+- Ausgewählt.
+- Deaktiviert.
+- Tastaturfokus.
+- Hover bei Mausbedienung.
+- Gedrückt.
+Die genaue optische Ausprägung muss aus dem vorhandenen Design übernommen werden. Wichtig ist, dass Anpassungen nicht nur den normalen Zustand berücksichtigen.
+Fachliche Auswahl bleibt erkennbar
+Ein gewähltes Erscheinungsbild darf die Unterscheidung zwischen ausgewählt und nicht ausgewählt nicht vollständig aufheben.
+
+Das ist besonders wichtig für:
+- Schülerzuordnung.
+- Beobachtungs-Tags.
+- HÜ-Stände.
+- Positiv und Negativ.
+8. Farbwähler
+Ein früherer Abgleich hatte ausdrücklich ergeben, dass Farbwähler und Bildauswahl noch nicht überall identisch zum Vorbild waren.
+Was übernommen werden muss
+Am Original zu prüfen sind:
+- Wie der Farbwähler geöffnet wird.
+- Ob er als eigener Dialog oder innerhalb der Einstellungen erscheint.
+- Welche Farbauswahl tatsächlich angeboten wird.
+- Ob vorhandene Farbfelder beziehungsweise Vorgaben existieren.
+- Ob eine direkte Werteingabe vorhanden ist.
+- Ob Transparenz im Farbwähler selbst enthalten ist.
+- Wie die aktuelle Farbe angezeigt wird.
+- Wie Übernehmen und Abbrechen funktionieren.
+Eine Hex-Eingabe, Farbpalette oder Liste zuletzt verwendeter Farben ist in diesem Chat nicht eindeutig belegt. Solche Funktionen dürfen nicht als vorhandene Originalfunktionen beschrieben werden.
+Wirkung auf die App
+Der Farbwähler muss die richtige Einstellung verändern.
+
+Beispielsweise darf die Auswahl für „Dialogkopf und -fuß“ nicht versehentlich:
+- Die gesamte App-Hintergrundfarbe ändern.
+- Nur den gerade geöffneten Dialog verändern.
+- Die Akzentfarbe überschreiben.
+- Eine bestehende Transparenzeinstellung verlieren.
+9. Schrift und Größen
+Hier ist eine wichtige Unterscheidung nötig:
+- Schriftmetriken und Abstände waren Gegenstand des gewünschten UI-Abgleichs.
+- Daraus folgt nicht automatisch, dass sämtliche Schriftgrößen vom Nutzer einstellbar sein sollen.
+Belegte Gestaltung
+In den sichtbaren Ansichten:
+- Größere Bereichsüberschriften besitzen eine Serifengestaltung.
+- Formulartexte und Buttons verwenden eine sachliche Schrift.
+- Die Größenhierarchie zwischen Titel, Abschnitt, Eingabe und Zusatzhinweis ist erkennbar.
+Im letzten Flutter-Arbeitsstand ist FlexSans für bestimmte Beschriftungen dokumentiert.
+Nicht belegte Einstellungen
+Im sichtbaren Verlauf ist nicht bestätigt, ob die Settings bereits anbieten:
+- Freie Schriftfamilienwahl.
+- Eigene Titelschrift.
+- Individuelle Schriftgrößen.
+- Allgemeine UI-Skalierung.
+- Separat einstellbare Zeilenabstände.
+Falls solche Möglichkeiten im Original vorhanden sind, müssen sie übernommen werden. Falls sie fehlen, sollten sie nicht allein aufgrund dieser Beschreibung neu erfunden werden.
+Unabhängig von eigenen Schriftsettings
+Die App muss mit vergrößerter Systemschrift bedienbar bleiben:
+- Keine abgeschnittenen Buttons.
+- Keine überlaufenden Schülernamen.
+- Keine überlagerten Dialogaktionen.
+- Sinnvolle Umbrüche.
+- Weiterhin erreichbare Speicheraktionen.
+10. Speicherung und Wiederherstellung der Einstellungen
+Die App soll lokal nutzbar sein. Dazu gehört, dass Erscheinungsbildeinstellungen zuverlässig erhalten bleiben.
+Zu prüfende Abläufe
+1. Einstellung ändern.
+2. Einstellungen schließen.
+3. Andere Bereiche öffnen.
+4. Dialoge öffnen.
+5. App neu starten.
+6. Gewählte Werte erneut prüfen.
+Das gilt insbesondere für:
+- Ausgewählte Hintergrundbilder.
+- Bilddarstellungsmodus.
+- Farben.
+- Transparenzen.
+- Gemeinsame Kopf-/Fußfarbe.
+Vorschau und Speichern
+Der ursprüngliche Ablauf muss übernommen werden:
+- Werden Änderungen sofort angewendet?
+- Gibt es einen eigenen Speichern- oder Übernehmen-Button?
+- Gibt es eine Vorschau, die abgebrochen werden kann?
+- Was passiert beim Schließen?
+Diese Bedienentscheidung ist hier nicht vollständig belegt.
+
+Ein Fehler wäre aber in jedem Fall, dem Nutzer eine erfolgreiche Übernahme zu vermitteln, obwohl nur eine temporäre Vorschau verändert wurde.
+Ungültige oder fehlende Werte
+Ältere Sicherungen oder Einstellungen können neue Optionen noch nicht enthalten.
+
+Dann muss die App:
+- Einen gültigen bisherigen beziehungsweise definierten Standard verwenden.
+- Weiterhin starten.
+- Vorhandene andere Einstellungen erhalten.
+- Fehlende Einzelwerte nicht als Anlass zum vollständigen Zurücksetzen nehmen.
+Zurücksetzen
+Falls die ursprünglichen Settings eine Zurücksetzen-Funktion enthalten, muss ihr Umfang eindeutig sein.
+
+Insbesondere muss klar sein, ob sie:
+- Nur einen einzelnen Wert.
+- Nur das Erscheinungsbild.
+- Oder einen größeren Datenbereich betrifft.
+Eine Funktion zum Zurücksetzen des Erscheinungsbilds darf keine Schülerdaten oder Einträge löschen.
+
+Die tatsächliche Existenz und Beschriftung dieses Buttons muss am Original geprüft werden.
+11. Sicherung, Import und weitere Verwaltungsfunktionen
+Bestehende Sicherungsformate und Datenübernahme sind ausdrücklich wichtig.
+
+Nicht belegt ist jedoch, welche dieser Funktionen direkt innerhalb der Settings und welche unter „…“ oder in anderen Bereichen liegen.
+
+Diese Positionierung darf beim Nachbau nicht frei verändert werden.
+
+Zu prüfen sind:
+- Welche Sicherungs- und Exportfunktionen vorhanden sind.
+- Welche Importformate unterstützt werden.
+- Ob Erscheinungsbildeinstellungen Bestandteil einer Sicherung sind.
+- Ob Hintergrundbilder mitgesichert werden.
+- Wie ältere Einstellungen übernommen werden.
+- Wie Fehler beim Import angezeigt werden.
+Ein reiner Export von Schülerdaten ist nicht automatisch eine vollständige Sicherung aller App-Einstellungen.
+
+Synchronisation und Dokumentenscanner wurden als spätere Ausbaustufen genannt. Sie dürfen nicht als bereits funktionierende Einstellungen ausgegeben werden.
+12. Was anhand des bisherigen Verlaufs sicher feststeht
+Einstellbereich	Stand
+Anpassbares Erscheinungsbild	Ausdrücklich gewünscht
+Eigene Bildhintergründe	Ausdrücklich gewünscht
+Desktop- und Mobilmotiv	Beide Bilder bereitgestellt
+Mehrere Bilddarstellungsmodi	Ausdrücklich gewünscht
+Transparenzanpassung	Vorhandene Funktion als fehlerhaft gemeldet
+Gemeinsame Farbe für Dialogkopf und Dialogfuß	Ausdrücklich gewünscht
+Konsistente Buttonhinterlegung	Konkreter Fehler gemeldet
+Originalgetreuer Farb- und Bildwähler	Teil des gewünschten UI-Abgleichs
+Vollständige Liste aller Farbfelder	Hier nicht belegt
+Exakte Reglergrenzen und Standardwerte	Hier nicht belegt
+Frei wählbare Schriftfamilien	Hier nicht belegt
+Exakte Settings-Menüstruktur	Hier nicht belegt
+Speichern gegenüber sofortiger Übernahme	Hier nicht vollständig belegt
+Umfang einer Zurücksetzen-Funktion	Hier nicht belegt
+
+
+13. Konkreter Auftrag für den anderen Chat
+Diesen Teil kannst du direkt weitergeben:
+Lies die tatsächlichen Settings aus dem HTML-Prototyp und den erhaltenen Unterlagen aus. Übernimm deren Menüstruktur, Originalbeschriftungen und Einstellmöglichkeiten.
+
+Erstelle für jedes Bedienelement eine Zuordnung:
+
+Beschriftung → gespeicherter Wert → Standardwert → zulässiger Bereich → betroffene UI-Flächen → Verhalten bei Änderung → Verhalten nach Neustart.
+
+Prüfe besonders:
+- Hintergrundbilder für Desktop und Mobilgeräte.
+- Unterschied zwischen Strecken, Füllen und proportionalem Skalieren.
+- Tatsächliche Wirkung der Transparenzregler.
+- Gemeinsame Farbe für Dialogkopf und Dialogfuß.
+- Zusammenhängende Hinterlegung von Buttons mit Text und Symbolen.
+- Lesbarkeit ausgewählter Tags.
+- Originalgetreue Farb- und Bildauswahl.
+- Speicherung und Wiederherstellung aller tatsächlich angebotenen Optionen.
+Ergänze keine frei erfundenen Settings als vermeintliche Originalfunktionen. Kennzeichne neue Vorschläge getrennt.
+
+Prüfe die Wirkung mit lokalen Flutter-Tests und direkten Renderings in mehreren Dialogen und Bildschirmgrößen. Keine Browsertests. Dokumentiere für jeden gefundenen Regler, dass er tatsächlich die vorgesehene Fläche verändert.

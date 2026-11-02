@@ -272,7 +272,7 @@ void main() {
           BoxFit.fill,
         },
       );
-      expect(legibleOn(Colors.white), const Color(0xff172016));
+      expect(legibleOn(Colors.white), Colors.black);
       expect(legibleOn(Colors.black), Colors.white);
     },
   );

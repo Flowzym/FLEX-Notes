@@ -65,7 +65,7 @@ class _TagTextFieldState extends State<TagTextField> {
         builder: (context, _) => DecoratedBox(
           key: ValueKey('tag-frame-${widget.fieldKey}'),
           decoration: BoxDecoration(
-            color: scheme.onSurface.withValues(alpha: .05),
+            color: Theme.of(context).inputDecorationTheme.fillColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: focus.hasFocus ? scheme.primary : scheme.outline,

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,27 +34,15 @@ class FlexModal extends StatelessWidget {
     final mobile = MediaQuery.sizeOf(context).width <= 700;
     final surfaces = Theme.of(context).extension<FlexSurfaces>();
     final appearance = this.appearance ?? surfaces?.appearance;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final referenceStyle = appearance != null;
     final headerColor = surfaces?.header ?? scheme.surfaceContainerHigh;
     final footerColor = surfaces?.footer ?? scheme.surfaceContainerHigh;
-    final image = appearance == null
-        ? ''
-        : mobile
-        ? appearance.mobileImage
-        : appearance.desktopImage;
-    final ImageProvider? backdrop = !referenceStyle
-        ? null
-        : image.isNotEmpty
-        ? MemoryImage(base64Decode(image))
-        : dark
-        ? const AssetImage(FlexBackground.defaultDarkImage)
-        : null;
+    final palette = surfaces?.palette;
     final headerForeground = legibleOn(
-      Color.alphaBlend(headerColor, scheme.surface),
+      Color.alphaBlend(headerColor, palette?.modalPerceived ?? scheme.surface),
     );
     final footerForeground = legibleOn(
-      Color.alphaBlend(footerColor, scheme.surface),
+      Color.alphaBlend(footerColor, palette?.modalPerceived ?? scheme.surface),
     );
     final baseTheme = Theme.of(context);
     final referenceTheme = baseTheme.copyWith(
@@ -74,13 +61,19 @@ class FlexModal extends StatelessWidget {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          textStyle: const TextStyle(
-            fontFamily: 'FlexSans',
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
+        style:
+            baseTheme.textButtonTheme.style?.copyWith(
+              textStyle: const WidgetStatePropertyAll(
+                TextStyle(fontFamily: 'FlexSans', fontSize: 15),
+              ),
+            ) ??
+            TextButton.styleFrom(
+              textStyle: const TextStyle(
+                fontFamily: 'FlexSans',
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -107,7 +100,7 @@ class FlexModal extends StatelessWidget {
       chipTheme: baseTheme.chipTheme.copyWith(
         shape: const StadiumBorder(),
         side: BorderSide.none,
-        backgroundColor: scheme.onSurface.withValues(alpha: .07),
+        backgroundColor: baseTheme.chipTheme.backgroundColor,
         labelStyle: TextStyle(
           fontFamily: 'FlexSans',
           fontSize: 14,
@@ -115,7 +108,7 @@ class FlexModal extends StatelessWidget {
           color: WidgetStateColor.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? legibleOn(scheme.primary)
-                : scheme.onSurface,
+                : palette?.buttonInk ?? scheme.onSurface,
           ),
         ),
       ),
@@ -128,7 +121,7 @@ class FlexModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide(color: scheme.primary),
         ),
-        fillColor: scheme.onSurface.withValues(alpha: .05),
+        fillColor: baseTheme.inputDecorationTheme.fillColor,
       ),
     );
     final dialog = Dialog(
@@ -223,7 +216,9 @@ class FlexModal extends StatelessWidget {
                     data: Theme.of(context).copyWith(
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
-                          foregroundColor: footerForeground,
+                          backgroundColor: palette?.button,
+                          foregroundColor:
+                              palette?.buttonInk ?? footerForeground,
                           textStyle: referenceStyle
                               ? const TextStyle(
                                   fontFamily: 'FlexSans',
@@ -235,7 +230,9 @@ class FlexModal extends StatelessWidget {
                       ),
                       outlinedButtonTheme: OutlinedButtonThemeData(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: footerForeground,
+                          backgroundColor: palette?.button,
+                          foregroundColor:
+                              palette?.buttonInk ?? footerForeground,
                           textStyle: referenceStyle
                               ? const TextStyle(
                                   fontFamily: 'FlexSans',
@@ -296,33 +293,14 @@ class FlexModal extends StatelessWidget {
                   ],
                 );
               }
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: referenceStyle && dark
-                      ? const Color(0xff17191c)
-                      : scheme.surface,
-                  image: backdrop == null
-                      ? null
-                      : DecorationImage(
-                          image: backdrop,
-                          fit: backgroundFit(
-                            mobile
-                                ? appearance!.mobileFit
-                                : appearance!.desktopFit,
-                          ),
-                          opacity: image.isEmpty
-                              ? 1
-                              : appearance.backgroundOpacity,
-                          colorFilter: dark
-                              ? const ColorFilter.mode(
-                                  Color(0x55000000),
-                                  BlendMode.darken,
-                                )
-                              : null,
-                        ),
-                ),
+              final surface = ColoredBox(
+                key: const ValueKey('modal-surface'),
+                color: palette?.modal ?? scheme.surface,
                 child: Material(type: MaterialType.transparency, child: layout),
               );
+              return appearance == null
+                  ? surface
+                  : FlexBackground(appearance: appearance, child: surface);
             },
           ),
         ),

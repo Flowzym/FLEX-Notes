@@ -1185,13 +1185,17 @@ class _SchoolEditorState extends State<SchoolEditor>
           children: [
             for (final text in visibleOptions)
               Container(
+                key: ValueKey('observation-option-$text'),
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.sizeOf(context).width,
                 ),
                 decoration: BoxDecoration(
                   color: selected.contains(text)
                       ? selectionColor
-                      : scheme.onSurface.withValues(alpha: .07),
+                      : Theme.of(
+                              context,
+                            ).extension<FlexSurfaces>()?.palette?.button ??
+                            scheme.onSurface.withValues(alpha: .07),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: IntrinsicWidth(
@@ -1202,6 +1206,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                         child: TextButton(
                           key: ValueKey('observation-$text'),
                           style: TextButton.styleFrom(
+                            backgroundColor: Colors.transparent,
                             textStyle: const TextStyle(
                               fontFamily: 'FlexSans',
                               fontSize: 16,
@@ -1209,7 +1214,11 @@ class _SchoolEditorState extends State<SchoolEditor>
                             ),
                             foregroundColor: selected.contains(text)
                                 ? legibleOn(selectionColor)
-                                : scheme.onSurface,
+                                : Theme.of(context)
+                                          .extension<FlexSurfaces>()
+                                          ?.palette
+                                          ?.buttonInk ??
+                                      scheme.onSurface,
                             minimumSize: const Size(0, 40),
                             padding: const EdgeInsets.only(
                               left: 16,
@@ -1243,7 +1252,11 @@ class _SchoolEditorState extends State<SchoolEditor>
                           iconSize: 19,
                           color: selected.contains(text)
                               ? legibleOn(selectionColor)
-                              : scheme.onSurface,
+                              : Theme.of(context)
+                                        .extension<FlexSurfaces>()
+                                        ?.palette
+                                        ?.buttonInk ??
+                                    scheme.onSurface,
                           icon: Icon(
                             catalog.favorites.contains(text)
                                 ? Icons.star_rounded
@@ -1285,11 +1298,18 @@ class _SchoolEditorState extends State<SchoolEditor>
               }.entries.where((choice) => r.situation != choice.key))
                 ChoiceChip(
                   label: Text(choice.value),
-                  backgroundColor: scheme.onSurface.withValues(alpha: .07),
+                  backgroundColor:
+                      Theme.of(
+                        context,
+                      ).extension<FlexSurfaces>()?.palette?.button ??
+                      scheme.onSurface.withValues(alpha: .07),
                   color: WidgetStateProperty.resolveWith(
                     (states) => states.contains(WidgetState.selected)
                         ? scheme.primary
-                        : scheme.onSurface.withValues(alpha: .07),
+                        : Theme.of(
+                                context,
+                              ).extension<FlexSurfaces>()?.palette?.button ??
+                              scheme.onSurface.withValues(alpha: .07),
                   ),
                   selected: r.situation == choice.key,
                   showCheckmark: false,
@@ -1873,7 +1893,9 @@ class _SchoolEditorState extends State<SchoolEditor>
                     onPressed: busy ? null : () => save(next: true),
                     style: TextButton.styleFrom(
                       minimumSize: const Size(0, 48),
-                      backgroundColor: Colors.white.withValues(alpha: .04),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).extension<FlexSurfaces>()?.palette?.button,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 12,

@@ -1,5 +1,9 @@
 import 'maintenance_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'flex_icons.dart';
+import 'school_workspace.dart';
+import 'surfaces.dart';
 import '../application/notebook_controller.dart';
 import 'common.dart';
 import 'flex_modal.dart';
@@ -7,13 +11,19 @@ import 'backup_dialog.dart';
 import 'appearance_settings.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, required this.controller});
+  const SettingsPage({
+    super.key,
+    required this.controller,
+    required this.layout,
+  });
   final NotebookController controller;
+  final SettingsLayoutState layout;
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends State<SettingsPage>
+    with WidgetsBindingObserver {
   bool _busy = false;
   NotebookController get c => widget.controller;
   Future<void> _action(Future<void> Function() action) async {
@@ -123,158 +133,339 @@ class _SettingsPageState extends State<SettingsPage> {
     text.dispose();
   }
 
+  final _tabFocus = List.generate(3, (_) => FocusNode());
   @override
-  Widget build(BuildContext context) => ListView(
-    key: const PageStorageKey('settings'),
-    padding: const EdgeInsets.all(24),
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) c.flushAppearance();
+  }
+
+  @override
+  void dispose() {
+    c.flushAppearance();
+    WidgetsBinding.instance.removeObserver(this);
+    for (final node in _tabFocus) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void tab(int value, {bool focus = false}) {
+    c.flushAppearance();
+    setState(() => widget.layout.tab = value);
+    if (focus) _tabFocus[value].requestFocus();
+  }
+
+  void move(String name, int delta) {
+    final order = [...c.appearance.shortcutOrder];
+    final from = order.indexOf(name), to = order.indexOf(name) + delta;
+    if (to < 0 || to >= order.length) return;
+    order[from] = order[to];
+    order[to] = name;
+    c.previewAppearance({'shortcutOrder': order});
+  }
+
+  Widget interaction() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Darstellung', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 16),
-      Wrap(
-        spacing: 8,
-        children: [
-          for (final option in {
-            'dark': 'Wald · dunkel',
-            'light': 'Papier · hell',
-            'system': 'Wie das System',
-          }.entries)
-            ChoiceChip(
-              label: Text(option.value),
-              selected: c.appearance.mode == option.key,
-              onSelected: _busy
-                  ? null
-                  : (_) => _action(
-                      () => c.saveAppearance(
-                        c.appearance.copyWith(mode: option.key),
-                      ),
-                    ),
-            ),
-        ],
+      Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: () => c.previewAppearance({
+            'shortcutOrder': ['goal', 'social', 'work', 'homework', 'orga'],
+          }),
+          child: const Text('Zurücksetzen'),
+        ),
+      ),
+      const Text(
+        'Von links nach rechts, zuerst die obere Zeile. Mit den Pfeilen verschieben.',
       ),
       const SizedBox(height: 16),
-      const Text('Akzentfarbe'),
-      Wrap(
-        spacing: 8,
-        children: [
-          for (final option in {
-            0xffdae9a6: 'Linde',
-            0xff9dc9d3: 'Blau',
-            0xffe2bda0: 'Sand',
-            0xffc4ade0: 'Flieder',
-          }.entries)
-            ChoiceChip(
-              label: Text(option.value),
-              avatar: Icon(Icons.circle, color: Color(option.key)),
-              selected: c.appearance.accent == option.key,
-              onSelected: _busy
-                  ? null
-                  : (_) => _action(
-                      () => c.saveAppearance(
-                        c.appearance.copyWith(accent: option.key),
-                      ),
-                    ),
-            ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      const Text('Schriftgröße'),
-      Wrap(
-        spacing: 8,
-        children: [
-          for (final scale in [0.9, 1.0, 1.15, 1.3])
-            ChoiceChip(
-              label: Text('${(scale * 100).round()} %'),
-              selected: c.appearance.textScale == scale,
-              onSelected: _busy
-                  ? null
-                  : (_) => _action(
-                      () => c.saveAppearance(
-                        c.appearance.copyWith(textScale: scale),
-                      ),
-                    ),
-            ),
-        ],
-      ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Kompakte Abstände'),
-        value: c.appearance.compact,
-        onChanged: _busy
-            ? null
-            : (v) => _action(
-                () => c.saveAppearance(c.appearance.copyWith(compact: v)),
+      for (final name in c.appearance.shortcutOrder)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Text('${c.appearance.shortcutOrder.indexOf(name) + 1}'),
+              const SizedBox(width: 10),
+              FlexIcon(FlexSymbol.values.byName(name)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  const {
+                    'goal': 'Ziele',
+                    'social': 'Sozialverhalten',
+                    'work': 'Arbeitsverhalten',
+                    'homework': 'Hausübung',
+                    'orga': 'Organisatorisches',
+                  }[name]!,
+                ),
               ),
-      ),
-      AppearanceSettings(controller: c),
-      const Divider(height: 40),
-      Text('Bedienung', style: Theme.of(context).textTheme.titleLarge),
-      const ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.edit_note),
-        title: Text('Entwurfsschutz'),
-        subtitle: Text(
-          'Orga-Änderungen werden nach kurzer Schreibpause gesichert. Zurück und Escape sichern vor dem Schließen. Erst Speichern übernimmt den Eintrag.',
+              IconButton(
+                key: ValueKey('shortcut-up-$name'),
+                tooltip: '$name nach vorne',
+                onPressed: name == c.appearance.shortcutOrder.first
+                    ? null
+                    : () => move(name, -1),
+                icon: const Icon(Icons.arrow_upward),
+              ),
+              IconButton(
+                key: ValueKey('shortcut-down-$name'),
+                tooltip: '$name nach hinten',
+                onPressed: name == c.appearance.shortcutOrder.last
+                    ? null
+                    : () => move(name, 1),
+                icon: const Icon(Icons.arrow_downward),
+              ),
+            ],
+          ),
         ),
-      ),
-      const ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.notifications),
-        title: Text('Erinnerungen innerhalb der App'),
-        subtitle: Text(
-          'Native Benachrichtigungen und Synchronisation folgen später. Erledigen beendet die Erinnerung; Quittieren erledigt die Aufgabe nicht.',
-        ),
-      ),
-      const Divider(height: 40),
-      Text('Daten', style: Theme.of(context).textTheme.titleLarge),
-      const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          'Die Daten liegen lokal auf diesem Gerät bzw. im Speicher dieser Webadresse. Die Webvorschau nutzt einen eigenen Datenstand. Regelmäßige Vollsicherungen schützen vor gelöschten Browserdaten oder Geräteverlust.',
-        ),
-      ),
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
+    ],
+  );
+  Future<void> backupMenu() => showDialog<void>(
+    context: context,
+    builder: (ctx) => FlexModal(
+      title: const Text('Sicherung / Import'),
+      onClose: () => Navigator.pop(ctx),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OutlinedButton(
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => MaintenanceDialog(controller: c),
-            ),
-            child: const Text('Speicher pflegen'),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _action(_export);
+            },
+            child: const Text('Exportieren'),
           ),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : () => _action(_export),
-            icon: const Icon(Icons.download),
-            label: const Text('Vollsicherung'),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _action(() => _import(legacy: false));
+            },
+            child: const Text('Sicherung importieren'),
           ),
-          OutlinedButton.icon(
-            onPressed: _busy
-                ? null
-                : () => _action(() => _import(legacy: false)),
-            icon: const Icon(Icons.restore),
-            label: const Text('Wiederherstellen'),
-          ),
-          OutlinedButton.icon(
-            onPressed: _busy
-                ? null
-                : () => _action(() => _import(legacy: true)),
-            icon: const Icon(Icons.inventory_2),
-            label: const Text('HTML-Sicherung vormerken'),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _action(() => _import(legacy: true));
+            },
+            child: const Text('HTML-Sicherung vormerken'),
           ),
         ],
+      ),
+    ),
+  );
+  Widget data() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Sichern & wiederherstellen',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const Text(
+                'Daten und Entwürfe exportieren oder eine Sicherung einlesen. Die Vollsicherung enthält Darstellung und Hintergrundbilder.',
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: _busy ? null : backupMenu,
+                  child: const Text('Sicherung / Import öffnen'),
+                ),
+              ),
+              const Text('Passwortschutz lässt sich beim Export wählen.'),
+            ],
+          ),
+        ),
+      ),
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Papierkorb', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                '${c.trashedEntries.length + c.records.where((r) => r.deleted).length} gelöschte Einträge. Hier wiederherstellen oder endgültig entfernen.',
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => FlexModal(
+                      title: const Text('Papierkorb'),
+                      onClose: () => Navigator.pop(ctx),
+                      scrollable: false,
+                      content: SizedBox(
+                        height: MediaQuery.sizeOf(ctx).height * .65,
+                        child: SchoolTools(controller: c, mode: 'trash'),
+                      ),
+                    ),
+                  ),
+                  child: const Text('Papierkorb öffnen'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      Card(
+        child: ExpansionTile(
+          key: const PageStorageKey('settings-maintenance'),
+          title: const Text('Speicherpflege'),
+          subtitle: const Text('Technischen Speicher zusammenfassen'),
+          children: [
+            const Text('Einträge und frühere Fassungen bleiben erhalten.'),
+            OutlinedButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => MaintenanceDialog(controller: c),
+              ),
+              child: const Text('Speicherpflege öffnen'),
+            ),
+          ],
+        ),
       ),
       if (c.stagedLegacyCount > 0)
-        Padding(
-          padding: const EdgeInsets.only(top: 16),
+        Text(
+          '${c.stagedLegacyCount} unveränderte HTML-Sicherungen vorgemerkt und in der Vollsicherung enthalten.',
+        ),
+    ],
+  );
+  Widget tabButton(int i) => Focus(
+    onKeyEvent: (_, event) {
+      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+      final key = event.logicalKey;
+      final next = key == LogicalKeyboardKey.arrowRight
+          ? (i + 1) % 3
+          : key == LogicalKeyboardKey.arrowLeft
+          ? (i + 2) % 3
+          : key == LogicalKeyboardKey.home
+          ? 0
+          : key == LogicalKeyboardKey.end
+          ? 2
+          : null;
+      if (next == null) return KeyEventResult.ignored;
+      tab(next, focus: true);
+      return KeyEventResult.handled;
+    },
+    child: Semantics(
+      selected: widget.layout.tab == i,
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: TextButton(
+          key: ValueKey('settings-tab-$i'),
+          focusNode: _tabFocus[i],
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 42),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'FlexSans',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            backgroundColor: widget.layout.tab == i
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
+            foregroundColor: widget.layout.tab == i
+                ? legibleOn(Theme.of(context).colorScheme.primary)
+                : Theme.of(context).colorScheme.onSurface,
+          ),
+          onPressed: () => tab(i),
           child: Text(
-            '${c.stagedLegacyCount} unveränderte HTML-Sicherungen für die Migration vorgemerkt. Sie sind in der Flutter-Vollsicherung enthalten.',
+            ['Darstellung', 'Bedienung', 'Daten'][i],
+            textAlign: TextAlign.center,
           ),
         ),
-      const SizedBox(height: 24),
-      const Text(
-        'Die lokale Datenbank ist noch nicht verschlüsselt. Diese erste Entwicklungsfassung ist für synthetische Testdaten vorgesehen.',
       ),
-    ],
+    ),
+  );
+  Widget tabs() => Align(
+    alignment: Alignment.centerLeft,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).extension<FlexSurfaces>()?.palette?.panel,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child:
+              constraints.maxWidth < 500 &&
+                  MediaQuery.textScalerOf(context).scale(1) > 1.5
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [for (var i = 0; i < 3; i++) tabButton(i)],
+                )
+              : Row(
+                  children: [
+                    for (var i = 0; i < 3; i++) Expanded(child: tabButton(i)),
+                  ],
+                ),
+        ),
+      ),
+    ),
+  );
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1180),
+      child: ListView(
+        key: const PageStorageKey('settings'),
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 600 ? 14 : 24,
+        ),
+        children: [
+          Text(
+            'Einstellungen',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const Text(
+            'Änderungen werden automatisch auf diesem Gerät gespeichert.',
+          ),
+          const SizedBox(height: 18),
+          tabs(),
+          const SizedBox(height: 18),
+          if (widget.layout.tab == 0)
+            AppearanceSettings(controller: c, layout: widget.layout)
+          else if (widget.layout.tab == 1)
+            interaction()
+          else
+            data(),
+          const Divider(height: 28),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              c.appearanceError ??
+                  (c.appearanceSaving
+                      ? 'Wird gespeichert …'
+                      : 'Gespeichert · auf diesem Gerät'),
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }

@@ -241,19 +241,10 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.byType(FlexModal), findsOneWidget);
           framed(tester, size);
-          final add = find.text(
-            symbol == FlexSymbol.orga
-                ? 'Orga anlegen'
-                : symbol == FlexSymbol.homework
-                ? '+ Hausübung'
-                : symbol == FlexSymbol.goal
-                ? '+ Neues Ziel'
-                : 'Eintrag anlegen',
+          expect(
+            find.byType(SchoolEditor),
+            symbol == FlexSymbol.orga ? findsNothing : findsOneWidget,
           );
-          await tester.ensureVisible(add);
-          await tester.tap(add);
-          await tester.pumpAndSettle();
-          expect(find.byType(FlexModal), findsNWidgets(2));
           if (size.width == 320) {
             tester.view.viewInsets = const FakeViewPadding(bottom: 240);
             await tester.pumpAndSettle();
@@ -269,7 +260,6 @@ void main() {
           await closeModal(tester);
           tester.view.resetViewInsets();
           await tester.pumpAndSettle();
-          await closeModal(tester);
         }
         await finish(tester);
       },
@@ -379,7 +369,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await capture(tester, boundary, 'handover-pupils-mobile');
-      await tester.tap(find.byKey(const ValueKey('shortcut-alpha-homework')));
+      await tester.tap(find.byKey(const ValueKey('pupil-open-alpha')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hausübung').first);
       await tester.pumpAndSettle();
       framed(tester, const Size(390, 844));
       await capture(tester, boundary, 'handover-homework-mobile');

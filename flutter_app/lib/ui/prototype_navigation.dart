@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'surfaces.dart';
 
 /// Centered navigation from the final pill-navigation.css reference.
 class FlexPagePills extends StatelessWidget {
@@ -15,6 +16,53 @@ class FlexPagePills extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final palette = Theme.of(context).extension<FlexSurfaces>()?.palette;
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.5 &&
+        MediaQuery.sizeOf(context).width < 600) {
+      return Center(
+        child: Wrap(
+          key: const ValueKey('page-pills'),
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final item in const {0: 'Übersicht', 1: 'Schüler'}.entries)
+              TextButton(
+                key: ValueKey('page-${item.key}'),
+                onPressed: () => onSelected(item.key),
+                style: TextButton.styleFrom(
+                  backgroundColor: selected == item.key
+                      ? colors.primary
+                      : palette?.workspace ?? colors.surfaceContainerHigh,
+                  foregroundColor: selected == item.key
+                      ? colors.onPrimary
+                      : palette?.workspaceInk ?? colors.onSurface,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+                child: Text(item.value),
+              ),
+            Material(
+              color: selected == 2
+                  ? colors.primary
+                  : palette?.workspace ?? colors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(999),
+              child: SizedBox(
+                width: 64,
+                child: DefaultTextStyle.merge(
+                  style: TextStyle(
+                    color: selected == 2 ? colors.onPrimary : colors.onSurface,
+                  ),
+                  child: more,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     Widget segment(int index, Widget child) => Expanded(
       child: OverflowBox(
         minHeight: index == selected ? 42 : 34,
@@ -29,7 +77,12 @@ class FlexPagePills extends StatelessWidget {
               fontFamily: 'FlexSans',
               fontSize: index == selected ? 16 : 13,
               fontWeight: index == selected ? FontWeight.w700 : FontWeight.w600,
-              color: index == selected ? colors.onPrimary : colors.onSurface,
+              color: index == selected
+                  ? colors.onPrimary
+                  : Theme.of(
+                          context,
+                        ).extension<FlexSurfaces>()?.palette?.workspaceInk ??
+                        colors.onSurface,
             ),
             child: child,
           ),
@@ -47,7 +100,11 @@ class FlexPagePills extends StatelessWidget {
               height: 34,
               padding: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
-                color: colors.surfaceContainerHigh,
+                color:
+                    Theme.of(
+                      context,
+                    ).extension<FlexSurfaces>()?.palette?.workspace ??
+                    colors.surfaceContainerHigh,
                 border: Border.all(color: colors.outlineVariant),
                 borderRadius: BorderRadius.circular(999),
               ),
