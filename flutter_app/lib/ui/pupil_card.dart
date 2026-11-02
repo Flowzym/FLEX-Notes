@@ -11,11 +11,14 @@ class PupilCard extends StatelessWidget {
     required this.onShortcut,
     required this.counts,
     required this.due,
+    this.draftCounts = const {},
+    this.onDrafts,
   });
   final Pupil pupil;
   final VoidCallback onOpen;
   final ValueChanged<FlexSymbol> onShortcut;
-  final Map<FlexSymbol, int> counts;
+  final Map<FlexSymbol, int> counts, draftCounts;
+  final ValueChanged<FlexSymbol>? onDrafts;
   final Set<FlexSymbol> due;
 
   @override
@@ -31,9 +34,12 @@ class PupilCard extends StatelessWidget {
                 FlexSymbol.values.map((e) => e.name).toList())
             .map((name) => FlexSymbol.values.byName(name))
             .toList();
+    final separateDrafts = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final hasDrafts = draftCounts.values.any((count) => count > 0);
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
     Widget shortcut(FlexSymbol symbol) {
       final count = counts[symbol] ?? 0;
+      final drafts = draftCounts[symbol] ?? 0;
       final label = labels[symbol.index];
       return Expanded(
         child: Semantics(
@@ -53,52 +59,120 @@ class PupilCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      FlexIcon(symbol, size: 26, color: foreground),
-                      if (count > 0)
+                  SizedBox(
+                    width: 76,
+                    height: separateDrafts && hasDrafts ? 68 : 34,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
                         Positioned(
-                          right: -9,
-                          top: -7,
-                          child: Tooltip(
-                            message: '$count offene Einträge',
-                            child: Container(
-                              constraints: const BoxConstraints(
-                                minWidth: 17,
-                                minHeight: 17,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: due.contains(symbol)
-                                    ? const Color(0xffe9d399)
-                                    : scheme.primary,
-                                borderRadius: BorderRadius.circular(99),
-                                border: Border.all(
-                                  color: scheme.surface,
-                                  width: 2,
+                          left: separateDrafts || drafts == 0
+                              ? 26
+                              : drafts > 99
+                              ? 40
+                              : 32,
+                          top: 5,
+                          child: FlexIcon(symbol, size: 24, color: foreground),
+                        ),
+                        if (count > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Tooltip(
+                              message: '$count offene Einträge',
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  minWidth: 17,
+                                  minHeight: 17,
                                 ),
-                              ),
-                              child: Text(
-                                count > 99 ? '99+' : '$count',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'FlexSans',
-                                  fontSize: 10,
-                                  height: 1.3,
-                                  fontWeight: FontWeight.w600,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                decoration: BoxDecoration(
                                   color: due.contains(symbol)
-                                      ? const Color(0xff3b321b)
-                                      : scheme.onPrimary,
+                                      ? const Color(0xffe9d399)
+                                      : scheme.primary,
+                                  borderRadius: BorderRadius.circular(99),
+                                  border: Border.all(
+                                    color: scheme.surface,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Text(
+                                  count > 99 ? '99+' : '$count',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'FlexSans',
+                                    fontSize: 10,
+                                    height: 1.3,
+                                    fontWeight: FontWeight.w600,
+                                    color: due.contains(symbol)
+                                        ? const Color(0xff3b321b)
+                                        : scheme.onPrimary,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                        if (drafts > 0)
+                          Positioned(
+                            left: separateDrafts ? 6 : 0,
+                            top: separateDrafts ? 34 : 0,
+                            child: Tooltip(
+                              message:
+                                  '$drafts ${drafts == 1 ? 'Entwurf' : 'Entwürfe'} · öffnen',
+                              child: Semantics(
+                                button: true,
+                                label: '$label: $drafts Entwürfe öffnen',
+                                child: InkWell(
+                                  key: ValueKey(
+                                    'drafts-${pupil.id}-${symbol.name}',
+                                  ),
+                                  onTap: onDrafts == null
+                                      ? null
+                                      : () => onDrafts!(symbol),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: scheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: scheme.outlineVariant,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.edit_note,
+                                          size: 13,
+                                          color: scheme.onPrimaryContainer,
+                                        ),
+                                        Text(
+                                          drafts > 99 ? '99+' : '$drafts',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: scheme.onPrimaryContainer,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
+
                   const SizedBox(height: 6),
                   Text(
                     label,
@@ -160,7 +234,7 @@ class PupilCard extends StatelessWidget {
                             pupil.name,
                             style: TextStyle(
                               fontFamily: 'FlexSerif',
-                              fontSize: 22,
+                              fontSize: 20,
                               height: 1.3,
                               fontWeight: FontWeight.w500,
                               letterSpacing: -.3,

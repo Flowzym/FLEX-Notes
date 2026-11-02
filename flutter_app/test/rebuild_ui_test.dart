@@ -187,7 +187,7 @@ void main() {
       await app(tester);
       await editor(tester, SchoolRecord.empty(SchoolKind.homework, 'alpha'));
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Aufgabe'),
+        find.widgetWithText(TextFormField, 'Aufgabe …'),
         'Synthetische Gruppenaufgabe',
       );
       final beta = find.byKey(const ValueKey('pupil-tag-beta'));
@@ -320,7 +320,7 @@ void main() {
       tester.view.viewInsets = const FakeViewPadding(bottom: 240);
       await editor(tester, SchoolRecord.empty(SchoolKind.homework, 'alpha'));
       expect(tester.takeException(), isNull);
-      final task = find.widgetWithText(TextFormField, 'Aufgabe');
+      final task = find.widgetWithText(TextFormField, 'Aufgabe …');
       await reveal(tester, task);
       await tester.enterText(task, 'Kleine Ansicht');
       await tester.ensureVisible(

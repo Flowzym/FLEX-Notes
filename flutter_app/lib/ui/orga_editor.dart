@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/drafts.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
@@ -28,7 +29,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   final itemText = TextEditingController();
   final itemFocus = FocusNode();
   String itemId = newId(), status = '';
-  int draftRevision = 0;
+  int draftRevision = 0, editGeneration = 0;
+  late String baseline;
   bool busy = false,
       dirty = false,
       canPop = false,
@@ -60,6 +62,16 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     reminder = TextEditingController(text: entry.reminderText);
     reminderOpen = entry.reminderAtUtc != null;
     listOpen = entry.items.isNotEmpty;
+    final draft = c.drafts.where((d) => d.id == draftId).firstOrNull;
+    final original =
+        c.entries.where((e) => e.id == entry.id).firstOrNull ??
+        OrgaEntry.empty(
+          pupilId: entry.pupilId,
+        ).copyWith(observedOn: entry.observedOn, isTask: isClass);
+    baseline =
+        draft?.baseline ??
+        draftSignature((widget.draftId == null ? value : original).toJson());
+    dirty = draft != null && draftSignature(value.toJson()) == baseline;
   }
 
   OrgaEntry get value {
@@ -81,6 +93,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     setState(() {
       if (next != null) entry = next;
       dirty = true;
+      editGeneration++;
       status = 'Entwurf wird gesichert …';
     });
     debounce?.cancel();
@@ -88,25 +101,52 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   }
 
   Future<bool> persist() async {
-    if (!dirty && draftRevision == 0) return true;
-    final snapshot = value;
-    pending = pending.catchError((Object _) {}).then((_) async {
-      final saved = await c.repository.saveDraft(
-        EditDraft(
-          id: draftId,
-          entry: snapshot,
-          updatedAtUtc: utcNow(),
-          editRevision: draftRevision,
-        ),
-      );
-      draftRevision = saved.editRevision;
-    });
+    final snapshot = value, generation = editGeneration;
+    if (dirty) {
+      pending = pending.catchError((Object _) {}).then((_) async {
+        if (draftSignature(snapshot.toJson()) == baseline) {
+          if (draftRevision > 0) {
+            await c.repository.discardDraft(
+              draftId,
+              expectedRevision: draftRevision,
+            );
+            draftRevision = 0;
+          }
+        } else {
+          final saved = await c.repository.saveDraft(
+            EditDraft(
+              id: draftId,
+              entry: snapshot,
+              updatedAtUtc: utcNow(),
+              editRevision: draftRevision,
+              baseline: baseline,
+            ),
+          );
+          draftRevision = saved.editRevision;
+        }
+        if (generation == editGeneration) dirty = false;
+        await c.reload();
+      });
+    }
     try {
       await pending;
-      if (mounted) setState(() => status = 'Entwurf gesichert');
+      if (mounted) {
+        setState(
+          () => status = dirty
+              ? 'Entwurf wird gesichert …'
+              : draftRevision > 0
+              ? 'Entwurf gesichert'
+              : '',
+        );
+      }
       return true;
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      if (mounted) {
+        setState(() {
+          error = friendlyError(e);
+          status = 'Entwurf nicht gesichert';
+        });
+      }
       return false;
     }
   }
@@ -153,7 +193,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             'entry': value.toJson(),
           }) &&
           mounted) {
-        await c.repository.discardDraft(draftId);
+        await c.repository.discardDraft(
+          draftId,
+          expectedRevision: draftRevision,
+        );
         await pop();
       }
     } catch (e) {
@@ -189,33 +232,25 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
         final owner = index >= 0 && index + 1 < active.length
             ? active[index + 1].id
             : entry.pupilId;
-        final candidates = c.drafts
-            .where((d) => d.entry.pupilId == owner && d.entry.revision == 0)
-            .toList();
-        final draft = candidates.length == 1 ? candidates.single : null;
         setState(() {
-          entry =
-              draft?.entry ??
-              OrgaEntry.empty(pupilId: owner).copyWith(
-                observedOn: entry.observedOn,
-                observedTime: entry.observedTime,
-              );
-          draftId = draft?.id ?? newId();
-          draftRevision = draft?.editRevision ?? 0;
-          note.text = entry.body.isEmpty ? entry.title : entry.body;
-          reminder.text = entry.reminderText;
+          entry = OrgaEntry.empty(pupilId: owner).copyWith(
+            observedOn: entry.observedOn,
+            observedTime: entry.observedTime,
+          );
+          draftId = newId();
+          draftRevision = 0;
+          note.clear();
+          reminder.clear();
           itemText.clear();
           itemId = newId();
           dirty = false;
-          reminderOpen = entry.reminderAtUtc != null;
-          listOpen = entry.items.isNotEmpty;
+          editGeneration = 0;
+          reminderOpen = false;
+          listOpen = false;
+          baseline = draftSignature(value.toJson());
           status = owner == saved.pupilId
               ? 'Gespeichert. Letzter Schüler erreicht.'
-              : candidates.length > 1
-              ? '${candidates.length} vorhandene Entwürfe bleiben unter „Gesicherte Entwürfe“ verfügbar.'
-              : draft == null
-              ? ''
-              : 'Entwurf fortgesetzt';
+              : '';
         });
       } else {
         await pop();

@@ -15,7 +15,7 @@ abstract interface class NotebookRepository {
   });
   Future<EditDraft> saveDraft(EditDraft draft);
   Future<List<EditDraft>> drafts();
-  Future<void> discardDraft(String id);
+  Future<void> discardDraft(String id, {int? expectedRevision});
   Future<List<Json>> history(String entityId);
   Future<Appearance> appearance();
   Future<void> saveAppearance(Appearance appearance);
@@ -72,7 +72,7 @@ abstract interface class NotebookRepository {
   Future<void> undoSchoolGroup(String id);
   Future<List<SchoolDraft>> schoolDrafts();
   Future<SchoolDraft> saveSchoolDraft(SchoolDraft draft);
-  Future<void> discardSchoolDraft(String id);
+  Future<void> discardSchoolDraft(String id, {int? expectedRevision});
 }
 
 class NotebookSnapshot {

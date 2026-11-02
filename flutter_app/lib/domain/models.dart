@@ -303,10 +303,12 @@ class EditDraft {
     required this.entry,
     required this.updatedAtUtc,
     this.editRevision = 0,
+    this.baseline,
   });
   final String id, updatedAtUtc;
   final OrgaEntry entry;
   final int editRevision;
+  final String? baseline;
 }
 
 class DialogDraft {
@@ -317,10 +319,12 @@ class DialogDraft {
     required this.data,
     required this.updatedAtUtc,
     this.revision = 0,
+    this.baseline,
   });
   final String id, type, ownerId, updatedAtUtc;
   final Json data;
   final int revision;
+  final String? baseline;
   Json toJson() => {
     'format': 'flex-dialog-draft-1',
     'id': id,
@@ -328,6 +332,7 @@ class DialogDraft {
     'ownerId': ownerId,
     'data': data,
     'revision': revision,
+    'baseline': ?baseline,
     'updatedAtUtc': updatedAtUtc,
   };
   factory DialogDraft.fromJson(Json j) {
@@ -381,6 +386,7 @@ class DialogDraft {
       type: j['type'] as String,
       ownerId: j['ownerId'] as String,
       data: Json.from(j['data'] as Map),
+      baseline: j['baseline'] as String?,
       revision: j['revision'] as int,
       updatedAtUtc: j['updatedAtUtc'] as String,
     );

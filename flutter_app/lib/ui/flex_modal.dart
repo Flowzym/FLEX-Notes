@@ -114,11 +114,11 @@ class FlexModal extends StatelessWidget {
       ),
       inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.onSurface.withValues(alpha: .3)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.primary),
         ),
         fillColor: baseTheme.inputDecorationTheme.fillColor,
@@ -152,14 +152,14 @@ class FlexModal extends StatelessWidget {
                   compact
                       ? 4
                       : mobile
-                      ? 9
-                      : 14,
+                      ? 6
+                      : 8,
                   mobile ? 8 : 14,
                   compact
                       ? 4
                       : mobile
-                      ? 9
-                      : 14,
+                      ? 6
+                      : 8,
                 ),
                 child: Material(
                   type: MaterialType.transparency,
@@ -180,7 +180,7 @@ class FlexModal extends StatelessWidget {
                                     .copyWith(
                                       color: headerForeground,
                                       fontFamily: 'FlexSerif',
-                                      fontSize: 22,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w500,
                                     ),
                                 child: title,
@@ -207,8 +207,8 @@ class FlexModal extends StatelessWidget {
                   vertical: compact
                       ? 8
                       : mobile
-                      ? 11
-                      : 12,
+                      ? 7
+                      : 8,
                 ),
                 child: Material(
                   type: MaterialType.transparency,
@@ -264,7 +264,7 @@ class FlexModal extends StatelessWidget {
               final body = Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: mobile ? 16 : 24,
-                  vertical: compact ? 12 : 22,
+                  vertical: compact ? 10 : 16,
                 ),
                 child: content,
               );

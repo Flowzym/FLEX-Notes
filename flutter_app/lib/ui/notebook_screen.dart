@@ -669,6 +669,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       onOpen: () => _openPupil(pupil),
                       onShortcut: (symbol) => _entryShortcut(pupil, symbol),
                       counts: _shortcutCounts(pupil),
+                      draftCounts: {
+                        for (final symbol in FlexSymbol.values)
+                          symbol: _pupilDraftCount(pupil.id, symbol),
+                      },
+                      onDrafts: (symbol) => _pupilDrafts(pupil, symbol),
                       due: _dueShortcuts(pupil),
                     ),
                   ),
@@ -686,18 +691,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
       return;
     }
     if (symbol == FlexSymbol.orga) {
-      final drafts =
-          c.drafts
-              .where(
-                (d) => d.entry.pupilId == pupil.id && d.entry.revision == 0,
-              )
-              .toList()
-            ..sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
-      final draft = drafts.firstOrNull;
-      await _editor(
-        draft?.entry ?? OrgaEntry.empty(pupilId: pupil.id),
-        draftId: draft?.id,
-      );
+      await _editor(OrgaEntry.empty(pupilId: pupil.id));
       return;
     }
     final kind = switch (symbol) {
@@ -706,26 +700,44 @@ class _NotebookScreenState extends State<NotebookScreen> {
       FlexSymbol.work => SchoolKind.work,
       _ => SchoolKind.homework,
     };
-    final drafts =
-        c.schoolDrafts
-            .where(
-              (d) =>
-                  d.record.pupilId == pupil.id &&
-                  d.record.kind == kind &&
-                  d.record.revision == 0 &&
-                  d.mode == 'entry' &&
-                  d.recipients.length <= 1,
-            )
-            .toList()
-          ..sort((a, b) => b.updatedAtUtc.compareTo(a.updatedAtUtc));
-    final draft = drafts.firstOrNull;
-    await editSchool(
-      context,
-      c,
-      draft?.record ?? SchoolRecord.empty(kind, pupil.id),
-      draft: draft,
-    );
+    await editSchool(context, c, SchoolRecord.empty(kind, pupil.id));
   }
+
+  int _pupilDraftCount(String pupilId, FlexSymbol symbol) =>
+      c.schoolDrafts
+          .where(
+            (d) =>
+                d.record.kind.name == symbol.name &&
+                (d.record.pupilId == pupilId || d.recipients.contains(pupilId)),
+          )
+          .length +
+      (symbol == FlexSymbol.orga
+          ? c.drafts.where((d) => d.entry.pupilId == pupilId).length
+          : 0) +
+      c.dialogDrafts
+          .where(
+            (d) =>
+                d.type == 'bulk' &&
+                d.data['kind'] == symbol.name &&
+                (d.data['recipients'] as List).contains(pupilId),
+          )
+          .length;
+
+  Future<void> _pupilDrafts(Pupil pupil, FlexSymbol symbol) => showDialog<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: c,
+      builder: (_, _) => FlexModal(
+        title: Text('${pupil.name} · Entwürfe'),
+        onClose: () => Navigator.pop(ctx),
+        scrollable: false,
+        content: SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * .6,
+          child: _drafts(pupilId: pupil.id, symbol: symbol),
+        ),
+      ),
+    ),
+  );
 
   Map<FlexSymbol, int> _shortcutCounts(Pupil pupil) {
     final records = c.records.where((r) => r.pupilId == pupil.id && !r.deleted);
@@ -1128,7 +1140,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   Future<void> _history(OrgaEntry entry) => showJournal(context, c, entry.id);
 
-  Widget _drafts() {
+  Widget _drafts({String? pupilId, FlexSymbol? symbol}) {
     String pupilName(String? id) => id == null
         ? 'Klasse'
         : c.pupils.where((p) => p.id == id).firstOrNull?.name ??
@@ -1143,7 +1155,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
               Future<void> Function() discard,
             })
           >[
-            for (final d in c.dialogDrafts)
+            for (final d in c.dialogDrafts.where(
+              (d) =>
+                  pupilId == null ||
+                  d.type == 'bulk' &&
+                      d.data['kind'] == symbol?.name &&
+                      (d.data['recipients'] as List).contains(pupilId),
+            ))
               (
                 title: d.type == 'pupil'
                     ? 'Schüler · ${d.data['name']}'
@@ -1169,7 +1187,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 discard: () =>
                     c.repository.discardDialogDraft(d.id, d.revision),
               ),
-            for (final d in c.schoolDrafts)
+            for (final d in c.schoolDrafts.where(
+              (d) =>
+                  pupilId == null ||
+                  d.record.kind.name == symbol?.name &&
+                      (d.record.pupilId == pupilId ||
+                          d.recipients.contains(pupilId)),
+            ))
               (
                 title:
                     '${pupilName(d.record.pupilId)} · ${d.record.kind.label}${d.mode == 'comment'
@@ -1198,15 +1222,25 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       ].where((v) => v.isNotEmpty).join(' · '),
                 time: d.updatedAtUtc,
                 open: () => editSchool(context, c, d.record, draft: d),
-                discard: () => c.repository.discardSchoolDraft(d.id),
+                discard: () => c.repository.discardSchoolDraft(
+                  d.id,
+                  expectedRevision: d.editRevision,
+                ),
               ),
-            for (final d in c.drafts)
+            for (final d in c.drafts.where(
+              (d) =>
+                  pupilId == null ||
+                  symbol == FlexSymbol.orga && d.entry.pupilId == pupilId,
+            ))
               (
                 title: '${pupilName(d.entry.pupilId)} · Orga',
                 preview: d.entry.body.isEmpty ? d.entry.title : d.entry.body,
                 time: d.updatedAtUtc,
                 open: () => _editor(d.entry, draftId: d.id),
-                discard: () => c.repository.discardDraft(d.id),
+                discard: () => c.repository.discardDraft(
+                  d.id,
+                  expectedRevision: d.editRevision,
+                ),
               ),
           ]
           ..sort((a, b) => b.time.compareTo(a.time));

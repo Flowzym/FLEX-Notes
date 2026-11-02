@@ -764,6 +764,7 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
       entry: draft.entry,
       updatedAtUtc: draft.updatedAtUtc,
       editRevision: draft.editRevision + 1,
+      baseline: draft.baseline,
     );
     await db.customStatement(
       'INSERT INTO drafts(id,entity_id,base_revision,payload,updated_at_utc) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at_utc=excluded.updated_at_utc',
@@ -771,7 +772,11 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
         next.id,
         next.entry.id,
         next.entry.revision,
-        jsonEncode({...next.entry.toJson(), 'editRevision': next.editRevision}),
+        jsonEncode({
+          ...next.entry.toJson(),
+          'editRevision': next.editRevision,
+          'draftBaseline': ?next.baseline,
+        }),
         next.updatedAtUtc,
       ],
     );
@@ -809,11 +814,19 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
                   as int? ??
               0,
           updatedAtUtc: r['updated_at_utc'] as String,
+          baseline:
+              (jsonDecode(r['payload'] as String) as Map)['draftBaseline']
+                  as String?,
         );
       }).toList();
   @override
-  Future<void> discardDraft(String id) =>
-      db.customStatement('DELETE FROM drafts WHERE id=?', [id]);
+  Future<void> discardDraft(String id, {int? expectedRevision}) =>
+      db.transaction(() async {
+        if (expectedRevision != null) {
+          await _checkOrgaDraft(id, expectedRevision);
+        }
+        await db.customStatement('DELETE FROM drafts WHERE id=?', [id]);
+      });
   @override
   Future<List<Json>> history(String entityId) => _rows(
     'SELECT * FROM revisions WHERE entity_id=? ORDER BY revision DESC',

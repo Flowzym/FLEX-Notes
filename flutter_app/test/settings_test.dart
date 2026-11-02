@@ -440,7 +440,7 @@ void main() {
     },
   );
   testWidgets(
-    'every shortcut opens its own editor directly and resumes only matching new draft',
+    'every shortcut opens a fresh editor while existing drafts remain untouched',
     (t) async {
       final social = SchoolRecord.empty(
         SchoolKind.social,
@@ -463,14 +463,17 @@ void main() {
           expect(editor.record.pupilId, 'alpha');
           expect(editor.record.kind.name, symbol);
           if (symbol == 'social') {
-            expect(editor.draft!.id, 'resume');
-            expect(find.text('Noch nicht gespeichert'), findsOneWidget);
+            expect(editor.draft, isNull);
+            expect(editor.record.id, isNot(social.id));
+            expect(find.text('Noch nicht gespeichert'), findsNothing);
           }
         }
         await t.sendKeyEvent(LogicalKeyboardKey.escape);
         await t.pumpAndSettle();
       }
       expect(await repo.schoolRecords(), isEmpty);
+      expect((await repo.schoolDrafts()).single.id, 'resume');
+      expect(await repo.drafts(), isEmpty);
       await finish(t);
     },
   );

@@ -1,5 +1,7 @@
 # Einstellungen und Karten-Shortcuts – 0.16.0-rebuild.6+26
 
+> Nachtrag rebuild.7: Automatische Entwurfsfortsetzung ist durch die spätere ausdrückliche Nutzervorgabe aufgehoben. Aktueller Stand und Prüfnachweise: [UI_UX_PRUEFUNG.md](UI_UX_PRUEFUNG.md).
+
 Stand: 2. November 2026. Grundlage bleibt der wiedergefundene rekonstruierte Flutter-Quellstand. Dies ist keine Wiederherstellung der verlorenen Originalquellen und keine Behauptung vollständiger Originaltreue.
 
 ## Quellen und Vorrang

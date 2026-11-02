@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/drafts.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import 'common.dart';
@@ -11,6 +12,7 @@ import 'flex_icons.dart';
 import 'flex_modal.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
+import 'homework_task_editor.dart';
 import 'draft_buffer.dart';
 import 'dialog_workflows.dart';
 
@@ -77,7 +79,14 @@ class _SchoolEditorState extends State<SchoolEditor>
   late String draftId, mode;
   late Set<String> recipients;
   String? taskId, feedbackId;
-  int draftRevision = 0;
+  int draftRevision = 0, editGeneration = 0;
+  late String baseline;
+  String signature(SchoolRecord value, Iterable<String> targets) =>
+      draftSignature({
+        'record': value.toJson(),
+        'recipients': targets.where((id) => id != value.pupilId).toList()
+          ..sort(),
+      });
   Timer? debounce;
   Future<void> pending = Future.value();
   final errorAnchor = GlobalKey();
@@ -115,7 +124,6 @@ class _SchoolEditorState extends State<SchoolEditor>
   bool stale = false;
   String draftStatus = '';
   final commentFocus = FocusNode();
-  final taskFocus = <String, FocusNode>{};
   NotebookController get c => widget.controller;
   @override
   void initState() {
@@ -175,6 +183,16 @@ class _SchoolEditorState extends State<SchoolEditor>
         'tasks': [HomeworkTask(id: newId(), text: '').toJson()],
       });
     }
+    final original =
+        c.records.where((value) => value.id == r.id).firstOrNull ??
+        SchoolRecord.empty(
+          r.kind,
+          r.pupilId,
+        ).patch({'observedOn': r.observedOn});
+    baseline =
+        widget.draft?.baseline ??
+        signature(widget.draft == null ? r : original, [r.pupilId]);
+    dirty = widget.draft != null && signature(r, recipients) == baseline;
   }
 
   @override
@@ -182,9 +200,6 @@ class _SchoolEditorState extends State<SchoolEditor>
     WidgetsBinding.instance.removeObserver(this);
     debounce?.cancel();
     commentFocus.dispose();
-    for (final f in taskFocus.values) {
-      f.dispose();
-    }
     super.dispose();
   }
 
@@ -200,6 +215,7 @@ class _SchoolEditorState extends State<SchoolEditor>
     setState(() {
       r = r.patch(changes);
       dirty = true;
+      editGeneration++;
       draftStatus = 'Entwurf wird gesichert …';
     });
     schedule();
@@ -213,29 +229,58 @@ class _SchoolEditorState extends State<SchoolEditor>
   }
 
   Future<bool> persist() async {
-    if (!dirty && draftRevision == 0) return true;
-    final snapshot = r, targets = recipients.toList();
-    pending = pending.catchError((Object _) {}).then((_) async {
-      final saved = await c.repository.saveSchoolDraft(
-        SchoolDraft(
-          id: draftId,
-          record: snapshot,
-          updatedAtUtc: utcNow(),
-          recipients: targets,
-          editRevision: draftRevision,
-          mode: mode,
-          taskId: taskId,
-          feedbackId: feedbackId,
-        ),
-      );
-      draftRevision = saved.editRevision;
-    });
+    final snapshot = r,
+        targets = recipients.toList(),
+        generation = editGeneration;
+    if (dirty) {
+      pending = pending.catchError((Object _) {}).then((_) async {
+        if (signature(snapshot, targets) == baseline) {
+          if (draftRevision > 0) {
+            await c.repository.discardSchoolDraft(
+              draftId,
+              expectedRevision: draftRevision,
+            );
+            draftRevision = 0;
+          }
+        } else {
+          final saved = await c.repository.saveSchoolDraft(
+            SchoolDraft(
+              id: draftId,
+              record: snapshot,
+              updatedAtUtc: utcNow(),
+              recipients: targets,
+              editRevision: draftRevision,
+              mode: mode,
+              taskId: taskId,
+              feedbackId: feedbackId,
+              baseline: baseline,
+            ),
+          );
+          draftRevision = saved.editRevision;
+        }
+        if (generation == editGeneration) dirty = false;
+        await c.reload();
+      });
+    }
     try {
       await pending;
-      if (mounted) setState(() => draftStatus = 'Entwurf gesichert');
+      if (mounted) {
+        setState(
+          () => draftStatus = dirty
+              ? 'Entwurf wird gesichert …'
+              : draftRevision > 0
+              ? 'Entwurf gesichert'
+              : '',
+        );
+      }
       return true;
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      if (mounted) {
+        setState(() {
+          error = friendlyError(e);
+          draftStatus = 'Entwurf nicht gesichert';
+        });
+      }
       return false;
     }
   }
@@ -266,10 +311,14 @@ class _SchoolEditorState extends State<SchoolEditor>
               mode: mode,
               taskId: taskId,
               feedbackId: feedbackId,
+              baseline: baseline,
             ).toJson(),
           }) &&
           mounted) {
-        await c.repository.discardSchoolDraft(draftId);
+        await c.repository.discardSchoolDraft(
+          draftId,
+          expectedRevision: draftRevision,
+        );
         await pop();
       }
     } catch (e) {
@@ -372,32 +421,18 @@ class _SchoolEditorState extends State<SchoolEditor>
         final index = pupils.indexWhere((p) => p.id == r.pupilId);
         if (index >= 0 && index + 1 < pupils.length) {
           final pupil = pupils[index + 1];
-          final candidates = c.schoolDrafts
-              .where(
-                (d) =>
-                    d.record.pupilId == pupil.id &&
-                    d.record.kind == r.kind &&
-                    d.record.revision == 0 &&
-                    d.mode == 'entry',
-              )
-              .toList();
-          final draft = candidates.length == 1 ? candidates.single : null;
           setState(() {
-            r =
-                draft?.record ??
-                SchoolRecord.empty(r.kind, pupil.id).patch({
-                  'observedOn': r.observedOn,
-                  'observedTime': r.observedTime,
-                });
-            draftId = draft?.id ?? newId();
-            draftRevision = draft?.editRevision ?? 0;
+            r = SchoolRecord.empty(r.kind, pupil.id).patch({
+              'observedOn': r.observedOn,
+              'observedTime': r.observedTime,
+            });
+            draftId = newId();
+            draftRevision = 0;
             recipients = {pupil.id};
             dirty = false;
-            draftStatus = candidates.length > 1
-                ? '${candidates.length} vorhandene Entwürfe bleiben unter „Gesicherte Entwürfe“ verfügbar.'
-                : draft == null
-                ? ''
-                : 'Entwurf fortgesetzt';
+            editGeneration = 0;
+            baseline = signature(r, recipients);
+            draftStatus = '';
             restoreSections();
           });
         } else {
@@ -414,6 +449,8 @@ class _SchoolEditorState extends State<SchoolEditor>
             draftId = newId();
             draftRevision = 0;
             dirty = false;
+            editGeneration = 0;
+            baseline = signature(r, recipients);
             draftStatus = 'Gespeichert. Letzter Schüler erreicht.';
             restoreSections();
           });
@@ -633,122 +670,33 @@ class _SchoolEditorState extends State<SchoolEditor>
     );
   }
 
-  Widget homework() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('Aufgaben'),
-        const SizedBox(height: 8),
-        for (final task in r.tasks)
-          Padding(
-            padding: EdgeInsets.only(
-              left: task.parentId == null ? 0 : 20,
-              bottom: 12,
-            ),
-            child: Column(
-              children: [
-                TextFormField(
-                  key: ValueKey('task-${task.id}'),
-                  focusNode: taskFocus.putIfAbsent(task.id, () => FocusNode()),
-                  initialValue: task.text,
-                  maxLength: 1000,
-                  decoration: InputDecoration(
-                    labelText: task.parentId == null
-                        ? 'Aufgabe'
-                        : 'Teilaufgabe',
-                    hintText: 'Aufgabe …',
-                    counterText: '',
-                  ),
-                  onChanged: (v) => edit({
-                    'tasks': r.tasks
-                        .map(
-                          (t) => (t.id == task.id ? t.copyWith(text: v) : t)
-                              .toJson(),
-                        )
-                        .toList(),
-                  }),
-                  onFieldSubmitted: (_) => addTask(after: task),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      tooltip: 'Weitere Aufgabenzeile',
-                      onPressed: () => addTask(after: task),
-                      icon: const Icon(Icons.keyboard_return),
-                    ),
-                    IconButton(
-                      tooltip: 'Teilaufgabe hinzufügen',
-                      onPressed: () => addTask(
-                        parent: task.parentId ?? task.id,
-                        after: task,
-                      ),
-                      icon: const Icon(Icons.subdirectory_arrow_right),
-                    ),
-                    IconButton(
-                      tooltip: 'Aufgabe entfernen',
-                      onPressed: () => edit({
-                        'tasks': r.tasks
-                            .where((t) => t.id != task.id)
-                            .map(
-                              (t) => t
-                                  .copyWith(clearParent: t.parentId == task.id)
-                                  .toJson(),
-                            )
-                            .toList(),
-                      }),
-                      icon: const Icon(Icons.delete),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => addTask(),
-            icon: const Icon(Icons.add),
-            label: const Text('Aufgabe hinzufügen'),
-          ),
+  Widget homework() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      HomeworkTaskEditor(
+        tasks: r.tasks,
+        onChanged: (tasks) =>
+            edit({'tasks': tasks.map((t) => t.toJson()).toList()}),
+      ),
+      const SizedBox(height: 12),
+      field('subject', 'Fach · optional', maxLength: 100, hint: 'Fach …'),
+      dateField('dueDate', 'Fällig am'),
+      if (r.revision == 0) ...[
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text('Für welche Schüler?'),
         ),
-        field('subject', 'Fach · optional', maxLength: 100, hint: 'Fach …'),
-        dateField('dueDate', 'Fällig am'),
-        if (r.revision == 0) ...[
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('Für welche Schüler?'),
-          ),
-          PupilTags(
-            pupils: c.pupils.where((p) => !p.archived).toList(),
-            selected: recipients,
-            onChanged: (v) {
-              setState(() => recipients = v);
-              edit({});
-            },
-          ),
-        ],
+        PupilTags(
+          pupils: c.pupils.where((p) => !p.archived).toList(),
+          selected: recipients,
+          onChanged: (v) {
+            setState(() => recipients = v);
+            edit({});
+          },
+        ),
       ],
-    );
-  }
-
-  void addTask({String? parent, HomeworkTask? after}) {
-    final tasks = [...r.tasks], id = newId();
-    var index = after == null ? tasks.length : tasks.indexOf(after) + 1;
-    if (after != null && parent == null) {
-      while (index < tasks.length && tasks[index].parentId == after.id) {
-        index++;
-      }
-    }
-    tasks.insert(
-      index,
-      HomeworkTask(id: id, text: '', parentId: parent ?? after?.parentId),
-    );
-    edit({'tasks': tasks.map((t) => t.toJson()).toList()});
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) taskFocus[id]?.requestFocus();
-    });
-  }
+    ],
+  );
 
   Widget goal() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1072,28 +1020,6 @@ class _SchoolEditorState extends State<SchoolEditor>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (draftStatus.isNotEmpty || draftRevision > 0)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: scheme.outline),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.edit_note),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      draftStatus.isEmpty ? 'Entwurf fortgesetzt' : draftStatus,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         Row(
           children: [
             for (final value in [true, false])
@@ -1774,6 +1700,9 @@ class _SchoolEditorState extends State<SchoolEditor>
         Row(
           children: [
             IconButton(
+              iconSize: 20,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: const EdgeInsets.all(6),
               tooltip: 'Zurück und Eingaben sichern',
               onPressed: busy ? null : close,
               icon: const Icon(Icons.arrow_back),
@@ -1783,15 +1712,21 @@ class _SchoolEditorState extends State<SchoolEditor>
                 pupil.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15),
+                style: const TextStyle(fontSize: 14),
               ),
             ),
             IconButton(
+              iconSize: 20,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: const EdgeInsets.all(6),
               tooltip: 'Verlauf',
               onPressed: busy ? null : observationHistory,
               icon: const Icon(Icons.history),
             ),
             IconButton(
+              iconSize: 20,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: const EdgeInsets.all(6),
               tooltip: 'Schließen und Eingaben sichern',
               onPressed: busy ? null : close,
               icon: const Icon(Icons.close),
@@ -1799,7 +1734,7 @@ class _SchoolEditorState extends State<SchoolEditor>
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 4),
+          padding: const EdgeInsets.only(left: 6, bottom: 2),
           child: Text(
             r.revision > 0
                 ? (r.kind == SchoolKind.homework
@@ -1810,7 +1745,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                 : r.kind.label,
             style: const TextStyle(
               fontFamily: 'FlexSerif',
-              fontSize: 24,
+              fontSize: 22,
               height: 1.15,
             ),
           ),
@@ -1836,7 +1771,7 @@ class _SchoolEditorState extends State<SchoolEditor>
             ),
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -1858,7 +1793,9 @@ class _SchoolEditorState extends State<SchoolEditor>
           ),
         ],
       );
-      final narrow = constraints.maxWidth < 340;
+      final narrow =
+          constraints.maxWidth < 300 ||
+          MediaQuery.textScalerOf(context).scale(1) > 1.4;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -1876,13 +1813,17 @@ class _SchoolEditorState extends State<SchoolEditor>
                 Flexible(child: later),
               ],
             ),
-          const Divider(height: 24),
-          if (dirty || draftRevision > 0)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: Text(
-                'Entwurf wird auf diesem Gerät gesichert.',
-                style: TextStyle(fontSize: 12),
+          const Divider(height: 14),
+          if (draftStatus.isNotEmpty || draftRevision > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  draftStatus.isEmpty ? 'Entwurf geöffnet' : draftStatus,
+                  key: const ValueKey('school-draft-status'),
+                  style: const TextStyle(fontSize: 11),
+                ),
               ),
             ),
           Row(
@@ -1892,13 +1833,13 @@ class _SchoolEditorState extends State<SchoolEditor>
                   child: TextButton(
                     onPressed: busy ? null : () => save(next: true),
                     style: TextButton.styleFrom(
-                      minimumSize: const Size(0, 48),
+                      minimumSize: const Size(0, 42),
                       backgroundColor: Theme.of(
                         context,
                       ).extension<FlexSurfaces>()?.palette?.button,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 12,
+                        vertical: 8,
                       ),
                     ),
                     child: const Row(
@@ -1922,10 +1863,10 @@ class _SchoolEditorState extends State<SchoolEditor>
                   key: const ValueKey('save-school-record'),
                   onPressed: busy ? null : save,
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 48),
+                    minimumSize: const Size(0, 42),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 12,
+                      vertical: 8,
                     ),
                   ),
                   child: Text(
@@ -2053,35 +1994,55 @@ class _SchoolEditorState extends State<SchoolEditor>
               if (mode == 'entry')
                 SizedBox(
                   width: double.infinity,
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         r.kind == SchoolKind.goal
                             ? 'Vereinbart am'
                             : 'Aufgegeben am',
                       ),
-                      TextButton.icon(
-                        onPressed: busy
-                            ? null
-                            : () => chooseDate('observedOn', time: true),
-                        icon: const Icon(Icons.calendar_month),
-                        label: Text(
-                          '${displayDate(r.observedOn)} ${r.observedTime}',
-                        ),
-                      ),
-                      FilterChip(
-                        label: const Text('Später ergänzen'),
-                        selected: r.needsCompletion,
-                        onSelected: busy
-                            ? null
-                            : (v) => edit({'needsCompletion': v}),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        children: [
+                          TextButton.icon(
+                            onPressed: busy
+                                ? null
+                                : () => chooseDate('observedOn', time: true),
+                            icon: const Icon(Icons.calendar_month, size: 18),
+                            label: Text(
+                              '${displayDate(r.observedOn)}${r.observedTime.isEmpty ? '' : ' · ${r.observedTime}'}',
+                            ),
+                            style: TextButton.styleFrom(
+                              textStyle: const TextStyle(
+                                fontFamily: 'FlexSans',
+                                fontSize: 13,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                            ),
+                          ),
+                          FilterChip(
+                            label: const Text('Später ergänzen'),
+                            selected: r.needsCompletion,
+                            onSelected: busy
+                                ? null
+                                : (v) => edit({'needsCompletion': v}),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              if (draftStatus.isNotEmpty) Text(draftStatus),
+              if (draftStatus.isNotEmpty || draftRevision > 0)
+                Text(
+                  draftStatus.isEmpty ? 'Entwurf geöffnet' : draftStatus,
+                  key: const ValueKey('school-draft-status'),
+                  style: const TextStyle(fontSize: 11),
+                ),
               FilledButton(
                 key: const ValueKey('save-school-record'),
                 onPressed: busy ? null : save,

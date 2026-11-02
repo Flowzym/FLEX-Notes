@@ -1,5 +1,7 @@
 # Flutter-Abgleich mit dem wiedergefundenen Quellstand
 
+> Nachtrag rebuild.7: Automatische Entwurfsfortsetzung ist durch die spätere ausdrückliche Nutzervorgabe aufgehoben. Aktueller Stand und Prüfnachweise: [UI_UX_PRUEFUNG.md](UI_UX_PRUEFUNG.md).
+
 Stand 01.11.2026, Ergebnis **0.16.0-rebuild.5+25**. Die 22 tatsächlichen Dialogtypen sind inventarisiert und einzeln mit dem gefundenen Dart-Code verglichen. Viele konkrete Abweichungen wurden korrigiert; **eine vollständige Originaltreue ist nicht erreicht**. Die verbleibenden Unterschiede stehen unten ausdrücklich. Insbesondere fehlt weiterhin die Import-Zusammenführung des HTML.
 
 ## Maßgebliche Quellen und Herkunft

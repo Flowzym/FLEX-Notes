@@ -1,8 +1,10 @@
 import 'tag_text_field.dart';
+import 'homework_task_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/drafts.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import 'common.dart';
@@ -54,6 +56,11 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       type: widget.type,
       ownerId: widget.ownerId,
       data: data,
+      baseline: dialogDraftSignature(widget.type, widget.initial),
+      onPersisted: widget.controller.reload,
+      onStatusChanged: () {
+        if (mounted) setState(() {});
+      },
       initial: widget.draft,
     );
   }
@@ -152,6 +159,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 widget.body(context, data, change),
+                DraftStatus(buffer: buffer),
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -402,30 +410,6 @@ Future<void> showSituation(
       ),
     ),
   );
-}
-
-void insertBulkTask(
-  Json data,
-  Json task,
-  ValueChanged<Json> change, {
-  bool child = false,
-}) {
-  final tasks = (data['tasks'] as List)
-      .map((v) => Json.from(v as Map))
-      .toList();
-  var index = tasks.indexWhere((v) => v['id'] == task['id']) + 1;
-  final parent = child ? task['parentId'] ?? task['id'] : task['parentId'];
-  if (task['parentId'] == null) {
-    while (index < tasks.length && tasks[index]['parentId'] == task['id']) {
-      index++;
-    }
-  }
-  final id = newId();
-  tasks.insert(
-    index,
-    HomeworkTask(id: id, text: '', parentId: parent as String?).toJson(),
-  );
-  change({'tasks': tasks, 'focusTaskId': id});
 }
 
 Future<void> showBulk(
@@ -719,78 +703,12 @@ Future<void> showBulk(
                 ),
             ],
             if (kind == 'homework') ...[
-              const Text('Neue Hausübung'),
-              for (final task in data['tasks'] as List)
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: task['parentId'] == null ? 0 : 20,
-                  ),
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        key: ValueKey(task['id']),
-                        autofocus: data['focusTaskId'] == task['id'],
-                        textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) => insertBulkTask(
-                          data,
-                          Json.from(task as Map),
-                          change,
-                        ),
-                        initialValue: task['text'] as String,
-                        maxLength: 1000,
-                        decoration: const InputDecoration(
-                          hintText: 'Aufgabe …',
-                          counterText: '',
-                        ),
-                        onChanged: (v) => change({
-                          'tasks': [
-                            for (final t in data['tasks'] as List)
-                              {
-                                ...Json.from(t as Map),
-                                if (t['id'] == task['id']) 'text': v,
-                              },
-                          ],
-                        }),
-                      ),
-                      Wrap(
-                        children: [
-                          TextButton(
-                            onPressed: () => insertBulkTask(
-                              data,
-                              Json.from(task as Map),
-                              change,
-                              child: true,
-                            ),
-                            child: const Text('Teilaufgabe hinzufügen'),
-                          ),
-                          IconButton(
-                            tooltip: 'Aufgabe entfernen',
-                            onPressed: () => change({
-                              'tasks': [
-                                for (final t in data['tasks'] as List)
-                                  if (t['id'] != task['id'])
-                                    {
-                                      ...Json.from(t as Map),
-                                      if (t['parentId'] == task['id'])
-                                        'parentId': null,
-                                    },
-                              ],
-                            }),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              TextButton(
-                onPressed: () => change({
-                  'tasks': [
-                    ...data['tasks'] as List,
-                    HomeworkTask(id: newId(), text: '').toJson(),
-                  ],
-                }),
-                child: const Text('Aufgabe hinzufügen'),
+              HomeworkTaskEditor(
+                tasks: (data['tasks'] as List)
+                    .map((v) => HomeworkTask.fromJson(Json.from(v as Map)))
+                    .toList(),
+                onChanged: (tasks) =>
+                    change({'tasks': tasks.map((t) => t.toJson()).toList()}),
               ),
               text('subject', 'Fach · optional'),
             ],

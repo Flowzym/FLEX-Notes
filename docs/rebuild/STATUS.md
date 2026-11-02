@@ -1,4 +1,20 @@
-# Aktueller Stand: 0.16.0-rebuild.6+26
+# Aktueller Stand: 0.16.0-rebuild.7+27
+
+Neue Einträge und „Speichern & weiter“ starten immer frisch. Entwürfe werden ausdrücklich
+über Liste/Badge geöffnet; leere Formulare erzeugen keinen Entwurf. Nach vollständigem
+Zurücksetzen wird nur der eigene unveränderte Entwurf entfernt. Sozial/Arbeit haben
+Entwurfsbadges; die kompakte Aufgabenliste gilt für Einzel- und Gruppen-HÜ.
+
+Kleinere Basisschrift, kompaktere Kopf-/Fußbereiche und aktive Tags. Kalendernavigation
+bleibt auch bei großer Schrift lesbar. Maßgeblich sind die [UI-/UX-Prüfung](../../audit/UI_UX_PRUEFUNG.md)
+und [aktuellen direkten Renderings](../../audit/ux-renderings/).
+125 Flutter-Tests, 11 Schematests und 3 Vorschau-Servertests bestanden; Analyse und Release-Webbuild erfolgreich.
+Keine Browsertests, kein nativer Windows-/Android-Abnahmelauf. Import-Zusammenführung,
+feldweise Konfliktauflösung und geführter Notfall-Reimport bleiben offen; keine Freigabe als originalgetreu.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.6+26
 
 Die Schülerkarten-Shortcuts öffnen sofort das zugehörige Eintragsmodal und setzen
 passende neue Einzelentwürfe fort. Die Einstellungen wurden anhand der HTML-Struktur

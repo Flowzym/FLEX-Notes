@@ -468,13 +468,14 @@ class SchoolDraft {
     this.mode = 'entry',
     this.taskId,
     this.feedbackId,
+    this.baseline,
   });
   final String id, updatedAtUtc;
   final SchoolRecord record;
   final List<String> recipients;
   final int editRevision;
   final String mode;
-  final String? taskId, feedbackId;
+  final String? taskId, feedbackId, baseline;
   Json toJson() => {
     'record': record.toJson(),
     'recipients': recipients,
@@ -482,5 +483,6 @@ class SchoolDraft {
     'mode': mode,
     'taskId': taskId,
     'feedbackId': feedbackId,
+    'baseline': ?baseline,
   };
 }

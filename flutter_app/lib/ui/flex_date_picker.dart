@@ -97,9 +97,9 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              IconButton(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final previous = IconButton(
                 tooltip: 'Vorheriger Monat',
                 constraints: const BoxConstraints.tightFor(
                   width: 36,
@@ -110,52 +110,8 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
                     ? null
                     : () => month(visible.month - 1),
                 icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                flex: 3,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    key: const ValueKey('calendar-month'),
-                    value: visible.month,
-                    isExpanded: true,
-                    items: [
-                      for (var i = 1; i <= 12; i++)
-                        DropdownMenuItem(
-                          value: i,
-                          child: Text(
-                            months[i - 1],
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) month(v);
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                flex: 2,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    key: const ValueKey('calendar-year'),
-                    value: visible.year,
-                    isExpanded: true,
-                    menuMaxHeight: 320,
-                    items: [
-                      for (var i = 1900; i <= 2200; i++)
-                        DropdownMenuItem(value: i, child: Text('$i')),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => visible = DateTime(v, visible.month));
-                      }
-                    },
-                  ),
-                ),
-              ),
-              IconButton(
+              );
+              final next = IconButton(
                 tooltip: 'Nächster Monat',
                 constraints: const BoxConstraints.tightFor(
                   width: 36,
@@ -166,8 +122,68 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
                     ? null
                     : () => month(visible.month + 1),
                 icon: const Icon(Icons.chevron_right),
-              ),
-            ],
+              );
+              final monthPicker = DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  key: const ValueKey('calendar-month'),
+                  value: visible.month,
+                  isExpanded: true,
+                  items: [
+                    for (var i = 1; i <= 12; i++)
+                      DropdownMenuItem(
+                        value: i,
+                        child: Text(
+                          months[i - 1],
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) month(v);
+                  },
+                ),
+              );
+              final yearPicker = DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  key: const ValueKey('calendar-year'),
+                  value: visible.year,
+                  isExpanded: true,
+                  menuMaxHeight: 320,
+                  items: [
+                    for (var i = 1900; i <= 2200; i++)
+                      DropdownMenuItem(value: i, child: Text('$i')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => visible = DateTime(v, visible.month));
+                    }
+                  },
+                ),
+              );
+              if (MediaQuery.textScalerOf(context).scale(1) > 1.3) {
+                return Column(
+                  children: [
+                    monthPicker,
+                    Row(
+                      children: [
+                        previous,
+                        Expanded(child: yearPicker),
+                        next,
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  previous,
+                  Expanded(flex: 3, child: monthPicker),
+                  const SizedBox(width: 4),
+                  Expanded(flex: 2, child: yearPicker),
+                  next,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           Row(

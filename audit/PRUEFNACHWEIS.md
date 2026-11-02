@@ -1,5 +1,7 @@
 # Lokale Prüfung des Dialogaudits
 
+> Nachtrag rebuild.7: Automatische Entwurfsfortsetzung ist durch die spätere ausdrückliche Nutzervorgabe aufgehoben. Aktueller Stand und Prüfnachweise: [UI_UX_PRUEFUNG.md](UI_UX_PRUEFUNG.md).
+
 Arbeitsstand **0.16.0-rebuild.5+25**, Flutter **3.47.9**, Dart **3.13.7**. Die maßgeblichen aktuellen Ergebnisse sind `evidence/flutter-analyze.log` und `evidence/flutter-tests.log`; frühere Diagnoseprotokolle sind Zwischenläufe.
 
 ## Ausgeführte Prüfungen

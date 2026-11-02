@@ -399,7 +399,7 @@ void main() {
     },
   );
   testWidgets(
-    'save and next preserves errors and resumes the next pupil draft without copying observations',
+    'save and next preserves errors and starts fresh without touching the next pupil draft',
     (tester) async {
       final beta = SchoolRecord.empty(SchoolKind.social, 'beta').patch({
         'body': 'Vorhandener Entwurf Beta',
@@ -431,7 +431,7 @@ void main() {
       await tester.tap(find.text('Speichern & weiter'));
       await tester.pumpAndSettle();
       expect((await repo.schoolRecords()).single.pupilId, 'alpha');
-      expect(find.text('Vorhandener Entwurf Beta'), findsOneWidget);
+      expect(find.text('Vorhandener Entwurf Beta'), findsNothing);
       expect(
         find.descendant(
           of: find.byType(SchoolEditor),
@@ -439,13 +439,18 @@ void main() {
         ),
         findsNothing,
       );
-      final support = find.byKey(const ValueKey('record-support'));
-      await tester.ensureVisible(support);
-      expect(find.text('Bestehende Hilfe'), findsOneWidget);
+      expect(find.text('Bestehende Hilfe'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('record-body')),
+        'Neue Beobachtung Beta',
+      );
       await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
       expect(await repo.schoolRecords(), hasLength(2));
-      expect(await repo.schoolDrafts(), isEmpty);
+      expect(
+        (await repo.schoolDrafts()).single.record.body,
+        'Vorhandener Entwurf Beta',
+      );
       await finish(tester);
     },
   );

@@ -164,7 +164,7 @@ void main() {
       ).writeAsBytesSync(bytes!.buffer.asUint8List());
       picture.dispose();
       File('$directory/manifest.jsonl').writeAsStringSync(
-        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.5 dialog audit', 'data': 'synthetic'})}\n',
+        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.7 UI/UX audit', 'data': 'synthetic'})}\n',
         mode: FileMode.append,
       );
     });

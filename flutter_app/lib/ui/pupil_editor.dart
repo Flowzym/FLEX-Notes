@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/drafts.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
@@ -66,6 +67,18 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
       type: 'pupil',
       ownerId: pupil.id,
       data: pupil.toJson(),
+      baseline: draftSignature(
+        (widget.pupil ??
+                widget.controller.pupils
+                    .where((p) => p.id == pupil.id)
+                    .firstOrNull ??
+                pupil.copyWith(name: ''))
+            .toJson(),
+      ),
+      onPersisted: widget.controller.reload,
+      onStatusChanged: () {
+        if (mounted) setState(() {});
+      },
       initial: widget.draft,
     );
   }
@@ -260,6 +273,7 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
                       '${widget.controller.records.where((r) => r.pupilId == pupil.id && r.pending).length + widget.controller.entries.where((e) => e.pupilId == pupil.id && e.pending).length} offene Vorgänge bleiben erhalten.',
                     ),
                 ],
+                DraftStatus(buffer: buffer),
                 if (error != null)
                   Text(
                     error!,

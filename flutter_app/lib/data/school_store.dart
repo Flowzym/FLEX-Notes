@@ -317,6 +317,7 @@ mixin SchoolStore {
           mode: j['mode'] as String? ?? 'entry',
           taskId: j['taskId'] as String?,
           feedbackId: j['feedbackId'] as String?,
+          baseline: j['baseline'] as String?,
         );
       }).toList();
   Future<SchoolDraft> saveSchoolDraft(
@@ -344,6 +345,7 @@ mixin SchoolStore {
       mode: draft.mode,
       taskId: draft.taskId,
       feedbackId: draft.feedbackId,
+      baseline: draft.baseline,
     );
     await db.customStatement(
       'INSERT INTO school_drafts(id,entity_id,payload,updated_at_utc) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at_utc=excluded.updated_at_utc',
@@ -356,8 +358,13 @@ mixin SchoolStore {
     );
     return saved;
   });
-  Future<void> discardSchoolDraft(String id) =>
-      db.customStatement('DELETE FROM school_drafts WHERE id=?', [id]);
+  Future<void> discardSchoolDraft(String id, {int? expectedRevision}) =>
+      db.transaction(() async {
+        if (expectedRevision != null) {
+          await _checkDraftRevision(id, expectedRevision);
+        }
+        await db.customStatement('DELETE FROM school_drafts WHERE id=?', [id]);
+      });
 
   Future<void> _checkDraftRevision(String id, int expected) async {
     final existing = await _rows(

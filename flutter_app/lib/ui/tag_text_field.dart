@@ -72,14 +72,14 @@ class _TagTextFieldState extends State<TagTextField> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.tags.isNotEmpty)
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 4,
+                    runSpacing: 4,
                     children: [
                       for (final tag in widget.tags)
                         InputChip(
@@ -88,7 +88,22 @@ class _TagTextFieldState extends State<TagTextField> {
                             tag.id,
                             () => FocusNode(),
                           ),
-                          label: Text(tag.label, softWrap: true),
+                          visualDensity: const VisualDensity(
+                            horizontal: -2,
+                            vertical: -2,
+                          ),
+                          materialTapTargetSize: MaterialTapTargetSize.padded,
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          labelPadding: const EdgeInsets.only(
+                            left: 4,
+                            right: 2,
+                          ),
+                          deleteIcon: const Icon(Icons.close, size: 15),
+                          label: Text(
+                            tag.label,
+                            softWrap: true,
+                            style: const TextStyle(fontSize: 12, height: 1.15),
+                          ),
                           deleteButtonTooltipMessage: '${tag.label} entfernen',
                           onDeleted: () {
                             tag.remove();

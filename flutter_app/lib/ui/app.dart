@@ -182,7 +182,8 @@ class FlexApp extends StatelessWidget {
         data: MediaQuery.of(context).copyWith(
           textScaler: TextScaler.linear(
             MediaQuery.textScalerOf(context).scale(1) *
-                controller.appearance.textScale,
+                controller.appearance.textScale *
+                .95,
           ),
         ),
         child: FlexBackground(appearance: controller.appearance, child: child!),
