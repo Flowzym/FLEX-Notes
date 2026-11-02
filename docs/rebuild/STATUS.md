@@ -1,4 +1,8 @@
-# Aktueller Stand: 0.16.0-rebuild.9+29
+# Aktueller Stand: 0.16.0-rebuild.10+30
+
+Tastaturkorrektur: Dialogeingaben behalten beim Öffnen und Schließen der
+Bildschirmtastatur ihren Fokus, Cursor und Eingabezustand.
+[Fehlernachweis und Korrektur](../../audit/ANDROID_TASTATUR_FIX.md).
 
 Android-Testapp **FLEX Test** mit eigener App-ID und Android-Speicherdialog:
 [Installation und Bau](../../flutter_app/ANDROID-TEST.md),
@@ -12,7 +16,7 @@ HÜ zeigt den gewählten Zustand zusätzlich als Text.
 
 Maßgeblich: [aktueller Prüfbericht](../../audit/SWIPE_DESIGN_ABGLEICH.md),
 [186 direkte Flutter-Renderings](../../audit/swipe-renderings/).
-160 Flutter-Tests bestanden, Analyse und Android-Releasebuild erfolgreich.
+171 Flutter-Tests bestanden, Analyse und Android-Releasebuild erfolgreich.
 Release-Webbuild und direkte Renderings wurden in der vorherigen UI-Runde geprüft.
 Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
 Sehr große kombinierte Skalierungen brauchen viel Scrollen und erzeugen starke Wortumbrüche.

@@ -1,5 +1,8 @@
 # Android-Testapp
 
+Historischer erster APK-Build. Das nachfolgende Update behebt den
+[Fokusverlust beim Öffnen der Tastatur](ANDROID_TASTATUR_FIX.md).
+
 Stand: **0.16.0-rebuild.9+29**, 02.11.2026. Android-Ausgabe des aktuellen
 Flutter-Wiederaufbaus; keine Aussage über Originaltreue oder Store-Freigabe.
 

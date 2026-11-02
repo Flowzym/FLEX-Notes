@@ -1,0 +1,12 @@
+Resolving dependencies...
+Downloading packages...
+  cross_file 0.3.5+5 (0.4.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  path_provider 2.1.5 (2.1.6 available)
+  test_api 0.7.12 (0.7.15 available)
+  uuid 4.5.1 (4.6.0 available)
+Got dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing flutter_app...
+No issues found! (ran in 4.1s)

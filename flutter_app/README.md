@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.9+29** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.10+30** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -9,7 +9,7 @@ Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
 Aktueller UI-Abgleich und Prüfstand: [Wischen, Größenregler und Symbole](../audit/SWIPE_DESIGN_ABGLEICH.md).
-Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Prüfbericht](../audit/ANDROID_TESTAPP.md).
+Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Tastaturkorrektur](../audit/ANDROID_TASTATUR_FIX.md).
 Das aktuelle Vorschau-ZIP enthält den neu gebauten Webstand; die historischen Web-Vorschaupakete
 im Repository bleiben unverändert. Geprüft wurden lokale Flutter-Tests, direkte Engine-Renderings,
 Analyse und Release-Webbuild. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.

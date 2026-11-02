@@ -280,31 +280,19 @@ class FlexModal extends StatelessWidget {
                 ),
                 child: content,
               );
-              final Widget layout;
               // With large type or a keyboard the complete dialog must scroll;
               // fixed header/footer otherwise consume the available height.
-              if (constraints.maxHeight < 520 ||
-                  MediaQuery.textScalerOf(context).scale(1) > 1.5) {
-                layout = SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [header, body, footer],
-                  ),
-                );
-              } else {
-                layout = Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    header,
-                    Flexible(
-                      child: scrollable
-                          ? SingleChildScrollView(child: body)
-                          : body,
-                    ),
-                    if (actions.isNotEmpty || footerContent != null) footer,
-                  ],
-                );
-              }
+              final layout = _ModalSections(
+                scrollAll:
+                    constraints.maxHeight < 520 ||
+                    MediaQuery.textScalerOf(context).scale(1) > 1.5,
+                scrollBody: scrollable,
+                header: header,
+                body: body,
+                footer: actions.isNotEmpty || footerContent != null
+                    ? footer
+                    : null,
+              );
               final surface = ColoredBox(
                 key: const ValueKey('modal-surface'),
                 color: palette?.modal ?? scheme.surface,
@@ -324,6 +312,58 @@ class FlexModal extends StatelessWidget {
             child: dialog,
           )
         : dialog;
+  }
+}
+
+/// The IME changes the available height while an input is focused. Reparent
+/// the existing sections when switching scroll layouts, keeping EditableText,
+/// its FocusNode and its platform input connection alive throughout animation.
+class _ModalSections extends StatefulWidget {
+  const _ModalSections({
+    required this.scrollAll,
+    required this.scrollBody,
+    required this.header,
+    required this.body,
+    required this.footer,
+  });
+  final bool scrollAll, scrollBody;
+  final Widget header, body;
+  final Widget? footer;
+
+  @override
+  State<_ModalSections> createState() => _ModalSectionsState();
+}
+
+class _ModalSectionsState extends State<_ModalSections> {
+  final _headerKey = GlobalKey();
+  final _bodyKey = GlobalKey();
+  final _footerKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final header = KeyedSubtree(key: _headerKey, child: widget.header);
+    final body = KeyedSubtree(key: _bodyKey, child: widget.body);
+    final footer = widget.footer == null
+        ? null
+        : KeyedSubtree(key: _footerKey, child: widget.footer!);
+    if (widget.scrollAll) {
+      return SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [header, body, ?footer],
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        header,
+        Flexible(
+          child: widget.scrollBody ? SingleChildScrollView(child: body) : body,
+        ),
+        ?footer,
+      ],
+    );
   }
 }
 

@@ -1,8 +1,12 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.9+29**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.10+30**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
+
+Das Update behebt den Fokusverlust beim Öffnen der Bildschirmtastatur.
+App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
+**FLEX Test** installiert werden. Eine Deinstallation ist nicht erforderlich.
 
 ## Installation
 
@@ -45,4 +49,5 @@ Test-App. Den Keystore für nachfolgende Testupdates behalten, nicht ins Reposit
 oder in ein öffentliches Quellenpaket aufnehmen. Ein Store-Release braucht eine
 eigene Veröffentlichungs- und Signaturkonfiguration.
 
-[Prüfbericht und Grenzen](../audit/ANDROID_TESTAPP.md)
+[Tastaturkorrektur und Prüfungen](../audit/ANDROID_TASTATUR_FIX.md) ·
+[Erster Android-Build](../audit/ANDROID_TESTAPP.md)
