@@ -7,6 +7,7 @@ import 'flex_modal.dart';
 import 'common.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
+import 'draft_actions.dart';
 
 int entryDraftCount(
   NotebookController c, {
@@ -104,44 +105,70 @@ Future<void> showEntryDrafts(
           )
           .toList();
       final rows =
-          <({String preview, String time, String mode, VoidCallback open})>[
-            for (final d in school)
-              (
-                preview: [
-                  d.record.title,
-                  d.record.body,
-                  ...d.record.positive,
-                  ...d.record.negative,
-                  ...d.record.tasks.map((t) => t.text),
-                ].where((v) => v.isNotEmpty).join(' · '),
-                time: d.updatedAtUtc,
-                mode: d.mode == 'comment'
-                    ? 'Kommentar'
-                    : d.mode == 'review'
-                    ? 'Überprüfung'
-                    : 'Eintrag',
-                open: () => editSchool(ctx, c, d.record, draft: d),
-              ),
-            for (final d in orga)
-              (
-                preview: d.entry.body.isEmpty ? d.entry.title : d.entry.body,
-                time: d.updatedAtUtc,
-                mode: 'Eintrag',
-                open: () => showDialog<void>(
-                  context: ctx,
-                  barrierDismissible: false,
-                  builder: (_) =>
-                      OrgaEditor(controller: c, entry: d.entry, draftId: d.id),
+          <
+              ({
+                String id,
+                String preview,
+                String time,
+                String mode,
+                VoidCallback open,
+                Future<void> Function() discard,
+              })
+            >[
+              for (final d in school)
+                (
+                  id: 'school-${d.id}',
+                  preview: [
+                    d.record.title,
+                    d.record.body,
+                    ...d.record.positive,
+                    ...d.record.negative,
+                    ...d.record.tasks.map((t) => t.text),
+                  ].where((v) => v.isNotEmpty).join(' · '),
+                  time: d.updatedAtUtc,
+                  mode: d.mode == 'comment'
+                      ? 'Kommentar'
+                      : d.mode == 'review'
+                      ? 'Überprüfung'
+                      : 'Eintrag',
+                  open: () => editSchool(ctx, c, d.record, draft: d),
+                  discard: () => c.repository.discardSchoolDraft(
+                    d.id,
+                    expectedRevision: d.editRevision,
+                  ),
                 ),
-              ),
-            for (final d in bulk)
-              (
-                preview: '${d.data['context'] ?? d.data['body'] ?? ''}',
-                time: d.updatedAtUtc,
-                mode: 'Für mehrere erfassen',
-                open: () => showBulk(ctx, c, draft: d),
-              ),
-          ]..sort((a, b) => b.time.compareTo(a.time));
+              for (final d in orga)
+                (
+                  id: 'orga-${d.id}',
+                  preview: d.entry.body.isEmpty ? d.entry.title : d.entry.body,
+                  time: d.updatedAtUtc,
+                  mode: 'Eintrag',
+                  open: () => showDialog<void>(
+                    context: ctx,
+                    barrierDismissible: false,
+                    builder: (_) => OrgaEditor(
+                      controller: c,
+                      entry: d.entry,
+                      draftId: d.id,
+                    ),
+                  ),
+                  discard: () => c.repository.discardDraft(
+                    d.id,
+                    expectedRevision: d.editRevision,
+                  ),
+                ),
+              for (final d in bulk)
+                (
+                  id: 'bulk-${d.id}',
+                  preview: '${d.data['context'] ?? d.data['body'] ?? ''}',
+                  time: d.updatedAtUtc,
+                  mode: 'Für mehrere erfassen',
+                  open: () => showBulk(ctx, c, draft: d),
+                  discard: () =>
+                      c.repository.discardDialogDraft(d.id, d.revision),
+                ),
+            ]
+            ..sort((a, b) => b.time.compareTo(a.time));
       return FlexModal(
         title: Text('Entwürfe · ${kind?.label ?? 'Orga'}'),
         onClose: () => Navigator.pop(ctx),
@@ -152,6 +179,7 @@ Future<void> showEntryDrafts(
               const Text('Keine weiteren gesicherten Entwürfe.'),
             for (final row in rows)
               Padding(
+                key: ValueKey('draft-row-${row.id}'),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -170,12 +198,24 @@ Future<void> showEntryDrafts(
                       '${displayDate(dateOnly(DateTime.parse(row.time).toLocal()))} · ${TimeOfDay.fromDateTime(DateTime.parse(row.time).toLocal()).format(ctx)}',
                       style: const TextStyle(fontSize: 11),
                     ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: row.open,
-                        child: const Text('Fortsetzen'),
-                      ),
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      spacing: 12,
+                      children: [
+                        TextButton(
+                          onPressed: row.open,
+                          child: const Text(
+                            'Fortsetzen',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        DraftDeleteButton(
+                          onDelete: () async {
+                            await row.discard();
+                            await c.reload();
+                          },
+                        ),
+                      ],
                     ),
                     const Divider(),
                   ],

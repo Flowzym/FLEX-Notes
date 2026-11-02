@@ -66,18 +66,17 @@ class PupilCard extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 64,
-                    height: 34,
+                    height: 48,
                     child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
-                        Positioned(
-                          left: 16,
-                          top: 5,
-                          child: FlexIcon(symbol, size: 24, color: foreground),
+                        Center(
+                          child: FlexIcon(symbol, size: 32, color: foreground),
                         ),
                         if (count > 0)
                           Positioned(
                             right: 0,
-                            top: 0,
+                            top: -10,
                             child: Tooltip(
                               message:
                                   '$openCount offene Einträge · $drafts Entwürfe',
@@ -121,6 +120,7 @@ class PupilCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     label,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,
                       height: 1.4,
@@ -160,12 +160,12 @@ class PupilCard extends StatelessWidget {
                   key: ValueKey('pupil-open-${pupil.id}'),
                   onTap: onOpen,
                   child: Container(
-                    constraints: const BoxConstraints(minHeight: 52),
+                    constraints: const BoxConstraints(minHeight: 44),
                     padding: EdgeInsets.fromLTRB(
                       22,
-                      appearance?.compact == true ? 4 : 10,
+                      appearance?.compact == true ? 3 : 6,
                       18,
-                      appearance?.compact == true ? 4 : 10,
+                      appearance?.compact == true ? 3 : 6,
                     ),
                     decoration: BoxDecoration(
                       color: headerColor,

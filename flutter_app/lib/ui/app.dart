@@ -5,6 +5,7 @@ import '../domain/models.dart';
 import 'notebook_screen.dart';
 import 'surfaces.dart';
 import 'app_scale.dart';
+import 'common.dart';
 
 class FlexApp extends StatelessWidget {
   const FlexApp({super.key, required this.controller});
@@ -86,6 +87,8 @@ class FlexApp extends StatelessWidget {
       ],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          alignment: Alignment.center,
+          foregroundBuilder: centeredButtonLabel,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(appearance.buttonRadius),
           ),
@@ -95,6 +98,8 @@ class FlexApp extends StatelessWidget {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          alignment: Alignment.center,
+          foregroundBuilder: centeredButtonLabel,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(appearance.buttonRadius),
           ),
@@ -104,6 +109,8 @@ class FlexApp extends StatelessWidget {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          alignment: Alignment.center,
+          foregroundBuilder: centeredButtonLabel,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(appearance.buttonRadius),
           ),

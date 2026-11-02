@@ -42,7 +42,7 @@ class FlexPagePills extends StatelessWidget {
                     vertical: 10,
                   ),
                 ),
-                child: Text(item.value),
+                child: Text(item.value, textAlign: TextAlign.center),
               ),
             Material(
               color: selected == 2
@@ -65,8 +65,8 @@ class FlexPagePills extends StatelessWidget {
     }
     Widget segment(int index, Widget child) => Expanded(
       child: OverflowBox(
-        minHeight: index == selected ? 42 : 34,
-        maxHeight: index == selected ? 42 : 34,
+        minHeight: index == selected ? 50 : 42,
+        maxHeight: index == selected ? 50 : 42,
         child: Material(
           color: index == selected ? colors.primary : Colors.transparent,
           elevation: index == selected ? 4 : 0,
@@ -75,7 +75,7 @@ class FlexPagePills extends StatelessWidget {
           child: DefaultTextStyle.merge(
             style: TextStyle(
               fontFamily: 'FlexSans',
-              fontSize: index == selected ? 16 : 13,
+              fontSize: index == selected ? 17 : 14,
               fontWeight: index == selected ? FontWeight.w700 : FontWeight.w600,
               color: index == selected
                   ? colors.onPrimary
@@ -91,13 +91,13 @@ class FlexPagePills extends StatelessWidget {
     );
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: const BoxConstraints(maxWidth: 380),
         child: SizedBox(
           key: const ValueKey('page-pills'),
-          height: 56,
+          height: 64,
           child: Center(
             child: Container(
-              height: 34,
+              height: 42,
               padding: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
                 color:
@@ -125,7 +125,12 @@ class FlexPagePills extends StatelessWidget {
                           onTap: () => onSelected(item.key),
                           child: SizedBox(
                             width: double.infinity,
-                            child: Center(child: Text(item.value)),
+                            child: Center(
+                              child: Text(
+                                item.value,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -262,6 +262,21 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     );
   }
 
+  Widget _observationTag(String text) => transparentChip(
+    Chip(
+      label: Text(text, textAlign: TextAlign.center),
+      labelStyle: const TextStyle(
+        fontFamily: 'FlexSans',
+        fontSize: 12,
+        height: 1.25,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
@@ -539,10 +554,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               Wrap(
                 spacing: 6,
                 children: [
-                  for (final text in r.positive)
-                    transparentChip(Chip(label: Text('+ $text'))),
-                  for (final text in r.negative)
-                    transparentChip(Chip(label: Text('− $text'))),
+                  for (final text in r.positive) _observationTag('+ $text'),
+                  for (final text in r.negative) _observationTag('− $text'),
                 ],
               ),
               if (r.context.isNotEmpty) Text('Kontext: ${r.context}'),

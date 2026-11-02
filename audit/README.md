@@ -1,7 +1,8 @@
 # FLEX-Dialogaudit
 
-Maßgeblicher Arbeitsstand: **0.16.0-rebuild.10+30**, korrigiert auf Grundlage des nachgereichten Quellen-ZIP **0.16.0-rebuild.4+24**. Keine Freigabe als „originalgetreu“.
+Maßgeblicher Arbeitsstand: **0.16.0-rebuild.11+31**, korrigiert auf Grundlage des nachgereichten Quellen-ZIP **0.16.0-rebuild.4+24**. Keine Freigabe als „originalgetreu“.
 
+- [Schülerkarten und Entwürfe](SCHUELERKARTEN_ABGLEICH.md): kompakte Tags, zentrierte Symbole, neuer Schülerdialog und Entwürfe löschen.
 - [Android-Tastaturkorrektur](ANDROID_TASTATUR_FIX.md): Fokus und Tastaturverbindung bei wechselnder Dialoghöhe erhalten.
 - [Erste Android-Testapp](ANDROID_TESTAPP.md): Universal-APK, eigene App-ID und Android-Speicherdialog.
 - [UI-Prüfstand](SWIPE_DESIGN_ABGLEICH.md): Wischen, unabhängige App-/Schriftgröße, zusätzliche Rundungen und Symbolbedienung; 157 Tests und 186 direkte Renderings.

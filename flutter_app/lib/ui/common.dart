@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 
+Widget centeredButtonLabel(
+  BuildContext context,
+  Set<WidgetState> states,
+  Widget? child,
+) => DefaultTextStyle.merge(
+  textAlign: TextAlign.center,
+  style: const TextStyle(height: 1.25),
+  child: child ?? const SizedBox.shrink(),
+);
+
 String friendlyError(Object e) => e is DomainError
     ? e.message
     : 'Speichern oder Laden fehlgeschlagen. Deine Eingaben bleiben erhalten. Bitte Speicherplatz und Berechtigungen prüfen.';

@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.10+30** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.11+31** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,8 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-Aktuell: [Android-Tastaturkorrektur](audit/ANDROID_TASTATUR_FIX.md),
+Aktuell: [Schülerkarten, Schülerdialog und Entwürfe](audit/SCHUELERKARTEN_ABGLEICH.md),
+[Android-Tastaturkorrektur](audit/ANDROID_TASTATUR_FIX.md),
 [Android-Testapp installieren und bauen](flutter_app/ANDROID-TEST.md),
 [Android-Anpassungen und Prüfungen](audit/ANDROID_TESTAPP.md).
 

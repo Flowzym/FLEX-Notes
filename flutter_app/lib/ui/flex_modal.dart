@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../domain/models.dart';
 import 'surfaces.dart';
+import 'common.dart';
 part 'flex_date_picker.dart';
 
 /// Shared shell for entry editors, secondary dialogs and confirmations.
@@ -218,6 +219,8 @@ class FlexModal extends StatelessWidget {
                     data: Theme.of(context).copyWith(
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
+                          alignment: Alignment.center,
+                          foregroundBuilder: centeredButtonLabel,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
                               appearance?.buttonRadius ?? 28,
@@ -237,6 +240,8 @@ class FlexModal extends StatelessWidget {
                       ),
                       outlinedButtonTheme: OutlinedButtonThemeData(
                         style: OutlinedButton.styleFrom(
+                          alignment: Alignment.center,
+                          foregroundBuilder: centeredButtonLabel,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
                               appearance?.buttonRadius ?? 28,

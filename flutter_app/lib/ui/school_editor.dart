@@ -1177,8 +1177,9 @@ class _SchoolEditorState extends State<SchoolEditor>
                             backgroundColor: Colors.transparent,
                             textStyle: const TextStyle(
                               fontFamily: 'FlexSans',
-                              fontSize: 16,
+                              fontSize: 13,
                               fontWeight: FontWeight.w400,
+                              height: 1.25,
                             ),
                             foregroundColor: selected.contains(text)
                                 ? legibleOn(selectionColor)
@@ -1187,12 +1188,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                                           ?.palette
                                           ?.buttonInk ??
                                       scheme.onSurface,
-                            minimumSize: const Size(0, 40),
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            alignment: Alignment.center,
                             padding: const EdgeInsets.only(
-                              left: 16,
-                              right: 6,
-                              top: 8,
-                              bottom: 8,
+                              left: 10,
+                              right: 10,
+                              top: 6,
+                              bottom: 6,
                             ),
                           ),
                           onPressed: () => edit({
@@ -1202,7 +1205,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                                 ? selected.where((s) => s != text).toList()
                                 : [...selected, text],
                           }),
-                          child: Text(text),
+                          child: Text(text, textAlign: TextAlign.center),
                         ),
                       ),
                       if (catalog.options.contains(text))
@@ -1213,11 +1216,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                               : 'Als Favorit markieren: $text',
                           onPressed: catalogBusy ? null : () => favorite(text),
                           constraints: const BoxConstraints(
-                            minWidth: 36,
-                            minHeight: 40,
+                            minWidth: 32,
+                            minHeight: 32,
                           ),
-                          padding: const EdgeInsets.only(right: 8, left: 2),
-                          iconSize: 19,
+                          padding: const EdgeInsets.all(6),
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          iconSize: 16,
                           color: selected.contains(text)
                               ? legibleOn(selectionColor)
                               : Theme.of(context)

@@ -1,4 +1,24 @@
-# Aktueller Stand: 0.16.0-rebuild.10+30
+# Aktueller Stand: 0.16.0-rebuild.11+31
+
+Entwürfe lassen sich in den globalen, schülerbezogenen und Eintrags-Entwurfslisten löschen.
+Schülerkarten haben größere, mittige Symbole und Beschriftungen, kompaktere Köpfe
+und reine Zahlenbadges. Die obere Seitennavigation ist größer, Sozial-/Arbeitstags
+sind kleiner. Buttonbeschriftungen werden auch bei Umbruch zentriert.
+
+Der Schülerdialog bündelt Bereichsauswahl, Suche und Offen-Filter. Entwürfe und Verlauf
+sind im Kopf erreichbar; Bearbeiten, Archivieren und Gesprächsvorbereitung im Kopfmenü.
+Bei schmalem Bildschirm oder großer Schrift erhält der Name eine eigene Kopfzeile.
+Der Tastatur-Fix aus Build 30 bleibt erhalten. Keine Schemaänderung.
+
+Prüfungen und Grenzen: [aktueller Bericht](../../audit/SCHUELERKARTEN_ABGLEICH.md),
+[20 direkte Flutter-Renderings](../../audit/pupil-polish-renderings/).
+182 Flutter-Tests bestanden, Analyse ohne Befunde und Android-Releasebuild erfolgreich.
+Android-Testapp: [Installation und Bau](../../flutter_app/ANDROID-TEST.md).
+Keine Browsertests und kein Android-Gerätelauf.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.10+30
 
 Tastaturkorrektur: Dialogeingaben behalten beim Öffnen und Schließen der
 Bildschirmtastatur ihren Fokus, Cursor und Eingabezustand.

@@ -183,7 +183,7 @@ void main() {
       final navigation = tester.getRect(
         find.byKey(const ValueKey('page-pills')),
       );
-      expect(navigation.width, 340);
+      expect(navigation.width, 380);
       expect(navigation.center.dx, 550);
       await pupils(tester);
       expect(find.byType(PupilCard), findsNWidgets(2));
@@ -375,7 +375,7 @@ void main() {
       await capture(tester, boundary, 'handover-pupils-mobile');
       await tester.tap(find.byKey(const ValueKey('pupil-open-alpha')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Hausübung').first);
+      await tester.tap(find.byKey(const ValueKey('pupil-area-homework')));
       await tester.pumpAndSettle();
       framed(tester, const Size(390, 844));
       await capture(tester, boundary, 'handover-homework-mobile');

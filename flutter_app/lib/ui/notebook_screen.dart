@@ -1,5 +1,6 @@
 import 'symbol_button.dart';
-import 'pupil_history.dart';
+import 'draft_actions.dart';
+import 'pupil_workspace.dart';
 import 'conflict_dialog.dart';
 import 'maintenance_dialog.dart';
 import 'pupil_editor.dart';
@@ -33,7 +34,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   int _primary = 0;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
-  SchoolKind? _schoolKind;
   String? _aux;
   VoidCallback? _refreshPupilDialog;
   final _pupilSearchFocus = FocusNode();
@@ -46,7 +46,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   String _pupilQuery = '', _entryQuery = '', _filter = 'all';
-  bool _orgaOnly = false;
   final _expandedSections = <String>{};
   final _pupilSearch = TextEditingController();
   final _entrySearch = TextEditingController();
@@ -364,103 +363,55 @@ class _NotebookScreenState extends State<NotebookScreen> {
     );
   }
 
+  Future<void> _pupilDrafts(Pupil pupil) => showDialog<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: c,
+      builder: (_, _) => FlexModal(
+        title: Text('Entwürfe · ${pupil.name}'),
+        onClose: () => Navigator.pop(ctx),
+        scrollable: false,
+        content: SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * .65,
+          child: _drafts(pupilId: pupil.id),
+        ),
+      ),
+    ),
+  );
+
   Future<void> _openPupil(Pupil pupil, {FlexSymbol? symbol}) async {
-    _schoolKind = switch (symbol) {
-      FlexSymbol.goal => SchoolKind.goal,
-      FlexSymbol.social => SchoolKind.social,
-      FlexSymbol.work => SchoolKind.work,
-      FlexSymbol.homework => SchoolKind.homework,
-      _ => null,
-    };
-    _orgaOnly = symbol == FlexSymbol.orga;
-    _entryQuery = '';
-    _entrySearch.clear();
-    _filter = 'all';
     try {
       await showDialog<void>(
         context: context,
-        builder: (dialogContext) => StatefulBuilder(
+        builder: (_) => StatefulBuilder(
           builder: (modalContext, refresh) {
             _refreshPupilDialog = () {
               if (modalContext.mounted) refresh(() {});
             };
             return AnimatedBuilder(
               animation: c,
-              builder: (context, _) {
+              builder: (_, _) {
                 final current =
                     c.pupils.where((p) => p.id == pupil.id).firstOrNull ??
                     pupil;
-                return FlexModal(
-                  accentColor: Color(current.color),
-                  title: Row(
-                    children: [
-                      if (_schoolKind != null || _orgaOnly)
-                        IconButton(
-                          tooltip: 'Zur Schülerübersicht',
-                          icon: const Icon(Icons.arrow_back, size: 20),
-                          constraints: const BoxConstraints(
-                            minWidth: 36,
-                            minHeight: 40,
-                          ),
-                          padding: const EdgeInsets.only(right: 8),
-                          onPressed: () => _changeView(() {
-                            _schoolKind = null;
-                            _orgaOnly = false;
-                          }),
-                        ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              current.name,
-                              style: const TextStyle(
-                                fontFamily: 'FlexSans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: -.3,
-                              ),
-                            ),
-                            if (_schoolKind != null || _orgaOnly)
-                              Text(
-                                _schoolKind?.label ?? 'Orga',
-                                style: const TextStyle(
-                                  fontFamily: 'FlexSerif',
-                                  fontSize: 24,
-                                  height: 1.3,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Verlauf',
-                        onPressed: () =>
-                            showPupilHistory(context, c, current.id),
-                        icon: const Icon(Icons.history),
-                      ),
-                    ],
-                  ),
-                  onClose: () => Navigator.pop(dialogContext),
-                  scrollable: false,
-                  content: SizedBox(
-                    height: MediaQuery.sizeOf(context).height * .7,
-                    child: _schoolKind != null
-                        ? SchoolWorkspace(
-                            controller: c,
-                            pupil: current,
-                            kind: _schoolKind!,
+                return PupilWorkspaceDialog(
+                  controller: c,
+                  pupil: current,
+                  initialArea: symbol,
+                  entryCard: _entryCard,
+                  editPupil: () => _pupilEditor(current),
+                  newOrga: () => _editor(OrgaEntry.empty(pupilId: current.id)),
+                  showDrafts: () => _pupilDrafts(current),
+                  draftCount:
+                      FlexSymbol.values.fold(
+                        0,
+                        (sum, s) => sum + _pupilDraftCount(current.id, s),
+                      ) +
+                      c.dialogDrafts
+                          .where(
+                            (d) => d.type == 'pupil' && d.ownerId == current.id,
                           )
-                        : _entries(
-                            c.entries
-                                .where((e) => e.pupilId == pupil.id)
-                                .toList(),
-                            scope: pupil.id,
-                            orga: _orgaOnly,
-                            pupil: current,
-                          ),
-                  ),
+                          .length,
                 );
               },
             );
@@ -945,79 +896,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
       children: [
         if (pupil == null)
           Text('Klassen-Orga', style: Theme.of(context).textTheme.titleLarge),
-        if (pupil != null && !orga) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final category in [
-                'Aktuell',
-                'Ziele',
-                'Sozialverhalten',
-                'Arbeitsverhalten',
-                'Hausübung',
-                'Orga',
-              ])
-                transparentChip(
-                  ChoiceChip(
-                    avatar: category == 'Aktuell'
-                        ? null
-                        : FlexIcon(
-                            category == 'Orga'
-                                ? FlexSymbol.orga
-                                : FlexIcon.forKind(
-                                    SchoolKind.values.firstWhere(
-                                      (kind) => kind.label == category,
-                                    ),
-                                  ),
-                            size: 20,
-                          ),
-                    label: Text(category),
-                    selected: category == (orga ? 'Orga' : 'Aktuell'),
-                    onSelected: (_) {
-                      if (category == 'Orga' || category == 'Aktuell') {
-                        _changeView(() => _orgaOnly = category == 'Orga');
-                        return;
-                      }
-                      _changeView(
-                        () => _schoolKind = SchoolKind.values.firstWhere(
-                          (kind) => kind.label == category,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton.icon(
-                onPressed: () => _pupilEditor(pupil),
-                icon: const Icon(Icons.edit),
-                label: const Text('Schüler bearbeiten'),
-              ),
-              TextButton.icon(
-                onPressed: () => guarded(
-                  context,
-                  () => c.savePupil(pupil.copyWith(archived: !pupil.archived)),
-                ),
-                icon: Icon(pupil.archived ? Icons.unarchive : Icons.archive),
-                label: Text(
-                  pupil.archived ? 'Aus Archiv holen' : 'Archivieren',
-                ),
-              ),
-            ],
-          ),
-          TextButton.icon(
-            onPressed: () => showBrief(context, c, pupil),
-            icon: const Icon(Icons.description),
-            label: const Text('Gesprächsvorbereitung'),
-          ),
-          if (pupil.archived)
-            const Text('Archiv · offene Verpflichtungen bleiben sichtbar.'),
-        ],
         const SizedBox(height: 16),
         Align(
           alignment: Alignment.centerLeft,
@@ -1291,6 +1169,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final rows =
         <
             ({
+              String id,
               String title,
               String preview,
               String time,
@@ -1301,11 +1180,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
             for (final d in c.dialogDrafts.where(
               (d) =>
                   pupilId == null ||
+                  (d.type == 'pupil' &&
+                      symbol == null &&
+                      d.ownerId == pupilId) ||
                   d.type == 'bulk' &&
-                      d.data['kind'] == symbol?.name &&
+                      (symbol == null || d.data['kind'] == symbol.name) &&
                       (d.data['recipients'] as List).contains(pupilId),
             ))
               (
+                id: 'dialog-${d.id}',
                 title: d.type == 'pupil'
                     ? 'Schüler · ${d.data['name']}'
                     : d.type == 'context'
@@ -1333,11 +1216,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
             for (final d in c.schoolDrafts.where(
               (d) =>
                   pupilId == null ||
-                  d.record.kind.name == symbol?.name &&
+                  (symbol == null || d.record.kind.name == symbol.name) &&
                       (d.record.pupilId == pupilId ||
                           d.recipients.contains(pupilId)),
             ))
               (
+                id: 'school-${d.id}',
                 title:
                     '${pupilName(d.record.pupilId)} · ${d.record.kind.label}${d.mode == 'comment'
                         ? ' · Kommentar'
@@ -1362,6 +1246,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         d.record.body,
                         ...d.record.positive,
                         ...d.record.negative,
+                        ...d.record.tasks.map((t) => t.text),
                       ].where((v) => v.isNotEmpty).join(' · '),
                 time: d.updatedAtUtc,
                 open: () => editSchool(context, c, d.record, draft: d),
@@ -1373,9 +1258,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
             for (final d in c.drafts.where(
               (d) =>
                   pupilId == null ||
-                  symbol == FlexSymbol.orga && d.entry.pupilId == pupilId,
+                  (symbol == null || symbol == FlexSymbol.orga) &&
+                      d.entry.pupilId == pupilId,
             ))
               (
+                id: 'orga-${d.id}',
                 title: '${pupilName(d.entry.pupilId)} · Orga',
                 preview: d.entry.body.isEmpty ? d.entry.title : d.entry.body,
                 time: d.updatedAtUtc,
@@ -1393,6 +1280,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         if (rows.isEmpty) const EmptyState('Keine gesicherten Entwürfe.'),
         for (final row in rows)
           FlexCard(
+            key: ValueKey('draft-row-${row.id}'),
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -1420,22 +1308,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         onPressed: row.open,
                         child: const Text('Fortsetzen'),
                       ),
-                      TextButton(
-                        onPressed: () async {
-                          if (await confirmFlex(
-                                context,
-                                'Entwurf verwerfen?',
-                                'Der gespeicherte Eintrag bleibt erhalten.',
-                                accept: 'Verwerfen',
-                              ) &&
-                              mounted) {
-                            await guarded(context, () async {
-                              await row.discard();
-                              await c.reload();
-                            });
-                          }
+                      DraftDeleteButton(
+                        onDelete: () async {
+                          await row.discard();
+                          await c.reload();
                         },
-                        child: const Text('Verwerfen'),
                       ),
                     ],
                   ),
