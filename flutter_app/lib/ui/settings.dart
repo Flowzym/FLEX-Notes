@@ -405,7 +405,9 @@ class _SettingsPageState extends State<SettingsPage>
         builder: (context, constraints) => Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Theme.of(context).extension<FlexSurfaces>()?.palette?.panel,
+            color: Theme.of(
+              context,
+            ).extension<FlexSurfaces>()?.palette?.workspace,
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),

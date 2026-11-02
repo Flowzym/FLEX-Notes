@@ -4,6 +4,7 @@ import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import 'notebook_screen.dart';
 import 'surfaces.dart';
+import 'app_scale.dart';
 
 class FlexApp extends StatelessWidget {
   const FlexApp({super.key, required this.controller});
@@ -85,18 +86,27 @@ class FlexApp extends StatelessWidget {
       ],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(appearance.buttonRadius),
+          ),
           backgroundColor: button,
           foregroundColor: buttonText,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(appearance.buttonRadius),
+          ),
           backgroundColor: button,
           foregroundColor: buttonText,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(appearance.buttonRadius),
+          ),
           backgroundColor: button,
           foregroundColor: buttonText,
         ),
@@ -139,7 +149,9 @@ class FlexApp extends StatelessWidget {
           ? VisualDensity.compact
           : VisualDensity.standard,
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(appearance.fieldRadius),
+        ),
         filled: true,
         fillColor: palette.field,
         labelStyle: TextStyle(color: palette.fieldInk),
@@ -178,14 +190,9 @@ class FlexApp extends StatelessWidget {
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       },
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(
-            MediaQuery.textScalerOf(context).scale(1) *
-                controller.appearance.textScale *
-                .95,
-          ),
-        ),
+      builder: (context, child) => FlexAppScale(
+        scale: controller.appearance.uiScale,
+        textScale: controller.appearance.textScale * .95,
         child: FlexBackground(appearance: controller.appearance, child: child!),
       ),
       home: NotebookScreen(controller: controller),

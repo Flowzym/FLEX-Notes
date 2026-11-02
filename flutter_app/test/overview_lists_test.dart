@@ -266,7 +266,7 @@ void main() {
           entry: OrgaEntry.empty(pupilId: 'a'),
         ),
       );
-      await tap(t, find.text('1. Nummerierung'));
+      await tap(t, find.byTooltip('Nummerierung'));
       await settleDraft(t);
       expect(await repo.drafts(), isEmpty);
       await t.enterText(find.byKey(const ValueKey('orga-note')), '1. Milch');
@@ -343,7 +343,7 @@ void main() {
         ),
       );
       await t.enterText(find.byKey(const ValueKey('orga-note')), 'Einkauf');
-      await tap(t, find.text('☐ Checkliste'));
+      await tap(t, find.byTooltip('Checkliste'));
       await t.enterText(
         find.byKey(const ValueKey('orga-new-item')),
         'Milch Brot',

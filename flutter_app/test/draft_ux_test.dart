@@ -281,7 +281,7 @@ void main() {
           entry: OrgaEntry.empty(pupilId: 'a'),
         ),
       );
-      await tap(t, find.text('☐ Checkliste'));
+      await tap(t, find.byTooltip('Checkliste'));
       await autosave(t);
       expect(await repo.drafts(), isEmpty);
       await t.enterText(

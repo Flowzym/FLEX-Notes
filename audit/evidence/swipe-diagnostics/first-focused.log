@@ -1,0 +1,71 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: new appearance fields default safely and reject invalid dimensions
+00:00 +1: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:02 +2: scale and text sliders are independent; design controls persist and full reset keeps shortcut order
+00:04 +3: failed scale persistence rolls back without losing the settings route
+00:05 +4: homework symbols persist all four states and retain sibling status and comments
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: Too many elements
+
+When the exception was thrown, this was the stack:
+#0      _Array.single (dart:core-patch/array.dart:63:5)
+#1      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart:372:31)
+<asynchronous suspension>
+#2      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#3      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  homework symbols persist all four states and retain sibling status and comments
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:06 +4 -1: homework symbols persist all four states and retain sibling status and comments [E]
+  Test failed. See exception logs above.
+  The test description was: homework symbols persist all four states and retain sibling status and comments
+
+00:06 +4 -1: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: 'Bleibt erhalten'
+  Actual: '1. Bleibt erhalten'
+   Which: is different.
+          Expected: Bleibt erh ...
+            Actual: 1. Bleibt  ...
+                    ^
+           Differ at offset 0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart:409:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart line 409
+The test description was:
+  app scale transforms touch geometry and keyboard insets while font size only changes text; editor
+  stays mounted
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:07 +4 -2: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted [E]
+  Test failed. See exception logs above.
+  The test description was: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+
+00:07 +4 -2: design and symbol renderings 320.0 font 1.0 zoom 0.8
+00:09 +5 -2: design and symbol renderings 390.0 font 1.0 zoom 1.0
+00:11 +6 -2: design and symbol renderings 1200.0 font 1.0 zoom 1.2
+00:13 +7 -2: design and symbol renderings 320.0 font 2.0 zoom 1.0
+00:14 +8 -2: design and symbol renderings 320.0 font 1.0 zoom 1.2
+00:16 +9 -2: (tearDownAll)
+00:16 +9 -2: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+  /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments

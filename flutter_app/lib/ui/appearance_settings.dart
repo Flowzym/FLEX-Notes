@@ -394,6 +394,35 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     );
   }
 
+  Widget measure(
+    String key,
+    String label, {
+    double min = 0,
+    double max = 32,
+    int divisions = 32,
+    bool percent = false,
+  }) {
+    final value = (a.toJson()[key] as num).toDouble();
+    String format(double v) =>
+        percent ? '${(v * 100).round()} %' : '${v.round()} px';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('$label · ${format(value)}'),
+        Slider(
+          key: ValueKey('setting-$key'),
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          semanticFormatterCallback: format,
+          onChanged: (v) => change({key: v}),
+          onChangeEnd: (_) => c.flushAppearance(),
+        ),
+      ],
+    );
+  }
+
   Widget color(
     String key,
     String label, {
@@ -635,7 +664,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                         context,
                       ).extension<FlexSurfaces>()!.palette!;
                       return ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(a.modalRadius),
                         child: FlexBackground(
                           appearance: a,
                           child: ColoredBox(
@@ -724,6 +753,38 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
       final controls = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          section(
+            'Größe & Schrift',
+            [
+              const Text(
+                'App-Skalierung verändert die gesamte Oberfläche. Die Schriftgröße passt nur den Text an; die Systemeinstellung bleibt zusätzlich wirksam.',
+              ),
+              measure(
+                'uiScale',
+                'App-Skalierung',
+                min: .8,
+                max: 1.2,
+                divisions: 8,
+                percent: true,
+              ),
+              measure(
+                'textScale',
+                'Schriftgröße',
+                min: .8,
+                max: 1.6,
+                divisions: 16,
+                percent: true,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Kompakte Abstände'),
+                value: a.compact,
+                onChanged: (v) => change({'compact': v}),
+              ),
+            ],
+            reset: () =>
+                change({'uiScale': 1.0, 'textScale': 1.0, 'compact': false}),
+          ),
           section('Stilvorlagen', [
             const Text('Schnell wählen, darunter gezielt anpassen.'),
             Wrap(
@@ -829,14 +890,14 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               'Kopfbereich',
               'workspaceColor',
               'workspaceOpacity',
-              .88,
+              .12,
               'Farbe und Transparenz unabhängig einstellen.',
             ),
             surface(
               'Schülerkarten',
               'cardColor',
               'cardOpacity',
-              .82,
+              .28,
               'Bei hoher Transparenz kann ein unruhiges Bild die Lesbarkeit beeinträchtigen.',
             ),
             section('Akzentfarbe', [
@@ -850,26 +911,6 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               divisions: 32,
               onChanged: (v) => change({'cardRadius': v}),
               onChangeEnd: (_) => c.flushAppearance(),
-            ),
-            const Text('Schriftgröße'),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final scale in [.9, 1.0, 1.15, 1.3])
-                  transparentChip(
-                    ChoiceChip(
-                      label: Text('${(scale * 100).round()} %'),
-                      selected: a.textScale == scale,
-                      onSelected: (_) => change({'textScale': scale}),
-                    ),
-                  ),
-              ],
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Kompakte Abstände'),
-              value: a.compact,
-              onChanged: (v) => change({'compact': v}),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -895,23 +936,31 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               ],
             ),
           ]),
-          group('controls', 'Buttons & Eingabefelder', 'Farbe und Transparenz', [
-            surface(
-              'Buttons',
-              'buttonColor',
-              'buttonOpacity',
-              .94,
-              'Hintergrund der Auswahl- und Zusatzbuttons in Dialogen. Aktive Auswahl, Positiv-/Negativfarben und primäre Speicheraktionen bleiben erkennbar.',
-            ),
-            surface(
-              'Eingabefelder',
-              'fieldColor',
-              'fieldOpacity',
-              .94,
-              'Hintergrund der Schreibfelder und Auswahllisten in Dialogen.',
-            ),
-          ]),
+          group(
+            'controls',
+            'Buttons & Eingabefelder',
+            'Farbe, Transparenz und Rundung',
+            [
+              measure('buttonRadius', 'Buttonrundung'),
+              measure('fieldRadius', 'Feldrundung'),
+              surface(
+                'Buttons',
+                'buttonColor',
+                'buttonOpacity',
+                .20,
+                'Hintergrund der Auswahl- und Zusatzbuttons in Dialogen. Aktive Auswahl, Positiv-/Negativfarben und primäre Speicheraktionen bleiben erkennbar.',
+              ),
+              surface(
+                'Eingabefelder',
+                'fieldColor',
+                'fieldOpacity',
+                .22,
+                'Hintergrund der Schreibfelder und Auswahllisten in Dialogen.',
+              ),
+            ],
+          ),
           group('dialogs', 'Dialoge', 'Hintergrund, Kopf- und Fußzeile', [
+            measure('modalRadius', 'Dialogrundung'),
             surface(
               'Dialoghintergrund',
               'modalColor',
@@ -934,8 +983,8 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               ],
               reset: () => change({
                 'dialogColor': 0,
-                'headerOpacity': .65,
-                'footerOpacity': .65,
+                'headerOpacity': .18,
+                'footerOpacity': .18,
               }),
             ),
           ]),
@@ -948,7 +997,11 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 accept: 'Zurücksetzen',
               )) {
                 await c
-                    .saveAppearance(const Appearance())
+                    .saveAppearance(
+                      const Appearance().patch({
+                        'shortcutOrder': a.shortcutOrder,
+                      }),
+                    )
                     .catchError((Object _) {});
               }
             },

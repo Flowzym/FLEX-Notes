@@ -1,3 +1,5 @@
+import 'package:flex_notizbuch/ui/surfaces.dart';
+import 'package:flex_notizbuch/ui/symbol_button.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -15,7 +17,6 @@ import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
 import 'package:flex_notizbuch/ui/flex_modal.dart';
 import 'package:flex_notizbuch/ui/pupil_card.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
 
 class ControlledNotebook extends SqliteNotebook {
@@ -308,14 +309,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(repo.attempts, 1);
       expect((await repo.schoolRecords()).single.feedback, hasLength(2));
-      final label = tester.widget<RichText>(
-        find.descendant(of: button, matching: find.byType(RichText)).first,
-      );
-      final style = (label.text as TextSpan).style!;
-      expect(style.fontFamily, 'FlexSans');
+      final icon = find.descendant(of: button, matching: find.byType(Icon));
+      expect(tester.widget<Icon>(icon).icon, Icons.check_circle_outline);
       expect(
-        style.color,
-        legibleOn(Theme.of(tester.element(button)).colorScheme.primary),
+        find.descendant(of: button, matching: find.byTooltip('Vollständig')),
+        findsOneWidget,
+      );
+      expect(
+        IconTheme.of(tester.element(icon)).color,
+        Theme.of(tester.element(button)).colorScheme.primary,
       );
       repo.failNext = true;
       final partial = find.byKey(const ValueKey('status-task-partial'));
@@ -323,7 +325,7 @@ void main() {
       await tester.tap(partial);
       await tester.pumpAndSettle();
       expect(find.text('Synthetischer Speicherfehler'), findsOneWidget);
-      expect(tester.widget<ChoiceChip>(button).selected, isTrue);
+      expect(tester.widget<FlexSymbolButton>(button).selected, isTrue);
       expect(
         (await repo.schoolRecords()).single.taskState(record.tasks.first),
         TaskState.complete,
@@ -387,7 +389,13 @@ void main() {
         ),
       );
       expect(input.focusNode.hasFocus, isTrue);
-      expect(find.text('Stand: Teilweise'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SchoolEditor),
+          matching: find.text('Stand: Teilweise'),
+        ),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.byKey(const ValueKey('homework-comment')),
         'Synthetische Rückmeldung',

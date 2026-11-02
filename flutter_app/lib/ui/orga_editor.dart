@@ -1,3 +1,5 @@
+import 'symbol_button.dart';
+import 'surfaces.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -484,24 +486,30 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   ),
                 const Text('Notiz oder Aufgabe'),
                 Wrap(
-                  spacing: 8,
+                  spacing: 4,
                   children: [
-                    TextButton(
+                    FlexSymbolButton(
+                      key: const ValueKey('orga-list-check'),
+                      label: 'Checkliste',
+                      icon: Icons.checklist,
                       onPressed: () {
                         setState(() => listOpen = true);
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) itemFocus.requestFocus();
                         });
                       },
-                      child: const Text('☐ Checkliste'),
                     ),
-                    TextButton(
+                    FlexSymbolButton(
+                      key: const ValueKey('orga-list-bullet'),
+                      label: 'Aufzählung',
+                      icon: Icons.format_list_bulleted,
                       onPressed: () => insertPrefix('• '),
-                      child: const Text('• Aufzählung'),
                     ),
-                    TextButton(
+                    FlexSymbolButton(
+                      key: const ValueKey('orga-list-number'),
+                      label: 'Nummerierung',
+                      icon: Icons.format_list_numbered,
                       onPressed: () => insertPrefix('1. '),
-                      child: const Text('1. Nummerierung'),
                     ),
                   ],
                 ),
@@ -511,7 +519,13 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outline,
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(
+                      Theme.of(context)
+                              .extension<FlexSurfaces>()
+                              ?.appearance
+                              ?.fieldRadius ??
+                          14,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),

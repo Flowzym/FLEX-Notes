@@ -115,11 +115,11 @@ class FlexModal extends StatelessWidget {
       ),
       inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(appearance?.fieldRadius ?? 14),
           borderSide: BorderSide(color: scheme.onSurface.withValues(alpha: .3)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(appearance?.fieldRadius ?? 14),
           borderSide: BorderSide(color: scheme.primary),
         ),
         fillColor: baseTheme.inputDecorationTheme.fillColor,
@@ -129,7 +129,7 @@ class FlexModal extends StatelessWidget {
       insetPadding: EdgeInsets.all(mobile ? 10 : 16),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(appearance?.modalRadius ?? 24),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       child: Theme(
@@ -218,6 +218,11 @@ class FlexModal extends StatelessWidget {
                     data: Theme.of(context).copyWith(
                       textButtonTheme: TextButtonThemeData(
                         style: TextButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              appearance?.buttonRadius ?? 28,
+                            ),
+                          ),
                           backgroundColor: palette?.button,
                           foregroundColor:
                               palette?.buttonInk ?? footerForeground,
@@ -232,6 +237,11 @@ class FlexModal extends StatelessWidget {
                       ),
                       outlinedButtonTheme: OutlinedButtonThemeData(
                         style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              appearance?.buttonRadius ?? 28,
+                            ),
+                          ),
                           backgroundColor: palette?.button,
                           foregroundColor:
                               palette?.buttonInk ?? footerForeground,

@@ -45,7 +45,7 @@ void main() {
       final saved = (await repo.entries()).single;
       await tester.tap(find.byKey(ValueKey('overview-open-${saved.id}')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Erledigen'));
+      await tester.tap(find.byTooltip('Erledigen'));
       await tester.pumpAndSettle();
       expect((await repo.entries()).single.done, isTrue);
       await tester.pumpWidget(const SizedBox());
@@ -74,7 +74,7 @@ void main() {
         find.byKey(const ValueKey('orga-note')),
         'Entwurf Test',
       );
-      await tester.tap(find.text('☐ Checkliste'));
+      await tester.tap(find.byTooltip('Checkliste'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextField, 'Neuer Listenpunkt'),

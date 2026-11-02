@@ -267,6 +267,11 @@ void main() {
       );
       await database.initialize();
       final value = c.appearance.change({
+        'uiScale': .85,
+        'textScale': 1.55,
+        'fieldRadius': 4.0,
+        'buttonRadius': 6.0,
+        'modalRadius': 12.0,
         'desktopImage': pattern,
         'mobileImage': solid,
         'desktopImageName': 'Desktop.png',

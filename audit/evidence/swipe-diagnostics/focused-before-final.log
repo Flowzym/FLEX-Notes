@@ -1,0 +1,15 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: new appearance fields default safely and reject invalid dimensions
+00:00 +1: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:02 +2: scale and text sliders are independent; design controls persist and full reset keeps shortcut order
+00:04 +3: failed scale persistence rolls back without losing the settings route
+00:05 +4: homework symbols persist all four states and retain sibling status and comments
+00:05 +5: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+00:06 +6: design and symbol renderings 320.0 font 1.0 zoom 0.8
+00:07 +7: design and symbol renderings 390.0 font 1.0 zoom 1.0
+00:09 +8: design and symbol renderings 1200.0 font 1.0 zoom 1.2
+00:11 +9: design and symbol renderings 320.0 font 2.0 zoom 1.0
+00:12 +10: design and symbol renderings 320.0 font 1.0 zoom 1.2
+00:13 +11: (tearDownAll)
+00:13 +11: All tests passed!

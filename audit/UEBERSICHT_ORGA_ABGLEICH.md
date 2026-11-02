@@ -1,5 +1,7 @@
 # Übersicht, Flächen, Listen und Modalzugänge · rebuild.8
 
+Historischer Bericht für rebuild.8; die nächsten Änderungen stehen im [aktuellen Prüfstand](SWIPE_DESIGN_ABGLEICH.md).
+
 Stand: **0.16.0-rebuild.8+28**, 02.11.2026. Grundlage ist der erhaltene Quellenfund,
 weitergeführt auf `fix/dialog-reference-audit`. Die späteren ausdrücklichen Nutzeränderungen
 haben Vorrang vor HTML und älteren Berichten. Das [Dialogverzeichnis](DIALOGVERZEICHNIS.md)

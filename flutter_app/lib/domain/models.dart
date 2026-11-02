@@ -398,6 +398,10 @@ class Appearance {
     this.mode = 'dark',
     this.accent = 0xffdae9a6,
     this.textScale = 1,
+    this.uiScale = 1,
+    this.fieldRadius = 14,
+    this.buttonRadius = 28,
+    this.modalRadius = 24,
     this.compact = false,
     this.dialogColor = 0,
     this.cardColor = 0,
@@ -433,6 +437,7 @@ class Appearance {
   });
   final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
   final int accent, dialogColor, cardColor, buttonColor;
+  final double uiScale, fieldRadius, buttonRadius, modalRadius;
   final double textScale,
       headerOpacity,
       footerOpacity,
@@ -552,6 +557,10 @@ class Appearance {
     'mode': mode,
     'accent': accent,
     'textScale': textScale,
+    'uiScale': uiScale,
+    'fieldRadius': fieldRadius,
+    'buttonRadius': buttonRadius,
+    'modalRadius': modalRadius,
     'compact': compact,
     'dialogColor': dialogColor,
     'cardColor': cardColor,
@@ -615,6 +624,10 @@ class Appearance {
       mode: j['mode'] as String? ?? 'dark',
       accent: j['accent'] as int? ?? 0xffdae9a6,
       textScale: (j['textScale'] as num? ?? 1).toDouble(),
+      uiScale: (j['uiScale'] as num? ?? 1).toDouble(),
+      fieldRadius: (j['fieldRadius'] as num? ?? 14).toDouble(),
+      buttonRadius: (j['buttonRadius'] as num? ?? 28).toDouble(),
+      modalRadius: (j['modalRadius'] as num? ?? 24).toDouble(),
       compact: j['compact'] as bool? ?? false,
       dialogColor: j['dialogColor'] as int? ?? 0,
       cardColor: j['cardColor'] as int? ?? 0,
@@ -675,8 +688,16 @@ class Appearance {
         ]) ||
         !['system', 'dark', 'light'].contains(a.mode) ||
         !a.textScale.isFinite ||
-        a.textScale < .9 ||
-        a.textScale > 1.4 ||
+        a.textScale < .8 ||
+        a.textScale > 1.6 ||
+        !a.uiScale.isFinite ||
+        a.uiScale < .8 ||
+        a.uiScale > 1.2 ||
+        [
+          a.fieldRadius,
+          a.buttonRadius,
+          a.modalRadius,
+        ].any((v) => !v.isFinite || v < 0 || v > 32) ||
         [
           a.accent,
           a.backgroundColor,

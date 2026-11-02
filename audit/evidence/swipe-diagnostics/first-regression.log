@@ -1,0 +1,92 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: automatic surfaces use neutral role colors and migrate only unchanged old defaults
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: list styling replaces and toggles prefixes across selected lines; Enter renumbers following items
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: (setUpAll)
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file restart and full backup retain all appearance values and both images
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:266:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:290:33)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:296:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +7: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +8: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:00 +9: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:03 +10: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 1100.0
+00:04 +11: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+00:05 +12: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 320.0
+00:05 +13: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:07 +14: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file selection, cancellation, failure, replacement, removal and preview keep real app in sync
+00:08 +15: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: homework header opens assigned homework and keeps unpublished tasks separate
+00:08 +16: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:09 +17: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:10 +18: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: header navigation waits for draft storage and stays in editor after a failed write
+00:10 +19: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:10 +20: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:11 +21: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:11 +22: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:12 +23: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:12 +24: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:13 +25: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 390.0 font 1.0
+00:13 +26: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: direct edited social and orga renderings at narrow and wide widths
+00:13 +27: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: direct edited social and orga renderings at narrow and wide widths
+00:13 +28: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: direct edited social and orga renderings at narrow and wide widths
+00:14 +29: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+00:14 +30: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:14 +31: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:14 +32: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:15 +33: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:17 +34: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:17 +35: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:17 +36: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:18 +37: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:18 +38: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: closing secures an unpublished draft, including a pending checklist input
+00:18 +39: All tests passed!

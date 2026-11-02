@@ -1,3 +1,4 @@
+import 'symbol_button.dart';
 import 'pupil_history.dart';
 import 'conflict_dialog.dart';
 import 'maintenance_dialog.dart';
@@ -30,6 +31,7 @@ class NotebookScreen extends StatefulWidget {
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 0;
+  final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
   SchoolKind? _schoolKind;
   String? _aux;
@@ -50,6 +52,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   final _entrySearch = TextEditingController();
   @override
   void dispose() {
+    _pages.dispose();
     _pupilSearch.dispose();
     _pupilSearchFocus.dispose();
     _entrySearch.dispose();
@@ -57,10 +60,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   final _busyIds = <String>{};
-  void _main(int index) => _changeView(() {
-    _primary = index;
-    _aux = null;
-  });
+  void _main(int index) {
+    final fromAux = _aux != null;
+    FocusManager.instance.primaryFocus?.unfocus();
+    _changeView(() {
+      _primary = index;
+      _aux = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pages.hasClients) return;
+      if (fromAux) {
+        _pages.jumpToPage(index);
+      } else {
+        _pages.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
   Future<void> _editor(OrgaEntry entry, {String? draftId}) async {
     await showDialog<void>(
       context: context,
@@ -277,7 +297,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   Widget build(BuildContext context) => PopScope(
     canPop: _aux == null,
     onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) _changeView(() => _aux = null);
+      if (!didPop) _main(_primary);
     },
     child: Scaffold(
       body: SafeArea(
@@ -333,7 +353,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
         pupil: null,
       );
     }
-    return _primary == 0 ? _overview() : _pupils();
+    return PageView(
+      key: const ValueKey('main-pages'),
+      controller: _pages,
+      onPageChanged: (index) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        _changeView(() => _primary = index);
+      },
+      children: [_overview(), _pupils()],
+    );
   }
 
   Future<void> _openPupil(Pupil pupil, {FlexSymbol? symbol}) async {
@@ -1205,12 +1233,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
               spacing: 8,
               children: [
                 if (e.isTask)
-                  TextButton.icon(
+                  FlexSymbolButton(
                     onPressed: busy
                         ? null
                         : () => _mutate(e.done ? e.reopen() : e.complete()),
-                    icon: Icon(e.done ? Icons.undo : Icons.check),
-                    label: Text(e.done ? 'Wieder öffnen' : 'Erledigen'),
+                    icon: e.done ? Icons.undo : Icons.check_circle_outline,
+                    label: e.done ? 'Wieder öffnen' : 'Erledigen',
                   ),
                 if (e.reminderState == ReminderState.planned)
                   TextButton(

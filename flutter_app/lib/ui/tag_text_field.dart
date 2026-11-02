@@ -67,7 +67,12 @@ class _TagTextFieldState extends State<TagTextField> {
           key: ValueKey('tag-frame-${widget.fieldKey}'),
           decoration: BoxDecoration(
             color: Theme.of(context).inputDecorationTheme.fillColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              Theme.of(
+                    context,
+                  ).extension<FlexSurfaces>()?.appearance?.fieldRadius ??
+                  14,
+            ),
             border: Border.all(
               color: focus.hasFocus ? scheme.primary : scheme.outline,
             ),

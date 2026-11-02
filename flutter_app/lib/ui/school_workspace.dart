@@ -1,3 +1,4 @@
+import 'symbol_button.dart';
 import 'pupil_history.dart';
 import 'draft_buffer.dart';
 import 'surfaces.dart';
@@ -403,24 +404,31 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                         ],
                       ),
                       Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
+                        spacing: 2,
+                        runSpacing: 2,
                         children: [
                           for (final state in TaskState.values)
-                            transparentChip(
-                              ChoiceChip(
-                                key: ValueKey(
-                                  'status-${task.id}-${state.name}',
-                                ),
-                                showCheckmark: false,
-                                label: Text(state.label),
-                                selected: r.taskState(task) == state,
-                                onSelected: busy || r.deleted
-                                    ? null
-                                    : (_) => setTask(task, state),
-                              ),
+                            FlexSymbolButton(
+                              key: ValueKey('status-${task.id}-${state.name}'),
+                              label: state.label,
+                              icon: switch (state) {
+                                TaskState.open => Icons.radio_button_unchecked,
+                                TaskState.complete =>
+                                  Icons.check_circle_outline,
+                                TaskState.partial => Icons.contrast,
+                                TaskState.missing => Icons.cancel_outlined,
+                              },
+                              selected: r.taskState(task) == state,
+                              exclusive: true,
+                              onPressed: busy || r.deleted
+                                  ? null
+                                  : () => setTask(task, state),
                             ),
                         ],
+                      ),
+                      Text(
+                        'Stand: ${r.taskState(task).label}',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                       if (r.liveFeedback
                           .where(

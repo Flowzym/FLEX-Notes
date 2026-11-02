@@ -1,3 +1,4 @@
+import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
@@ -53,7 +54,12 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
           decoration: BoxDecoration(
             color: theme.inputDecorationTheme.fillColor,
             border: Border.all(color: theme.colorScheme.outline),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(
+              Theme.of(
+                    context,
+                  ).extension<FlexSurfaces>()?.appearance?.fieldRadius ??
+                  14,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
