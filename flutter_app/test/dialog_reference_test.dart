@@ -236,35 +236,51 @@ void main() {
   );
 
   testWidgets(
-    'assignment alone, multiple recent tags and legacy free text remain distinct',
+    'observation forms omit recent assignments while preserving own tags and free text',
     (t) async {
-      await repo.saveSchoolRecord(
+      final other = await repo.saveSchoolRecord(
         SchoolRecord.empty(
           SchoolKind.work,
           'b',
         ).patch({'subject': 'Arbeitsblatt · Seite 4'}),
       );
+      final own = await repo.saveSchoolRecord(
+        SchoolRecord.empty(SchoolKind.work, 'a').patch({
+          'taskTags': ['Bestehender Auftrag'],
+          'taskFree': 'Eigener Freitext',
+          'subject': 'Bestehender Auftrag · Eigener Freitext',
+        }),
+      );
       await c.reload();
       await app(t);
-      await open(
-        t,
-        SchoolEditor(
-          controller: c,
-          record: SchoolRecord.empty(SchoolKind.work, 'a'),
-        ),
-      );
-      await tap(t, find.text('Arbeitsblatt · Seite 4'));
+      for (final kind in [SchoolKind.social, SchoolKind.work]) {
+        await open(
+          t,
+          SchoolEditor(controller: c, record: SchoolRecord.empty(kind, 'a')),
+        );
+        expect(find.text('Zuletzt verwendet'), findsNothing);
+        expect(find.text('Arbeitsblatt · Seite 4'), findsNothing);
+        expect(find.text('Bestehender Auftrag'), findsNothing);
+        await tap(t, find.byKey(const ValueKey('cancel-editor')));
+      }
+      await open(t, SchoolEditor(controller: c, record: own));
+      expect(find.text('Zuletzt verwendet'), findsNothing);
+      expect(find.text('Arbeitsblatt · Seite 4'), findsNothing);
+      expect(find.text('Bestehender Auftrag'), findsOneWidget);
       await t.enterText(
         find.byKey(const ValueKey('record-subject')),
-        'Eigener Auftrag',
+        'Bearbeiteter Freitext',
       );
       await tap(t, find.byKey(const ValueKey('save-school-record')));
-      final record = (await repo.schoolRecords()).firstWhere(
-        (r) => r.pupilId == 'a',
+      final records = await repo.schoolRecords();
+      final record = records.firstWhere((r) => r.id == own.id);
+      expect(record.taskTags, ['Bestehender Auftrag']);
+      expect(record.taskFree, 'Bearbeiteter Freitext');
+      expect(record.subject, 'Bestehender Auftrag · Bearbeiteter Freitext');
+      expect(
+        records.firstWhere((r) => r.id == other.id).toJson(),
+        other.toJson(),
       );
-      expect(record.taskTags, ['Arbeitsblatt · Seite 4']);
-      expect(record.taskFree, 'Eigener Auftrag');
-      expect(record.subject, 'Arbeitsblatt · Seite 4 · Eigener Auftrag');
       await finish(t);
     },
   );

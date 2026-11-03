@@ -1,4 +1,17 @@
-# Aktueller Stand: 0.16.0-rebuild.13+33
+# Aktueller Stand: 0.16.0-rebuild.14+34
+
+„Zuletzt verwendet“ entfällt in den Beobachtungsformularen, auch beim Bearbeiten.
+Vorhandene Auftragstags und Freitexte bleiben erhalten. Beide Symbolreihen auf
+Schülerkarten sind zentriert; Symbole und Beschriftungen teilen dieselbe Mittelachse.
+
+32 betroffene Flutter-Tests bestanden, statische Analyse ohne Befunde.
+[Prüfnotiz](../../audit/UI_FEINSCHLIFF_BUILD_34.md) ·
+[Ansichten](../../audit/card-centering-renderings/) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md).
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.13+33
 
 Positiv, Neutral und Negativ sind direkt auswählbar und per Wischgeste erreichbar.
 Neutral besitzt eigene sachliche Tags und Freitext; neue Installationen starten damit.

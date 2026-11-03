@@ -217,10 +217,28 @@ void main() {
           );
           expect(t.getCenter(icon).dx, closeTo(t.getCenter(target).dx, .1));
           expect(t.widget<FlexIcon>(icon).size, 32);
-          final label = t.widget<Text>(
-            find.descendant(of: target, matching: find.byType(Text)).last,
-          );
+          final labelFinder = find
+              .descendant(of: target, matching: find.byType(Text))
+              .last;
+          final label = t.widget<Text>(labelFinder);
           expect(label.textAlign, TextAlign.center);
+          expect(
+            t.getCenter(labelFinder).dx,
+            closeTo(t.getCenter(icon).dx, .1),
+          );
+        }
+        final center = t
+            .getCenter(find.byKey(const ValueKey('pupil-open-a')))
+            .dx;
+        final order = c.appearance.shortcutOrder;
+        for (final row in [order.take(3), order.skip(3)]) {
+          final centers = row
+              .map(
+                (name) =>
+                    t.getCenter(find.byKey(ValueKey('shortcut-a-$name'))).dx,
+              )
+              .toList();
+          expect((centers.first + centers.last) / 2, closeTo(center, .1));
         }
         if (view.$2 == 1) {
           expect(

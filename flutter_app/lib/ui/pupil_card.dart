@@ -41,12 +41,13 @@ class PupilCard extends StatelessWidget {
             .map((name) => FlexSymbol.values.byName(name))
             .toList();
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
-    Widget shortcut(FlexSymbol symbol) {
+    Widget shortcut(FlexSymbol symbol, {int flex = 1}) {
       final openCount = counts[symbol] ?? 0;
       final count = openCount + (draftCounts[symbol] ?? 0);
       final drafts = draftCounts[symbol] ?? 0;
       final label = labels[symbol.index];
       return Expanded(
+        flex: flex,
         child: Semantics(
           button: true,
           label:
@@ -213,8 +214,10 @@ class PupilCard extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final symbol in order.skip(3)) shortcut(symbol),
-                          const Expanded(child: SizedBox()),
+                          const Spacer(),
+                          for (final symbol in order.skip(3))
+                            shortcut(symbol, flex: 2),
+                          const Spacer(),
                         ],
                       ),
                     ],

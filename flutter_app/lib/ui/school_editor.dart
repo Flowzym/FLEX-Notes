@@ -993,18 +993,6 @@ class _SchoolEditorState extends State<SchoolEditor>
     ],
   );
 
-  List<String> get recentAssignments {
-    final records =
-        c.records.where((v) => v.kind == SchoolKind.work && !v.deleted).toList()
-          ..sort((a, b) => b.createdAtUtc.compareTo(a.createdAtUtc));
-    return {
-      for (final v in records) ...[
-        ...v.taskTags,
-        if (v.assignmentFree.trim().isNotEmpty) v.assignmentFree.trim(),
-      ],
-    }.toList();
-  }
-
   void assignment(List<String> tags, String free) => edit({
     'taskTags': tags,
     'taskFree': free,
@@ -1060,26 +1048,6 @@ class _SchoolEditorState extends State<SchoolEditor>
         const SizedBox(height: 8),
         if (r.kind == SchoolKind.work) ...[
           label('Auftrag', 'optional'),
-          if (recentAssignments.isNotEmpty) ...[
-            const Text('Zuletzt verwendet', style: TextStyle(fontSize: 12)),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final text
-                    in recentAssignments
-                        .where((s) => !r.taskTags.contains(s))
-                        .take(6))
-                  transparentChip(
-                    ActionChip(
-                      label: Text(text),
-                      onPressed: () =>
-                          assignment([...r.taskTags, text], r.assignmentFree),
-                    ),
-                  ),
-              ],
-            ),
-          ],
           TagTextField(
             fieldKey: const ValueKey('record-subject'),
             value: r.assignmentFree,
@@ -1498,23 +1466,6 @@ class _SchoolEditorState extends State<SchoolEditor>
         if (r.kind == SchoolKind.work) ...[
           const SizedBox(height: 12),
           const Text('Auftrag'),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final text
-                  in recentAssignments
-                      .where((t) => !r.taskTags.contains(t))
-                      .take(6))
-                transparentChip(
-                  ActionChip(
-                    label: Text(text),
-                    onPressed: () =>
-                        assignment([...r.taskTags, text], r.assignmentFree),
-                  ),
-                ),
-            ],
-          ),
           TagTextField(
             fieldKey: const ValueKey('record-subject'),
             value: r.assignmentFree,
