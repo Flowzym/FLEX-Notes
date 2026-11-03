@@ -1,5 +1,12 @@
 import 'models.dart';
 
+const observationTones = {
+  'positive': 'Positiv',
+  'neutral': 'Neutral',
+  'negative': 'Negativ',
+};
+const observationSigns = {'positive': '+', 'neutral': '•', 'negative': '−'};
+
 const observationDefaults = <String, List<String>>{
   'social-positive': [
     'Hilft anderen',
@@ -8,6 +15,13 @@ const observationDefaults = <String, List<String>>{
     'Geht respektvoll mit anderen um',
     'Klärt einen Konflikt im Gespräch',
     'Hält gemeinsame Absprachen ein',
+  ],
+  'social-neutral': [
+    'Beteiligt sich am Gespräch',
+    'Stellt eine Frage',
+    'Berichtet von einem Erlebnis',
+    'Beobachtet die Gruppe',
+    'Wählt eine Gruppenrolle',
   ],
   'social-negative': [
     'Unterbricht andere wiederholt',
@@ -22,6 +36,13 @@ const observationDefaults = <String, List<String>>{
     'Fragt gezielt nach Hilfe',
     'Schließt die Aufgabe ab',
     'Arbeitet sorgfältig',
+  ],
+  'work-neutral': [
+    'Arbeitet an der Aufgabe',
+    'Liest die Aufgabenstellung',
+    'Nutzt Arbeitsmaterial',
+    'Bespricht einen Arbeitsschritt',
+    'Wechselt die Arbeitsform',
   ],
   'work-negative': [
     'Beginnt erst nach mehreren Aufforderungen',

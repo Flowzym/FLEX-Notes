@@ -555,6 +555,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 spacing: 6,
                 children: [
                   for (final text in r.positive) _observationTag('+ $text'),
+                  for (final text in r.neutral) _observationTag('• $text'),
                   for (final text in r.negative) _observationTag('− $text'),
                 ],
               ),
@@ -812,6 +813,7 @@ Future<void> showBrief(
                 r.subject,
                 r.body,
                 ...r.positive.map((s) => '+ $s'),
+                ...r.neutral.map((s) => '• $s'),
                 ...r.negative.map((s) => '− $s'),
                 if (r.criterion.isNotEmpty) 'Zielkriterium: ${r.criterion}',
                 if (r.support.isNotEmpty)

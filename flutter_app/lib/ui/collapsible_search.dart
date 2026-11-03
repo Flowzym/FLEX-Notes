@@ -9,12 +9,18 @@ class CollapsibleSearch extends StatefulWidget {
     required this.label,
     required this.fieldKey,
     this.buttonKey,
+    this.iconOnly = false,
+    this.leading,
+    this.actions = const [],
   });
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String label;
   final Key fieldKey;
   final Key? buttonKey;
+  final bool iconOnly;
+  final Widget? leading;
+  final List<Widget> actions;
   @override
   State<CollapsibleSearch> createState() => _CollapsibleSearchState();
 }
@@ -63,6 +69,40 @@ class _CollapsibleSearchState extends State<CollapsibleSearch> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.iconOnly) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (widget.leading != null)
+                Expanded(child: widget.leading!)
+              else
+                const Spacer(),
+              if (!expanded && widget.controller.text.isNotEmpty)
+                IconButton(
+                  tooltip: 'Suchtext leeren',
+                  onPressed: clear,
+                  icon: const Icon(Icons.close, size: 20),
+                ),
+              IconButton(
+                key: widget.buttonKey,
+                tooltip: widget.controller.text.isEmpty
+                    ? widget.label
+                    : '${widget.label}: ${widget.controller.text}',
+                onPressed: expanded ? close : open,
+                icon: Badge(
+                  isLabelVisible: widget.controller.text.isNotEmpty,
+                  child: const Icon(Icons.search),
+                ),
+              ),
+              ...widget.actions,
+            ],
+          ),
+          if (expanded) searchField(),
+        ],
+      );
+    }
     if (!expanded) {
       return Row(
         children: [
@@ -92,35 +132,37 @@ class _CollapsibleSearchState extends State<CollapsibleSearch> {
         ],
       );
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextField(
-            key: widget.fieldKey,
-            controller: widget.controller,
-            focusNode: focus,
-            textInputAction: TextInputAction.search,
-            onTapOutside: (_) => close(),
-            onSubmitted: (_) => close(),
-            onChanged: widget.onChanged,
-            decoration: InputDecoration(
-              labelText: widget.label,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: IconButton(
-                tooltip: 'Suchtext leeren',
-                onPressed: clear,
-                icon: const Icon(Icons.close, size: 20),
-              ),
+    return searchField();
+  }
+
+  Widget searchField() => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: TextField(
+          key: widget.fieldKey,
+          controller: widget.controller,
+          focusNode: focus,
+          textInputAction: TextInputAction.search,
+          onTapOutside: (_) => close(),
+          onSubmitted: (_) => close(),
+          onChanged: widget.onChanged,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: IconButton(
+              tooltip: 'Suchtext leeren',
+              onPressed: clear,
+              icon: const Icon(Icons.close, size: 20),
             ),
           ),
         ),
-        IconButton(
-          tooltip: 'Suche schließen',
-          onPressed: close,
-          icon: const Icon(Icons.keyboard_arrow_up),
-        ),
-      ],
-    );
-  }
+      ),
+      IconButton(
+        tooltip: 'Suche schließen',
+        onPressed: close,
+        icon: const Icon(Icons.keyboard_arrow_up),
+      ),
+    ],
+  );
 }

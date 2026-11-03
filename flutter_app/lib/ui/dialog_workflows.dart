@@ -247,8 +247,11 @@ Future<void> showCatalog(
   String kind, {
   DialogDraft? draft,
 }) async {
-  final initial = <String, dynamic>{'tone': 'positive', 'kind': kind};
-  for (final tone in ['positive', 'negative']) {
+  final initial = <String, dynamic>{
+    'tone': c.appearance.defaultObservationTone,
+    'kind': kind,
+  };
+  for (final tone in observationTones.keys) {
     initial[tone] = (await c.repository.observationCatalog(
       '$kind-$tone',
     )).options.toList();
@@ -267,16 +270,18 @@ Future<void> showCatalog(
           '${kind == 'social' ? 'Sozialverhalten' : 'Arbeitsverhalten'} · Auswahl',
       accept: 'Änderungen speichern',
       save: (data, saved) => c.repository.saveCatalogs({
-        for (final tone in ['positive', 'negative'])
+        for (final tone in observationTones.keys)
           '$kind-$tone': [
-            ...List<String>.from(data[tone] as List),
+            ...List<String>.from(data[tone] as List? ?? initial[tone] as List),
             if ((data['new-$tone'] as String? ?? '').trim().isNotEmpty)
               (data['new-$tone'] as String).trim(),
           ],
       }, saved),
       body: (ctx, data, change) {
         final tone = data['tone'] as String,
-            list = List<String>.from(data[data['tone']] as List);
+            list = List<String>.from(
+              data[data['tone']] as List? ?? initial[data['tone']] as List,
+            );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -287,10 +292,12 @@ Future<void> showCatalog(
             Wrap(
               spacing: 8,
               children: [
-                for (final t in ['positive', 'negative'])
+                for (final t in observationTones.keys)
                   transparentChip(
                     ChoiceChip(
-                      label: Text(t == 'positive' ? '＋ Positiv' : '− Negativ'),
+                      label: Text(
+                        '${observationSigns[t]} ${observationTones[t]}',
+                      ),
                       selected: tone == t,
                       onSelected: (_) => change({'tone': t}),
                     ),
@@ -425,6 +432,7 @@ Future<void> showSituation(
                 [
                   r.body,
                   ...r.positive,
+                  ...r.neutral,
                   ...r.negative,
                 ].where((s) => s.isNotEmpty).join(' · '),
               ),
@@ -689,14 +697,13 @@ Future<void> showBulk(
                             hint: 'Beobachtung …',
                             maxLength: 3000,
                             tags: [
-                              for (final tone in ['positive', 'negative'])
+                              for (final tone in observationTones.keys)
                                 for (final value in List<String>.from(
                                   individual[tone] as List? ?? [],
                                 ))
                                   (
                                     id: '$tone-$value',
-                                    label:
-                                        '${tone == 'positive' ? '+' : '−'} $value',
+                                    label: '${observationSigns[tone]} $value',
                                     remove: () => update({
                                       tone: List<String>.from(
                                         individual[tone] as List,
@@ -706,7 +713,7 @@ Future<void> showBulk(
                             ],
                             onChanged: (v) => update({'body': v}),
                           ),
-                          for (final tone in ['positive', 'negative'])
+                          for (final tone in observationTones.keys)
                             Wrap(
                               spacing: 6,
                               runSpacing: 6,
@@ -719,7 +726,7 @@ Future<void> showBulk(
                                   transparentChip(
                                     FilterChip(
                                       label: Text(
-                                        '${tone == 'positive' ? '+' : '−'} $option',
+                                        '${observationSigns[tone]} $option',
                                       ),
                                       selected:
                                           (individual[tone] as List? ?? [])

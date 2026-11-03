@@ -409,7 +409,7 @@ void main() {
     },
   );
   testWidgets(
-    'save and next preserves errors and starts fresh without touching the next pupil draft',
+    'save failure retains input and cancel preserves both pupil drafts',
     (tester) async {
       final beta = SchoolRecord.empty(SchoolKind.social, 'beta').patch({
         'body': 'Vorhandener Entwurf Beta',
@@ -433,32 +433,23 @@ void main() {
         'Beobachtung Alpha',
       );
       repo.failNext = true;
-      await tester.tap(find.text('Speichern & weiter'));
+      await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
       expect(find.text('Synthetischer Speicherfehler'), findsOneWidget);
       expect(await repo.schoolRecords(), isEmpty);
       expect(find.text('Beobachtung Alpha'), findsOneWidget);
-      await tester.tap(find.text('Speichern & weiter'));
+      await tester.tap(find.byKey(const ValueKey('cancel-editor')));
       await tester.pumpAndSettle();
-      expect((await repo.schoolRecords()).single.pupilId, 'alpha');
-      expect(find.text('Vorhandener Entwurf Beta'), findsNothing);
+      expect(find.byType(SchoolEditor), findsNothing);
+      expect(await repo.schoolRecords(), isEmpty);
+      final drafts = await repo.schoolDrafts();
+      expect(drafts, hasLength(2));
       expect(
-        find.descendant(
-          of: find.byType(SchoolEditor),
-          matching: find.text('Beobachtung Alpha'),
-        ),
-        findsNothing,
+        drafts.firstWhere((d) => d.record.pupilId == 'alpha').record.body,
+        'Beobachtung Alpha',
       );
-      expect(find.text('Bestehende Hilfe'), findsNothing);
-      await tester.enterText(
-        find.byKey(const ValueKey('record-body')),
-        'Neue Beobachtung Beta',
-      );
-      await tester.tap(find.text('Speichern'));
-      await tester.pumpAndSettle();
-      expect(await repo.schoolRecords(), hasLength(2));
       expect(
-        (await repo.schoolDrafts()).single.record.body,
+        drafts.firstWhere((d) => d.record.pupilId == 'beta').record.body,
         'Vorhandener Entwurf Beta',
       );
       await finish(tester);
@@ -485,6 +476,8 @@ void main() {
       }
 
       await open(SchoolKind.social);
+      await tester.tap(find.byKey(const ValueKey('tone-positive')));
+      await tester.pumpAndSettle();
       await capture(tester, boundary, 'reference-social');
       await tester.tap(find.byKey(const ValueKey('favorite-Hilft anderen')));
       await tester.pumpAndSettle();
@@ -512,7 +505,7 @@ void main() {
       expect(social.observedOn, '2026-11-02');
       expect(social.observedTime, '');
       await open(SchoolKind.work);
-      await tester.tap(find.byKey(const ValueKey('tone-false')));
+      await tester.tap(find.byKey(const ValueKey('tone-negative')));
       await tester.runAsync(() => repo.snapshot());
       await tester.pumpAndSettle();
       expect(

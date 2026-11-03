@@ -742,6 +742,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               : [
                   r.body,
                   ...r.positive.map((v) => '+ $v'),
+                  ...r.neutral.map((v) => '• $v'),
                   ...r.negative.map((v) => '− $v'),
                 ].where((v) => v.isNotEmpty).join(' · '),
           status: [
@@ -830,14 +831,17 @@ class _NotebookScreenState extends State<NotebookScreen> {
       key: PageStorageKey('pupils-$archived'),
       padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 40),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${all.length} ${archived ? 'im Archiv' : 'Schüler'}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
+        CollapsibleSearch(
+          controller: _pupilSearch,
+          fieldKey: ValueKey('search-$archived'),
+          buttonKey: const ValueKey('toggle-pupil-search'),
+          label: 'Schüler suchen',
+          iconOnly: true,
+          leading: Text(
+            '${all.length} ${archived ? 'im Archiv' : 'Schüler'}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          actions: [
             if (!archived)
               IconButton(
                 tooltip: 'Neuer Schüler',
@@ -854,12 +858,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
               ),
             ),
           ],
-        ),
-        CollapsibleSearch(
-          controller: _pupilSearch,
-          fieldKey: ValueKey('search-$archived'),
-          buttonKey: const ValueKey('toggle-pupil-search'),
-          label: 'Schüler suchen',
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
         const SizedBox(height: 10),
@@ -1391,6 +1389,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         d.record.subject,
                         d.record.body,
                         ...d.record.positive,
+                        ...d.record.neutral,
                         ...d.record.negative,
                         ...d.record.tasks.map((t) => t.text),
                       ].where((v) => v.isNotEmpty).join(' · '),

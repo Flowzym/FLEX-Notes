@@ -14,6 +14,7 @@ const conflictFieldLabels = <String, String>{
   'taskFree': 'Freier Auftrag',
   'taskTags': 'Auftrag-Tags',
   'positive': 'Positive Beobachtungen',
+  'neutral': 'Neutrale Beobachtungen',
   'negative': 'Negative Beobachtungen',
   'participantIds': 'Beteiligte',
   'otherParticipants': 'Weitere Namen',

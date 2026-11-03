@@ -360,6 +360,7 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
           'context': data['context'] ?? '',
           'body': individual['body'] ?? '',
           'positive': individual['positive'] ?? [],
+          'neutral': individual['neutral'] ?? [],
           'negative': individual['negative'] ?? [],
           'participantIds': recipients.where((p) => p != id).toList(),
           'situationId': contextId,

@@ -279,7 +279,8 @@ void main() {
       await t.pumpAndSettle();
       expect(page(t), 0);
       await tap(t, find.byKey(const ValueKey('page-1')));
-      expect(find.text('Suche: Anna'), findsOneWidget);
+      expect(find.byTooltip('Schüler suchen: Anna'), findsOneWidget);
+      expect(find.text('Suche: Anna'), findsNothing);
       await settings(t);
       expect(page(t), 2);
       await slider(t, 'textScale', .65);
@@ -309,10 +310,10 @@ void main() {
       await slider(t, 'textScale', .7);
       expect(c.appearance.textScale, greaterThan(1.2));
       expect(c.appearance.uiScale, zoom);
-      await tap(t, find.text('Buttons & Eingabefelder'));
+
       await slider(t, 'fieldRadius', .2);
       await slider(t, 'buttonRadius', .3);
-      await tap(t, find.text('Dialoge'));
+
       await slider(t, 'modalRadius', .2);
       final saved = await repo.appearance();
       expect(saved.toJson(), c.appearance.toJson());

@@ -398,7 +398,10 @@ class DialogDraft {
       }
     } else if (j['type'] == 'catalog') {
       if (!['social', 'work'].contains(data['kind']) ||
-          !['positive', 'negative'].contains(data['tone']) ||
+          !['positive', 'neutral', 'negative'].contains(data['tone']) ||
+          (data.containsKey('neutral') &&
+              (data['neutral'] is! List ||
+                  !(data['neutral'] as List).every((v) => v is String))) ||
           !['positive', 'negative'].every(
             (tone) =>
                 data[tone] is List &&
@@ -435,6 +438,7 @@ class DialogDraft {
 
 class Appearance {
   const Appearance({
+    this.defaultObservationTone = 'neutral',
     this.mode = 'dark',
     this.accent = 0xffdae9a6,
     this.textScale = 1,
@@ -475,6 +479,7 @@ class Appearance {
     this.cardRadius = 22,
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
+  final String defaultObservationTone;
   final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
   final int accent, dialogColor, cardColor, buttonColor;
   final double uiScale, fieldRadius, buttonRadius, modalRadius;
@@ -633,6 +638,7 @@ class Appearance {
     'mobileImageName': mobileImageName,
     'cardRadius': cardRadius,
     'shortcutOrder': shortcutOrder,
+    'defaultObservationTone': defaultObservationTone,
   };
   factory Appearance.fromJson(Json source) {
     final j = {...source};
@@ -700,13 +706,20 @@ class Appearance {
       desktopImageName: j['desktopImageName'] as String? ?? '',
       mobileImageName: j['mobileImageName'] as String? ?? '',
       cardRadius: (j['cardRadius'] as num? ?? 22).toDouble(),
+      defaultObservationTone:
+          j['defaultObservationTone'] as String? ?? 'neutral',
       shortcutOrder: List<String>.unmodifiable(
         (j['shortcutOrder'] as List? ??
                 const ['goal', 'social', 'work', 'homework', 'orga'])
             .cast<String>(),
       ),
     );
-    if (!a.cardRadius.isFinite ||
+    if (![
+          'positive',
+          'neutral',
+          'negative',
+        ].contains(a.defaultObservationTone) ||
+        !a.cardRadius.isFinite ||
         a.cardRadius < 0 ||
         a.cardRadius > 32 ||
         !a.backgroundDim.isFinite ||

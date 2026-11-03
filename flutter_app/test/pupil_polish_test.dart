@@ -257,6 +257,7 @@ void main() {
         await close(t);
         for (final kind in [SchoolKind.social, SchoolKind.work]) {
           await tap(t, find.byKey(ValueKey('shortcut-a-${kind.name}')));
+          await tap(t, find.byKey(const ValueKey('tone-positive')));
           final option = find.byKey(
             ValueKey(
               'observation-${kind == SchoolKind.social ? 'Hilft anderen' : 'Beginnt selbstständig'}',

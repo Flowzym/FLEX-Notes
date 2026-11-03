@@ -182,6 +182,7 @@ class SchoolRecord {
     this.needsCompletion = false,
     this.deleted = false,
     List<String> positive = const [],
+    List<String> neutral = const [],
     List<String> negative = const [],
     List<String> participantIds = const [],
     this.otherParticipants = '',
@@ -190,6 +191,7 @@ class SchoolRecord {
     List<GoalReview> reviews = const [],
   }) : taskTags = List.unmodifiable(taskTags),
        positive = List.unmodifiable(positive),
+       neutral = List.unmodifiable(neutral),
        negative = List.unmodifiable(negative),
        participantIds = List.unmodifiable(participantIds),
        tasks = List.unmodifiable(tasks),
@@ -227,10 +229,16 @@ class SchoolRecord {
   final SchoolKind kind;
   final int revision;
   final bool needsCompletion, deleted;
-  final List<String> positive, negative, participantIds;
+  final List<String> positive, neutral, negative, participantIds;
   final List<HomeworkTask> tasks;
   final List<SchoolFeedback> feedback;
   final List<GoalReview> reviews;
+  List<String> observations(String tone) => switch (tone) {
+    'positive' => positive,
+    'neutral' => neutral,
+    'negative' => negative,
+    _ => throw const DomainError('Unbekannte Beobachtungsart.'),
+  };
   List<SchoolFeedback> get liveFeedback =>
       feedback.where((f) => !f.deleted).toList()
         ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
@@ -262,6 +270,7 @@ class SchoolRecord {
     goalSnapshot,
     otherParticipants,
     ...positive,
+    ...neutral,
     ...negative,
     ...tasks.map((t) => t.text),
     ...liveFeedback.map((f) => f.note),
@@ -295,6 +304,7 @@ class SchoolRecord {
     'needsCompletion': needsCompletion,
     'deleted': deleted,
     'positive': positive,
+    'neutral': neutral,
     'negative': negative,
     'participantIds': participantIds,
     'otherParticipants': otherParticipants,
@@ -336,6 +346,7 @@ class SchoolRecord {
       needsCompletion: j['needsCompletion'] as bool,
       deleted: j['deleted'] as bool,
       positive: List<String>.from(j['positive'] as List),
+      neutral: List<String>.from(j['neutral'] as List? ?? const []),
       negative: List<String>.from(j['negative'] as List),
       participantIds: List<String>.from(j['participantIds'] as List),
       otherParticipants: j['otherParticipants'] as String,
@@ -377,6 +388,7 @@ class SchoolRecord {
         [SchoolKind.social, SchoolKind.work].contains(kind) &&
         body.trim().isEmpty &&
         positive.isEmpty &&
+        neutral.isEmpty &&
         negative.isEmpty &&
         (situationId == null || context.trim().isEmpty) &&
         (kind != SchoolKind.work || subject.trim().isEmpty)) {
@@ -395,9 +407,11 @@ class SchoolRecord {
         (kind == SchoolKind.homework && subject.length > 100) ||
         taskTags.toSet().length != taskTags.length ||
         positive.toSet().length != positive.length ||
+        neutral.toSet().length != neutral.length ||
         negative.toSet().length != negative.length ||
         [
           ...positive,
+          ...neutral,
           ...negative,
         ].any((t) => t.trim().isEmpty || t.length > 1000) ||
         taskTags.any((t) => t.trim().isEmpty || t.length > 1000)) {

@@ -181,6 +181,7 @@ void main() {
           record: SchoolRecord.empty(SchoolKind.social, 'a'),
         ),
       );
+      await tap(t, find.byKey(const ValueKey('tone-positive')));
       await tap(t, find.byKey(const ValueKey('favorite-Hilft anderen')));
       expect((await repo.observationCatalog('social-positive')).favorites, [
         'Hilft anderen',
@@ -268,39 +269,37 @@ void main() {
     },
   );
 
-  testWidgets(
-    'last pupil stays open with a fresh identity after save and next',
-    (t) async {
-      await app(t);
-      await open(
-        t,
-        SchoolEditor(
-          controller: c,
-          record: SchoolRecord.empty(SchoolKind.social, 'b'),
-        ),
-      );
-      await t.enterText(
-        find.byKey(const ValueKey('record-body')),
-        'Erster Eintrag',
-      );
-      await tap(t, find.text('Speichern & weiter'));
-      expect(find.byType(SchoolEditor), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(SchoolEditor),
-          matching: find.text('Erster Eintrag'),
-        ),
-        findsNothing,
-      );
-      await t.enterText(
-        find.byKey(const ValueKey('record-body')),
-        'Zweiter Eintrag',
-      );
-      await tap(t, find.byKey(const ValueKey('save-school-record')));
-      expect(await repo.schoolRecords(), hasLength(2));
-      await finish(t);
-    },
-  );
+  testWidgets('cancel keeps an unpublished draft for the same pupil', (
+    t,
+  ) async {
+    await app(t);
+    await open(
+      t,
+      SchoolEditor(
+        controller: c,
+        record: SchoolRecord.empty(SchoolKind.social, 'b'),
+      ),
+    );
+    await t.enterText(
+      find.byKey(const ValueKey('record-body')),
+      'Nicht veröffentlichen',
+    );
+    expect(find.text('Speichern & weiter'), findsNothing);
+    await tap(t, find.byKey(const ValueKey('cancel-editor')));
+    expect(find.byType(SchoolEditor), findsNothing);
+    expect(await repo.schoolRecords(), isEmpty);
+    final draft = (await repo.schoolDrafts()).single;
+    expect(draft.record.pupilId, 'b');
+    expect(draft.record.body, 'Nicht veröffentlichen');
+    await open(
+      t,
+      SchoolEditor(controller: c, record: draft.record, draft: draft),
+    );
+    await tap(t, find.byKey(const ValueKey('save-school-record')));
+    expect((await repo.schoolRecords()).single.body, 'Nicht veröffentlichen');
+    expect(await repo.schoolDrafts(), isEmpty);
+    await finish(t);
+  });
 
   testWidgets(
     'comment conflict rebase preserves newer task status and other feedback',
@@ -716,6 +715,7 @@ void main() {
         showCatalog(t.element(find.byType(Scaffold).first), c, 'social'),
       );
       await t.pumpAndSettle();
+      await tap(t, find.text('+ Positiv'));
       await t.enterText(
         find.widgetWithText(TextFormField, 'Neuer Auswahleintrag'),
         'Individuelle positive Auswahl',

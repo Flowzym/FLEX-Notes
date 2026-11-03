@@ -122,6 +122,7 @@ Future<void> showEntryDrafts(
                     d.record.title,
                     d.record.body,
                     ...d.record.positive,
+                    ...d.record.neutral,
                     ...d.record.negative,
                     ...d.record.tasks.map((t) => t.text),
                   ].where((v) => v.isNotEmpty).join(' · '),

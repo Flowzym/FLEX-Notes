@@ -1,4 +1,23 @@
-# Aktueller Stand: 0.16.0-rebuild.12+32
+# Aktueller Stand: 0.16.0-rebuild.13+33
+
+Positiv, Neutral und Negativ sind direkt auswählbar und per Wischgeste erreichbar.
+Neutral besitzt eigene sachliche Tags und Freitext; neue Installationen starten damit.
+Unter Bedienung ist der Standard veränderbar. Ältere Daten bleiben lesbar.
+
+Orga bietet Notiz, Aufgabe und Termin als obere Buttons; Datums- und Statusfelder
+passen zum Typ, „Beobachtet am“ entfällt. Deaktivierte Erinnerungen werden zuverlässig
+entfernt. Abbrechen schließt mit gesichertem Entwurf ohne Veröffentlichung.
+Die Schülersuche liegt als Symbol direkt neben dem Hinzufügen. Die Einstellungen
+zeigen ihre Regler und Datenaktionen offen, ohne erklärende Absatztexte.
+
+[Prüfbericht](../../audit/APP_UI_AUDIT_BUILD_33.md) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md) ·
+[Direkte Flutter-Renderings](../../audit/full-audit-renderings/).
+Prüfumfang und verbleibende Plattformgrenzen sind im Bericht dokumentiert.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.12+32
 
 Sozial-/Arbeitsformulare erlauben horizontales Wischen auf der Positiv-/Negativ-Auswahl.
 Orga enthält eigenständige Termine mit Datum und optionaler Uhrzeit; vorhandene

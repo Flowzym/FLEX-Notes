@@ -18,6 +18,7 @@ String readableRecord(Json value) {
       r.subject,
       r.body,
       ...r.positive.map((v) => '+ $v'),
+      ...r.neutral.map((v) => '• $v'),
       ...r.negative.map((v) => '− $v'),
       if (r.situation.isNotEmpty)
         'Zeitpunkt: ${{'before': 'Vor Unterricht', 'during': 'Unterricht', 'after': 'Nach Unterricht', 'break': 'Pause'}[r.situation]}',

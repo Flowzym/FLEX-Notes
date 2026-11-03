@@ -12,7 +12,6 @@ import 'surfaces.dart';
 
 class SettingsLayoutState {
   int tab = 0;
-  final groups = <String>{};
   bool? previewOpen;
 }
 
@@ -484,35 +483,22 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
           ],
         ),
       );
-  Widget group(
-    String key,
-    String title,
-    String subtitle,
-    List<Widget> children,
-  ) => Card(
+  Widget group(String key, String title, List<Widget> children) => Card(
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
       side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
     ),
-    child: ExpansionTile(
-      shape: const Border(),
-      collapsedShape: const Border(),
+    child: Padding(
       key: PageStorageKey('settings-$key'),
-      initiallyExpanded: widget.layout.groups.contains(key),
-      onExpansionChanged: (open) => open
-          ? widget.layout.groups.add(key)
-          : widget.layout.groups.remove(key),
-      title: Text(title),
-      subtitle: Text(
-        '$subtitle\n${switch (key) {
-          'background' => a.imageActive ? 'Bild aktiv' : 'Farbe aktiv',
-          'surfaces' => 'Kopf ${((1 - a.workspaceOpacity) * 100).round()} % · Karten ${((1 - a.cardOpacity) * 100).round()} %',
-          'controls' => 'Buttons ${((1 - a.buttonOpacity) * 100).round()} % · Felder ${((1 - a.fieldOpacity) * 100).round()} %',
-          _ => 'Fläche ${((1 - a.modalOpacity) * 100).round()} %',
-        }}',
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          ...children,
+        ],
       ),
-      childrenPadding: const EdgeInsets.symmetric(horizontal: 18),
-      children: children,
     ),
   );
   Widget surface(
@@ -520,15 +506,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     String colorKey,
     String opacityKey,
     double opacity,
-    String description,
   ) => section(title, [
-    Text(description),
-    const SizedBox(height: 12),
     range(opacityKey, 'Transparenz', transparency: true),
     color(colorKey, title),
-    const Text(
-      '0 %: deckend. 100 %: keine Farbfüllung. Schrift und Symbole bleiben deckend.',
-    ),
   ], reset: () => change({colorKey: 0, opacityKey: opacity}));
   Widget picture(bool mobile) {
     final key = mobile ? 'mobileImage' : 'desktopImage';
@@ -619,9 +599,6 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
       title: const Text('Live-Vorschau'),
       childrenPadding: const EdgeInsets.all(12),
       children: [
-        const Text(
-          'Kopfbereich, Schülerkarte und Dialog mit deinen Einstellungen.',
-        ),
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -756,9 +733,6 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
           section(
             'Größe & Schrift',
             [
-              const Text(
-                'App-Skalierung verändert die gesamte Oberfläche. Die Schriftgröße passt nur den Text an; die Systemeinstellung bleibt zusätzlich wirksam.',
-              ),
               measure(
                 'uiScale',
                 'App-Skalierung',
@@ -786,7 +760,6 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 change({'uiScale': 1.0, 'textScale': 1.0, 'compact': false}),
           ),
           section('Stilvorlagen', [
-            const Text('Schnell wählen, darunter gezielt anpassen.'),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -806,18 +779,11 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                   ),
               ],
             ),
-            if (!a.hasImage)
-              const Text(
-                'Für Bildvorlagen zuerst unter Hintergrund ein Bild wählen.',
-              ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Lesbarkeitsschutz'),
               value: a.readabilityProtection,
               onChanged: (v) => change({'readabilityProtection': v}),
-            ),
-            const Text(
-              'Sorgt bei Hintergrundbildern für deckende Leseflächen. Manuelle Transparenzänderungen an Leseflächen schalten den Schutz aus.',
             ),
           ]),
           SwitchListTile(
@@ -826,16 +792,10 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             value: a.coupleSurfaces,
             onChanged: (v) => change({'coupleSurfaces': v}),
           ),
-          const Text(
-            'Übernimmt zunächst die Buttonwerte. Danach gelten Farb- und Transparenzänderungen für alle Flächen. Ausschalten ermöglicht wieder getrennte Werte.',
-          ),
-          group('background', 'Hintergrund', 'Farbe, Bild und Tönung', [
+          group('background', 'Hintergrund', [
             section(
               'Hintergrund',
               [
-                const Text(
-                  'Wähle eine Farbe. Helle oder dunkle Schrift passt sich automatisch an.',
-                ),
                 color(
                   'backgroundColor',
                   'Hintergrund',
@@ -881,25 +841,10 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               }),
               child: const Text('Tönung zurücksetzen'),
             ),
-            const Text(
-              'Die Tönung legt Farbe über das Bild. Bei 0 % bleibt die Bildfarbe unverändert. Ausschalten behält das Bild für später.',
-            ),
           ]),
-          group('surfaces', 'Hauptansicht', 'Kopfbereich und Schülerkarten', [
-            surface(
-              'Kopfbereich',
-              'workspaceColor',
-              'workspaceOpacity',
-              .12,
-              'Farbe und Transparenz unabhängig einstellen.',
-            ),
-            surface(
-              'Schülerkarten',
-              'cardColor',
-              'cardOpacity',
-              .28,
-              'Bei hoher Transparenz kann ein unruhiges Bild die Lesbarkeit beeinträchtigen.',
-            ),
+          group('surfaces', 'Hauptansicht', [
+            surface('Kopfbereich', 'workspaceColor', 'workspaceOpacity', .12),
+            surface('Schülerkarten', 'cardColor', 'cardOpacity', .28),
             section('Akzentfarbe', [
               color('accent', 'Akzentfarbe', automatic: false),
             ]),
@@ -936,50 +881,26 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               ],
             ),
           ]),
-          group(
-            'controls',
-            'Buttons & Eingabefelder',
-            'Farbe, Transparenz und Rundung',
-            [
-              measure('buttonRadius', 'Buttonrundung'),
-              measure('fieldRadius', 'Feldrundung'),
-              surface(
-                'Buttons',
-                'buttonColor',
-                'buttonOpacity',
-                .20,
-                'Hintergrund der Auswahl- und Zusatzbuttons in Dialogen. Aktive Auswahl, Positiv-/Negativfarben und primäre Speicheraktionen bleiben erkennbar.',
-              ),
-              surface(
-                'Eingabefelder',
-                'fieldColor',
-                'fieldOpacity',
-                .22,
-                'Hintergrund der Schreibfelder und Auswahllisten in Dialogen.',
-              ),
-            ],
-          ),
-          group('dialogs', 'Dialoge', 'Hintergrund, Kopf- und Fußzeile', [
+          group('controls', 'Buttons & Eingabefelder', [
+            measure('buttonRadius', 'Buttonrundung'),
+            measure('fieldRadius', 'Feldrundung'),
+            surface('Buttons', 'buttonColor', 'buttonOpacity', .20),
+            surface('Eingabefelder', 'fieldColor', 'fieldOpacity', .22),
+          ]),
+          group('dialogs', 'Dialoge', [
             measure('modalRadius', 'Dialogrundung'),
             surface(
               'Dialoghintergrund',
               'modalColor',
               'modalOpacity',
               a.imageActive ? 0 : 1,
-              'Farbfläche über dem Dialogbild. Kopf- und Fußzeile stellst du separat ein.',
             ),
             section(
               'Dialogfenster',
               [
-                const Text(
-                  'Das eingeschaltete Hintergrundbild erscheint auch in den Dialogfenstern, mit derselben Tönung und Abdunklung.',
-                ),
                 color('dialogColor', 'Dialogkopf und -fuß'),
                 range('headerOpacity', 'Kopfzeile', transparency: true),
                 range('footerOpacity', 'Fußzeile', transparency: true),
-                const Text(
-                  '0 %: deckend. 100 %: vollständig transparent. Die Fußzeilen-Einstellung gilt auch für Datum und Nachbereitung. Text und Schaltflächen bleiben sichtbar.',
-                ),
               ],
               reset: () => change({
                 'dialogColor': 0,
@@ -993,13 +914,14 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               if (await confirmFlex(
                 context,
                 'Darstellung zurücksetzen?',
-                'Farben, Bilder und Schrift werden zurückgesetzt. Karten-Shortcuts, Schüler, Einträge und Entwürfe bleiben erhalten.',
+                'Farben, Bilder und Schrift werden zurückgesetzt. Bedienungseinstellungen, Schüler, Einträge und Entwürfe bleiben erhalten.',
                 accept: 'Zurücksetzen',
               )) {
                 await c
                     .saveAppearance(
                       const Appearance().patch({
                         'shortcutOrder': a.shortcutOrder,
+                        'defaultObservationTone': a.defaultObservationTone,
                       }),
                     )
                     .catchError((Object _) {});
@@ -1020,7 +942,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [preview(false), controls],
+              children: [controls, preview(false)],
             );
     },
   );

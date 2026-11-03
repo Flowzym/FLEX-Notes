@@ -1,3 +1,4 @@
+import 'option_bar.dart';
 import 'draft_actions.dart';
 import 'tone_swipe.dart';
 import 'pupil_history.dart';
@@ -111,20 +112,18 @@ class _SchoolEditorState extends State<SchoolEditor>
   bool busy = false,
       dirty = false,
       canPop = false,
-      positive = true,
       participantsOpen = false,
       goalOpen = false,
       supportOpen = false,
       contextOpen = false,
       catalogBusy = true,
-      allOptions = false,
       deliveryOpen = false;
+  String selectedTone = 'neutral';
   final catalogs = <String, ObservationCatalog>{};
   bool get isObservation =>
       mode == 'entry' &&
       (r.kind == SchoolKind.social || r.kind == SchoolKind.work);
-  String get catalogKey =>
-      '${r.kind.name}-${positive ? 'positive' : 'negative'}';
+  String get catalogKey => '${r.kind.name}-$selectedTone';
   String? error;
   bool stale = false;
   String draftStatus = '';
@@ -377,7 +376,7 @@ class _SchoolEditorState extends State<SchoolEditor>
     }
   }
 
-  Future<void> save({bool next = false}) async {
+  Future<void> save() async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -465,48 +464,7 @@ class _SchoolEditorState extends State<SchoolEditor>
       } else {
         await c.saveRecord(r, draftId: draftId, draftRevision: draftRevision);
       }
-      if (mounted && next && isObservation) {
-        final pupils = c.pupils.where((p) => !p.archived).toList();
-        final index = pupils.indexWhere((p) => p.id == r.pupilId);
-        if (index >= 0 && index + 1 < pupils.length) {
-          final pupil = pupils[index + 1];
-          setState(() {
-            r = SchoolRecord.empty(r.kind, pupil.id).patch({
-              'observedOn': r.observedOn,
-              'observedTime': r.observedTime,
-            });
-            draftId = newId();
-            draftRevision = 0;
-            recipients = {pupil.id};
-            dirty = false;
-            editGeneration = 0;
-            baseline = signature(r, recipients);
-            draftStatus = '';
-            restoreSections();
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gespeichert. Letzter Schüler erreicht.'),
-            ),
-          );
-          setState(() {
-            r = SchoolRecord.empty(r.kind, r.pupilId).patch({
-              'observedOn': r.observedOn,
-              'observedTime': r.observedTime,
-            });
-            draftId = newId();
-            draftRevision = 0;
-            dirty = false;
-            editGeneration = 0;
-            baseline = signature(r, recipients);
-            draftStatus = 'Gespeichert. Letzter Schüler erreicht.';
-            restoreSections();
-          });
-        }
-      } else if (mounted) {
-        await pop();
-      }
+      if (mounted) await pop();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -891,7 +849,7 @@ class _SchoolEditorState extends State<SchoolEditor>
               builder: (_) => SchoolEditor(controller: c, record: evidence),
             ),
             child: Text(
-              '${displayDate(evidence.observedOn)} · ${evidence.body.isNotEmpty ? evidence.body : [...evidence.positive, ...evidence.negative].join(', ')}',
+              '${displayDate(evidence.observedOn)} · ${evidence.body.isNotEmpty ? evidence.body : [...evidence.positive, ...evidence.neutral, ...evidence.negative].join(', ')}',
             ),
           ),
         const SizedBox(height: 16),
@@ -960,7 +918,10 @@ class _SchoolEditorState extends State<SchoolEditor>
   }
 
   void restoreSections() {
-    positive = r.negative.isEmpty || r.positive.isNotEmpty;
+    selectedTone = observationTones.keys.firstWhere(
+      (tone) => r.observations(tone).isNotEmpty,
+      orElse: () => c.appearance.defaultObservationTone,
+    );
     participantsOpen =
         r.participantIds.isNotEmpty || r.otherParticipants.isNotEmpty;
     goalOpen = r.goalId != null;
@@ -1054,14 +1015,17 @@ class _SchoolEditorState extends State<SchoolEditor>
     final scheme = Theme.of(context).colorScheme;
     final catalog =
         catalogs[catalogKey] ?? ObservationCatalog.defaults(catalogKey);
-    final selected = positive ? r.positive : r.negative;
+    final selected = r.observations(selectedTone);
     final options = [
       ...catalog.favorites,
       ...catalog.options.where((s) => !catalog.favorites.contains(s)),
     ];
     options.removeWhere(selected.contains);
-    final visibleOptions = allOptions ? options : options.take(6).toList();
-    final selectionColor = positive ? scheme.primary : const Color(0xffefcbb9);
+    final selectionColor = switch (selectedTone) {
+      'negative' => const Color(0xffefcbb9),
+      'neutral' => scheme.secondaryContainer,
+      _ => scheme.primary,
+    };
     Widget label(String title, String hint) => Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text.rich(
@@ -1080,46 +1044,18 @@ class _SchoolEditorState extends State<SchoolEditor>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
+        OptionBar(
           key: const ValueKey('tone-pill'),
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: Theme.of(context).extension<FlexSurfaces>()?.palette?.button,
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              for (final value in [true, false])
-                Expanded(
-                  child: Semantics(
-                    selected: positive == value,
-                    inMutuallyExclusiveGroup: true,
-                    child: TextButton(
-                      key: ValueKey('tone-$value'),
-                      onPressed: () => setState(() => positive = value),
-                      style: TextButton.styleFrom(
-                        shape: const StadiumBorder(),
-                        backgroundColor: positive == value
-                            ? (value ? scheme.primary : const Color(0xffefcbb9))
-                            : Colors.transparent,
-                        foregroundColor: positive == value
-                            ? const Color(0xff182014)
-                            : Theme.of(
-                                context,
-                              ).extension<FlexSurfaces>()?.palette?.buttonInk,
-                        minimumSize: const Size(0, 40),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                      ),
-                      child: Text(value ? 'Positiv' : 'Negativ'),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          keyPrefix: 'tone',
+          options: observationTones,
+          value: selectedTone,
+          colors: {
+            'neutral': scheme.secondaryContainer,
+            'negative': const Color(0xffefcbb9),
+          },
+          onChanged: (value) => setState(() {
+            selectedTone = value;
+          }),
         ),
         const SizedBox(height: 8),
         if (r.kind == SchoolKind.work) ...[
@@ -1184,7 +1120,7 @@ class _SchoolEditorState extends State<SchoolEditor>
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final text in visibleOptions)
+            for (final text in options)
               Container(
                 key: ValueKey('observation-option-$text'),
                 constraints: BoxConstraints(
@@ -1232,9 +1168,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                             ),
                           ),
                           onPressed: () => edit({
-                            positive
-                                ? 'positive'
-                                : 'negative': selected.contains(text)
+                            selectedTone: selected.contains(text)
                                 ? selected.where((s) => s != text).toList()
                                 : [...selected, text],
                           }),
@@ -1276,15 +1210,6 @@ class _SchoolEditorState extends State<SchoolEditor>
               ),
           ],
         ),
-        if (options.length > 6)
-          TextButton(
-            onPressed: () => setState(() => allOptions = !allOptions),
-            child: Text(
-              allOptions
-                  ? 'Weniger anzeigen'
-                  : 'Alle ${options.length} anzeigen',
-            ),
-          ),
         const SizedBox(height: 16),
         label(
           r.kind == SchoolKind.social
@@ -1306,6 +1231,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                 transparentChip(
                   ChoiceChip(
                     label: Text(choice.value),
+                    labelStyle: const TextStyle(fontSize: 12, height: 1.2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                     backgroundColor:
                         Theme.of(
                           context,
@@ -1334,17 +1267,15 @@ class _SchoolEditorState extends State<SchoolEditor>
           value: r.body,
           hint: 'Beobachtung …',
           tags: [
-            for (final tone in [true, false])
-              for (final text in tone ? r.positive : r.negative)
+            for (final tone in observationTones.keys)
+              for (final text in r.observations(tone))
                 (
-                  id: '${tone ? 'positive' : 'negative'}-$text',
-                  label: '${tone ? '+' : '−'} $text',
+                  id: '$tone-$text',
+                  label: '${observationSigns[tone]} $text',
                   remove: () => edit({
-                    tone
-                        ? 'positive'
-                        : 'negative': (tone ? r.positive : r.negative)
-                        .where((t) => t != text)
-                        .toList(),
+                    tone: (r.observations(
+                      tone,
+                    )).where((t) => t != text).toList(),
                   }),
                 ),
             if (r.kind == SchoolKind.social && r.situation.isNotEmpty)
@@ -1521,6 +1452,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                   transparentChip(
                     ActionChip(
                       label: Text(choice.value),
+                      labelStyle: const TextStyle(fontSize: 12, height: 1.2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
                       onPressed: () => edit({'situation': choice.key}),
                     ),
                   ),
@@ -1531,17 +1470,15 @@ class _SchoolEditorState extends State<SchoolEditor>
           value: r.body,
           hint: 'Beobachtung …',
           tags: [
-            for (final tone in [true, false])
-              for (final text in tone ? r.positive : r.negative)
+            for (final tone in observationTones.keys)
+              for (final text in r.observations(tone))
                 (
-                  id: '${tone ? 'positive' : 'negative'}-$text',
-                  label: '${tone ? '+' : '−'} $text',
+                  id: '$tone-$text',
+                  label: '${observationSigns[tone]} $text',
                   remove: () => edit({
-                    tone
-                        ? 'positive'
-                        : 'negative': (tone ? r.positive : r.negative)
-                        .where((t) => t != text)
-                        .toList(),
+                    tone: (r.observations(
+                      tone,
+                    )).where((t) => t != text).toList(),
                   }),
                 ),
             if (r.kind == SchoolKind.social && r.situation.isNotEmpty)
@@ -1621,18 +1558,18 @@ class _SchoolEditorState extends State<SchoolEditor>
         ExpansionTile(
           title: const Text('Auswahl bearbeiten'),
           children: [
-            for (final tone in [true, false])
+            for (final tone in observationTones.keys)
               for (
                 var index = 0;
-                index < (tone ? r.positive : r.negative).length;
+                index < (r.observations(tone)).length;
                 index++
               )
                 Builder(
                   builder: (ctx) {
-                    final list = tone ? r.positive : r.negative;
+                    final list = r.observations(tone);
                     return Row(
                       children: [
-                        Text(tone ? '+' : '−'),
+                        Text(observationSigns[tone]!),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextFormField(
@@ -1642,13 +1579,13 @@ class _SchoolEditorState extends State<SchoolEditor>
                             initialValue: list[index],
                             maxLength: 300,
                             decoration: InputDecoration(
-                              labelText: tone ? 'Positiv' : 'Negativ',
+                              labelText: observationTones[tone],
                               counterText: '',
                             ),
                             onChanged: (v) {
                               final values = [...list];
                               values[index] = v;
-                              edit({tone ? 'positive' : 'negative': values});
+                              edit({tone: values});
                             },
                           ),
                         ),
@@ -1656,7 +1593,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                           tooltip: 'Beobachtung entfernen',
                           onPressed: () {
                             final values = [...list]..removeAt(index);
-                            edit({tone ? 'positive' : 'negative': values});
+                            edit({tone: values});
                           },
                           icon: const Icon(Icons.close),
                         ),
@@ -1667,18 +1604,13 @@ class _SchoolEditorState extends State<SchoolEditor>
             Wrap(
               spacing: 8,
               children: [
-                for (final tone in [true, false])
+                for (final tone in observationTones.keys)
                   TextButton(
                     onPressed: () => edit({
-                      tone ? 'positive' : 'negative': [
-                        ...(tone ? r.positive : r.negative),
-                        '',
-                      ],
+                      tone: [...(r.observations(tone)), ''],
                     }),
                     child: Text(
-                      tone
-                          ? '+ Beobachtung ergänzen'
-                          : '− Beobachtung ergänzen',
+                      '${observationSigns[tone]} Beobachtung ergänzen',
                     ),
                   ),
               ],
@@ -1982,36 +1914,14 @@ class _SchoolEditorState extends State<SchoolEditor>
             ),
           Row(
             children: [
-              if (r.revision == 0)
-                Expanded(
-                  child: TextButton(
-                    onPressed: busy ? null : () => save(next: true),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(0, 42),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).extension<FlexSurfaces>()?.palette?.button,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'Speichern & weiter',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, size: 18),
-                      ],
-                    ),
-                  ),
+              Expanded(
+                child: TextButton(
+                  key: const ValueKey('cancel-editor'),
+                  onPressed: busy ? null : close,
+                  child: const Text('Abbrechen'),
                 ),
-              if (r.revision == 0) const SizedBox(width: 12),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   key: const ValueKey('save-school-record'),
@@ -2128,8 +2038,13 @@ class _SchoolEditorState extends State<SchoolEditor>
                         ? observationEdit()
                         : ToneSwipe(
                             key: const ValueKey('observation-swipe'),
-                            onChanged: (value) =>
-                                setState(() => positive = value),
+                            onChanged: (value) => setState(() {
+                              final tones = observationTones.keys.toList();
+                              selectedTone =
+                                  tones[(tones.indexOf(selectedTone) +
+                                          (value ? -1 : 1))
+                                      .clamp(0, tones.length - 1)];
+                            }),
                             child: observation(),
                           ),
                   if (stale && mode == 'comment')
@@ -2210,6 +2125,11 @@ class _SchoolEditorState extends State<SchoolEditor>
                   key: const ValueKey('school-draft-status'),
                   style: const TextStyle(fontSize: 11),
                 ),
+              TextButton(
+                key: const ValueKey('cancel-editor'),
+                onPressed: busy ? null : close,
+                child: const Text('Abbrechen'),
+              ),
               FilledButton(
                 key: const ValueKey('save-school-record'),
                 onPressed: busy ? null : save,

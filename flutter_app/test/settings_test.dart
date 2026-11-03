@@ -355,7 +355,7 @@ void main() {
         await settings(t);
         expect(find.byType(SettingsPage), findsOneWidget);
         await capture(t, key, 'settings-${size.width.round()}');
-        await click(t, find.text('Dialoge').first);
+
         final hex = find.byKey(const ValueKey('hex-Dialogkopf und -fuß'));
         await t.ensureVisible(hex);
         await t.enterText(hex, '#ZZZZZZ');
@@ -404,7 +404,7 @@ void main() {
       addTearDown(() => FileSelectorPlatform.instance = original);
       await app(t);
       await settings(t);
-      await click(t, find.text('Hintergrund').first);
+
       Future<void> choose(XFile? file) async {
         picker.next = file;
         final button = find
@@ -670,6 +670,7 @@ void main() {
       for (final name in Appearance.surfaceOpacities) {
         if (name == 'buttonOpacity') {
           await click(t, find.byKey(const ValueKey('shortcut-alpha-social')));
+          await click(t, find.byKey(const ValueKey('tone-positive')));
         }
         final colors = <int>[];
         for (final alpha in [0.0, .5, 1.0]) {
@@ -801,7 +802,7 @@ void main() {
       await app(t, size: const Size(320, 740), boundary: key);
       await settings(t);
       await capture(t, key, 'settings-system-text-200');
-      await click(t, find.text('Dialoge').first);
+
       final field = find.byKey(const ValueKey('hex-Dialogkopf und -fuß'));
       await t.ensureVisible(field);
       await t.enterText(field, '#x');

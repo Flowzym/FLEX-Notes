@@ -29,9 +29,7 @@ class FlexApp extends StatelessWidget {
           ? const Color(0x24e9efcf)
           : baseScheme.outlineVariant,
       outline: dark ? const Color(0x45dbe6bf) : baseScheme.outline,
-      onSurfaceVariant: dark
-          ? const Color(0xffc2cbb6)
-          : baseScheme.onSurfaceVariant,
+      onSurfaceVariant: palette.modalInk,
     );
     final button = palette.button;
     final buttonText = palette.buttonInk;
@@ -72,6 +70,7 @@ class FlexApp extends StatelessWidget {
     );
     return ThemeData(
       useMaterial3: true,
+      iconTheme: IconThemeData(color: palette.modalInk),
       colorScheme: scheme,
       scaffoldBackgroundColor: Colors.transparent,
       extensions: [

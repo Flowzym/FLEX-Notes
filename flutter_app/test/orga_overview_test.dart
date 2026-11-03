@@ -311,6 +311,7 @@ void main() {
           t,
           SchoolEditor(controller: c, record: SchoolRecord.empty(kind, 'a')),
         );
+        await tap(t, find.byKey(const ValueKey('tone-positive')));
         final positive = kind == SchoolKind.social
             ? 'Hilft anderen'
             : 'Beginnt selbstständig';
@@ -320,9 +321,11 @@ void main() {
         await t.pumpAndSettle();
         await t.drag(pill, const Offset(-170, 0));
         await t.pumpAndSettle();
+        await t.drag(pill, const Offset(-170, 0));
+        await t.pumpAndSettle();
         expect(
           t
-              .widget<TextButton>(find.byKey(const ValueKey('tone-false')))
+              .widget<TextButton>(find.byKey(const ValueKey('tone-negative')))
               .style!
               .backgroundColor!
               .resolve({}),
@@ -341,9 +344,11 @@ void main() {
         await t.pumpAndSettle();
         await t.drag(pill, const Offset(170, 0));
         await t.pumpAndSettle();
+        await t.drag(pill, const Offset(170, 0));
+        await t.pumpAndSettle();
         expect(
           t
-              .widget<TextButton>(find.byKey(const ValueKey('tone-true')))
+              .widget<TextButton>(find.byKey(const ValueKey('tone-positive')))
               .style!
               .backgroundColor!
               .resolve({}),
@@ -392,7 +397,8 @@ void main() {
       await t.testTextInput.receiveAction(TextInputAction.search);
       await t.pumpAndSettle();
       expect(find.byKey(const ValueKey('search-false')), findsNothing);
-      expect(find.text('Suche: Anna'), findsOneWidget);
+      expect(find.byTooltip('Schüler suchen: Anna'), findsOneWidget);
+      expect(find.text('Suche: Anna'), findsNothing);
       expect(find.text('Ben Beispiel'), findsNothing);
       await tap(t, find.byTooltip('Suchtext leeren'));
       expect(find.text('Ben Beispiel'), findsOneWidget);
@@ -429,8 +435,7 @@ void main() {
         ),
       );
       expect(find.textContaining('14:30'), findsOneWidget);
-      await tap(t, find.byKey(const ValueKey('orga-kind-appointment')));
-      await tap(t, find.text('Notiz').last);
+      await tap(t, find.byKey(const ValueKey('orga-kind-note')));
       expect(find.byKey(const ValueKey('orga-appointment-date')), findsNothing);
       await tap(t, find.text('Speichern'));
       expect((await repo.entries()).single.appointmentDate, isNull);

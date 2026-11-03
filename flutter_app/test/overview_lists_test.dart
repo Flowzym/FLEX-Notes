@@ -774,7 +774,7 @@ void main() {
           ),
         );
         final pill = find.byKey(const ValueKey('tone-pill'));
-        for (final value in [true, false]) {
+        for (final value in ['positive', 'neutral', 'negative']) {
           expect(
             find.descendant(
               of: pill,
@@ -783,7 +783,7 @@ void main() {
             findsOneWidget,
           );
         }
-        await tap(t, find.byKey(const ValueKey('tone-false')));
+        await tap(t, find.byKey(const ValueKey('tone-negative')));
         expect((await repo.schoolDrafts()).single.id, 'draft-social');
         await capture(
           t,

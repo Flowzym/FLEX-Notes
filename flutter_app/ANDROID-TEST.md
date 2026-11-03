@@ -1,19 +1,22 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.12+32**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.13+33**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Das Update ergänzt Orga-Termine mit Datum und optionaler Uhrzeit, horizontales
-Wischen zwischen Positiv und Negativ, einklappende Suchfelder und das Löschen
-von Entwürfen im Editor. Die Übersicht zeigt kompakte, getrennte Bereiche.
+Das Update ergänzt eigene neutrale Beobachtungen und eine wählbare Standardauswahl
+(Standard: Neutral). Die kompakte Dreifachauswahl lässt sich wischen. Orga bietet
+Notiz, Aufgabe und Termin direkt als Buttons mit passenden Feldern. Die Schülersuche
+liegt als Symbol neben „Neuer Schüler“, Einstellungen zeigen weniger Hinweistexte
+und direkt erreichbare Optionen. „Abbrechen“ ersetzt „Speichern & weiter“;
+begonnene Eingaben bleiben als Entwurf erhalten, ohne veröffentlicht zu werden.
 Die Korrektur für den Fokusverlust beim Öffnen der Tastatur bleibt enthalten.
 App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 **FLEX Test** installiert werden. Eine Deinstallation ist nicht erforderlich.
 
 ## Installation
 
-[APK Build 32 auf GitHub herunterladen](../releases/android/build-32/README.md).
+[APK Build 33 auf GitHub herunterladen](../releases/android/build-33/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

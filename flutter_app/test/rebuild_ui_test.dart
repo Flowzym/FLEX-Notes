@@ -269,6 +269,9 @@ void main() {
       final body = find.byKey(const ValueKey('record-body'));
       await reveal(tester, body);
       await tester.enterText(body, 'Freier Beobachtungstext');
+      await reveal(tester, find.byKey(const ValueKey('tone-positive')));
+      await tester.tap(find.byKey(const ValueKey('tone-positive')));
+      await tester.pumpAndSettle();
       final selection = find.text('Hilft anderen');
       await reveal(tester, selection);
       await tester.tap(selection);

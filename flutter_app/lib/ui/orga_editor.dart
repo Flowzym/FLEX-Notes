@@ -1,3 +1,4 @@
+import 'option_bar.dart';
 import 'draft_actions.dart';
 import 'symbol_button.dart';
 import 'surfaces.dart';
@@ -45,6 +46,20 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       reminderOpen = false,
       listOpen = false;
   String? error;
+  final errorAnchor = GlobalKey();
+  void revealError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = errorAnchor.currentContext;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(
+          target,
+          alignment: .5,
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    });
+  }
+
   Timer? debounce;
   Future<void> pending = Future.value();
   NotebookController get c => widget.controller;
@@ -273,7 +288,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  Future<void> save({bool next = false}) async {
+  Future<void> save() async {
     if (busy) return;
     debounce?.cancel();
     setState(() {
@@ -283,7 +298,13 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     try {
       await pending.catchError((Object _) {});
       if (note.text.trim().isEmpty) {
-        throw const DomainError('Bitte eine Notiz eingeben.');
+        throw DomainError(
+          entry.isAppointment
+              ? 'Bitte den Termin benennen.'
+              : entry.isTask
+              ? 'Bitte eine Aufgabe eingeben.'
+              : 'Bitte eine Notiz eingeben.',
+        );
       }
       if (reminderOpen && entry.reminderAtUtc == null) {
         throw const DomainError('Bitte ein Datum für die Erinnerung wählen.');
@@ -294,37 +315,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       );
       saved.validate();
       await c.saveEntry(saved, draftId: draftId, draftRevision: draftRevision);
-      if (next && !isClass && mounted) {
-        final active = c.pupils.where((p) => !p.archived).toList();
-        final index = active.indexWhere((p) => p.id == entry.pupilId);
-        final owner = index >= 0 && index + 1 < active.length
-            ? active[index + 1].id
-            : entry.pupilId;
-        setState(() {
-          entry = OrgaEntry.empty(pupilId: owner).copyWith(
-            observedOn: entry.observedOn,
-            observedTime: entry.observedTime,
-          );
-          draftId = newId();
-          draftRevision = 0;
-          note.clear();
-          reminder.clear();
-          itemText.clear();
-          itemId = newId();
-          dirty = false;
-          editGeneration = 0;
-          reminderOpen = false;
-          listOpen = false;
-          baseline = signature(value);
-          status = owner == saved.pupilId
-              ? 'Gespeichert. Letzter Schüler erreicht.'
-              : '';
-        });
-      } else {
-        await pop();
-      }
+      await pop();
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      if (mounted) {
+        setState(() => error = friendlyError(e));
+        revealError();
+      }
     }
     if (mounted) setState(() => busy = false);
   }
@@ -542,32 +538,19 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(status, style: const TextStyle(fontSize: 12)),
                   ),
-                DropdownButtonFormField<String>(
-                  key: ValueKey(
-                    'orga-kind-${entry.isAppointment
-                        ? 'appointment'
-                        : entry.isTask
-                        ? 'task'
-                        : 'note'}',
-                  ),
-                  initialValue: entry.isAppointment
+                OptionBar(
+                  key: const ValueKey('orga-kind-bar'),
+                  keyPrefix: 'orga-kind',
+                  options: const {
+                    'note': 'Notiz',
+                    'task': 'Aufgabe',
+                    'appointment': 'Termin',
+                  },
+                  value: entry.isAppointment
                       ? 'appointment'
                       : entry.isTask
                       ? 'task'
                       : 'note',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Art',
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'note', child: Text('Notiz')),
-                    DropdownMenuItem(value: 'task', child: Text('Aufgabe')),
-                    DropdownMenuItem(
-                      value: 'appointment',
-                      child: Text('Termin'),
-                    ),
-                  ],
                   onChanged: (kind) => change(
                     entry.copyWith(
                       isTask: kind == 'task',
@@ -598,7 +581,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                 Text(
                   entry.isAppointment
                       ? 'Termin und Notizen'
-                      : 'Notiz oder Aufgabe',
+                      : entry.isTask
+                      ? 'Aufgabe'
+                      : 'Notiz',
                 ),
                 Wrap(
                   spacing: 4,
@@ -694,8 +679,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                             minLines: 4,
                             maxLines: 12,
                             maxLength: 12000,
-                            decoration: const InputDecoration(
-                              hintText: 'Notiz …',
+                            decoration: InputDecoration(
+                              hintText: entry.isAppointment
+                                  ? 'Termin …'
+                                  : entry.isTask
+                                  ? 'Aufgabe …'
+                                  : 'Notiz …',
                               counterText: '',
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -813,7 +802,17 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Erinnern'),
                   value: reminderOpen,
-                  onChanged: (v) => setState(() => reminderOpen = v),
+                  onChanged: (v) {
+                    setState(() => reminderOpen = v);
+                    if (!v) {
+                      change(
+                        entry.copyWith(
+                          reminderAtUtc: null,
+                          reminderState: ReminderState.none,
+                        ),
+                      );
+                    }
+                  },
                 ),
                 if (reminderOpen) ...[
                   TextButton.icon(
@@ -847,6 +846,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                 ],
                 if (error != null)
                   Padding(
+                    key: errorAnchor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
                       error!,
@@ -859,30 +859,22 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             ),
           ),
           actions: [
-            if (!isClass) ...[
-              TextButton.icon(
-                onPressed: busy ? null : date,
-                icon: const Icon(Icons.calendar_month),
-                label: Text(
-                  '${entry.isAppointment ? 'Erfasst am' : 'Beobachtet am'} ${displayDate(entry.observedOn)} ${entry.observedTime}',
-                ),
+            SizedBox(
+              width: double.infinity,
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Später ergänzen'),
+                value: entry.needsCompletion,
+                onChanged: busy
+                    ? null
+                    : (v) => change(entry.copyWith(needsCompletion: v)),
               ),
-              SizedBox(
-                width: double.infinity,
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Später ergänzen'),
-                  value: entry.needsCompletion,
-                  onChanged: busy
-                      ? null
-                      : (v) => change(entry.copyWith(needsCompletion: v)),
-                ),
-              ),
-              TextButton(
-                onPressed: busy ? null : () => save(next: true),
-                child: const Text('Speichern & weiter'),
-              ),
-            ],
+            ),
+            TextButton(
+              key: const ValueKey('cancel-editor'),
+              onPressed: busy ? null : close,
+              child: const Text('Abbrechen'),
+            ),
             FilledButton(
               onPressed: busy ? null : save,
               child: const Text('Speichern'),

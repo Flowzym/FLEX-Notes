@@ -1,3 +1,5 @@
+import '../domain/observation_catalog.dart';
+import 'option_bar.dart';
 import 'maintenance_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -173,6 +175,29 @@ class _SettingsPageState extends State<SettingsPage>
   Widget interaction() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Standard für Beobachtungen',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              OptionBar(
+                options: observationTones,
+                value: c.appearance.defaultObservationTone,
+                keyPrefix: 'default-tone',
+                onChanged: (value) =>
+                    c.previewAppearance({'defaultObservationTone': value}),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 18),
       Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
       Align(
         alignment: Alignment.centerLeft,
@@ -182,9 +207,6 @@ class _SettingsPageState extends State<SettingsPage>
           }),
           child: const Text('Zurücksetzen'),
         ),
-      ),
-      const Text(
-        'Von links nach rechts, zuerst die obere Zeile. Mit den Pfeilen verschieben.',
       ),
       const SizedBox(height: 16),
       for (final name in c.appearance.shortcutOrder)
@@ -228,40 +250,6 @@ class _SettingsPageState extends State<SettingsPage>
         ),
     ],
   );
-  Future<void> backupMenu() => showDialog<void>(
-    context: context,
-    builder: (ctx) => FlexModal(
-      title: const Text('Sicherung / Import'),
-      onClose: () => Navigator.pop(ctx),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _action(_export);
-            },
-            child: const Text('Exportieren'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _action(() => _import(legacy: false));
-            },
-            child: const Text('Sicherung importieren'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _action(() => _import(legacy: true));
-            },
-            child: const Text('HTML-Sicherung vormerken'),
-          ),
-        ],
-      ),
-    ),
-  );
   Widget data() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -275,18 +263,31 @@ class _SettingsPageState extends State<SettingsPage>
                 'Sichern & wiederherstellen',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const Text(
-                'Daten und Entwürfe exportieren oder eine Sicherung einlesen. Die Vollsicherung enthält Darstellung und Hintergrundbilder.',
-              ),
               const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton(
-                  onPressed: _busy ? null : backupMenu,
-                  child: const Text('Sicherung / Import öffnen'),
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _action(_export),
+                    icon: const Icon(Icons.download),
+                    label: const Text('Exportieren'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _action(() => _import(legacy: false)),
+                    icon: const Icon(Icons.upload),
+                    label: const Text('Sicherung importieren'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _busy
+                        ? null
+                        : () => _action(() => _import(legacy: true)),
+                    child: const Text('HTML-Sicherung vormerken'),
+                  ),
+                ],
               ),
-              const Text('Passwortschutz lässt sich beim Export wählen.'),
             ],
           ),
         ),
@@ -299,7 +300,7 @@ class _SettingsPageState extends State<SettingsPage>
             children: [
               Text('Papierkorb', style: Theme.of(context).textTheme.titleLarge),
               Text(
-                '${c.trashedEntries.length + c.records.where((r) => r.deleted).length} gelöschte Einträge. Hier wiederherstellen oder endgültig entfernen.',
+                '${c.trashedEntries.length + c.records.where((r) => r.deleted).length} gelöschte Einträge',
               ),
               Align(
                 alignment: Alignment.centerLeft,
@@ -323,27 +324,33 @@ class _SettingsPageState extends State<SettingsPage>
           ),
         ),
       ),
-      Card(
-        child: ExpansionTile(
-          key: const PageStorageKey('settings-maintenance'),
-          title: const Text('Speicherpflege'),
-          subtitle: const Text('Technischen Speicher zusammenfassen'),
-          children: [
-            const Text('Einträge und frühere Fassungen bleiben erhalten.'),
-            OutlinedButton(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => MaintenanceDialog(controller: c),
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            key: const PageStorageKey('settings-maintenance'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Speicherpflege',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              child: const Text('Speicherpflege öffnen'),
-            ),
-          ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => MaintenanceDialog(controller: c),
+                  ),
+                  child: const Text('Speicherpflege öffnen'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       if (c.stagedLegacyCount > 0)
-        Text(
-          '${c.stagedLegacyCount} unveränderte HTML-Sicherungen vorgemerkt und in der Vollsicherung enthalten.',
-        ),
+        Text('${c.stagedLegacyCount} HTML-Sicherungen vorgemerkt'),
     ],
   );
   Widget tabButton(int i) => Focus(
@@ -444,9 +451,6 @@ class _SettingsPageState extends State<SettingsPage>
             'Einstellungen',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const Text(
-            'Änderungen werden automatisch auf diesem Gerät gespeichert.',
-          ),
           const SizedBox(height: 18),
           tabs(),
           const SizedBox(height: 18),
@@ -461,9 +465,7 @@ class _SettingsPageState extends State<SettingsPage>
             liveRegion: true,
             child: Text(
               c.appearanceError ??
-                  (c.appearanceSaving
-                      ? 'Wird gespeichert …'
-                      : 'Gespeichert · auf diesem Gerät'),
+                  (c.appearanceSaving ? 'Wird gespeichert …' : 'Gespeichert'),
             ),
           ),
         ],

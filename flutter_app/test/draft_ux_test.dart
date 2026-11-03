@@ -253,6 +253,7 @@ void main() {
           record: SchoolRecord.empty(SchoolKind.social, 'a'),
         ),
       );
+      await tap(t, find.byKey(const ValueKey('tone-positive')));
       await tap(t, find.text('Hilft anderen'));
       await autosave(t);
       expect((await repo.schoolDrafts()).single.record.positive, [
@@ -683,7 +684,7 @@ void main() {
   );
 
   testWidgets(
-    'Orga save and next always starts blank and preserves next pupil draft',
+    'Orga cancel preserves both current and other pupil drafts without publishing',
     (t) async {
       final old = await repo.saveDraft(
         EditDraft(
@@ -705,17 +706,20 @@ void main() {
         find.byKey(const ValueKey('orga-note')),
         'Neue Notiz Anna',
       );
-      await tap(t, find.text('Speichern & weiter'));
-      final field = t.widget<EditableText>(
-        find.descendant(
-          of: find.byKey(const ValueKey('orga-note')),
-          matching: find.byType(EditableText),
-        ),
+      expect(find.text('Speichern & weiter'), findsNothing);
+      await tap(t, find.byKey(const ValueKey('cancel-editor')));
+      expect(find.byType(OrgaEditor), findsNothing);
+      final drafts = await repo.drafts();
+      expect(drafts, hasLength(2));
+      expect(
+        drafts.firstWhere((d) => d.id == old.id).entry.toJson(),
+        old.entry.toJson(),
       );
-      expect(field.controller.text, isEmpty);
-      await close(t);
-      expect((await repo.drafts()).single.id, old.id);
-      expect((await repo.entries()).single.pupilId, 'a');
+      expect(
+        drafts.firstWhere((d) => d.entry.pupilId == 'a').entry.body,
+        'Neue Notiz Anna',
+      );
+      expect(await repo.entries(), isEmpty);
       await finish(t);
     },
   );
