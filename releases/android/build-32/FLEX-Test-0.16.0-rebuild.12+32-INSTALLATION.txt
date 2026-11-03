@@ -1,0 +1,8 @@
+FLEX Test Build 32
+
+APK herunterladen und auf Android öffnen. Über die vorhandene FLEX Test installieren; nicht deinstallieren. Android 7.0 oder neuer.
+App-ID und Testsignatur sind unverändert.
+
+Neu: Positiv/Negativ wischen, Orga-Termine mit Datum und optionaler Uhrzeit, einklappende Suche, Entwürfe direkt im Editor löschen und überarbeitete Übersicht. Tastatur-Fix enthalten.
+
+201 Flutter-Tests bestanden; kein Test auf einem Android-Gerät.
