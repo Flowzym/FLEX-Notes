@@ -1,0 +1,14 @@
+FLEX Test — Android Build 34
+Version 0.16.0-rebuild.14+34; Android 7.0 oder neuer; ARM64, ARMv7 und x86_64.
+
+Über die vorhandene FLEX Test installieren. Nicht deinstallieren und keine
+App-Daten löschen. Paketkennung und Signatur sind unverändert.
+
+Neu: „Zuletzt verwendet“ aus Beobachtungsformularen entfernt, auch beim Bearbeiten.
+Vorhandene Auftragstags und Freitexte bleiben erhalten. Beide Symbolreihen und
+Beschriftungen auf den Schülerkarten sind zentriert.
+
+32 betroffene Flutter-Tests bestanden, Analyse ohne Befunde.
+Kein physischer Android-Gerätelauf. Testsignatur, kein Play-Store-Release.
+Quellcommit: c199a4b22cc3144ab8bfd462eef9ec7d77e73bf0
+SHA-256: e6331879df2fcf8e7e585edfa49591903f2c27ce9ad0772cee01ab9d967ef4ea
