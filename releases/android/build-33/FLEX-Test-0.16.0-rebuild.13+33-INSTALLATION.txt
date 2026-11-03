@@ -1,0 +1,20 @@
+FLEX Test — Android Build 33
+Version 0.16.0-rebuild.13+33
+Android 7.0 oder neuer; ARM64, ARMv7 und x86_64.
+
+Die APK auf Android laden und über die vorhandene FLEX Test installieren.
+Nicht deinstallieren und keine App-Daten löschen: Die lokalen Daten bleiben bei
+Installation als Update mit gleicher Paketkennung und Signatur erhalten.
+Optional vor dem Update in Einstellungen > Daten > Exportieren eine Sicherung anlegen.
+
+Neu: Positiv / Neutral / Negativ, eigene neutrale Tags und Freitext,
+Standardwahl unter Einstellungen > Bedienung (Appstandard Neutral),
+Orga-Typbuttons und passende Felder, Suchlupe neben Schüler hinzufügen,
+kompakte Auswahl und bereinigte Einstellungen ohne entfernte Optionen.
+Abbrechen veröffentlicht nichts; begonnene Eingaben bleiben als Entwurf erhalten.
+Deaktivierte Erinnerungen werden entfernt. Tastaturfokus bleibt geschützt.
+
+218 Flutter-Tests, 11 SQLite- und 3 HTTP-Tests bestanden; 48 UI-Renderings.
+Kein physischer Android-Gerätelauf. Testsignatur, kein Play-Store-Release.
+Quellcommit: 86252a2f1989e5539a04b3281d760d4346e3c384
+SHA-256: 53fee7ca590ccccf42a3beec81bf6601775b16d3692c7e83702b3901ba19545c
