@@ -1,0 +1,15 @@
+FLEX Test — Android Build 35
+Version 0.16.0-rebuild.15+35; Android 7.0 oder neuer; ARM64, ARMv7 und x86_64.
+
+Über die vorhandene FLEX Test installieren. Nicht deinstallieren und keine
+App-Daten löschen. Paketkennung und Signatur sind unverändert.
+
+Neu: Aktive Tonwahl dunkelgrün/dunkelblau/dunkelrot und etwas größer;
+alle Umschalter optisch kleiner. Wischen zwischen Positiv, Neutral und Negativ
+auch über Textfeldern. Ebenso Wischen zwischen Notiz, Aufgabe und Termin in
+Orga, einschließlich bestehender Einträge. Texte und Checklisten bleiben erhalten.
+
+227 Tests der vollständigen Flutter-Testsuite bestanden, Analyse ohne Befunde.
+Kein physischer Android-Gerätelauf. Testsignatur, kein Play-Store-Release.
+Quellcommit: d5e93f930d463ce7a4cadf84163d5ffcb9286c2b
+SHA-256: dcb4f14b6d3031f11e9e22ec816dd653bdc211bbf06a26e32e6c700abada4c19
