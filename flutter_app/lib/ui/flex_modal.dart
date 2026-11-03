@@ -403,6 +403,7 @@ Future<(String, String)?> pickFlexDate(
   String time = '',
   bool allowTime = true,
   bool requireTime = false,
+  bool allowDateClear = true,
   String? title,
 }) async {
   return showDialog<(String, String)>(
@@ -412,6 +413,7 @@ Future<(String, String)?> pickFlexDate(
       time: time,
       allowTime: allowTime,
       requireTime: requireTime,
+      allowDateClear: allowDateClear,
       title: title ?? (allowTime ? 'Datum & Uhrzeit' : 'Datum wählen'),
     ),
   );

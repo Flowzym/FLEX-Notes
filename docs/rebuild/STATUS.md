@@ -1,4 +1,24 @@
-# Aktueller Stand: 0.16.0-rebuild.11+31
+# Aktueller Stand: 0.16.0-rebuild.12+32
+
+Sozial-/Arbeitsformulare erlauben horizontales Wischen auf der Positiv-/Negativ-Auswahl.
+Orga enthält eigenständige Termine mit Datum und optionaler Uhrzeit; vorhandene
+Aufgaben, Fälligkeiten und Erinnerungen bleiben getrennt erhalten.
+Die Übersicht zeigt die ausgewählte Liste „Anstehend“, „Ergänzen“ oder „Zuletzt“
+mit zunächst höchstens fünf Einträgen und einer Aktion für die vollständige Liste.
+
+Suchfelder werden bei Fokusverlust zu Buttons; Suchtext und Filter bleiben erhalten.
+Entwürfe lassen sich direkt im Editor löschen, einschließlich Änderungen an bereits
+veröffentlichten Einträgen. Autospeicherung und Revisionsprüfung bleiben abgesichert.
+
+[Prüfbericht](../../audit/ORGA_UEBERSICHT_ABGLEICH.md) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md) ·
+[16 direkte Flutter-Renderings](../../audit/orga-overview-renderings/).
+201 Flutter-Tests bestanden, Analyse ohne Befunde, Android-Releasebuild erfolgreich.
+Keine Browsertests und kein Android-Gerätelauf.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.11+31
 
 Entwürfe lassen sich in den globalen, schülerbezogenen und Eintrags-Entwurfslisten löschen.
 Schülerkarten haben größere, mittige Symbole und Beschriftungen, kompaktere Köpfe

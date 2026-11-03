@@ -1,3 +1,4 @@
+import 'draft_actions.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
 import 'homework_task_editor.dart';
@@ -67,6 +68,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
   }
 
   void change(Json next) {
+    if (busy) return;
     setState(() => data = {...data, ...next});
     buffer.change(data);
   }
@@ -80,7 +82,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
+    if (state != AppLifecycleState.resumed && !busy) {
       buffer.flush().catchError((Object e) {
         buffer.error = e;
       });
@@ -91,6 +93,25 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     setState(() => canPop = true);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> deleteDraft() async {
+    if (busy) return;
+    setState(() => busy = true);
+    buffer.timer?.cancel();
+    try {
+      if (!await confirmEditorDraftDeletion(context) || !mounted) {
+        await buffer.flush();
+        return;
+      }
+      await buffer.discard();
+      await widget.controller.reload();
+      if (mounted) await pop();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Future<void> close() async {
@@ -152,6 +173,10 @@ class _ProtectedDialogState extends State<ProtectedDialog>
         child: FlexModal(
           maxWidth: widget.maxWidth,
           title: Text(widget.title),
+          headerActions: [
+            if (buffer.hasContent || buffer.draft.revision > 0)
+              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+          ],
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,

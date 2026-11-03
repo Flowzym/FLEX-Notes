@@ -1,3 +1,4 @@
+import 'draft_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
@@ -86,13 +87,14 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
   String hex(int color) =>
       '#${(color & 0xffffff).toRadixString(16).padLeft(6, '0').toUpperCase()}';
   void change(Pupil value) {
+    if (busy) return;
     setState(() => pupil = value);
     buffer.change(value.toJson());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
+    if (state != AppLifecycleState.resumed && !busy) {
       buffer.flush().catchError((Object e) {
         buffer.error = e;
       });
@@ -112,6 +114,25 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
     setState(() => canPop = true);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> deleteDraft() async {
+    if (busy) return;
+    setState(() => busy = true);
+    buffer.timer?.cancel();
+    try {
+      if (!await confirmEditorDraftDeletion(context) || !mounted) {
+        await buffer.flush();
+        return;
+      }
+      await buffer.discard();
+      await widget.controller.reload();
+      if (mounted) await pop();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Future<void> close() async {
@@ -179,6 +200,10 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
           title: Text(
             pupil.revision == 0 ? 'Schüler hinzufügen' : 'Schüler verwalten',
           ),
+          headerActions: [
+            if (buffer.hasContent || buffer.draft.revision > 0)
+              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+          ],
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,

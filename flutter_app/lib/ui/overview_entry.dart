@@ -29,7 +29,7 @@ class OverviewEntry extends StatelessWidget {
             22,
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -62,7 +62,7 @@ class OverviewEntry extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
                         summary,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 13),
                       ),
@@ -72,6 +72,8 @@ class OverviewEntry extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         status,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -82,15 +84,9 @@ class OverviewEntry extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Column(
-              children: [
-                IconButton(
-                  tooltip: 'Bearbeiten',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 19),
-                ),
-                const Icon(Icons.chevron_right, size: 20),
-              ],
+            const Padding(
+              padding: EdgeInsets.only(top: 3),
+              child: Icon(Icons.chevron_right, size: 20),
             ),
           ],
         ),

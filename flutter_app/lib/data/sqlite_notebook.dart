@@ -595,6 +595,8 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
       observedTime: row['observed_time'] as String,
       reminderText: row['reminder_text'] as String,
       reminderHasTime: timeMetadata['hasTime'] as bool? ?? true,
+      appointmentDate: timeMetadata['appointmentDate'] as String?,
+      appointmentTime: timeMetadata['appointmentTime'] as String? ?? '',
       dueDate: row['due_date'] as String?,
       reminderAtUtc: row['reminder_at_utc'] as String?,
       reminderZone: row['reminder_zone'] as String,
@@ -694,7 +696,11 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
         'INSERT INTO preferences(key,payload) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload',
         [
           'orga-time-${saved.id}',
-          jsonEncode({'hasTime': saved.reminderHasTime}),
+          jsonEncode({
+            'hasTime': saved.reminderHasTime,
+            'appointmentDate': saved.appointmentDate,
+            'appointmentTime': saved.appointmentTime,
+          }),
         ],
       );
       await _audit(

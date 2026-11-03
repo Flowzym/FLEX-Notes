@@ -34,6 +34,9 @@ void main() {
         (await repo.entries()).single.title,
         'Synthetische Klassenaufgabe',
       );
+      final first = (await repo.entries()).single;
+      await tester.tap(find.byKey(ValueKey('overview-open-${first.id}')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Bearbeiten'));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -41,6 +44,8 @@ void main() {
         'Bearbeitete Testaufgabe',
       );
       await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Schließen und Eingaben sichern'));
       await tester.pumpAndSettle();
       final saved = (await repo.entries()).single;
       await tester.tap(find.byKey(ValueKey('overview-open-${saved.id}')));

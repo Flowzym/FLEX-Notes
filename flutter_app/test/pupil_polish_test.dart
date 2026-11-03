@@ -233,7 +233,7 @@ void main() {
         expect(find.byType(PupilWorkspaceDialog), findsOneWidget);
         expect(find.text('Schüler bearbeiten'), findsNothing);
         expect(
-          find.byKey(const ValueKey('pupil-entry-search')),
+          find.byKey(const ValueKey('pupil-search-button')),
           findsOneWidget,
         );
         expect(
@@ -384,6 +384,7 @@ void main() {
     (t) async {
       await app(t);
       await hub(t);
+      await tap(t, find.byKey(const ValueKey('pupil-search-button')));
       await t.enterText(
         find.byKey(const ValueKey('pupil-entry-search')),
         'Gruppenarbeit',

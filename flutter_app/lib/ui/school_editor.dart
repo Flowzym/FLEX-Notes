@@ -1,3 +1,5 @@
+import 'draft_actions.dart';
+import 'tone_swipe.dart';
 import 'pupil_history.dart';
 import 'entry_navigation.dart';
 import 'dart:async';
@@ -215,6 +217,7 @@ class _SchoolEditorState extends State<SchoolEditor>
   }
 
   void edit(Json changes) {
+    if (busy) return;
     setState(() {
       r = r.patch(changes);
       dirty = true;
@@ -305,6 +308,36 @@ class _SchoolEditorState extends State<SchoolEditor>
     setState(() => canPop = true);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> deleteDraft() async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await confirmEditorDraftDeletion(context) || !mounted) return;
+      await pending.catchError((Object _) {});
+      if (draftRevision > 0) {
+        await c.repository.discardSchoolDraft(
+          draftId,
+          expectedRevision: draftRevision,
+        );
+      }
+      dirty = false;
+      draftRevision = 0;
+      draftStatus = '';
+      await c.reload();
+      if (mounted) await pop();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) {
+        setState(() => busy = false);
+        if (dirty && !canPop) {
+          debounce = Timer(const Duration(milliseconds: 400), persist);
+        }
+      }
+    }
   }
 
   Future<void> close() async {
@@ -1846,22 +1879,30 @@ class _SchoolEditorState extends State<SchoolEditor>
             ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 6, bottom: 2),
-          child: Text(
-            r.revision > 0
-                ? (r.kind == SchoolKind.homework
-                      ? 'Hausübung bearbeiten'
-                      : r.kind == SchoolKind.goal
-                      ? 'Ziel bearbeiten'
-                      : 'Eintrag bearbeiten')
-                : r.kind.label,
-            style: const TextStyle(
-              fontFamily: 'FlexSerif',
-              fontSize: 22,
-              height: 1.15,
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 6, bottom: 2),
+                child: Text(
+                  r.revision > 0
+                      ? (r.kind == SchoolKind.homework
+                            ? 'Hausübung bearbeiten'
+                            : r.kind == SchoolKind.goal
+                            ? 'Ziel bearbeiten'
+                            : 'Eintrag bearbeiten')
+                      : r.kind.label,
+                  style: const TextStyle(
+                    fontFamily: 'FlexSerif',
+                    fontSize: 22,
+                    height: 1.15,
+                  ),
+                ),
+              ),
             ),
-          ),
+            if (dirty || draftRevision > 0)
+              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+          ],
         ),
       ],
     );
@@ -2030,6 +2071,10 @@ class _SchoolEditorState extends State<SchoolEditor>
               c.pupils.firstWhere((p) => p.id == r.pupilId).color,
             ),
             headerContent: mode == 'entry' ? observationHeader() : null,
+            headerActions: [
+              if (mode != 'entry' && (dirty || draftRevision > 0))
+                EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+            ],
             footerContent: isObservation ? observationFooter() : null,
             title: Row(
               children: [
@@ -2079,7 +2124,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                   else if (r.kind == SchoolKind.goal)
                     goal()
                   else
-                    r.revision > 0 ? observationEdit() : observation(),
+                    r.revision > 0
+                        ? observationEdit()
+                        : ToneSwipe(
+                            key: const ValueKey('observation-swipe'),
+                            onChanged: (value) =>
+                                setState(() => positive = value),
+                            child: observation(),
+                          ),
                   if (stale && mode == 'comment')
                     TextButton(
                       onPressed: rebaseComment,

@@ -139,6 +139,28 @@ class DraftBuffer {
     await pending;
   }
 
+  Future<void> discard() async {
+    timer?.cancel();
+    // An already queued write must finish before its revision can be deleted.
+    await pending.catchError((Object _) {});
+    if (draft.revision > 0) {
+      await repository.discardDialogDraft(draft.id, draft.revision);
+    }
+    dirty = false;
+    pending = Future.value();
+    generation++;
+    error = null;
+    draft = DialogDraft(
+      id: draft.id,
+      type: draft.type,
+      ownerId: draft.ownerId,
+      data: draft.data,
+      updatedAtUtc: draft.updatedAtUtc,
+      revision: 0,
+      baseline: baseline,
+    );
+  }
+
   void dispose() => timer?.cancel();
 }
 

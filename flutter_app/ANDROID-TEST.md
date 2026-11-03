@@ -1,18 +1,19 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.11+31**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.12+32**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Das Update ergänzt löschbare Entwürfe, kleinere Sozial-/Arbeitstags, größere
-zentrierte Kartensymbole und den neu gegliederten Schülerdialog. Die Korrektur
-für den Fokusverlust beim Öffnen der Bildschirmtastatur bleibt enthalten.
+Das Update ergänzt Orga-Termine mit Datum und optionaler Uhrzeit, horizontales
+Wischen zwischen Positiv und Negativ, einklappende Suchfelder und das Löschen
+von Entwürfen im Editor. Die Übersicht zeigt kompakte, getrennte Bereiche.
+Die Korrektur für den Fokusverlust beim Öffnen der Tastatur bleibt enthalten.
 App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 **FLEX Test** installiert werden. Eine Deinstallation ist nicht erforderlich.
 
 ## Installation
 
-[APK Build 31 auf GitHub herunterladen](../releases/android/build-31/README.md).
+[APK Build 32 auf GitHub herunterladen](../releases/android/build-32/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten
@@ -53,6 +54,7 @@ Test-App. Den Keystore für nachfolgende Testupdates behalten, nicht ins Reposit
 oder in ein öffentliches Quellenpaket aufnehmen. Ein Store-Release braucht eine
 eigene Veröffentlichungs- und Signaturkonfiguration.
 
+[Orga-/Übersichtsupdate und Prüfungen](../audit/ORGA_UEBERSICHT_ABGLEICH.md) ·
 [Schülerkarten-Update und Prüfungen](../audit/SCHUELERKARTEN_ABGLEICH.md) ·
 [Tastaturkorrektur und Prüfungen](../audit/ANDROID_TASTATUR_FIX.md) ·
 [Erster Android-Build](../audit/ANDROID_TESTAPP.md)

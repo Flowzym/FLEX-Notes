@@ -3,6 +3,7 @@ import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
 import 'common.dart';
+import 'collapsible_search.dart';
 import 'entry_navigation.dart';
 import 'flex_icons.dart';
 import 'flex_modal.dart';
@@ -18,6 +19,7 @@ class PupilWorkspaceDialog extends StatefulWidget {
     required this.entryCard,
     required this.editPupil,
     required this.newOrga,
+    required this.newAppointment,
     required this.showDrafts,
     required this.draftCount,
     this.initialArea,
@@ -26,7 +28,7 @@ class PupilWorkspaceDialog extends StatefulWidget {
   final Pupil pupil;
   final FlexSymbol? initialArea;
   final Widget Function(OrgaEntry) entryCard;
-  final VoidCallback editPupil, newOrga, showDrafts;
+  final VoidCallback editPupil, newOrga, newAppointment, showDrafts;
   final int draftCount;
   @override
   State<PupilWorkspaceDialog> createState() => _PupilWorkspaceDialogState();
@@ -310,13 +312,11 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           children: [
             navigation(),
             const SizedBox(height: 16),
-            TextField(
-              key: const ValueKey('pupil-entry-search'),
+            CollapsibleSearch(
+              fieldKey: const ValueKey('pupil-entry-search'),
+              buttonKey: const ValueKey('pupil-search-button'),
               controller: search,
-              decoration: const InputDecoration(
-                labelText: 'Einträge durchsuchen',
-                prefixIcon: Icon(Icons.search),
-              ),
+              label: 'Einträge durchsuchen',
               onChanged: (v) => setState(() => query = v),
             ),
             const SizedBox(height: 12),
@@ -348,6 +348,12 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                     onChanged: (v) => setState(() => filter = v!),
                   ),
                 ),
+                if (!p.archived && area == FlexSymbol.orga)
+                  IconButton(
+                    tooltip: 'Termin anlegen',
+                    onPressed: widget.newAppointment,
+                    icon: const Icon(Icons.event_outlined),
+                  ),
                 if (!p.archived) ...[
                   const SizedBox(width: 8),
                   if (area != null)

@@ -279,7 +279,7 @@ void main() {
       await t.pumpAndSettle();
       expect(page(t), 0);
       await tap(t, find.byKey(const ValueKey('page-1')));
-      expect(find.text('Anna'), findsOneWidget);
+      expect(find.text('Suche: Anna'), findsOneWidget);
       await settings(t);
       expect(page(t), 2);
       await slider(t, 'textScale', .65);

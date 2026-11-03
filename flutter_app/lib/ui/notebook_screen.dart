@@ -1,4 +1,5 @@
 import 'symbol_button.dart';
+import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'pupil_workspace.dart';
 import 'conflict_dialog.dart';
@@ -32,12 +33,11 @@ class NotebookScreen extends StatefulWidget {
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 0;
+  String? _overviewSection;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
   String? _aux;
   VoidCallback? _refreshPupilDialog;
-  final _pupilSearchFocus = FocusNode();
-  bool _showPupilSearch = false;
   void _changeView(VoidCallback action) {
     if (!mounted) return;
     c.flushAppearance();
@@ -53,7 +53,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void dispose() {
     _pages.dispose();
     _pupilSearch.dispose();
-    _pupilSearchFocus.dispose();
     _entrySearch.dispose();
     super.dispose();
   }
@@ -106,7 +105,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   Future<void> _classOrga() async {
-    var filter = 'all';
+    var filter = 'all', query = '';
+    final search = TextEditingController();
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -117,8 +117,14 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 .where(
                   (e) =>
                       e.pupilId == null &&
+                      '${e.title} ${e.body}'.toLowerCase().contains(
+                        query.toLowerCase(),
+                      ) &&
                       (filter == 'all' ||
-                          e.isTask && (filter == 'done' ? e.done : !e.done)),
+                          (filter == 'appointments'
+                              ? e.isAppointment
+                              : e.isTask &&
+                                    (filter == 'done' ? e.done : !e.done))),
                 )
                 .toList();
             return FlexModal(
@@ -129,12 +135,21 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  CollapsibleSearch(
+                    controller: search,
+                    fieldKey: const ValueKey('class-orga-search'),
+                    buttonKey: const ValueKey('class-orga-search-button'),
+                    label: 'Einträge durchsuchen',
+                    onChanged: (value) => update(() => query = value),
+                  ),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       for (final option in const {
                         'all': 'Alle',
+                        'appointments': 'Termine',
                         'open': 'Offen',
                         'done': 'Erledigt',
                       }.entries)
@@ -163,7 +178,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Text(
-                                e.isTask
+                                e.isAppointment
+                                    ? 'Termin'
+                                    : e.isTask
                                     ? e.done
                                           ? 'Aufgabe erledigt'
                                           : 'Aufgabe offen'
@@ -177,6 +194,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
                                 maxLines: 5,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              if (e.isAppointment)
+                                Text(
+                                  'Termin: ${displayDate(e.appointmentDate)} ${e.appointmentTime}',
+                                ),
                               if (e.dueDate != null)
                                 Text('Termin: ${displayDate(e.dueDate)}'),
                               if (e.reminderState == ReminderState.planned)
@@ -189,6 +210,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 ],
               ),
               actions: [
+                OutlinedButton.icon(
+                  key: const ValueKey('class-add-appointment'),
+                  onPressed: () => _editor(
+                    OrgaEntry.empty().copyWith(
+                      appointmentDate: dateOnly(DateTime.now()),
+                    ),
+                  ),
+                  icon: const Icon(Icons.event_outlined),
+                  label: const Text('Termin anlegen'),
+                ),
                 FilledButton(
                   onPressed: () => _editor(OrgaEntry.empty()),
                   child: const Text('Eintrag hinzufügen'),
@@ -199,6 +230,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         ),
       ),
     );
+    search.dispose();
   }
 
   Future<void> _auxDialog(String type) async {
@@ -401,6 +433,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   entryCard: _entryCard,
                   editPupil: () => _pupilEditor(current),
                   newOrga: () => _editor(OrgaEntry.empty(pupilId: current.id)),
+                  newAppointment: () => _editor(
+                    OrgaEntry.empty(
+                      pupilId: current.id,
+                    ).copyWith(appointmentDate: dateOnly(DateTime.now())),
+                  ),
                   showDrafts: () => _pupilDrafts(current),
                   draftCount:
                       FlexSymbol.values.fold(
@@ -427,95 +464,190 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final records = c.records.where((r) => !r.deleted).toList();
     final pendingRecords = records.where((r) => r.pending).toList();
     final pendingOrga = c.upcoming(c.entries);
-    final pending = pendingRecords.length + pendingOrga.length;
-    final theme = Theme.of(context);
+    final completeRecords = records
+        .where((r) => !r.pending && r.needsCompletion)
+        .toList();
+    final completeOrga = c.entries
+        .where((e) => !e.pending && e.needsCompletion)
+        .toList();
+    final recentRecords = records
+        .where((r) => !r.pending && !r.needsCompletion)
+        .toList();
+    final recentOrga = c.entries
+        .where((e) => !e.pending && !e.needsCompletion)
+        .toList();
+    final counts = {
+      'pending': pendingRecords.length + pendingOrga.length,
+      'complete': completeRecords.length + completeOrga.length,
+      'recent': recentRecords.length + recentOrga.length,
+    };
+    final selected =
+        _overviewSection ??
+        (counts['pending']! > 0
+            ? 'pending'
+            : counts['complete']! > 0
+            ? 'complete'
+            : 'recent');
     final width = MediaQuery.sizeOf(context).width;
-    final todo = _combinedSection(
-      'Anstehend',
-      pendingOrga,
-      pendingRecords,
-      'Gerade stehen keine Aufgaben, Hausübungen oder Ziele an.',
-      upcoming: true,
-    );
-    final complete = _combinedSection(
-      'Noch ergänzen',
-      c.entries.where((e) => e.needsCompletion && !e.pending).toList(),
-      records.where((r) => !r.pending && r.needsCompletion).toList(),
-      'Alle Einträge sind ergänzt.',
-    );
-    final recent = _combinedSection(
-      'Zuletzt dokumentiert',
-      c.entries.where((e) => !e.pending && !e.needsCompletion).toList(),
-      records.where((r) => !r.pending && !r.needsCompletion).toList(),
-      'Noch keine weiteren Einträge.',
-    );
     return ListView(
       key: const PageStorageKey('overview'),
       padding: EdgeInsets.fromLTRB(
-        width <= 360 ? 12 : 24,
-        20,
-        width <= 360 ? 12 : 24,
+        width > 960
+            ? (width.clamp(0, 1400) - 920) / 2
+            : width <= 360
+            ? 12
+            : 24,
+        14,
+        width > 960
+            ? (width.clamp(0, 1400) - 920) / 2
+            : width <= 360
+            ? 12
+            : 24,
         32,
       ),
       children: [
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 16,
-          runSpacing: 12,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        Text(
+          'Überblick',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSerif'),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          displayDate(dateOnly(DateTime.now())),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns =
+                constraints.maxWidth < 500 &&
+                    MediaQuery.textScalerOf(context).scale(12) > 18
+                ? 2
+                : 3;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  'Überblick',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontFamily: 'FlexSerif',
+                for (final section in const [
+                  ('pending', 'Anstehend', Icons.schedule_outlined),
+                  ('complete', 'Ergänzen', Icons.edit_note_outlined),
+                  ('recent', 'Zuletzt', Icons.history),
+                ])
+                  SizedBox(
+                    width: (constraints.maxWidth - 8 * (columns - 1)) / columns,
+                    child: Material(
+                      color: selected == section.$1
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: .15)
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: .04),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: selected == section.$1
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Semantics(
+                        selected: selected == section.$1,
+                        button: true,
+                        child: InkWell(
+                          key: ValueKey('overview-section-${section.$1}'),
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () =>
+                              setState(() => _overviewSection = section.$1),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(section.$3, size: 20),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${counts[section.$1]}',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  section.$2,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${displayDate(dateOnly(DateTime.now()))} · ${c.pupils.where((p) => !p.archived).length} Schüler · $pending anstehend',
-                ),
               ],
-            ),
-            FilledButton.icon(
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            TextButton.icon(
               onPressed: () => _editor(OrgaEntry.empty()),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Klassen-Orga anlegen'),
             ),
-          ],
-        ),
-        if (c.draftCount > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: FlexCard(
-              child: ListTile(
+            TextButton.icon(
+              key: const ValueKey('overview-add-appointment'),
+              onPressed: () => _editor(
+                OrgaEntry.empty().copyWith(
+                  appointmentDate: dateOnly(DateTime.now()),
+                ),
+              ),
+              icon: const Icon(Icons.event_outlined, size: 18),
+              label: const Text('Termin'),
+            ),
+            if (c.draftCount > 0)
+              TextButton.icon(
                 key: const ValueKey('overview-drafts'),
-                leading: const Icon(Icons.edit_note),
-                title: Text(
+                onPressed: () => _auxDialog('drafts'),
+                icon: const Icon(Icons.edit_note, size: 18),
+                label: Text(
                   '${c.draftCount} ${c.draftCount == 1 ? 'Entwurf' : 'Entwürfe'}',
                 ),
-                subtitle: const Text('Gesicherte Eingaben öffnen'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _auxDialog('drafts'),
               ),
-            ),
-          ),
-        if (width >= 1000)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: Column(children: [todo, complete])),
-              const SizedBox(width: 24),
-              Expanded(flex: 2, child: recent),
-            ],
+          ],
+        ),
+        if (selected == 'pending')
+          _combinedSection(
+            'Anstehend',
+            pendingOrga,
+            pendingRecords,
+            'Gerade stehen keine Aufgaben, Hausübungen, Ziele oder Termine an.',
+            upcoming: true,
           )
-        else ...[
-          todo,
-          complete,
-          recent,
-        ],
+        else if (selected == 'complete')
+          _combinedSection(
+            'Noch ergänzen',
+            completeOrga,
+            completeRecords,
+            'Alle Einträge sind ergänzt.',
+          )
+        else
+          _combinedSection(
+            'Zuletzt dokumentiert',
+            recentOrga,
+            recentRecords,
+            'Noch keine weiteren Einträge.',
+          ),
       ],
     );
   }
@@ -564,9 +696,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
           id: e.id,
           title: e.title,
           meta:
-              '${c.owner(e)} · ${e.isTask ? 'Aufgabe' : 'Notiz'} · ${displayDate(e.observedOn)}',
+              '${c.owner(e)} · ${e.isAppointment
+                  ? 'Termin'
+                  : e.isTask
+                  ? 'Aufgabe'
+                  : 'Notiz'}',
           summary: e.body.trim() == e.title.trim() ? '' : e.body,
           status: [
+            if (e.isAppointment)
+              '${displayDate(e.appointmentDate)} · ${e.appointmentTime.isEmpty ? 'Ganztägig' : e.appointmentTime}',
             if (e.items.isNotEmpty)
               '${e.items.where((i) => i.checked).length} von ${e.items.length} Listenpunkten erledigt',
             if (e.isTask) e.done ? 'Erledigt' : 'Offen',
@@ -577,6 +715,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ].join(' · '),
           order: upcoming
               ? ([
+                      if (e.appointmentDate != null)
+                        '${e.appointmentDate} ${e.appointmentTime}',
                       if (e.dueDate != null) e.dueDate!,
                       if (e.reminderState == ReminderState.planned)
                         e.reminderAtUtc!,
@@ -630,7 +770,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         ),
     ]..sort((a, b) => upcoming ? a.order.compareTo(b.order) : b.order.compareTo(a.order));
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(top: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -654,7 +794,22 @@ class _NotebookScreenState extends State<NotebookScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(empty),
             ),
-          ...items,
+          ...items.take(
+            _expandedSections.contains('overview-$title') ? items.length : 5,
+          ),
+          if (items.length > 5)
+            TextButton(
+              key: const ValueKey('overview-show-more'),
+              onPressed: () => setState(() {
+                final key = 'overview-$title';
+                if (!_expandedSections.remove(key)) _expandedSections.add(key);
+              }),
+              child: Text(
+                _expandedSections.contains('overview-$title')
+                    ? 'Weniger anzeigen'
+                    : 'Alle ${items.length} anzeigen',
+              ),
+            ),
         ],
       ),
     );
@@ -683,25 +838,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-            IconButton(
-              key: const ValueKey('toggle-pupil-search'),
-              tooltip: _showPupilSearch ? 'Suche schließen' : 'Schüler suchen',
-              icon: Icon(_showPupilSearch ? Icons.close : Icons.search),
-              onPressed: () {
-                _changeView(() {
-                  _showPupilSearch = !_showPupilSearch;
-                  if (!_showPupilSearch) {
-                    _pupilQuery = '';
-                    _pupilSearch.clear();
-                  }
-                });
-                if (_showPupilSearch) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _pupilSearchFocus.requestFocus();
-                  });
-                }
-              },
-            ),
             if (!archived)
               IconButton(
                 tooltip: 'Neuer Schüler',
@@ -719,31 +855,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
             ),
           ],
         ),
-        if (_showPupilSearch)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: TextField(
-              controller: _pupilSearch,
-              focusNode: _pupilSearchFocus,
-              key: ValueKey('search-$archived'),
-              decoration: InputDecoration(
-                labelText: 'Schüler suchen',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  tooltip: 'Suchtext leeren',
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _changeView(() {
-                      _pupilQuery = '';
-                      _pupilSearch.clear();
-                    });
-                    _pupilSearchFocus.requestFocus();
-                  },
-                ),
-              ),
-              onChanged: (value) => _changeView(() => _pupilQuery = value),
-            ),
-          ),
+        CollapsibleSearch(
+          controller: _pupilSearch,
+          fieldKey: ValueKey('search-$archived'),
+          buttonKey: const ValueKey('toggle-pupil-search'),
+          label: 'Schüler suchen',
+          onChanged: (value) => _changeView(() => _pupilQuery = value),
+        ),
         const SizedBox(height: 10),
         if (pupils.isEmpty)
           EmptyState(
@@ -887,7 +1005,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
               '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}'
                   .toLowerCase()
                   .contains(_entryQuery.toLowerCase()) &&
-              (_filter == 'all' || (e.isTask && e.done == (_filter == 'done'))),
+              (_filter == 'all' ||
+                  (_filter == 'appointments'
+                      ? e.isAppointment
+                      : (e.isTask && e.done == (_filter == 'done')))),
         )
         .toList();
     return ListView(
@@ -897,22 +1018,33 @@ class _NotebookScreenState extends State<NotebookScreen> {
         if (pupil == null)
           Text('Klassen-Orga', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton.icon(
-            onPressed: () => _editor(OrgaEntry.empty(pupilId: pupil?.id)),
-            icon: const Icon(Icons.add),
-            label: const Text('Orga anlegen'),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: () => _editor(OrgaEntry.empty(pupilId: pupil?.id)),
+              icon: const Icon(Icons.add),
+              label: const Text('Orga anlegen'),
+            ),
+            TextButton.icon(
+              key: const ValueKey('orga-add-appointment'),
+              onPressed: () => _editor(
+                OrgaEntry.empty(
+                  pupilId: pupil?.id,
+                ).copyWith(appointmentDate: dateOnly(DateTime.now())),
+              ),
+              icon: const Icon(Icons.event_outlined),
+              label: const Text('Termin anlegen'),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
-        TextField(
+        CollapsibleSearch(
           controller: _entrySearch,
-          key: ValueKey('entry-query-$scope'),
-          decoration: const InputDecoration(
-            labelText: 'Einträge durchsuchen',
-            prefixIcon: Icon(Icons.search),
-          ),
+          fieldKey: ValueKey('entry-query-$scope'),
+          buttonKey: ValueKey('entry-search-$scope'),
+          label: 'Einträge durchsuchen',
           onChanged: (value) => _changeView(() => _entryQuery = value),
         ),
         const SizedBox(height: 12),
@@ -921,6 +1053,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           children: [
             for (final f in {
               'all': 'Alle',
+              'appointments': 'Termine',
               'open': 'Offene Aufgaben',
               'done': 'Erledigte Aufgaben',
             }.entries)
@@ -1027,7 +1160,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  e.isTask
+                  e.isAppointment
+                      ? Icons.event_outlined
+                      : e.isTask
                       ? (e.done
                             ? Icons.task_alt
                             : Icons.check_box_outline_blank)
@@ -1044,7 +1179,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
-                        '${c.owner(e)} · ${e.isTask ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen') : 'Notiz'}',
+                        '${c.owner(e)} · ${e.isAppointment
+                            ? 'Termin'
+                            : e.isTask
+                            ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
+                            : 'Notiz'}',
                       ),
                     ],
                   ),
@@ -1085,6 +1224,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
             if (e.items.isNotEmpty)
               Text(
                 '${e.items.where((i) => i.checked).length} / ${e.items.length} Listenpunkte',
+              ),
+            if (e.isAppointment)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  '${displayDate(e.appointmentDate)} · ${e.appointmentTime.isEmpty ? 'Ganztägig' : e.appointmentTime}',
+                ),
               ),
             if (e.dueDate != null)
               Padding(

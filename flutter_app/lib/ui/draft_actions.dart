@@ -2,6 +2,27 @@ import 'package:flutter/material.dart';
 import 'common.dart';
 import 'flex_modal.dart';
 
+Future<bool> confirmEditorDraftDeletion(BuildContext context) => confirmFlex(
+  context,
+  'Entwurf löschen?',
+  'Dieser Entwurf und die ungespeicherten Änderungen werden gelöscht. Der Editor wird geschlossen. Bereits gespeicherte Einträge bleiben erhalten.',
+  accept: 'Löschen',
+);
+
+class EditorDraftDeleteButton extends StatelessWidget {
+  const EditorDraftDeleteButton({super.key, required this.onPressed});
+  final VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context) => IconButton(
+    key: const ValueKey('delete-editor-draft'),
+    tooltip: 'Entwurf löschen',
+    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+    padding: const EdgeInsets.all(8),
+    icon: const Icon(Icons.delete_outline, size: 20),
+    onPressed: onPressed,
+  );
+}
+
 /// Used by every draft list. The repository checks the draft revision; a
 /// failed delete leaves the draft available and lets the user retry.
 class DraftDeleteButton extends StatefulWidget {

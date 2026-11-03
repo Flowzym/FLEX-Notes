@@ -104,6 +104,8 @@ class OrgaEntry {
     this.observedTime = '',
     this.reminderText = '',
     this.reminderHasTime = true,
+    this.appointmentDate,
+    this.appointmentTime = '',
     this.dueDate,
     this.reminderAtUtc,
     this.reminderZone = 'UTC',
@@ -126,16 +128,35 @@ class OrgaEntry {
     );
   }
   final String id, title, body, reminderZone, createdAtUtc, updatedAtUtc;
-  final String? pupilId, dueDate, reminderAtUtc;
+  final String? pupilId, dueDate, reminderAtUtc, appointmentDate;
+  final String appointmentTime;
   final bool isTask, done, needsCompletion, deleted, reminderHasTime;
   final String observedOn, observedTime, reminderText;
   final int revision;
   final ReminderState reminderState;
   final List<CheckItem> items;
+  bool get isAppointment => appointmentDate != null;
+  bool appointmentIsUpcoming(DateTime now) {
+    if (appointmentDate == null) return false;
+    final day = dateOnly(now);
+    final compared = appointmentDate!.compareTo(day);
+    return compared > 0 ||
+        (compared == 0 &&
+            (appointmentTime.isEmpty ||
+                appointmentTime.compareTo(
+                      '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                    ) >=
+                    0));
+  }
+
   bool get pending =>
-      !deleted && ((isTask && !done) || reminderState == ReminderState.planned);
+      !deleted &&
+      ((isTask && !done) ||
+          appointmentIsUpcoming(DateTime.now()) ||
+          reminderState == ReminderState.planned);
   String? get nextDate {
     final dates = [
+      if (appointmentIsUpcoming(DateTime.now())) appointmentDate!,
       if (isTask && !done && dueDate != null) dueDate!,
       if (reminderState == ReminderState.planned && reminderAtUtc != null)
         dateOnly(DateTime.parse(reminderAtUtc!).toLocal()),
@@ -153,6 +174,8 @@ class OrgaEntry {
     String? observedTime,
     String? reminderText,
     bool? reminderHasTime,
+    Object? appointmentDate = _unset,
+    String? appointmentTime,
     Object? dueDate = _unset,
     Object? reminderAtUtc = _unset,
     String? reminderZone,
@@ -173,6 +196,10 @@ class OrgaEntry {
     observedTime: observedTime ?? this.observedTime,
     reminderText: reminderText ?? this.reminderText,
     reminderHasTime: reminderHasTime ?? this.reminderHasTime,
+    appointmentDate: identical(appointmentDate, _unset)
+        ? this.appointmentDate
+        : appointmentDate as String?,
+    appointmentTime: appointmentTime ?? this.appointmentTime,
     dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as String?,
     reminderAtUtc: identical(reminderAtUtc, _unset)
         ? this.reminderAtUtc
@@ -211,6 +238,15 @@ class OrgaEntry {
     }
     if (id.isEmpty || title.trim().isEmpty || title.trim().length > 160) {
       throw const DomainError('Bitte einen Titel mit 1–160 Zeichen eingeben.');
+    }
+    if ((appointmentDate != null && !validDate(appointmentDate!)) ||
+        (appointmentTime.isNotEmpty &&
+            (appointmentDate == null ||
+                !RegExp(
+                  r'^([01]\d|2[0-3]):[0-5]\d$',
+                ).hasMatch(appointmentTime))) ||
+        (isAppointment && isTask)) {
+      throw const DomainError('Bitte einen gültigen Termin wählen.');
     }
     if (!isTask && (done || dueDate != null)) {
       throw const DomainError(
@@ -261,6 +297,8 @@ class OrgaEntry {
     'observedTime': observedTime,
     'reminderText': reminderText,
     'reminderHasTime': reminderHasTime,
+    'appointmentDate': appointmentDate,
+    'appointmentTime': appointmentTime,
     'dueDate': dueDate,
     'reminderAtUtc': reminderAtUtc,
     'reminderZone': reminderZone,
@@ -283,6 +321,8 @@ class OrgaEntry {
     observedTime: j['observedTime'] as String? ?? '',
     reminderText: j['reminderText'] as String? ?? '',
     reminderHasTime: j['reminderHasTime'] as bool? ?? true,
+    appointmentDate: j['appointmentDate'] as String?,
+    appointmentTime: j['appointmentTime'] as String? ?? '',
     dueDate: j['dueDate'] as String?,
     reminderAtUtc: j['reminderAtUtc'] as String?,
     reminderZone: j['reminderZone'] as String,

@@ -6,10 +6,11 @@ class _FlexDatePicker extends StatefulWidget {
     required this.time,
     required this.allowTime,
     required this.requireTime,
+    required this.allowDateClear,
     required this.title,
   });
   final String date, time, title;
-  final bool allowTime, requireTime;
+  final bool allowTime, requireTime, allowDateClear;
   @override
   State<_FlexDatePicker> createState() => _FlexDatePickerState();
 }
@@ -353,7 +354,7 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
             }),
             child: const Text('Heute'),
           ),
-          if (!widget.requireTime)
+          if (!widget.requireTime && widget.allowDateClear)
             TextButton(
               onPressed: () => Navigator.pop(context, ('', '')),
               child: const Text('Datum entfernen'),

@@ -1,3 +1,4 @@
+import 'draft_actions.dart';
 import 'symbol_button.dart';
 import 'surfaces.dart';
 import 'dart:async';
@@ -53,7 +54,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     entry = widget.entry;
-    if (entry.revision == 0 && widget.draftId == null && isClass) {
+    if (entry.revision == 0 &&
+        widget.draftId == null &&
+        isClass &&
+        !entry.isAppointment) {
       entry = entry.copyWith(isTask: true);
     }
     draftId = widget.draftId ?? newId();
@@ -103,6 +107,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   }
 
   void change([OrgaEntry? next]) {
+    if (busy) return;
     setState(() {
       if (next != null) entry = next;
       dirty = true;
@@ -208,6 +213,36 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     setState(() => canPop = true);
     await WidgetsBinding.instance.endOfFrame;
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> deleteDraft() async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await confirmEditorDraftDeletion(context) || !mounted) return;
+      await pending.catchError((Object _) {});
+      if (draftRevision > 0) {
+        await c.repository.discardDraft(
+          draftId,
+          expectedRevision: draftRevision,
+        );
+      }
+      dirty = false;
+      draftRevision = 0;
+      status = '';
+      await c.reload();
+      if (mounted) await pop();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) {
+        setState(() => busy = false);
+        if (dirty && !canPop) {
+          debounce = Timer(const Duration(milliseconds: 400), persist);
+        }
+      }
+    }
   }
 
   Future<void> close() async {
@@ -353,29 +388,50 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     styleOrgaLines(note.value, prefix == '1. ' ? 'number' : 'bullet'),
   );
 
-  Future<void> date({bool due = false, bool remind = false}) async {
+  Future<void> date({
+    bool due = false,
+    bool remind = false,
+    bool appointment = false,
+  }) async {
     final initial = remind && entry.reminderAtUtc != null
         ? DateTime.parse(entry.reminderAtUtc!).toLocal()
         : null;
     final selected = await pickFlexDate(
       context,
-      date: due
+      date: appointment
+          ? entry.appointmentDate ?? dateOnly(DateTime.now())
+          : due
           ? entry.dueDate ?? ''
           : remind
           ? initial == null
                 ? ''
                 : dateOnly(initial)
           : entry.observedOn,
-      time: remind
+      time: appointment
+          ? entry.appointmentTime
+          : remind
           ? initial == null || !entry.reminderHasTime
                 ? ''
                 : '${initial.hour.toString().padLeft(2, '0')}:${initial.minute.toString().padLeft(2, '0')}'
           : entry.observedTime,
       allowTime: !due,
-      title: due ? 'Datum wählen' : 'Datum & Uhrzeit',
+      allowDateClear: !appointment,
+      title: appointment
+          ? 'Termin'
+          : due
+          ? 'Datum wählen'
+          : 'Datum & Uhrzeit',
     );
     if (selected == null || !mounted) return;
-    if (due) {
+    if (appointment) {
+      if (selected.$1.isEmpty) return;
+      change(
+        entry.copyWith(
+          appointmentDate: selected.$1,
+          appointmentTime: selected.$2,
+        ),
+      );
+    } else if (due) {
       change(entry.copyWith(dueDate: selected.$1.isEmpty ? null : selected.$1));
     } else if (remind) {
       if (selected.$1.isEmpty) {
@@ -448,6 +504,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               ? null
               : Color(c.pupils.firstWhere((p) => p.id == entry.pupilId).color),
           headerActions: [
+            if (dirty || draftRevision > 0)
+              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
             AnimatedBuilder(
               animation: c,
               builder: (_, _) => EntryHeaderButton(
@@ -484,7 +542,64 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(status, style: const TextStyle(fontSize: 12)),
                   ),
-                const Text('Notiz oder Aufgabe'),
+                DropdownButtonFormField<String>(
+                  key: ValueKey(
+                    'orga-kind-${entry.isAppointment
+                        ? 'appointment'
+                        : entry.isTask
+                        ? 'task'
+                        : 'note'}',
+                  ),
+                  initialValue: entry.isAppointment
+                      ? 'appointment'
+                      : entry.isTask
+                      ? 'task'
+                      : 'note',
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Art',
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'note', child: Text('Notiz')),
+                    DropdownMenuItem(value: 'task', child: Text('Aufgabe')),
+                    DropdownMenuItem(
+                      value: 'appointment',
+                      child: Text('Termin'),
+                    ),
+                  ],
+                  onChanged: (kind) => change(
+                    entry.copyWith(
+                      isTask: kind == 'task',
+                      done: kind == 'task' && entry.done,
+                      dueDate: kind == 'task' ? entry.dueDate : null,
+                      appointmentDate: kind == 'appointment'
+                          ? entry.appointmentDate ?? dateOnly(DateTime.now())
+                          : null,
+                      appointmentTime: kind == 'appointment'
+                          ? entry.appointmentTime
+                          : '',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (entry.isAppointment)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('orga-appointment-date'),
+                      onPressed: () => date(appointment: true),
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        '${displayDate(entry.appointmentDate)} · ${entry.appointmentTime.isEmpty ? 'Ganztägig' : entry.appointmentTime}',
+                      ),
+                    ),
+                  ),
+                Text(
+                  entry.isAppointment
+                      ? 'Termin und Notizen'
+                      : 'Notiz oder Aufgabe',
+                ),
                 Wrap(
                   spacing: 4,
                   children: [
@@ -678,19 +793,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Als Aufgabe'),
-                  value: entry.isTask,
-                  onChanged: (v) =>
-                      change(entry.copyWith(isTask: v, done: v && entry.done)),
-                ),
                 if (entry.isTask) ...[
                   TextButton.icon(
                     onPressed: () => date(due: true),
                     icon: const Icon(Icons.calendar_month),
                     label: Text(
-                      'Termin · optional: ${displayDate(entry.dueDate)}',
+                      'Fällig am · optional: ${displayDate(entry.dueDate)}',
                     ),
                   ),
                   SwitchListTile(
@@ -756,7 +864,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                 onPressed: busy ? null : date,
                 icon: const Icon(Icons.calendar_month),
                 label: Text(
-                  'Beobachtet am ${displayDate(entry.observedOn)} ${entry.observedTime}',
+                  '${entry.isAppointment ? 'Erfasst am' : 'Beobachtet am'} ${displayDate(entry.observedOn)} ${entry.observedTime}',
                 ),
               ),
               SizedBox(
