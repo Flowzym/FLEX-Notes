@@ -1,0 +1,13 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:03 +1: Orga saved pupil entry: swipes retain text, checklist and focus across kinds
+00:05 +2: social: text swipes move once and keep input, tags and keyboard focus
+00:06 +3: work: text swipes move once and keep input, tags and keyboard focus
+00:08 +4: text selection, mouse, vertical or short drags and multitouch do not switch tone
+00:08 +5: compact switches support track, label, drag and keyboard; disabled remains disabled
+00:08 +6: dragging a switch in an observation does not navigate the tone
+00:09 +7: colors, larger pill and compact switches 390.0/1.0/dark
+00:11 +8: colors, larger pill and compact switches 320.0/2.0/light
+00:13 +9: (tearDownAll)
+00:13 +9: All tests passed!

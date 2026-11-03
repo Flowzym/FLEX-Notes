@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -284,7 +285,7 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
                     },
                   ),
                 if (pupil.revision > 0) ...[
-                  SwitchListTile(
+                  CompactSwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Schüler archivieren'),
                     value: pupil.archived,

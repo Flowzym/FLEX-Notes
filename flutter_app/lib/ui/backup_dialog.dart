@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
@@ -179,13 +180,13 @@ class _BackupDialogState extends State<BackupDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SwitchListTile(
+          CompactSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Sicherung mit Passwort verschlüsseln'),
             value: encrypt,
             onChanged: busy ? null : (v) => setState(() => encrypt = v),
           ),
-          SwitchListTile(
+          CompactSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Darstellung und Hintergrundbild mitsichern'),
             value: appearance,
@@ -205,7 +206,7 @@ class _BackupDialogState extends State<BackupDialog> {
               ),
             ],
           ),
-          SwitchListTile(
+          CompactSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Auswahllisten aus der Sicherung übernehmen'),
             value: catalogs,
@@ -307,7 +308,7 @@ Future<void> showImportReview(
                     ? null
                     : (v) => update(() => confirmed = v == true),
               ),
-              SwitchListTile(
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Darstellung übernehmen'),
                 value: includeAppearance,

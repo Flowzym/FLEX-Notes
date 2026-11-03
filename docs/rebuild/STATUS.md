@@ -1,4 +1,20 @@
-# Aktueller Stand: 0.16.0-rebuild.14+34
+# Aktueller Stand: 0.16.0-rebuild.15+35
+
+Aktive Tonpillen sind dunkelgrün, dunkelblau bzw. dunkelrot; die Tonwahl ist etwas
+höher, alle Umschalter zeichnen Spur und Griff kleiner. Horizontales Wischen
+wechselt die Tonwahl auch über Textfeldern. Orga erlaubt denselben Wechsel
+zwischen Notiz, Aufgabe und Termin, auch für bestehende Einträge.
+Text, Checklisten und Eingabefokus bleiben dabei erhalten.
+
+227 Tests der vollständigen Flutter-Testsuite bestanden; statische Analyse ohne Befunde.
+[Prüfbericht](../../audit/BEDIENUNG_BUILD_35.md) ·
+[Zwölf Ansichten](../../audit/tone-controls-renderings/README.md) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md).
+Kein physischer Android-Gerätelauf, keine Browsertests und keine Schemaänderung.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.14+34
 
 „Zuletzt verwendet“ entfällt in den Beobachtungsformularen, auch beim Bearbeiten.
 Vorhandene Auftragstags und Freitexte bleiben erhalten. Beide Symbolreihen auf

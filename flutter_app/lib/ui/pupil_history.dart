@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -255,7 +256,7 @@ Future<void> showPupilHistory(
                       ),
                   ],
                 ),
-                SwitchListTile(
+                CompactSwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Nur offene Nachbereitung'),
                   value: onlyOpen,

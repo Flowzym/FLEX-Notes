@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
@@ -762,7 +763,7 @@ Future<void> showBulk(
             ],
             if (kind == 'orga') ...[
               text('body', 'Eigene Notiz', lines: 4),
-              SwitchListTile(
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Als Aufgabe'),
                 value: data['isTask'] == true,
@@ -770,7 +771,7 @@ Future<void> showBulk(
               ),
             ],
             if (kind == 'orga') ...[
-              SwitchListTile(
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Erinnern'),
                 value: data['reminderOpen'] == true,
@@ -812,7 +813,7 @@ Future<void> showBulk(
                 'Beobachtet am ${displayDate(data['observedOn'] as String)} ${data['observedTime']}',
               ),
             ),
-            SwitchListTile(
+            CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Später ergänzen'),
               value: data['needsCompletion'] == true,

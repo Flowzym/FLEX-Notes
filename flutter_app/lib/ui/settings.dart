@@ -1,3 +1,4 @@
+import 'observation_tone_colors.dart';
 import '../domain/observation_catalog.dart';
 import 'option_bar.dart';
 import 'maintenance_dialog.dart';
@@ -188,6 +189,9 @@ class _SettingsPageState extends State<SettingsPage>
               const SizedBox(height: 12),
               OptionBar(
                 options: observationTones,
+                colors: observationToneColors,
+                minButtonHeight: 34,
+                fontSize: 14,
                 value: c.appearance.defaultObservationTone,
                 keyPrefix: 'default-tone',
                 onChanged: (value) =>

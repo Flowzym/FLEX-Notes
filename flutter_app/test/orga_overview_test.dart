@@ -304,7 +304,7 @@ void main() {
 
   for (final kind in [SchoolKind.social, SchoolKind.work]) {
     testWidgets(
-      '${kind.name}: tone swipe retains both selections and ignores vertical/text drags',
+      '${kind.name}: tone swipe retains selections, ignores vertical drags and switches over text',
       (t) async {
         await app(t);
         await open(
@@ -367,6 +367,14 @@ void main() {
         await t.enterText(body, 'Bleibt beim Wischen erhalten');
         await t.drag(body, const Offset(-120, 0));
         await t.pumpAndSettle();
+        expect(
+          t
+              .widget<TextButton>(find.byKey(const ValueKey('tone-neutral')))
+              .style!
+              .backgroundColor!
+              .resolve({}),
+          isNot(Colors.transparent),
+        );
         expect(find.byKey(ValueKey('observation-$positive')), findsNothing);
         await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
         final saved = (await repo.schoolDrafts()).single.record;

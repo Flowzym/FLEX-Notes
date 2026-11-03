@@ -9,11 +9,14 @@ class OptionBar extends StatelessWidget {
     required this.onChanged,
     this.keyPrefix = 'option',
     this.colors = const {},
+    this.minButtonHeight = 30,
+    this.fontSize = 13,
   });
   final Map<String, String> options;
   final String value, keyPrefix;
   final ValueChanged<String>? onChanged;
   final Map<String, Color> colors;
+  final double minButtonHeight, fontSize;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -35,12 +38,12 @@ class OptionBar extends StatelessWidget {
                         ? Colors.white
                         : Colors.black)
                   : scheme.onSurface,
-              minimumSize: const Size(0, 30),
+              minimumSize: Size(0, minButtonHeight),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-              textStyle: const TextStyle(
+              textStyle: TextStyle(
                 fontFamily: 'FlexSans',
-                fontSize: 13,
+                fontSize: fontSize,
                 height: 1.2,
               ),
               shape: const StadiumBorder(),
@@ -52,7 +55,7 @@ class OptionBar extends StatelessWidget {
 
       final vertical =
           constraints.maxWidth < 400 &&
-          MediaQuery.textScalerOf(context).scale(13) > 24;
+          MediaQuery.textScalerOf(context).scale(fontSize) > 24;
       return Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(

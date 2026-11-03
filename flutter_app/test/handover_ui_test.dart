@@ -198,8 +198,10 @@ void main() {
         greaterThan(shortcut(FlexSymbol.goal).bottom),
       );
       expect(
-        shortcut(FlexSymbol.homework).left,
-        shortcut(FlexSymbol.goal).left,
+        (shortcut(FlexSymbol.homework).center.dx +
+                shortcut(FlexSymbol.orga).center.dx) /
+            2,
+        closeTo(shortcut(FlexSymbol.social).center.dx, .1),
       );
       await tester.tap(find.byTooltip('Schüler suchen'));
       await tester.pumpAndSettle();

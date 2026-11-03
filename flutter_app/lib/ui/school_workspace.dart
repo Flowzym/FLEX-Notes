@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'symbol_button.dart';
 import 'pupil_history.dart';
 import 'draft_buffer.dart';
@@ -873,7 +874,7 @@ Future<void> showBrief(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SwitchListTile(
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Namen weiterer Beteiligter aufnehmen'),
                 value: names,

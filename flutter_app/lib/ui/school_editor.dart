@@ -1,6 +1,8 @@
+import 'observation_tone_colors.dart';
+import 'compact_switch.dart';
 import 'option_bar.dart';
 import 'draft_actions.dart';
-import 'tone_swipe.dart';
+import 'option_swipe.dart';
 import 'pupil_history.dart';
 import 'entry_navigation.dart';
 import 'dart:async';
@@ -975,7 +977,7 @@ class _SchoolEditorState extends State<SchoolEditor>
     children: [
       Row(
         children: [
-          Switch(
+          CompactSwitch(
             key: ValueKey('section-$label'),
             value: active,
             onChanged: (v) => setState(() => change(v)),
@@ -1009,11 +1011,7 @@ class _SchoolEditorState extends State<SchoolEditor>
       ...catalog.options.where((s) => !catalog.favorites.contains(s)),
     ];
     options.removeWhere(selected.contains);
-    final selectionColor = switch (selectedTone) {
-      'negative' => const Color(0xffefcbb9),
-      'neutral' => scheme.secondaryContainer,
-      _ => scheme.primary,
-    };
+    final selectionColor = observationToneColors[selectedTone]!;
     Widget label(String title, String hint) => Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text.rich(
@@ -1037,10 +1035,9 @@ class _SchoolEditorState extends State<SchoolEditor>
           keyPrefix: 'tone',
           options: observationTones,
           value: selectedTone,
-          colors: {
-            'neutral': scheme.secondaryContainer,
-            'negative': const Color(0xffefcbb9),
-          },
+          colors: observationToneColors,
+          minButtonHeight: 34,
+          fontSize: 14,
           onChanged: (value) => setState(() {
             selectedTone = value;
           }),
@@ -1819,7 +1816,7 @@ class _SchoolEditorState extends State<SchoolEditor>
       final later = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Switch(
+          CompactSwitch(
             key: const ValueKey('observation-later'),
             value: r.needsCompletion,
             onChanged: busy ? null : (v) => edit({'needsCompletion': v}),
@@ -1987,7 +1984,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                   else
                     r.revision > 0
                         ? observationEdit()
-                        : ToneSwipe(
+                        : OptionSwipe(
                             key: const ValueKey('observation-swipe'),
                             onChanged: (value) => setState(() {
                               final tones = observationTones.keys.toList();

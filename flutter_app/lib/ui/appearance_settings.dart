@@ -1,3 +1,4 @@
+import 'compact_switch.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -749,7 +750,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 divisions: 16,
                 percent: true,
               ),
-              SwitchListTile(
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Kompakte Abstände'),
                 value: a.compact,
@@ -779,14 +780,14 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                   ),
               ],
             ),
-            SwitchListTile(
+            CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Lesbarkeitsschutz'),
               value: a.readabilityProtection,
               onChanged: (v) => change({'readabilityProtection': v}),
             ),
           ]),
-          SwitchListTile(
+          CompactSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Alle Flächen gemeinsam einstellen'),
             value: a.coupleSurfaces,
@@ -808,7 +809,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 'defaultTexture': false,
               }),
             ),
-            SwitchListTile(
+            CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Bild verwenden'),
               value: a.imageEnabled && (a.hasImage || a.defaultTexture),
@@ -857,7 +858,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
               onChanged: (v) => change({'cardRadius': v}),
               onChangeEnd: (_) => c.flushAppearance(),
             ),
-            SwitchListTile(
+            CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Gelasio für Überschriften'),
               value: a.serifHeaders,

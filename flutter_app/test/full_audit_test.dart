@@ -1,3 +1,4 @@
+import 'package:flex_notizbuch/ui/compact_switch.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -374,7 +375,7 @@ void main() {
         final bar = find.byKey(const ValueKey('tone-pill'));
         String tone() => t.widget<OptionBar>(bar).value;
         expect(tone(), 'neutral');
-        expect(t.getSize(bar).height, lessThanOrEqualTo(36));
+        expect(t.getSize(bar).height, inInclusiveRange(38, 40));
         final neutral = observationDefaults['${kind.name}-neutral']!.first;
         await tap(t, find.byKey(ValueKey('observation-$neutral')));
         for (final entry in [
@@ -580,7 +581,7 @@ void main() {
         t,
         OrgaEditor(controller: c, entry: (await repo.entries()).single),
       );
-      await tap(t, find.widgetWithText(SwitchListTile, 'Erinnern'));
+      await tap(t, find.widgetWithText(CompactSwitchListTile, 'Erinnern'));
       expect(find.textContaining('Erinnern am'), findsNothing);
       await tap(t, find.text('Speichern'));
       final saved = (await repo.entries()).single;
@@ -589,8 +590,8 @@ void main() {
       await open(t, OrgaEditor(controller: c, entry: saved));
       expect(
         t
-            .widget<SwitchListTile>(
-              find.widgetWithText(SwitchListTile, 'Erinnern'),
+            .widget<CompactSwitchListTile>(
+              find.widgetWithText(CompactSwitchListTile, 'Erinnern'),
             )
             .value,
         isFalse,

@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.14+34** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.15+35** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -8,11 +8,11 @@ Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
 Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
-Aktueller UI-Abgleich und Prüfstand: [Karten und Beobachtungsformulare](../audit/UI_FEINSCHLIFF_BUILD_34.md).
+Aktueller UI-Abgleich und Prüfstand: [Tonwahl, Schalter und Orga-Wischgesten](../audit/BEDIENUNG_BUILD_35.md).
 Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Tastaturkorrektur](../audit/ANDROID_TASTATUR_FIX.md).
 Diese Runde liefert eine neue Android-Test-APK. Die früheren Web-Vorschaupakete
-im Repository bleiben unverändert. Geprüft werden lokale Flutter-Tests, direkte Engine-Renderings,
-Analyse und Android-Releasebuild. Der umfassende App-/Web-Prüflauf aus Build 33 ist im vorherigen Prüfbericht dokumentiert. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
+im Repository bleiben unverändert. Prüfumfang: vollständige Flutter-Testsuite, direkte Engine-Renderings,
+Analyse und Android-Releasebuild. Der vorherige Web-Build ist im Prüfbericht zu Build 33 dokumentiert. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
 
 ## Start
 

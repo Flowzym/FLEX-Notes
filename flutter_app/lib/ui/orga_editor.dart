@@ -1,4 +1,6 @@
+import 'compact_switch.dart';
 import 'option_bar.dart';
+import 'option_swipe.dart';
 import 'draft_actions.dart';
 import 'symbol_button.dart';
 import 'surfaces.dart';
@@ -64,6 +66,42 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   Future<void> pending = Future.value();
   NotebookController get c => widget.controller;
   bool get isClass => entry.pupilId == null;
+  static const kinds = {
+    'note': 'Notiz',
+    'task': 'Aufgabe',
+    'appointment': 'Termin',
+  };
+  String get kind => entry.isAppointment
+      ? 'appointment'
+      : entry.isTask
+      ? 'task'
+      : 'note';
+
+  void selectKind(String next) {
+    if (next == kind) return;
+    change(
+      entry.copyWith(
+        isTask: next == 'task',
+        done: next == 'task' && entry.done,
+        dueDate: next == 'task' ? entry.dueDate : null,
+        appointmentDate: next == 'appointment'
+            ? entry.appointmentDate ?? dateOnly(DateTime.now())
+            : null,
+        appointmentTime: next == 'appointment' ? entry.appointmentTime : '',
+      ),
+    );
+  }
+
+  void swipeKind(bool previous) {
+    final options = kinds.keys.toList();
+    selectKind(
+      options[(options.indexOf(kind) + (previous ? -1 : 1)).clamp(
+        0,
+        options.length - 1,
+      )],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -529,339 +567,327 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (status.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(status, style: const TextStyle(fontSize: 12)),
-                  ),
-                OptionBar(
-                  key: const ValueKey('orga-kind-bar'),
-                  keyPrefix: 'orga-kind',
-                  options: const {
-                    'note': 'Notiz',
-                    'task': 'Aufgabe',
-                    'appointment': 'Termin',
-                  },
-                  value: entry.isAppointment
-                      ? 'appointment'
-                      : entry.isTask
-                      ? 'task'
-                      : 'note',
-                  onChanged: (kind) => change(
-                    entry.copyWith(
-                      isTask: kind == 'task',
-                      done: kind == 'task' && entry.done,
-                      dueDate: kind == 'task' ? entry.dueDate : null,
-                      appointmentDate: kind == 'appointment'
-                          ? entry.appointmentDate ?? dateOnly(DateTime.now())
-                          : null,
-                      appointmentTime: kind == 'appointment'
-                          ? entry.appointmentTime
-                          : '',
+            child: OptionSwipe(
+              key: const ValueKey('orga-kind-swipe'),
+              onChanged: swipeKind,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (status.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(status, style: const TextStyle(fontSize: 12)),
                     ),
+                  OptionBar(
+                    key: const ValueKey('orga-kind-bar'),
+                    keyPrefix: 'orga-kind',
+                    options: kinds,
+                    value: kind,
+                    onChanged: selectKind,
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (entry.isAppointment)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: OutlinedButton.icon(
-                      key: const ValueKey('orga-appointment-date'),
-                      onPressed: () => date(appointment: true),
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(
-                        '${displayDate(entry.appointmentDate)} · ${entry.appointmentTime.isEmpty ? 'Ganztägig' : entry.appointmentTime}',
+                  const SizedBox(height: 12),
+                  if (entry.isAppointment)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('orga-appointment-date'),
+                        onPressed: () => date(appointment: true),
+                        icon: const Icon(Icons.event_outlined),
+                        label: Text(
+                          '${displayDate(entry.appointmentDate)} · ${entry.appointmentTime.isEmpty ? 'Ganztägig' : entry.appointmentTime}',
+                        ),
                       ),
                     ),
+                  Text(
+                    entry.isAppointment
+                        ? 'Termin und Notizen'
+                        : entry.isTask
+                        ? 'Aufgabe'
+                        : 'Notiz',
                   ),
-                Text(
-                  entry.isAppointment
-                      ? 'Termin und Notizen'
-                      : entry.isTask
-                      ? 'Aufgabe'
-                      : 'Notiz',
-                ),
-                Wrap(
-                  spacing: 4,
-                  children: [
-                    FlexSymbolButton(
-                      key: const ValueKey('orga-list-check'),
-                      label: 'Checkliste',
-                      icon: Icons.checklist,
-                      onPressed: () {
-                        setState(() => listOpen = true);
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) itemFocus.requestFocus();
-                        });
-                      },
-                    ),
-                    FlexSymbolButton(
-                      key: const ValueKey('orga-list-bullet'),
-                      label: 'Aufzählung',
-                      icon: Icons.format_list_bulleted,
-                      onPressed: () => insertPrefix('• '),
-                    ),
-                    FlexSymbolButton(
-                      key: const ValueKey('orga-list-number'),
-                      label: 'Nummerierung',
-                      icon: Icons.format_list_numbered,
-                      onPressed: () => insertPrefix('1. '),
-                    ),
-                  ],
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).inputDecorationTheme.fillColor,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      Theme.of(context)
-                              .extension<FlexSurfaces>()
-                              ?.appearance
-                              ?.fieldRadius ??
-                          14,
-                    ),
+                  Wrap(
+                    spacing: 4,
+                    children: [
+                      FlexSymbolButton(
+                        key: const ValueKey('orga-list-check'),
+                        label: 'Checkliste',
+                        icon: Icons.checklist,
+                        onPressed: () {
+                          setState(() => listOpen = true);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) itemFocus.requestFocus();
+                          });
+                        },
+                      ),
+                      FlexSymbolButton(
+                        key: const ValueKey('orga-list-bullet'),
+                        label: 'Aufzählung',
+                        icon: Icons.format_list_bulleted,
+                        onPressed: () => insertPrefix('• '),
+                      ),
+                      FlexSymbolButton(
+                        key: const ValueKey('orga-list-number'),
+                        label: 'Nummerierung',
+                        icon: Icons.format_list_numbered,
+                        onPressed: () => insertPrefix('1. '),
+                      ),
+                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Focus(
-                          onKeyEvent: (_, event) {
-                            final keyboard = HardwareKeyboard.instance;
-                            if (event is KeyDownEvent &&
-                                (event.logicalKey == LogicalKeyboardKey.enter ||
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.numpadEnter) &&
-                                !keyboard.isControlPressed &&
-                                !keyboard.isAltPressed &&
-                                !keyboard.isMetaPressed) {
-                              if (keyboard.isShiftPressed &&
-                                  note.selection.isValid &&
-                                  note.value.composing.isCollapsed) {
-                                final start = note.selection.start,
-                                    end = note.selection.end;
-                                applyList(
-                                  TextEditingValue(
-                                    text: note.text.replaceRange(
-                                      start,
-                                      end,
-                                      '\n',
+                  DecoratedBox(
+                    key: const ValueKey('orga-text-editor'),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).inputDecorationTheme.fillColor,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        Theme.of(context)
+                                .extension<FlexSurfaces>()
+                                ?.appearance
+                                ?.fieldRadius ??
+                            14,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Focus(
+                            onKeyEvent: (_, event) {
+                              final keyboard = HardwareKeyboard.instance;
+                              if (event is KeyDownEvent &&
+                                  (event.logicalKey ==
+                                          LogicalKeyboardKey.enter ||
+                                      event.logicalKey ==
+                                          LogicalKeyboardKey.numpadEnter) &&
+                                  !keyboard.isControlPressed &&
+                                  !keyboard.isAltPressed &&
+                                  !keyboard.isMetaPressed) {
+                                if (keyboard.isShiftPressed &&
+                                    note.selection.isValid &&
+                                    note.value.composing.isCollapsed) {
+                                  final start = note.selection.start,
+                                      end = note.selection.end;
+                                  applyList(
+                                    TextEditingValue(
+                                      text: note.text.replaceRange(
+                                        start,
+                                        end,
+                                        '\n',
+                                      ),
+                                      selection: TextSelection.collapsed(
+                                        offset: start + 1,
+                                      ),
                                     ),
-                                    selection: TextSelection.collapsed(
-                                      offset: start + 1,
-                                    ),
-                                  ),
-                                );
-                                return KeyEventResult.handled;
+                                  );
+                                  return KeyEventResult.handled;
+                                }
+                                final result = continueOrgaLine(note.value);
+                                if (result != null) {
+                                  applyList(result);
+                                  return KeyEventResult.handled;
+                                }
                               }
-                              final result = continueOrgaLine(note.value);
-                              if (result != null) {
-                                applyList(result);
-                                return KeyEventResult.handled;
-                              }
-                            }
-                            return KeyEventResult.ignored;
-                          },
-                          child: TextField(
-                            key: const ValueKey('orga-note'),
-                            focusNode: noteFocus,
-                            keyboardType: TextInputType.multiline,
-                            textInputAction: TextInputAction.newline,
-                            inputFormatters: [OrgaListFormatter()],
-                            controller: note,
-                            autofocus: true,
-                            minLines: 4,
-                            maxLines: 12,
-                            maxLength: 12000,
-                            decoration: InputDecoration(
-                              hintText: entry.isAppointment
-                                  ? 'Termin …'
-                                  : entry.isTask
-                                  ? 'Aufgabe …'
-                                  : 'Notiz …',
-                              counterText: '',
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              filled: false,
-                            ),
-                            onChanged: (_) => change(),
-                          ),
-                        ),
-                        for (final item in entry.items)
-                          Row(
-                            key: ValueKey(item.id),
-                            children: [
-                              Checkbox(
-                                value: item.checked,
-                                onChanged: (v) => change(
-                                  entry.copyWith(
-                                    items: entry.items
-                                        .map(
-                                          (i) => i.id == item.id
-                                              ? i.copyWith(checked: v)
-                                              : i,
-                                        )
-                                        .toList(),
-                                  ),
-                                ),
+                              return KeyEventResult.ignored;
+                            },
+                            child: TextField(
+                              key: const ValueKey('orga-note'),
+                              focusNode: noteFocus,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              inputFormatters: [OrgaListFormatter()],
+                              controller: note,
+                              autofocus: true,
+                              minLines: 4,
+                              maxLines: 12,
+                              maxLength: 12000,
+                              decoration: InputDecoration(
+                                hintText: entry.isAppointment
+                                    ? 'Termin …'
+                                    : entry.isTask
+                                    ? 'Aufgabe …'
+                                    : 'Notiz …',
+                                counterText: '',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
                               ),
-                              Expanded(
-                                child: TextFormField(
-                                  key: ValueKey('orga-item-${item.id}'),
-                                  focusNode: itemNodes.putIfAbsent(
-                                    item.id,
-                                    () => FocusNode(),
-                                  ),
-                                  textInputAction: TextInputAction.next,
-                                  onFieldSubmitted: (_) => nextItem(item.id),
-                                  controller: itemControllers.putIfAbsent(
-                                    item.id,
-                                    () =>
-                                        TextEditingController(text: item.text),
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Listenpunkt',
-                                  ),
+                              onChanged: (_) => change(),
+                            ),
+                          ),
+                          for (final item in entry.items)
+                            Row(
+                              key: ValueKey(item.id),
+                              children: [
+                                Checkbox(
+                                  value: item.checked,
                                   onChanged: (v) => change(
                                     entry.copyWith(
                                       items: entry.items
                                           .map(
                                             (i) => i.id == item.id
-                                                ? i.copyWith(text: v)
+                                                ? i.copyWith(checked: v)
                                                 : i,
                                           )
                                           .toList(),
                                     ),
                                   ),
                                 ),
-                              ),
-                              IconButton(
-                                tooltip: 'Listenpunkt entfernen',
-                                onPressed: () => change(
-                                  entry.copyWith(
-                                    items: entry.items
-                                        .where((i) => i.id != item.id)
-                                        .toList(),
+                                Expanded(
+                                  child: TextFormField(
+                                    key: ValueKey('orga-item-${item.id}'),
+                                    focusNode: itemNodes.putIfAbsent(
+                                      item.id,
+                                      () => FocusNode(),
+                                    ),
+                                    textInputAction: TextInputAction.next,
+                                    onFieldSubmitted: (_) => nextItem(item.id),
+                                    controller: itemControllers.putIfAbsent(
+                                      item.id,
+                                      () => TextEditingController(
+                                        text: item.text,
+                                      ),
+                                    ),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Listenpunkt',
+                                    ),
+                                    onChanged: (v) => change(
+                                      entry.copyWith(
+                                        items: entry.items
+                                            .map(
+                                              (i) => i.id == item.id
+                                                  ? i.copyWith(text: v)
+                                                  : i,
+                                            )
+                                            .toList(),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                        if (listOpen)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  key: const ValueKey('orga-new-item'),
-                                  textInputAction: TextInputAction.next,
-                                  controller: itemText,
-                                  focusNode: itemFocus,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Neuer Listenpunkt',
+                                IconButton(
+                                  tooltip: 'Listenpunkt entfernen',
+                                  onPressed: () => change(
+                                    entry.copyWith(
+                                      items: entry.items
+                                          .where((i) => i.id != item.id)
+                                          .toList(),
+                                    ),
                                   ),
-                                  onChanged: (_) => change(),
-                                  onSubmitted: (_) => addItem(fromEnter: true),
+                                  icon: const Icon(Icons.close),
                                 ),
-                              ),
-                              IconButton(
-                                tooltip: 'Listenpunkt hinzufügen',
-                                onPressed: addItem,
-                                icon: const Icon(Icons.add),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (entry.isTask) ...[
-                  TextButton.icon(
-                    onPressed: () => date(due: true),
-                    icon: const Icon(Icons.calendar_month),
-                    label: Text(
-                      'Fällig am · optional: ${displayDate(entry.dueDate)}',
-                    ),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Aufgabe erledigt'),
-                    value: entry.done,
-                    onChanged: (v) =>
-                        change(v ? entry.complete() : entry.reopen()),
-                  ),
-                ],
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Erinnern'),
-                  value: reminderOpen,
-                  onChanged: (v) {
-                    setState(() => reminderOpen = v);
-                    if (!v) {
-                      change(
-                        entry.copyWith(
-                          reminderAtUtc: null,
-                          reminderState: ReminderState.none,
-                        ),
-                      );
-                    }
-                  },
-                ),
-                if (reminderOpen) ...[
-                  TextButton.icon(
-                    onPressed: entry.done ? null : () => date(remind: true),
-                    icon: const Icon(Icons.calendar_month),
-                    label: Text('Erinnern am: ${displayReminder(entry)}'),
-                  ),
-                  TextField(
-                    controller: reminder,
-                    decoration: const InputDecoration(
-                      labelText: 'Erinnerungstext · optional',
-                      hintText: 'Wie Notiz …',
-                    ),
-                    onChanged: (_) => change(),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Erinnerung quittiert'),
-                    value: entry.reminderState == ReminderState.acknowledged,
-                    onChanged: entry.reminderAtUtc == null || entry.done
-                        ? null
-                        : (v) => change(
-                            entry.copyWith(
-                              reminderState: v
-                                  ? ReminderState.acknowledged
-                                  : ReminderState.planned,
+                              ],
                             ),
-                          ),
-                  ),
-                  const Text('Anzeige in der App'),
-                ],
-                if (error != null)
-                  Padding(
-                    key: errorAnchor,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                          if (listOpen)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    key: const ValueKey('orga-new-item'),
+                                    textInputAction: TextInputAction.next,
+                                    controller: itemText,
+                                    focusNode: itemFocus,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Neuer Listenpunkt',
+                                    ),
+                                    onChanged: (_) => change(),
+                                    onSubmitted: (_) =>
+                                        addItem(fromEnter: true),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Listenpunkt hinzufügen',
+                                  onPressed: addItem,
+                                  icon: const Icon(Icons.add),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                   ),
-              ],
+                  if (entry.isTask) ...[
+                    TextButton.icon(
+                      onPressed: () => date(due: true),
+                      icon: const Icon(Icons.calendar_month),
+                      label: Text(
+                        'Fällig am · optional: ${displayDate(entry.dueDate)}',
+                      ),
+                    ),
+                    CompactSwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Aufgabe erledigt'),
+                      value: entry.done,
+                      onChanged: (v) =>
+                          change(v ? entry.complete() : entry.reopen()),
+                    ),
+                  ],
+                  CompactSwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Erinnern'),
+                    value: reminderOpen,
+                    onChanged: (v) {
+                      setState(() => reminderOpen = v);
+                      if (!v) {
+                        change(
+                          entry.copyWith(
+                            reminderAtUtc: null,
+                            reminderState: ReminderState.none,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  if (reminderOpen) ...[
+                    TextButton.icon(
+                      onPressed: entry.done ? null : () => date(remind: true),
+                      icon: const Icon(Icons.calendar_month),
+                      label: Text('Erinnern am: ${displayReminder(entry)}'),
+                    ),
+                    TextField(
+                      controller: reminder,
+                      decoration: const InputDecoration(
+                        labelText: 'Erinnerungstext · optional',
+                        hintText: 'Wie Notiz …',
+                      ),
+                      onChanged: (_) => change(),
+                    ),
+                    CompactSwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Erinnerung quittiert'),
+                      value: entry.reminderState == ReminderState.acknowledged,
+                      onChanged: entry.reminderAtUtc == null || entry.done
+                          ? null
+                          : (v) => change(
+                              entry.copyWith(
+                                reminderState: v
+                                    ? ReminderState.acknowledged
+                                    : ReminderState.planned,
+                              ),
+                            ),
+                    ),
+                    const Text('Anzeige in der App'),
+                  ],
+                  if (error != null)
+                    Padding(
+                      key: errorAnchor,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           actions: [
             SizedBox(
               width: double.infinity,
-              child: SwitchListTile(
+              child: CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Später ergänzen'),
                 value: entry.needsCompletion,
