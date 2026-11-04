@@ -1,4 +1,17 @@
-# Aktueller Stand: 0.16.0-rebuild.16+36
+# Aktueller Stand: 0.16.0-rebuild.17+37
+
+Umgesetzt sind die gewünschten Ergänzungen 1, 2, 3, 5 und 6: automatische verschlüsselte
+Sicherungen, Android-Erinnerungen, Import-Zusammenführung mit feldweisen Entscheidungen,
+PDF-Gesprächsvorbereitung sowie PIN und optionale Biometrie. Vorlagen gehören nicht zu dieser Runde.
+
+264 Tests der vollständigen Flutter-Testsuite bestanden; statische Analyse ohne Befunde.
+Keine SQL-Schemaänderung, gleiche App-ID und Testsignatur. Android-Geräteabnahme bleibt offen.
+[Funktionsumfang und Prüfungen](../../audit/GERAETEFUNKTIONEN_BUILD_37.md) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md).
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.16+36
 
 Die beiden Orga-Fehler aus dem technischen Review sind behoben. Typwechsel behalten
 Termindatum/Uhrzeit sowie Aufgabenfälligkeit/Erledigt-Status, auch über gespeicherte

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:cryptography/cryptography.dart';
+import '../domain/backup_merge.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import '../domain/models.dart';
@@ -7,8 +9,11 @@ import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import 'database.dart';
 part 'school_store.dart';
+part 'backup_merge_store.dart';
 
-class SqliteNotebook with SchoolStore implements NotebookRepository {
+class SqliteNotebook
+    with SchoolStore, BackupMergeStore
+    implements NotebookRepository, BackupMergeRepository {
   @override
   Future<NotebookSnapshot> snapshot() => db.transaction(
     () async => NotebookSnapshot(

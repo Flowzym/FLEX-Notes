@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.16+36** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.17+37** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -8,11 +8,24 @@ Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
 Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
-Aktueller UI-Abgleich und Prüfstand: [Orga-Typwechsel und Konfliktvergleich](../audit/ORGA_KORREKTUREN_BUILD_36.md).
+Aktueller Prüfstand: [Sicherungen, Erinnerungen, Zusammenführen, PDF und App-Sperre](../audit/GERAETEFUNKTIONEN_BUILD_37.md).
 Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Tastaturkorrektur](../audit/ANDROID_TASTATUR_FIX.md).
 Diese Runde liefert eine neue Android-Test-APK. Die früheren Web-Vorschaupakete
-im Repository bleiben unverändert. Prüfumfang: vollständige Flutter-Testsuite, direkte Engine-Renderings,
+im Repository bleiben unverändert. Prüfumfang: vollständige Flutter-Testsuite einschließlich Widgettests,
 Analyse und Android-Releasebuild. Der vorherige Web-Build ist im Prüfbericht zu Build 33 dokumentiert. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
+
+## Neue Funktionen einrichten
+
+- **Einstellungen → Daten:** automatische Sicherungen mit Ordner, Passwort, Intervall
+  und Aufbewahrung; letzte erfolgreiche Sicherung und Wiederherstellung.
+- **Einstellungen → Bedienung:** Android-Erinnerungen sowie App-PIN/optionale Biometrie.
+- **Sicherung importieren:** in bestehenden Arbeitsbereichen mit Vorschau zusammenführen.
+  Gleichnamige Schüler zuordnen und Unterschiede pro Feld auswählen; lokale Werte sind vorausgewählt.
+- **Gespräch vorbereiten:** Zeitraum/Bereiche/Einträge auswählen, zusammenstellen und als PDF sichern.
+
+Automatische Sicherungen, OS-Erinnerungen und App-Sperre werden auf Android angeboten.
+Die Zugangssperre ist keine Datenbankverschlüsselung. Gerätespezifische Geheimnisse und
+Berechtigungen sind nicht Bestandteil von exportierten Sicherungen.
 
 ## Start
 

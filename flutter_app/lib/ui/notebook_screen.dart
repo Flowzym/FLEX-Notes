@@ -50,7 +50,70 @@ class _NotebookScreenState extends State<NotebookScreen> {
   final _pupilSearch = TextEditingController();
   final _entrySearch = TextEditingController();
   @override
+  void initState() {
+    super.initState();
+    c.services?.reminders.addListener(_notification);
+    c.services?.lock.addListener(_notification);
+    _notification();
+  }
+
+  bool _openingNotification = false;
+  void _notification() {
+    final services = c.services;
+    if (services == null ||
+        services.lock.locked ||
+        services.reminders.pendingTarget == null ||
+        _openingNotification) {
+      return;
+    }
+    _openingNotification = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || services.lock.locked) {
+        _openingNotification = false;
+        return;
+      }
+      final target = services.reminders.pendingTarget!;
+      services.reminders.consumeTarget();
+      try {
+        await c.reload();
+        if (!mounted) return;
+        final id = target.substring(target.indexOf(':') + 1);
+        if (target.startsWith('orga:')) {
+          final entry = c.entries.where((e) => e.id == id).firstOrNull;
+          if (entry != null) {
+            await _editor(entry);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Dieser Eintrag ist nicht mehr verfügbar.'),
+              ),
+            );
+          }
+        } else if (target.startsWith('school:')) {
+          final record = c.records
+              .where((r) => r.id == id && !r.deleted)
+              .firstOrNull;
+          if (record != null) {
+            await editSchool(context, c, record);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Dieser Eintrag ist nicht mehr verfügbar.'),
+              ),
+            );
+          }
+        }
+      } finally {
+        _openingNotification = false;
+        _notification();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    c.services?.reminders.removeListener(_notification);
+    c.services?.lock.removeListener(_notification);
     _pages.dispose();
     _pupilSearch.dispose();
     _entrySearch.dispose();

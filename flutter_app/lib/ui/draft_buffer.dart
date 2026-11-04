@@ -14,8 +14,13 @@ Future<bool> saveTextFile(
   String name,
   String text, {
   String mime = 'text/plain',
+}) => saveBytesFile(name, Uint8List.fromList(utf8.encode(text)), mime: mime);
+
+Future<bool> saveBytesFile(
+  String name,
+  Uint8List bytes, {
+  required String mime,
 }) async {
-  final bytes = Uint8List.fromList(utf8.encode(text));
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     return await const MethodChannel(
           'at.flowzym.flex_notizbuch/files',

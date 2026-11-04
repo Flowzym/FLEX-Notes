@@ -16,6 +16,32 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
+  test('Android PDF export preserves binary bytes and MIME type', () async {
+    MethodCall? received;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      received = call;
+      return true;
+    });
+    final bytes = Uint8List.fromList([
+      37,
+      80,
+      68,
+      70,
+      45,
+      49,
+      46,
+      55,
+      0,
+      128,
+      255,
+    ]);
+    expect(
+      await saveBytesFile('Gespräch.pdf', bytes, mime: 'application/pdf'),
+      true,
+    );
+    expect(received!.arguments['mime'], 'application/pdf');
+    expect(received!.arguments['bytes'], bytes);
+  });
   test(
     'Android export passes filename, MIME and UTF-8 to document picker',
     () async {

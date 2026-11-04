@@ -6,6 +6,7 @@ import 'notebook_screen.dart';
 import 'surfaces.dart';
 import 'app_scale.dart';
 import 'common.dart';
+import 'app_guard.dart';
 
 class FlexApp extends StatelessWidget {
   const FlexApp({super.key, required this.controller});
@@ -184,6 +185,10 @@ class FlexApp extends StatelessWidget {
     animation: controller,
     builder: (_, child) => MaterialApp(
       title: 'FLEX-Notizbuch',
+      navigatorObservers: [
+        if (controller.services != null)
+          navigationLock(controller.services!.lock),
+      ],
       debugShowCheckedModeBanner: false,
       themeAnimationDuration: Duration.zero,
       locale: const Locale('de', 'AT'),
@@ -199,7 +204,16 @@ class FlexApp extends StatelessWidget {
       builder: (context, child) => FlexAppScale(
         scale: controller.appearance.uiScale,
         textScale: controller.appearance.textScale * .95,
-        child: FlexBackground(appearance: controller.appearance, child: child!),
+        child: FlexBackground(
+          appearance: controller.appearance,
+          child: controller.services == null
+              ? child!
+              : AppGuard(
+                  lock: controller.services!.lock,
+                  onResume: controller.services!.resume,
+                  child: child!,
+                ),
+        ),
       ),
       home: NotebookScreen(controller: controller),
     ),

@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.16+36** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.17+37** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 36 herunterladen**](releases/android/build-36/README.md)
+[**Android-Testapp Build 37 herunterladen**](releases/android/build-37/README.md)
+
+[Neue Sicherungen, Android-Erinnerungen, Import-Zusammenführung, PDF und App-Sperre](audit/GERAETEFUNKTIONEN_BUILD_37.md).
 
 [Korrektur der beiden im Review gefundenen Orga-Fehler](audit/ORGA_KORREKTUREN_BUILD_36.md).
 Der [technische Review](audit/TECHNIK_REVIEW_BUILD_35.md) dokumentiert die zuvor
@@ -41,7 +43,9 @@ Vorheriger Settings-Abgleich und direkte Karten-Shortcuts: [Abgleich und Prüfun
 Dialogaudit der vorherigen Runde: [Dialogverzeichnis](audit/DIALOGVERZEICHNIS.md),
 [Vergleich mit Korrekturen und verbleibenden Abweichungen](audit/FLUTTER_ABGLEICH.md),
 [Prüfungen und direkte Renderings](audit/PRUEFNACHWEIS.md).
-Import-Zusammenführung und vollständige feldweise Konfliktauflösung bleiben offen.
+Sicherungsimporte bieten jetzt eine Vorschau und feldweise Entscheidungen. Der separate
+Konfliktdialog für parallel bearbeitete lokale Entwürfe entscheidet weiterhin zwischen
+vollständigen Fassungen.
 
 Nachgereichte App-Details und ihre Umsetzung sind unter
 [App-Referenz aus dem alten Chat](docs/rebuild/APP-DETAILS-AUS-ALTEM-CHAT.md)

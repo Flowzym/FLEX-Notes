@@ -1,3 +1,5 @@
+import 'merge_dialog.dart';
+import 'device_settings.dart';
 import 'observation_tone_colors.dart';
 import '../domain/observation_catalog.dart';
 import 'option_bar.dart';
@@ -176,6 +178,7 @@ class _SettingsPageState extends State<SettingsPage>
   Widget interaction() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (c.services != null) DeviceSettings(controller: c, backups: false),
       FlexCard(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -257,6 +260,7 @@ class _SettingsPageState extends State<SettingsPage>
   Widget data() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (c.services != null) DeviceSettings(controller: c, backups: true),
       FlexCard(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -283,6 +287,13 @@ class _SettingsPageState extends State<SettingsPage>
                         : () => _action(() => _import(legacy: false)),
                     icon: const Icon(Icons.upload),
                     label: const Text('Sicherung importieren'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _action(() => showImportArchives(context, c)),
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    label: const Text('Importarchiv'),
                   ),
                   OutlinedButton(
                     onPressed: _busy

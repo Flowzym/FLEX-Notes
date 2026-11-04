@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
+import '../services/device_services.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
 
 class NotebookController extends ChangeNotifier {
-  NotebookController(this.repository);
+  NotebookController(this.repository, {this.services});
+  final DeviceServices? services;
   final NotebookRepository repository;
   List<Pupil> pupils = [];
   List<OrgaEntry> entries = [];
@@ -49,6 +51,7 @@ class NotebookController extends ChangeNotifier {
       _savedAppearance = appearance;
     }
     stagedLegacyCount = next.legacyCount;
+    services?.updated(next);
     notifyListeners();
   }
 
@@ -144,6 +147,7 @@ class NotebookController extends ChangeNotifier {
   void dispose() {
     _appearanceTimer?.cancel();
     _disposed = true;
+    services?.dispose();
     super.dispose();
   }
 

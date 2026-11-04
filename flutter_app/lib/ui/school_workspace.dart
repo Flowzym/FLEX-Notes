@@ -1,3 +1,4 @@
+import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
 import 'symbol_button.dart';
 import 'pupil_history.dart';
@@ -794,6 +795,7 @@ Future<void> showBrief(
   var names = false;
   var preview = '', error = '';
   final selection = <String>{};
+  final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
   await showDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -803,7 +805,11 @@ Future<void> showBrief(
             (to == null || date.compareTo(to!) <= 0);
         final entries = <({String id, String date, String label, String text})>[
           for (final r in c.records.where(
-            (r) => r.pupilId == pupil.id && !r.deleted && inRange(r.observedOn),
+            (r) =>
+                r.pupilId == pupil.id &&
+                !r.deleted &&
+                areas.contains(r.kind.name) &&
+                inRange(r.observedOn),
           ))
             (
               id: r.id,
@@ -832,7 +838,10 @@ Future<void> showBrief(
               ].where((s) => s.isNotEmpty).join('\n'),
             ),
           for (final e in c.entries.where(
-            (e) => e.pupilId == pupil.id && inRange(e.observedOn),
+            (e) =>
+                e.pupilId == pupil.id &&
+                areas.contains('orga') &&
+                inRange(e.observedOn),
           ))
             (
               id: e.id,
@@ -841,7 +850,9 @@ Future<void> showBrief(
               text: [
                 e.body.isEmpty ? e.title : e.body,
                 if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
-                if (e.dueDate != null) 'Termin: ${displayDate(e.dueDate)}',
+                if (e.dueDate != null) 'Fällig am: ${displayDate(e.dueDate)}',
+                if (e.appointmentDate != null)
+                  'Termin: ${displayDate(e.appointmentDate)} ${e.appointmentTime}',
                 if (e.reminderState == ReminderState.planned)
                   'Erinnern am: ${displayReminder(e)}',
               ].join('\n'),
@@ -874,6 +885,32 @@ Future<void> showBrief(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final area in const {
+                    'social': 'Sozial',
+                    'work': 'Arbeit',
+                    'goal': 'Ziele',
+                    'homework': 'Hausübungen',
+                    'orga': 'Orga',
+                  }.entries)
+                    FilterChip(
+                      label: Text(area.value),
+                      selected: areas.contains(area.key),
+                      onSelected: (v) => update(() {
+                        if (v) {
+                          areas.add(area.key);
+                        } else {
+                          areas.remove(area.key);
+                        }
+                        preview = '';
+                        selection.clear();
+                      }),
+                    ),
+                ],
+              ),
               CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Namen weiterer Beteiligter aufnehmen'),
@@ -896,13 +933,17 @@ Future<void> showBrief(
                     child: Text('Bis: ${displayDate(to)}'),
                   ),
                   TextButton(
-                    onPressed: () => update(
-                      () => selection.addAll(entries.map((e) => e.id)),
-                    ),
+                    onPressed: () => update(() {
+                      selection.addAll(entries.map((e) => e.id));
+                      preview = '';
+                    }),
                     child: const Text('Alle auswählen'),
                   ),
                   TextButton(
-                    onPressed: () => update(selection.clear),
+                    onPressed: () => update(() {
+                      selection.clear();
+                      preview = '';
+                    }),
                     child: const Text('Auswahl leeren'),
                   ),
                 ],
@@ -914,6 +955,7 @@ Future<void> showBrief(
                   subtitle: Text(e.text),
                   value: selection.contains(e.id),
                   onChanged: (v) => update(() {
+                    preview = '';
                     if (v == true) {
                       selection.add(e.id);
                     } else {
@@ -931,7 +973,7 @@ Future<void> showBrief(
                   }
                   error = '';
                   preview =
-                      'Gesprächsvorbereitung · ${pupil.name}\n\n${entries.where((e) => selection.contains(e.id)).map((e) => '${displayDate(e.date)} · ${e.label}\n${e.text}').join('\n\n')}\n\nNächste Schritte\n';
+                      'Gesprächsvorbereitung · ${pupil.name}\nZeitraum: ${from == null ? 'Beginn' : displayDate(from)} bis ${to == null ? 'heute' : displayDate(to)}\n\n${entries.where((e) => selection.contains(e.id)).map((e) => '${displayDate(e.date)} · ${e.label}\n${e.text}').join('\n\n')}\n\nNächste Schritte\n';
                 }),
                 child: const Text('Auswahl zusammenstellen'),
               ),
@@ -944,6 +986,28 @@ Future<void> showBrief(
             ],
           ),
           actions: [
+            FilledButton.icon(
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('Als PDF sichern'),
+              onPressed: preview.isEmpty
+                  ? null
+                  : () => guarded(ctx, () async {
+                      final bytes = await briefPdf(
+                        text: preview,
+                        regularFont: await rootBundle.load(
+                          'assets/fonts/Selawik-Regular.ttf',
+                        ),
+                        boldFont: await rootBundle.load(
+                          'assets/fonts/Selawik-Bold.ttf',
+                        ),
+                      );
+                      await saveBytesFile(
+                        'FLEX-Gespraech-${dateOnly(DateTime.now())}.pdf',
+                        bytes,
+                        mime: 'application/pdf',
+                      );
+                    }),
+            ),
             TextButton(
               onPressed: preview.isEmpty
                   ? null

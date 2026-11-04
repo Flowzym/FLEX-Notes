@@ -1,3 +1,4 @@
+import 'merge_dialog.dart';
 import 'compact_switch.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -271,6 +272,17 @@ Future<void> showImportReview(
   final tables = value['tables'];
   if (tables is! Map || tables['pupils'] is! List) {
     throw const DomainError('Keine gültige FLEX-Sicherung.');
+  }
+  if (c.pupils.isNotEmpty ||
+      c.entries.isNotEmpty ||
+      c.trashedEntries.isNotEmpty ||
+      c.records.isNotEmpty ||
+      c.draftCount > 0 ||
+      c.stagedLegacyCount > 0) {
+    if (context.mounted) {
+      await showMergeReview(context, c, text, catalogs: catalogs);
+    }
+    return;
   }
   bool includeAppearance = (tables['preferences'] as List? ?? []).any(
         (r) => r['key'] == 'appearance',
