@@ -337,6 +337,77 @@ class OrgaEntry {
   );
 }
 
+/// Retains type-specific inputs while an Orga draft changes its active type.
+/// Published entries contain only the values belonging to their final type.
+class OrgaTypeDraft {
+  const OrgaTypeDraft({
+    this.dueDate,
+    this.done = false,
+    this.appointmentDate,
+    this.appointmentTime = '',
+  });
+  final String? dueDate, appointmentDate;
+  final bool done;
+  final String appointmentTime;
+
+  OrgaTypeDraft remember(OrgaEntry entry) => OrgaTypeDraft(
+    dueDate: entry.isTask ? entry.dueDate : dueDate,
+    done: entry.isTask ? entry.done : done,
+    appointmentDate: entry.isAppointment
+        ? entry.appointmentDate
+        : appointmentDate,
+    appointmentTime: entry.isAppointment
+        ? entry.appointmentTime
+        : appointmentTime,
+  );
+
+  OrgaEntry select(OrgaEntry entry, String kind) {
+    if (!const {'note', 'task', 'appointment'}.contains(kind)) {
+      throw const DomainError('Unbekannter Orga-Typ.');
+    }
+    return entry.copyWith(
+      isTask: kind == 'task',
+      done: kind == 'task' && done,
+      dueDate: kind == 'task' ? dueDate : null,
+      appointmentDate: kind == 'appointment'
+          ? appointmentDate ?? dateOnly(DateTime.now())
+          : null,
+      appointmentTime: kind == 'appointment' ? appointmentTime : '',
+      reminderState:
+          kind == 'task' && done && entry.reminderState == ReminderState.planned
+          ? ReminderState.cancelled
+          : entry.reminderState,
+    );
+  }
+
+  Json toJson({OrgaEntry? excluding}) => {
+    if (excluding?.isTask != true) ...{'dueDate': dueDate, 'done': done},
+    if (excluding?.isAppointment != true) ...{
+      'appointmentDate': appointmentDate,
+      'appointmentTime': appointmentTime,
+    },
+  };
+
+  factory OrgaTypeDraft.fromJson(Json json) {
+    final result = OrgaTypeDraft(
+      dueDate: json['dueDate'] as String?,
+      done: json['done'] as bool? ?? false,
+      appointmentDate: json['appointmentDate'] as String?,
+      appointmentTime: json['appointmentTime'] as String? ?? '',
+    );
+    if (result.dueDate != null && !validDate(result.dueDate!) ||
+        result.appointmentDate != null && !validDate(result.appointmentDate!) ||
+        result.appointmentTime.isNotEmpty &&
+            (result.appointmentDate == null ||
+                !RegExp(
+                  r'^([01]\d|2[0-3]):[0-5]\d$',
+                ).hasMatch(result.appointmentTime))) {
+      throw const DomainError('Ungültige Datumsangaben im Orga-Entwurf.');
+    }
+    return result;
+  }
+}
+
 class EditDraft {
   const EditDraft({
     required this.id,
@@ -344,11 +415,13 @@ class EditDraft {
     required this.updatedAtUtc,
     this.editRevision = 0,
     this.baseline,
+    this.typeDraft = const OrgaTypeDraft(),
   });
   final String id, updatedAtUtc;
   final OrgaEntry entry;
   final int editRevision;
   final String? baseline;
+  final OrgaTypeDraft typeDraft;
 }
 
 class DialogDraft {

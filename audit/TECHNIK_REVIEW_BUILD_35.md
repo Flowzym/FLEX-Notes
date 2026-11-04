@@ -3,6 +3,10 @@
 Stand: 4. November 2026, geprüfter Commit `5555de0182f10cc5b2f25a79252df00f81588c7e`.
 App-Code und ausgelieferte APK werden durch diesen Review nicht verändert.
 
+**Nachtrag:** Die beiden unten dokumentierten Fehler sind in
+[Build 36 korrigiert](ORGA_KORREKTUREN_BUILD_36.md). Der ursprüngliche Review und
+seine Fehlernachweise bleiben als historische Dokumentation erhalten.
+
 ## Ergebnis
 
 Die vorhandenen **227 Flutter-Tests bestehen erneut**, Dart-Analyse ohne Befunde,

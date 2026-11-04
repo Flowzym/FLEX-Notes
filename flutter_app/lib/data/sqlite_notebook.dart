@@ -772,6 +772,7 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
       updatedAtUtc: draft.updatedAtUtc,
       editRevision: draft.editRevision + 1,
       baseline: draft.baseline,
+      typeDraft: draft.typeDraft,
     );
     await db.customStatement(
       'INSERT INTO drafts(id,entity_id,base_revision,payload,updated_at_utc) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at_utc=excluded.updated_at_utc',
@@ -783,6 +784,7 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
           ...next.entry.toJson(),
           'editRevision': next.editRevision,
           'draftBaseline': ?next.baseline,
+          'orgaTypeDraft': next.typeDraft.toJson(),
         }),
         next.updatedAtUtc,
       ],
@@ -804,9 +806,8 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
       (await _rows('SELECT * FROM drafts ORDER BY updated_at_utc DESC')).map((
         r,
       ) {
-        final entry = OrgaEntry.fromJson(
-          jsonDecode(r['payload'] as String) as Json,
-        );
+        final payload = jsonDecode(r['payload'] as String) as Json;
+        final entry = OrgaEntry.fromJson(payload);
         if (entry.id != r['entity_id'] ||
             entry.revision != r['base_revision']) {
           throw const DomainError(
@@ -816,14 +817,12 @@ class SqliteNotebook with SchoolStore implements NotebookRepository {
         return EditDraft(
           id: r['id'] as String,
           entry: entry,
-          editRevision:
-              (jsonDecode(r['payload'] as String) as Map)['editRevision']
-                  as int? ??
-              0,
+          editRevision: payload['editRevision'] as int? ?? 0,
           updatedAtUtc: r['updated_at_utc'] as String,
-          baseline:
-              (jsonDecode(r['payload'] as String) as Map)['draftBaseline']
-                  as String?,
+          baseline: payload['draftBaseline'] as String?,
+          typeDraft: OrgaTypeDraft.fromJson(
+            Json.from(payload['orgaTypeDraft'] as Map? ?? const {}),
+          ),
         );
       }).toList();
   @override

@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.15+35** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.16+36** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,13 +16,13 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 35 herunterladen**](releases/android/build-35/README.md)
+[**Android-Testapp Build 36 herunterladen**](releases/android/build-36/README.md)
 
-[Technischer Review vom 4. November](audit/TECHNIK_REVIEW_BUILD_35.md):
-zwei bestätigte offene Fehler bei Orga-Typwechseln und der Anzeige von Terminkonflikten,
-außerdem der aktuelle Stand der Testabdeckung und noch fehlende Geräteprüfungen.
+[Korrektur der beiden im Review gefundenen Orga-Fehler](audit/ORGA_KORREKTUREN_BUILD_36.md).
+Der [technische Review](audit/TECHNIK_REVIEW_BUILD_35.md) dokumentiert die zuvor
+gefundenen Fehler, die Testabdeckung und noch fehlende Geräteprüfungen.
 
-Aktuell: [Farbige Tonwahl, kleinere Schalter und Wischen in Textfeldern und Orga](audit/BEDIENUNG_BUILD_35.md),
+Vorherige Bedienungsrunde: [Farbige Tonwahl, kleinere Schalter und Wischen in Textfeldern und Orga](audit/BEDIENUNG_BUILD_35.md),
 [vorheriger Schülerkarten-Feinschliff](audit/UI_FEINSCHLIFF_BUILD_34.md),
 [vorherige App- und UI-Prüfung](audit/APP_UI_AUDIT_BUILD_33.md),
 [vorherige Orga- und Übersichtsrunde](audit/ORGA_UEBERSICHT_ABGLEICH.md),

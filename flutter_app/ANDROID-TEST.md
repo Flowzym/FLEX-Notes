@@ -1,21 +1,20 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.15+35**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.16+36**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Die aktive Beobachtungspille ist dunkelgrün (Positiv), dunkelblau (Neutral) oder
-dunkelrot (Negativ) und etwas größer. Alle Umschalter sind optisch kleiner.
-Wischen wechselt die Tonwahl auch über Textfeldern. In Orga lässt sich ebenso
-zwischen Notiz, Aufgabe und Termin wischen, auch beim Bearbeiten bestehender Einträge.
-Texte, Listenpunkte und Eingabefokus bleiben beim Wischen erhalten.
+Orga behält Datum, Uhrzeit, Fälligkeit und Erledigt-Status beim Hin- und
+Zurückwechseln des Eintragstyps, auch über gesicherte Entwürfe und Neustarts.
+Der Konfliktdialog zeigt abweichende Termindaten und Uhrzeiten beider Fassungen.
+Alle bisherigen Bedienungs- und Designanpassungen bleiben enthalten.
 Die Korrektur für den Fokusverlust beim Öffnen der Tastatur bleibt enthalten.
 App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 **FLEX Test** installiert werden. Eine Deinstallation ist nicht erforderlich.
 
 ## Installation
 
-[APK Build 35 auf GitHub herunterladen](../releases/android/build-35/README.md).
+[APK Build 35 auf GitHub herunterladen](../releases/android/build-36/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

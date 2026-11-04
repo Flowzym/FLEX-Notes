@@ -29,6 +29,8 @@ const conflictFieldLabels = <String, String>{
   'goalStatus': 'Zielstand',
   'nextReviewDate': 'Nächste Überprüfung',
   'dueDate': 'Termin',
+  'appointmentDate': 'Termindatum',
+  'appointmentTime': 'Terminzeit',
   'observedOn': 'Datum',
   'observedTime': 'Uhrzeit',
   'needsCompletion': 'Später ergänzen',
@@ -43,6 +45,7 @@ const conflictFieldLabels = <String, String>{
   'reminderText': 'Erinnerungstext',
   'reminderState': 'Erinnerungsstand',
   'reminderHasTime': 'Erinnerung mit Uhrzeit',
+  'reminderZone': 'Zeitzone der Erinnerung',
   'text': 'Text',
   'checked': 'Abgehakt',
   'note': 'Notiz',
@@ -53,6 +56,10 @@ const conflictFieldLabels = <String, String>{
   'taskText': 'Aufgabe',
 };
 String conflictText(String key, Object? value, NotebookController c) {
+  if (key == 'appointmentTime' && value == '') return 'Ganztägig';
+  if (key == 'appointmentDate' && value is String && validDate(value)) {
+    return displayDate(value);
+  }
   if (value == null || value == '') return '—';
   if (value is bool) return value ? 'Ja' : 'Nein';
   if (value is List) {

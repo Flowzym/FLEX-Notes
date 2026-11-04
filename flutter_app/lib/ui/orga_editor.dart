@@ -32,6 +32,7 @@ class OrgaEditor extends StatefulWidget {
 
 class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   late OrgaEntry entry;
+  late OrgaTypeDraft typeDraft;
   late String draftId;
   late TextEditingController note, reminder;
   final itemText = TextEditingController();
@@ -79,17 +80,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
 
   void selectKind(String next) {
     if (next == kind) return;
-    change(
-      entry.copyWith(
-        isTask: next == 'task',
-        done: next == 'task' && entry.done,
-        dueDate: next == 'task' ? entry.dueDate : null,
-        appointmentDate: next == 'appointment'
-            ? entry.appointmentDate ?? dateOnly(DateTime.now())
-            : null,
-        appointmentTime: next == 'appointment' ? entry.appointmentTime : '',
-      ),
-    );
+    change(typeDraft.select(entry, next), false);
   }
 
   void swipeKind(bool previous) {
@@ -128,6 +119,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     reminderOpen = entry.reminderAtUtc != null;
     listOpen = entry.items.isNotEmpty;
     final draft = c.drafts.where((d) => d.id == draftId).firstOrNull;
+    typeDraft = (draft?.typeDraft ?? const OrgaTypeDraft()).remember(entry);
     final original =
         c.entries.where((e) => e.id == entry.id).firstOrNull ??
         OrgaEntry.empty(
@@ -135,12 +127,13 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
         ).copyWith(observedOn: entry.observedOn, isTask: isClass);
     baseline =
         draft?.baseline ?? signature(widget.draftId == null ? value : original);
-    dirty = draft != null && signature(value) == baseline;
+    dirty = draft != null && signature(value, typeDraft) == baseline;
   }
 
-  String signature(OrgaEntry value) => draftSignature({
+  String signature(OrgaEntry value, [OrgaTypeDraft? types]) => draftSignature({
     ...value.toJson(),
     'body': meaningfulOrgaText(value.body),
+    'orgaTypeDraft': types?.toJson(excluding: value),
   });
 
   OrgaEntry get value {
@@ -159,10 +152,13 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     );
   }
 
-  void change([OrgaEntry? next]) {
+  void change([OrgaEntry? next, bool rememberType = true]) {
     if (busy) return;
     setState(() {
-      if (next != null) entry = next;
+      if (next != null) {
+        if (rememberType) typeDraft = typeDraft.remember(next);
+        entry = next;
+      }
       dirty = true;
       editGeneration++;
       status = 'Entwurf wird gesichert …';
@@ -172,10 +168,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   }
 
   Future<bool> persist() async {
-    final snapshot = value, generation = editGeneration;
+    final snapshot = value, types = typeDraft, generation = editGeneration;
     if (dirty) {
       pending = pending.catchError((Object _) {}).then((_) async {
-        if (signature(snapshot) == baseline) {
+        if (signature(snapshot, types) == baseline) {
           if (draftRevision > 0) {
             await c.repository.discardDraft(
               draftId,
@@ -191,6 +187,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               updatedAtUtc: utcNow(),
               editRevision: draftRevision,
               baseline: baseline,
+              typeDraft: types,
             ),
           );
           draftRevision = saved.editRevision;
@@ -312,6 +309,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             'draftId': draftId,
             'editRevision': draftRevision,
             'entry': value.toJson(),
+            'orgaTypeDraft': typeDraft.toJson(),
           }) &&
           mounted) {
         await c.repository.discardDraft(

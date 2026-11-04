@@ -1,4 +1,18 @@
-# Aktueller Stand: 0.16.0-rebuild.15+35
+# Aktueller Stand: 0.16.0-rebuild.16+36
+
+Die beiden Orga-Fehler aus dem technischen Review sind behoben. Typwechsel behalten
+Termindatum/Uhrzeit sowie Aufgabenfälligkeit/Erledigt-Status, auch über gespeicherte
+Entwürfe und Datenbankneustart. Konflikte zeigen beide Terminangaben vollständig.
+
+240 Tests der vollständigen Flutter-Testsuite bestanden; Analyse ohne Befunde.
+Keine SQL-Schemaänderung, gleiche App-ID und Testsignatur.
+[Änderungen und Nachweise](../../audit/ORGA_KORREKTUREN_BUILD_36.md) ·
+[Android-Testapp](../../flutter_app/ANDROID-TEST.md).
+Die sonstigen im Review genannten Plattform- und Produktlücken bleiben offen.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.15+35
 
 Nachprüfung am 4. November: [Technischer Review](../../audit/TECHNIK_REVIEW_BUILD_35.md).
 227 vorhandene Tests erneut bestanden; drei zusätzliche Reproduktionen bestätigen
