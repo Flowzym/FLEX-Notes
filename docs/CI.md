@@ -16,7 +16,9 @@ beendet einen noch laufenden älteren Prüflauf desselben Branches/PRs.
    sowie sämtliche Flutter-Tests mit Testabdeckung. Dazu gehören Repository-,
    Sicherungs-, Konflikt-, Eingabe-, Swipe-, Dialog- und Layoutprüfungen.
 2. **Android release build:** nach erfolgreichen Tests mit Java 21, Android SDK 36,
-   Build Tools 36.0.0 und NDK 28.2.13676358. Der JVM-Speicher ist für kleine GitHub-Runner
+   Build Tools 36.0.0 und NDK 28.2.13676358. Die Android-Kommandozeilenwerkzeuge
+   werden ausdrücklich eingerichtet und müssen nicht im Runner vorinstalliert sein.
+   Der JVM-Speicher ist für kleine GitHub-Runner
    begrenzt. Auch fehlende, absichtlich nicht eingecheckte Gradle-Wrapperdateien werden
    vom Flutter-SDK neu angelegt.
 3. **Web build and preview server:** SQLite-WASM-Prüfsumme, kompilierter Drift-Worker,
