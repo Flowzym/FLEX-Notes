@@ -1,0 +1,14 @@
+FLEX Test — Android Build 36
+Version 0.16.0-rebuild.16+36; Android 7.0 oder neuer; ARM64, ARMv7 und x86_64.
+
+Über die vorhandene FLEX Test installieren. Nicht deinstallieren und keine
+App-Daten löschen. Paketkennung und Signatur sind unverändert.
+
+Korrigiert: Orga-Typwechsel behalten Datum, Uhrzeit, Fälligkeit und Erledigt-Status,
+auch über gesicherte Entwürfe und Neustarts. Konflikte zeigen beide Termindaten
+und Uhrzeiten. Alte Entwürfe bleiben lesbar; keine SQL-Schemaänderung.
+
+240 Tests der vollständigen Flutter-Testsuite bestanden, Analyse ohne Befunde.
+Kein physischer Android-Gerätelauf. Testsignatur, kein Play-Store-Release.
+Quellcommit: 0a960ca7bcd037945b14703c116c929418f40ec3
+SHA-256: f6a24338905bfaef3f9dc3b23405f1de136cf5cc4516a5712c464b1ba1b687d1

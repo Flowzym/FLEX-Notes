@@ -1,0 +1,52 @@
+{
+  "version": "0.16.0-rebuild.16+36",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "f6a24338905bfaef3f9dc3b23405f1de136cf5cc4516a5712c464b1ba1b687d1",
+  "bytes": 64625524,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 240,
+  "flutter_test_scope": [
+    "full Flutter test suite"
+  ],
+  "android_device_tested": false,
+  "browser_tests": false,
+  "source_commit": "0a960ca7bcd037945b14703c116c929418f40ec3",
+  "source_branch": "fix/dialog-reference-audit",
+  "flutter": "3.47.9",
+  "dart": "3.13.7",
+  "jdk": "21",
+  "update_from_build": 35
+}
