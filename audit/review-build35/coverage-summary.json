@@ -1,0 +1,187 @@
+{
+  "covered": 6891,
+  "total": 8105,
+  "percent": 85.0,
+  "files": {
+    "lib/application/notebook_controller.dart": [
+      81,
+      81
+    ],
+    "lib/data/database.dart": [
+      18,
+      21
+    ],
+    "lib/data/school_store.dart": [
+      209,
+      217
+    ],
+    "lib/data/sqlite_notebook.dart": [
+      538,
+      599
+    ],
+    "lib/domain/models.dart": [
+      427,
+      440
+    ],
+    "lib/domain/school.dart": [
+      285,
+      287
+    ],
+    "lib/ui/app.dart": [
+      79,
+      84
+    ],
+    "lib/ui/entry_navigation.dart": [
+      133,
+      135
+    ],
+    "lib/ui/flex_icons.dart": [
+      106,
+      107
+    ],
+    "lib/ui/pupil_workspace.dart": [
+      156,
+      183
+    ],
+    "lib/ui/surfaces.dart": [
+      100,
+      118
+    ],
+    "lib/domain/repository.dart": [
+      2,
+      2
+    ],
+    "lib/domain/observation_catalog.dart": [
+      21,
+      21
+    ],
+    "lib/domain/drafts.dart": [
+      26,
+      26
+    ],
+    "lib/security/backup_codec.dart": [
+      44,
+      47
+    ],
+    "lib/ui/notebook_screen.dart": [
+      610,
+      785
+    ],
+    "lib/ui/app_scale.dart": [
+      28,
+      30
+    ],
+    "lib/ui/common.dart": [
+      27,
+      27
+    ],
+    "lib/ui/appearance_settings.dart": [
+      365,
+      435
+    ],
+    "lib/ui/compact_switch.dart": [
+      21,
+      21
+    ],
+    "lib/ui/flex_modal.dart": [
+      152,
+      152
+    ],
+    "lib/ui/flex_date_picker.dart": [
+      165,
+      172
+    ],
+    "lib/ui/pupil_card.dart": [
+      96,
+      99
+    ],
+    "lib/ui/backup_dialog.dart": [
+      83,
+      156
+    ],
+    "lib/ui/draft_buffer.dart": [
+      101,
+      121
+    ],
+    "lib/ui/collapsible_search.dart": [
+      77,
+      80
+    ],
+    "lib/ui/conflict_dialog.dart": [
+      66,
+      99
+    ],
+    "lib/ui/dialog_workflows.dart": [
+      255,
+      415
+    ],
+    "lib/ui/draft_actions.dart": [
+      30,
+      30
+    ],
+    "lib/ui/tag_text_field.dart": [
+      55,
+      62
+    ],
+    "lib/ui/homework_task_editor.dart": [
+      115,
+      117
+    ],
+    "lib/ui/school_editor.dart": [
+      924,
+      1074
+    ],
+    "lib/ui/school_workspace.dart": [
+      340,
+      503
+    ],
+    "lib/ui/orga_editor.dart": [
+      411,
+      476
+    ],
+    "lib/ui/maintenance_dialog.dart": [
+      42,
+      59
+    ],
+    "lib/ui/symbol_button.dart": [
+      18,
+      18
+    ],
+    "lib/ui/pupil_editor.dart": [
+      141,
+      161
+    ],
+    "lib/ui/overview_entry.dart": [
+      29,
+      29
+    ],
+    "lib/ui/prototype_navigation.dart": [
+      73,
+      75
+    ],
+    "lib/ui/settings.dart": [
+      155,
+      222
+    ],
+    "lib/ui/option_bar.dart": [
+      31,
+      31
+    ],
+    "lib/ui/option_swipe.dart": [
+      50,
+      54
+    ],
+    "lib/ui/orga_list_editing.dart": [
+      94,
+      94
+    ],
+    "lib/ui/pupil_history.dart": [
+      112,
+      140
+    ]
+  },
+  "not_instrumented": [
+    "lib/main.dart",
+    "lib/ui/observation_tone_colors.dart"
+  ]
+}

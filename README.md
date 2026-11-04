@@ -18,6 +18,10 @@ Rückkehr auf die kleinen 0.1.0-Quellen.
 
 [**Android-Testapp Build 35 herunterladen**](releases/android/build-35/README.md)
 
+[Technischer Review vom 4. November](audit/TECHNIK_REVIEW_BUILD_35.md):
+zwei bestätigte offene Fehler bei Orga-Typwechseln und der Anzeige von Terminkonflikten,
+außerdem der aktuelle Stand der Testabdeckung und noch fehlende Geräteprüfungen.
+
 Aktuell: [Farbige Tonwahl, kleinere Schalter und Wischen in Textfeldern und Orga](audit/BEDIENUNG_BUILD_35.md),
 [vorheriger Schülerkarten-Feinschliff](audit/UI_FEINSCHLIFF_BUILD_34.md),
 [vorherige App- und UI-Prüfung](audit/APP_UI_AUDIT_BUILD_33.md),

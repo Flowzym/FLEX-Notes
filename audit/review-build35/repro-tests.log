@@ -1,0 +1,88 @@
+00:00 +0: loading /workspace/review-build35/repro_test.dart
+00:00 +0: REVIEW: appointment date/time survives swipe away and back
+{"probe":"appointment","expected":["2030-04-04","14:30"],"actual":["2026-11-04",""]}
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: ['2030-04-04', '14:30']
+  Actual: ['2026-11-04', '']
+   Which: at location [0] is '2026-11-04' instead of '2030-04-04'
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/review-build35/repro_test.dart:69:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/review-build35/repro_test.dart line 69
+The test description was:
+  REVIEW: appointment date/time survives swipe away and back
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: REVIEW: appointment date/time survives swipe away and back [E]
+  Test failed. See exception logs above.
+  The test description was: REVIEW: appointment date/time survives swipe away and back
+  
+00:02 +0 -1: REVIEW: task due date/completion survives swipe away and back
+{"probe":"task","expected":["2030-04-04",true],"actual":[null,false]}
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: ['2030-04-04', true]
+  Actual: [null, false]
+   Which: at location [0] is <null> instead of '2030-04-04'
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/review-build35/repro_test.dart:69:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/review-build35/repro_test.dart line 69
+The test description was:
+  REVIEW: task due date/completion survives swipe away and back
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -2: REVIEW: task due date/completion survives swipe away and back [E]
+  Test failed. See exception logs above.
+  The test description was: REVIEW: task due date/completion survives swipe away and back
+  
+00:03 +0 -2: REVIEW: conflict comparison shows both appointment dates and times
+{"probe":"conflict","visible_comparisons":"","appointment_date_label":null,"appointment_time_label":null}
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: contains '15:45'
+  Actual: ''
+   Which: does not contain '15:45'
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/review-build35/repro_test.dart:91:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/review-build35/repro_test.dart line 91
+The test description was:
+  REVIEW: conflict comparison shows both appointment dates and times
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -3: REVIEW: conflict comparison shows both appointment dates and times [E]
+  Test failed. See exception logs above.
+  The test description was: REVIEW: conflict comparison shows both appointment dates and times
+  
+00:03 +0 -3: Some tests failed.
+
+Failing tests:
+  /workspace/review-build35/repro_test.dart: REVIEW: appointment date/time survives swipe away and back
+  /workspace/review-build35/repro_test.dart: REVIEW: conflict comparison shows both appointment dates and times
+  /workspace/review-build35/repro_test.dart: REVIEW: task due date/completion survives swipe away and back

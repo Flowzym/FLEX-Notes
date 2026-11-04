@@ -1,5 +1,10 @@
 # Aktueller Stand: 0.16.0-rebuild.15+35
 
+Nachprüfung am 4. November: [Technischer Review](../../audit/TECHNIK_REVIEW_BUILD_35.md).
+227 vorhandene Tests erneut bestanden; drei zusätzliche Reproduktionen bestätigen
+zwei noch offene Fehler: Verlust typbezogener Orga-Werte beim Hin- und Zurückwechseln
+und fehlende Terminangaben im Konfliktvergleich. Build 35 ist noch nicht korrigiert.
+
 Aktive Tonpillen sind dunkelgrün, dunkelblau bzw. dunkelrot; die Tonwahl ist etwas
 höher, alle Umschalter zeichnen Spur und Griff kleiner. Horizontales Wischen
 wechselt die Tonwahl auch über Textfeldern. Orga erlaubt denselben Wechsel
