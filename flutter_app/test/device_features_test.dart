@@ -423,7 +423,11 @@ void main() {
       final raw = latin1.decode(pdf);
       expect(RegExp(r'/Type\s*/Page\b').allMatches(raw).length, greaterThan(1));
       expect(raw, contains('/FontFile2'));
-      await File('/workspace/features37/brief-test.pdf').writeAsBytes(pdf);
+      final artifactDirectory = Platform.environment['FLEX_TEST_ARTIFACT_DIR'];
+      if (artifactDirectory != null && artifactDirectory.isNotEmpty) {
+        await Directory(artifactDirectory).create(recursive: true);
+        await File('$artifactDirectory/brief-test.pdf').writeAsBytes(pdf);
+      }
     },
   );
   test(

@@ -27,6 +27,12 @@ Automatische Sicherungen, OS-Erinnerungen und App-Sperre werden auf Android ange
 Die Zugangssperre ist keine Datenbankverschlüsselung. Gerätespezifische Geheimnisse und
 Berechtigungen sind nicht Bestandteil von exportierten Sicherungen.
 
+## Automatische Prüfungen
+
+Bei Änderungen an App oder Workflows führt [FLEX CI](../docs/CI.md) Formatprüfung,
+Analyse, Flutter-/SQLite-Tests sowie Android- und Web-Builds auf GitHub aus.
+Testabdeckung und Protokolle sind als Actions-Artefakte verfügbar.
+
 ## Start
 
 Verwendete Werkzeuge: Flutter **3.47.9**, Dart **3.13.7**. Flutter und das

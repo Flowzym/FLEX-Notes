@@ -18,6 +18,9 @@ Rückkehr auf die kleinen 0.1.0-Quellen.
 
 [**Android-Testapp Build 37 herunterladen**](releases/android/build-37/README.md)
 
+[Automatische Testpipeline und Prüfergebnisse](docs/CI.md) ·
+[GitHub Actions](https://github.com/Flowzym/FLEX-Notes/actions/workflows/flutter-ci.yml)
+
 [Neue Sicherungen, Android-Erinnerungen, Import-Zusammenführung, PDF und App-Sperre](audit/GERAETEFUNKTIONEN_BUILD_37.md).
 
 [Korrektur der beiden im Review gefundenen Orga-Fehler](audit/ORGA_KORREKTUREN_BUILD_36.md).

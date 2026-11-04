@@ -1,0 +1,40 @@
+name: Set up the verified Flutter SDK
+description: Flutter 3.47.9 at the exact revision used for Build 37, with locked packages.
+inputs:
+  target:
+    description: Separate SDK artifact caches for checks, Android, and web.
+    required: true
+runs:
+  using: composite
+  steps:
+    # Use the official Git tag: this SDK is not available as a stable tarball.
+    - name: Check out Flutter 3.47.9
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        repository: flutter/flutter
+        ref: '3.47.9'
+        path: .flutter-sdk
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Verify SDK revision and add tools to PATH
+      shell: bash
+      run: |
+        test "$(git -C "$GITHUB_WORKSPACE/.flutter-sdk" rev-parse HEAD)" = c197ca5199e9ee5661e865596c9c07294dfab51c
+        echo "$GITHUB_WORKSPACE/.flutter-sdk/bin" >> "$GITHUB_PATH"
+
+    - name: Cache SDK artifacts and pub packages
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: |
+          .flutter-sdk/bin/cache
+          ~/.pub-cache
+        key: ${{ runner.os }}-flutter-c197ca5199e9-${{ inputs.target }}-${{ hashFiles('flutter_app/pubspec.lock') }}
+
+    - name: Restore locked dependencies
+      shell: bash
+      working-directory: ${{ github.workspace }}/flutter_app
+      run: |
+        flutter config --no-analytics
+        flutter --version
+        flutter pub get --enforce-lockfile

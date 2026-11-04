@@ -10,3 +10,4 @@ android/gradle/wrapper/gradle-wrapper.jar
 windows/flutter/ephemeral/
 web/drift_worker.js*
 *.sqlite*
+coverage/
