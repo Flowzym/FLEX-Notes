@@ -1,6 +1,6 @@
 Build 37 / 0.16.0-rebuild.17+37
 
-Analyzing flutter_app...                                        
+Analyzing flutter_app...
 No issues found! (ran in 3.8s)
 
 02:27 +264: All tests passed!

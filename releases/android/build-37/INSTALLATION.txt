@@ -1,0 +1,12 @@
+FLEX Test – Build 37 (0.16.0-rebuild.17+37)
+
+APK über die vorhandene FLEX Test installieren. Nicht deinstallieren.
+Android 7 oder neuer. App-ID und Signatur unverändert, Datenbankschema weiterhin 7.
+
+Automatische Sicherungen: Einstellungen > Daten > Einrichten. Ordner und Passwort wählen.
+Erinnerungen / PIN / Biometrie: Einstellungen > Bedienung. Android-Berechtigungen bei Bedarf freigeben.
+PDF: Gespräch vorbereiten > Auswahl zusammenstellen > Als PDF sichern.
+Sicherungen zusammenführen: Sicherung importieren, Unterschiede prüfen, pro Feld auswählen.
+
+264 Tests bestanden, APK gebaut und geprüft. Physische Android-Geräteabnahme noch offen.
+Sicherungspasswort getrennt aufbewahren. Die PIN-Sperre ist keine Datenbankverschlüsselung.
