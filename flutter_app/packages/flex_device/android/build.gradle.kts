@@ -25,6 +25,10 @@ plugins {
     id("com.android.library")
 }
 
+dependencies {
+    implementation("androidx.core:core:1.17.0")
+}
+
 android {
     namespace = "at.flowzym.flex_device"
 

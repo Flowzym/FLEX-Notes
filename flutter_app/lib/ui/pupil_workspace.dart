@@ -9,6 +9,7 @@ import 'flex_icons.dart';
 import 'flex_modal.dart';
 import 'pupil_history.dart';
 import 'school_workspace.dart';
+import 'development_dialog.dart';
 
 /// One pupil's entries with persistent area navigation and a quiet action bar.
 class PupilWorkspaceDialog extends StatefulWidget {
@@ -220,6 +221,11 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       ],
     );
     final headerActions = <Widget>[
+      IconButton(
+        tooltip: 'Entwicklung',
+        icon: const Icon(Icons.insights_outlined),
+        onPressed: () => showDevelopment(context, c, p),
+      ),
       EntryHeaderButton(
         label: 'Entwürfe',
         icon: Icons.edit_note,

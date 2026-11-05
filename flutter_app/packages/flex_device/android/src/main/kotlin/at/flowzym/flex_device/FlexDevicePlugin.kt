@@ -42,6 +42,17 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         channel.setMethodCallHandler(this)
     }
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method in MaterialStorage.methods) {
+            writer.execute {
+                try {
+                    val value = MaterialStorage(context).perform(call)
+                    main.post { result.success(value) }
+                } catch (_: Exception) {
+                    main.post { result.error("material_storage", "Die Datei konnte nicht geöffnet werden. Bitte Dateiformat, Speicherplatz und verfügbare Anzeige-App prüfen.", null) }
+                }
+            }
+            return
+        }
         if (call.method == "acquireBackupLock") {
             lockWaiters.execute {
                 backupLock.acquire()

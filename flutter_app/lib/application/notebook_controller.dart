@@ -4,6 +4,7 @@ import '../domain/models.dart';
 import '../services/device_services.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
+import '../domain/classroom.dart';
 
 class NotebookController extends ChangeNotifier {
   NotebookController(this.repository, {this.services});
@@ -16,6 +17,18 @@ class NotebookController extends ChangeNotifier {
   List<SchoolRecord> records = [];
   List<SchoolDraft> schoolDrafts = [];
   List<DialogDraft> dialogDrafts = [];
+  List<ClassroomDocument> classroom = [];
+  NotebookSnapshot get currentSnapshot => NotebookSnapshot(
+    pupils: pupils,
+    entries: [...entries, ...trashedEntries],
+    drafts: drafts,
+    records: records,
+    schoolDrafts: schoolDrafts,
+    dialogDrafts: dialogDrafts,
+    appearance: appearance,
+    legacyCount: stagedLegacyCount,
+    classroom: classroom,
+  );
   int get draftCount =>
       drafts.length + schoolDrafts.length + dialogDrafts.length;
   int _loadGeneration = 0;
@@ -46,6 +59,7 @@ class NotebookController extends ChangeNotifier {
     records = next.records;
     schoolDrafts = next.schoolDrafts;
     dialogDrafts = next.dialogDrafts;
+    classroom = next.classroom;
     if (!appearanceSaving && appearanceGeneration == _appearanceGeneration) {
       appearance = next.appearance;
       _savedAppearance = appearance;
@@ -57,6 +71,16 @@ class NotebookController extends ChangeNotifier {
 
   Future<void> savePupil(Pupil pupil) async {
     await repository.savePupil(pupil);
+    await reload();
+  }
+
+  Future<void> saveClassroom(ClassroomDocument document) async {
+    await repository.saveClassroomDocument(document);
+    await reload();
+  }
+
+  Future<void> saveClassroomBatch(List<ClassroomDocument> documents) async {
+    await repository.saveClassroomDocuments(documents);
     await reload();
   }
 

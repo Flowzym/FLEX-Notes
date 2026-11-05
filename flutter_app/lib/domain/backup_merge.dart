@@ -24,6 +24,7 @@ const mergeIdentityFields = {
   'updatedAtUtc',
   'situationId',
   'pupilId',
+  'generated',
 };
 
 class MergeItem {

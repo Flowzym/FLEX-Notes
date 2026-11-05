@@ -1,0 +1,466 @@
+import 'package:flutter/material.dart';
+import '../application/notebook_controller.dart';
+import '../domain/classroom.dart';
+import '../domain/models.dart';
+import 'common.dart';
+import 'dialog_workflows.dart';
+import 'flex_modal.dart';
+import 'repeat_editor.dart';
+
+Json classroomInitial(
+  ClassroomKind kind,
+  NotebookController c, {
+  String? date,
+}) => {
+  'format': 'flex-classroom-1',
+  'id': newId(),
+  'kind': kind.name,
+  'title': '',
+  'revision': 0,
+  'deleted': false,
+  'createdAtUtc': utcNow(),
+  'updatedAtUtc': utcNow(),
+  if (kind == ClassroomKind.lesson) ...{
+    'date': date ?? dateOnly(DateTime.now()),
+    'start': '08:00',
+    'end': '08:50',
+    'subject': '',
+    'room': '',
+    'note': '',
+    'materialIds': <String>[],
+    'repeat': const RepeatRule().toJson(),
+    'exceptions': <Json>[],
+    'remindMinutes': 0,
+  },
+  if (kind == ClassroomKind.holiday) ...{
+    'date': date ?? dateOnly(DateTime.now()),
+    'endDate': date ?? dateOnly(DateTime.now()),
+  },
+  if (kind == ClassroomKind.material) ...{
+    'url': '',
+    'extension': 'link',
+    'subject': '',
+    'topic': '',
+    'note': '',
+    'week': '',
+  },
+  if (kind == ClassroomKind.returnList) ...{
+    'type': 'form',
+    'dueDate': date ?? '',
+    'note': '',
+    'materialIds': <String>[],
+    'amountDue': 0,
+    'closed': false,
+    'remindDays': 0,
+    'participants': [
+      for (final p in c.pupils.where((p) => !p.archived))
+        {
+          'pupilId': p.id,
+          'name': p.name,
+          'status': 'open',
+          'note': '',
+          'paid': 0,
+        },
+    ],
+  },
+};
+
+Future<List<String>?> chooseMaterials(
+  BuildContext context,
+  NotebookController c,
+  List<String> selected,
+) async {
+  final ids = selected.toSet();
+  return showDialog<List<String>>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, update) => FlexModal(
+        title: const Text('Materialien zuordnen'),
+        onClose: () => Navigator.pop(ctx),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!c.classroom.any(
+              (d) => !d.deleted && d.kind == ClassroomKind.material,
+            ))
+              const Text(
+                'Noch keine Materialien. Dateien oder Links unter Materialien hinzufügen.',
+              ),
+            for (final m in c.classroom.where(
+              (d) => !d.deleted && d.kind == ClassroomKind.material,
+            ))
+              CheckboxListTile(
+                title: Text(m.title),
+                subtitle: Text(
+                  [
+                    m.text('subject'),
+                    m.text('topic'),
+                  ].where((s) => s.isNotEmpty).join(' · '),
+                ),
+                value: ids.contains(m.id),
+                onChanged: (v) => update(() {
+                  if (v == true) {
+                    ids.add(m.id);
+                  } else {
+                    ids.remove(m.id);
+                  }
+                }),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ids.toList()),
+            child: const Text('Übernehmen'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> showClassroomEditor(
+  BuildContext context,
+  NotebookController c,
+  ClassroomKind kind, {
+  ClassroomDocument? document,
+  DialogDraft? draft,
+  String? date,
+  String? occurrenceDate,
+  bool following = false,
+}) async {
+  final initial =
+      draft?.data ??
+      document?.toJson() ??
+      classroomInitial(kind, c, date: date);
+  if (draft == null && occurrenceDate != null && document != null) {
+    if (following && occurrenceDate.compareTo(document.text('date')) > 0) {
+      initial.addAll({
+        'id': newId(),
+        'revision': 0,
+        'createdAtUtc': utcNow(),
+        'date': occurrenceDate,
+        '_splitFrom': occurrenceDate,
+        '_sourceId': document.id,
+        '_sourceRevision': document.revision,
+        'exceptions': document
+            .rows('exceptions')
+            .where((e) => (e['date'] as String).compareTo(occurrenceDate) >= 0)
+            .toList(),
+      });
+    } else if (!following) {
+      final occurrence =
+          lessonOccurrences(c.classroom, occurrenceDate, occurrenceDate)
+              .where(
+                (l) =>
+                    l.document.id == document.id &&
+                    l.originalDate == occurrenceDate,
+              )
+              .firstOrNull;
+      final exception = document
+          .rows('exceptions')
+          .where((e) => e['date'] == occurrenceDate)
+          .firstOrNull;
+      initial.addAll({
+        '_occurrenceDate': occurrenceDate,
+        'date': exception?['movedTo'] ?? occurrenceDate,
+        'start':
+            exception?['start'] ?? occurrence?.start ?? document.text('start'),
+        'end': exception?['end'] ?? occurrence?.end ?? document.text('end'),
+        'title': exception?['title'] ?? document.title,
+        'note': exception?['note'] ?? document.text('note'),
+      });
+    }
+  }
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => ProtectedDialog(
+      controller: c,
+      type: 'classroom',
+      ownerId: initial['id'] as String,
+      title: switch (kind) {
+        ClassroomKind.lesson => 'Unterricht · FLEX-Klasse',
+        ClassroomKind.holiday => 'Ferien / Ausfall',
+        ClassroomKind.returnList => 'Rücklauf · FLEX-Klasse',
+        _ => 'Material / Planung',
+      },
+      initial: initial,
+      draft: draft,
+      save: (data, buffer) async {
+        final clean = <String, dynamic>{
+          for (final e in data.entries)
+            if (!e.key.startsWith('_')) e.key: e.value,
+        };
+        final value = ClassroomDocument.fromJson(clean);
+        if (data['_occurrenceDate'] is String) {
+          final source = c.classroom.where((d) => d.id == value.id).firstOrNull;
+          if (source == null || source.revision != value.revision) {
+            throw const StaleRevision();
+          }
+          final original = data['_occurrenceDate'] as String;
+          await c.repository.saveClassroomDocument(
+            source.patch({
+              'exceptions': [
+                for (final e in source.rows('exceptions'))
+                  if (e['date'] != original) e,
+                {
+                  'date': original,
+                  'cancelled': false,
+                  'movedTo': value.text('date'),
+                  'start': value.text('start'),
+                  'end': value.text('end'),
+                  'title': value.title,
+                  'note': value.text('note'),
+                },
+              ],
+            }),
+            draft: buffer,
+          );
+        } else if (data['_splitFrom'] is String) {
+          final source = c.classroom
+              .where((d) => d.id == data['_sourceId'])
+              .firstOrNull;
+          if (source == null || source.revision != data['_sourceRevision']) {
+            throw const StaleRevision();
+          }
+          final before = dateOnly(
+            schoolDay(
+              data['_splitFrom'] as String,
+            ).subtract(const Duration(days: 1)),
+          );
+          await c.repository.saveClassroomDocuments([
+            source.patch({
+              'repeat': {...source.rule.toJson(), 'until': before},
+              'exceptions': source
+                  .rows('exceptions')
+                  .where((e) => (e['date'] as String).compareTo(before) <= 0)
+                  .toList(),
+            }),
+            value,
+          ], draft: buffer);
+        } else {
+          await c.repository.saveClassroomDocument(value, draft: buffer);
+        }
+      },
+      body: (ctx, data, change) {
+        Widget text(
+          String key,
+          String label, {
+          int lines = 1,
+          TextInputType? keyboard,
+        }) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            key: ValueKey('classroom-$key'),
+            initialValue: data[key] as String? ?? '',
+            minLines: lines,
+            maxLines: lines == 1 ? 1 : 8,
+            keyboardType: keyboard,
+            decoration: InputDecoration(labelText: label),
+            onChanged: (v) => change({key: v}),
+          ),
+        );
+        Widget day(String key, String label) => TextButton.icon(
+          icon: const Icon(Icons.calendar_today_outlined),
+          label: Text('$label: ${displayDate(data[key] as String?)}'),
+          onPressed: () async {
+            final result = await pickFlexDate(
+              ctx,
+              date: (data[key] as String? ?? '').isEmpty
+                  ? dateOnly(DateTime.now())
+                  : data[key] as String,
+              allowTime: false,
+            );
+            if (result != null) change({key: result.$1});
+          },
+        );
+        final materialIds = List<String>.from(
+          data['materialIds'] as List? ?? [],
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            text(
+              'title',
+              kind == ClassroomKind.lesson
+                  ? 'Thema / Unterricht'
+                  : 'Bezeichnung',
+            ),
+            if (kind == ClassroomKind.lesson) ...[
+              if (data['_occurrenceDate'] == null) ...[
+                text('subject', 'Fach'),
+                text('room', 'Raum · optional'),
+              ],
+              day('date', 'Beginn / Datum'),
+              Row(
+                children: [
+                  Expanded(
+                    child: text(
+                      'start',
+                      'Von · HH:MM',
+                      keyboard: TextInputType.datetime,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: text(
+                      'end',
+                      'Bis · HH:MM',
+                      keyboard: TextInputType.datetime,
+                    ),
+                  ),
+                ],
+              ),
+              if (data['_occurrenceDate'] == null)
+                RepeatField(
+                  rule: RepeatRule.fromJson(
+                    Json.from(data['repeat'] as Map? ?? {}),
+                  ),
+                  onChanged: (v) => change({'repeat': v.toJson()}),
+                ),
+              const SizedBox(height: 12),
+              text('note', 'Ablauf / Notiz', lines: 3),
+              if (data['_occurrenceDate'] == null)
+                DropdownButtonFormField<int>(
+                  initialValue: data['remindMinutes'] as int? ?? 0,
+                  decoration: const InputDecoration(labelText: 'Erinnern'),
+                  items: const [
+                    DropdownMenuItem(value: 0, child: Text('Zum Beginn')),
+                    DropdownMenuItem(value: 5, child: Text('5 Minuten vorher')),
+                    DropdownMenuItem(
+                      value: 15,
+                      child: Text('15 Minuten vorher'),
+                    ),
+                    DropdownMenuItem(value: 60, child: Text('1 Stunde vorher')),
+                  ],
+                  onChanged: (v) => change({'remindMinutes': v}),
+                ),
+            ],
+            if (kind == ClassroomKind.holiday) ...[
+              day('date', 'Von'),
+              day('endDate', 'Bis'),
+            ],
+            if (kind == ClassroomKind.material) ...[
+              text(
+                'url',
+                'OneDrive- oder HTTPS-Link',
+                keyboard: TextInputType.url,
+              ),
+              text('subject', 'Fach · optional'),
+              text('topic', 'Thema · optional'),
+              day('week', 'Wochenplanung · optional'),
+              if ((data['week'] as String? ?? '').isNotEmpty)
+                TextButton(
+                  onPressed: () => change({'week': ''}),
+                  child: const Text('Wochenzuordnung entfernen'),
+                ),
+              text('note', 'Notiz', lines: 2),
+            ],
+            if (kind == ClassroomKind.returnList) ...[
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final type in returnTypes.entries)
+                    ChoiceChip(
+                      label: Text(type.value),
+                      selected: data['type'] == type.key,
+                      onSelected: document == null
+                          ? (_) => change({'type': type.key})
+                          : null,
+                    ),
+                ],
+              ),
+              day('dueDate', 'Frist'),
+              text('note', 'Hinweis', lines: 2),
+              if (data['type'] == 'payment')
+                TextFormField(
+                  key: const ValueKey('return-amount'),
+                  initialValue: ((data['amountDue'] as int? ?? 0) / 100)
+                      .toStringAsFixed(2),
+                  decoration: const InputDecoration(
+                    labelText: 'Betrag pro Schüler · €',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (v) {
+                    final n = double.tryParse(v.replaceAll(',', '.'));
+                    change({
+                      'amountDue': n == null || !n.isFinite
+                          ? -1
+                          : (n * 100).round(),
+                    });
+                  },
+                ),
+              DropdownButtonFormField<int>(
+                initialValue: data['remindDays'] as int? ?? 0,
+                decoration: const InputDecoration(labelText: 'Erinnern'),
+                items: const [
+                  DropdownMenuItem(value: 0, child: Text('Am Tag der Frist')),
+                  DropdownMenuItem(value: 1, child: Text('1 Tag vorher')),
+                  DropdownMenuItem(value: 2, child: Text('2 Tage vorher')),
+                  DropdownMenuItem(value: 7, child: Text('1 Woche vorher')),
+                ],
+                onChanged: (v) => change({'remindDays': v}),
+              ),
+              const SizedBox(height: 12),
+              const Text('Teilnehmer'),
+              for (final p in c.pupils.where(
+                (p) =>
+                    !p.archived ||
+                    (data['participants'] as List).any(
+                      (r) => r['pupilId'] == p.id,
+                    ),
+              ))
+                CheckboxListTile(
+                  title: Text(p.name),
+                  contentPadding: EdgeInsets.zero,
+                  value: (data['participants'] as List).any(
+                    (r) => r['pupilId'] == p.id,
+                  ),
+                  onChanged: (v) => change({
+                    'participants': [
+                      for (final row in data['participants'] as List)
+                        if (row['pupilId'] != p.id) row,
+                      if (v == true)
+                        {
+                          'pupilId': p.id,
+                          'name': p.name,
+                          'status': 'open',
+                          'note': '',
+                          'paid': 0,
+                        },
+                    ],
+                  }),
+                ),
+            ],
+            if (kind == ClassroomKind.lesson &&
+                    data['_occurrenceDate'] == null ||
+                kind == ClassroomKind.returnList) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.attach_file),
+                label: Text('Materialien zuordnen · ${materialIds.length}'),
+                onPressed: () async {
+                  final ids = await chooseMaterials(ctx, c, materialIds);
+                  if (ids != null) change({'materialIds': ids});
+                },
+              ),
+              for (final id in materialIds)
+                Text(
+                  c.classroom.where((d) => d.id == id).firstOrNull?.title ??
+                      'Material nicht verfügbar',
+                ),
+            ],
+          ],
+        );
+      },
+    ),
+  );
+}

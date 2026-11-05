@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
+import '../domain/classroom.dart';
 import 'common.dart';
 import 'flex_modal.dart';
 import 'orga_editor.dart';
@@ -11,6 +12,23 @@ import 'school_workspace.dart';
 import 'surfaces.dart';
 
 String readableRecord(Json value) {
+  if (value['format'] == 'flex-classroom-1') {
+    final d = ClassroomDocument.fromJson(value);
+    return [
+      d.title,
+      d.label,
+      if (d.text('date').isNotEmpty) 'Datum: ${displayDate(d.text('date'))}',
+      if (d.text('dueDate').isNotEmpty)
+        'Frist: ${displayDate(d.text('dueDate'))}',
+      if (d.text('start').isNotEmpty) '${d.text('start')}–${d.text('end')}',
+      if (d.text('note').isNotEmpty) d.text('note'),
+      if (d.kind == ClassroomKind.returnList)
+        for (final r in d.rows('participants'))
+          '${r['name']} · ${returnStatuses[d.text('type')]![r['status']]}${d.text('type') == 'payment' ? ' · ${((r['paid'] as int) / 100).toStringAsFixed(2)} €' : ''}${(r['note'] as String).isEmpty ? '' : ' · ${r['note']}'}',
+      if (d.deleted) 'Im Papierkorb',
+      if (d.flag('closed')) 'Abgeschlossen',
+    ].join('\n');
+  }
   if (value.containsKey('kind')) {
     final r = SchoolRecord.fromJson(value);
     return [

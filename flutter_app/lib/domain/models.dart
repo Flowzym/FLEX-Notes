@@ -450,7 +450,13 @@ class DialogDraft {
   };
   factory DialogDraft.fromJson(Json j) {
     if (j['format'] != 'flex-dialog-draft-1' ||
-        !['pupil', 'context', 'bulk', 'catalog'].contains(j['type']) ||
+        ![
+          'pupil',
+          'context',
+          'bulk',
+          'catalog',
+          'classroom',
+        ].contains(j['type']) ||
         j['data'] is! Map ||
         j['revision'] is! int ||
         (j['revision'] as int) < 0 ||
@@ -487,6 +493,40 @@ class DialogDraft {
           data['text'] is! String ||
           data['participantIds'] is! List) {
         throw const DomainError('Ungültiger Kontextentwurf.');
+      }
+    } else if (j['type'] == 'classroom') {
+      if (data['format'] != 'flex-classroom-1' ||
+          data['id'] != j['ownerId'] ||
+          ![
+            'lesson',
+            'holiday',
+            'material',
+            'returnList',
+          ].contains(data['kind']) ||
+          data['revision'] is! int ||
+          (data['revision'] as int) < 0 ||
+          data['title'] is! String ||
+          data['deleted'] is! bool ||
+          [
+            'date',
+            'start',
+            'end',
+            'subject',
+            'room',
+            'note',
+            'url',
+            'topic',
+            'week',
+            'type',
+            'dueDate',
+            'endDate',
+          ].any((key) => data.containsKey(key) && data[key] is! String) ||
+          [
+            'materialIds',
+            'participants',
+            'exceptions',
+          ].any((key) => data.containsKey(key) && data[key] is! List)) {
+        throw const DomainError('Ungültiger Klassenentwurf.');
       }
     } else if (j['type'] == 'bulk') {
       if (!['social', 'work', 'homework', 'orga'].contains(data['kind']) ||

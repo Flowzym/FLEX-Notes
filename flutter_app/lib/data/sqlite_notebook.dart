@@ -7,16 +7,19 @@ import '../domain/models.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
+import '../domain/classroom.dart';
 import 'database.dart';
 part 'school_store.dart';
 part 'backup_merge_store.dart';
+part 'classroom_store.dart';
 
 class SqliteNotebook
-    with SchoolStore, BackupMergeStore
+    with SchoolStore, ClassroomStore, BackupMergeStore
     implements NotebookRepository, BackupMergeRepository {
   @override
-  Future<NotebookSnapshot> snapshot() => db.transaction(
-    () async => NotebookSnapshot(
+  Future<NotebookSnapshot> snapshot() => db.transaction(() async {
+    await materializeRepeats(DateTime.now());
+    return NotebookSnapshot(
       pupils: await pupils(),
       entries: await entries(),
       drafts: await drafts(),
@@ -25,8 +28,9 @@ class SqliteNotebook
       dialogDrafts: await dialogDrafts(),
       appearance: await appearance(),
       legacyCount: await legacyCount(),
-    ),
-  );
+      classroom: await classroomDocuments(),
+    );
+  });
   SqliteNotebook(this.db);
   @override
   final NotebookDatabase db;
@@ -143,9 +147,22 @@ class SqliteNotebook
       return;
     }
     final records = await schoolRecords(), orga = await entries();
+    // Retain series sources and occurrence tombstones so maintenance cannot
+    // break references or regenerate a deliberately deleted occurrence.
+    final series = (await classroomDocuments())
+        .where((d) => d.kind == ClassroomKind.repeat)
+        .toList();
+    final seriesIds = {
+      for (final d in series) d.text('entryId'),
+      for (final d in series)
+        for (final date in d.map('generated').keys)
+          const Uuid().v5(Namespace.url.value, '${d.id}:$date'),
+    };
     final deleted = {
       ...records.where((r) => r.deleted).map((r) => r.id),
-      ...orga.where((e) => e.deleted).map((e) => e.id),
+      ...orga
+          .where((e) => e.deleted && !seriesIds.contains(e.id))
+          .map((e) => e.id),
     };
     if ((await schoolDrafts()).any((d) => deleted.contains(d.record.id)) ||
         (await drafts()).any((d) => deleted.contains(d.entry.id))) {
@@ -1052,6 +1069,7 @@ class SqliteNotebook
         r.validate();
       }
       await schoolDrafts();
+      await validateClassroomReferences();
       if ((await _rows('PRAGMA foreign_key_check')).isNotEmpty) {
         throw const DomainError('Die Sicherung enthält beschädigte Verweise.');
       }

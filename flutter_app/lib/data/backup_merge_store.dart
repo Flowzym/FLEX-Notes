@@ -24,6 +24,12 @@ mixin BackupMergeStore on SchoolStore {
   Future<List<DialogDraft>> dialogDrafts();
   Future<Appearance> appearance();
   Future<ObservationCatalog> observationCatalog(String key);
+  Future<List<ClassroomDocument>> classroomDocuments();
+  Future<ClassroomDocument> saveClassroomDocument(
+    ClassroomDocument value, {
+    DialogDraft? draft,
+  });
+  Future<void> validateClassroomReferences();
 
   Future<_ImportedSnapshot> _inspectIncoming(String text) async {
     try {
@@ -180,6 +186,24 @@ mixin BackupMergeStore on SchoolStore {
           label: '${record.kind.label} · ${record.title}',
           incoming: incoming,
           local: old,
+        ),
+      );
+    }
+    for (final doc in source.data.classroom) {
+      final incoming = _references(doc.toJson(), pupilLinks);
+      final old = local.classroom.where((d) => d.id == doc.id).firstOrNull;
+      if (old != null && old.kind != doc.kind) {
+        throw const DomainError(
+          'Dieselbe Klassen-ID hat unterschiedliche Eintragsarten.',
+        );
+      }
+      items.add(
+        MergeItem(
+          kind: 'classroom',
+          id: doc.id,
+          label: '${doc.label} · ${doc.title}',
+          incoming: incoming,
+          local: old?.toJson(),
         ),
       );
     }
@@ -400,6 +424,35 @@ mixin BackupMergeStore on SchoolStore {
         await saveSchoolRecord(SchoolRecord.fromJson(resolved));
       }
     }
+    // Import all classroom documents before checking their cross-links; lessons
+    // can refer to material appearing later in the same backup.
+    for (final item in checked.items.where((i) => i.kind == 'classroom')) {
+      final resolved = item.resolve(incomingFields[item.key] ?? {});
+      final doc = ClassroomDocument.fromJson(resolved);
+      if (item.isNew) {
+        await db.customStatement(
+          'INSERT INTO preferences(key,payload) VALUES (?,?)',
+          ['classroom:${doc.id}', jsonEncode(doc.toJson())],
+        );
+      } else if (canonical(resolved) != canonical(item.local)) {
+        // Use the normal revision/audit writer after all rows have been staged.
+        final saved = doc.patch({
+          'revision': doc.revision + 1,
+          'updatedAtUtc': utcNow(),
+        });
+        await db.customStatement(
+          'UPDATE preferences SET payload=? WHERE key=?',
+          [jsonEncode(saved.toJson()), 'classroom:${doc.id}'],
+        );
+        await _audit(
+          'classroom',
+          doc.id,
+          doc.revision,
+          item.local,
+          saved.toJson(),
+        );
+      }
+    }
     for (final item in checked.items.where((i) => i.kind == 'preference')) {
       final resolved = item.resolve(incomingFields[item.key] ?? {});
       await db.customStatement(
@@ -521,6 +574,7 @@ mixin BackupMergeStore on SchoolStore {
     await drafts();
     await schoolDrafts();
     await dialogDrafts();
+    await validateClassroomReferences();
     await appearance();
     for (final key in observationDefaults.keys) {
       await observationCatalog(key);

@@ -282,9 +282,9 @@ void main() {
       expect(find.byTooltip('Schüler suchen: Anna'), findsOneWidget);
       expect(find.text('Suche: Anna'), findsNothing);
       await settings(t);
-      expect(page(t), 2);
+      expect(page(t), 4);
       await slider(t, 'textScale', .65);
-      expect(page(t), 2);
+      expect(page(t), 4);
       await tap(t, find.byKey(const ValueKey('page-0')));
       expect(page(t), 0);
       await t.drag(

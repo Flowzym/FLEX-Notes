@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../domain/models.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
+import '../domain/classroom.dart';
 import 'secret_store.dart';
 
 class ReminderRequest {
@@ -30,15 +31,33 @@ List<ReminderRequest> planReminders(
   final hour = (settings['hour'] as int? ?? 9).clamp(0, 23);
   final minute = (settings['minute'] as int? ?? 0).clamp(0, 59);
   final candidates = <({String target, DateTime when, String label})>[];
+  final overrides = {
+    for (final d in data.classroom.where(
+      (d) => !d.deleted && d.kind == ClassroomKind.reminder,
+    ))
+      d.text('target'): d,
+  };
+  void add(String target, DateTime when, String label) {
+    final override = overrides[target];
+    if (override?.flag('dismissed') == true) return;
+    final at = override == null ? when : DateTime.parse(override.text('at'));
+    if (at.isAfter(now)) {
+      candidates.add((target: target, when: at, label: label));
+    }
+  }
+
   DateTime date(String value, [String? time]) => DateTime.parse(
     '${value}T${time == null || time.isEmpty ? '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}' : time}:00',
   );
   for (final entry in data.entries.where(
     (e) => !e.deleted && (e.pupilId == null || active.contains(e.pupilId)),
   )) {
-    if (entry.isTask && entry.done ||
-        entry.reminderState == ReminderState.cancelled ||
-        entry.reminderState == ReminderState.acknowledged) {
+    if (entry.isTask && settings['tasks'] == false ||
+        entry.isAppointment && settings['appointments'] == false ||
+        entry.isTask && entry.done ||
+        !overrides.containsKey('orga:${entry.id}') &&
+            (entry.reminderState == ReminderState.cancelled ||
+                entry.reminderState == ReminderState.acknowledged)) {
       continue;
     }
     DateTime? when;
@@ -56,8 +75,8 @@ List<ReminderRequest> planReminders(
       when = date(entry.dueDate!);
       label = 'Aufgabe';
     }
-    if (when != null && when.isAfter(now)) {
-      candidates.add((target: 'orga:${entry.id}', when: when, label: label));
+    if (when != null || overrides.containsKey('orga:${entry.id}')) {
+      add('orga:${entry.id}', when ?? now, label);
     }
   }
   for (final record in data.records.where(
@@ -75,14 +94,62 @@ List<ReminderRequest> planReminders(
         settings['tasks'] != false) {
       due = record.dueDate;
     }
-    if (due != null && date(due).isAfter(now)) {
-      candidates.add((
-        target: 'school:${record.id}',
-        when: date(due),
-        label: label,
-      ));
+    if (due != null) {
+      add('school:${record.id}', date(due), label);
+    } else if (record.pending &&
+        overrides.containsKey('school:${record.id}') &&
+        (record.kind == SchoolKind.goal
+            ? settings['goals'] != false
+            : settings['tasks'] != false)) {
+      add('school:${record.id}', now, label);
     }
   }
+  for (final d in data.classroom.where(
+    (d) =>
+        !d.deleted && d.kind == ClassroomKind.returnList && !d.flag('closed'),
+  )) {
+    if (d.text('dueDate').isNotEmpty &&
+        d.rows('participants').any(returnPending) &&
+        settings['tasks'] != false) {
+      final due = schoolDay(
+        d.text('dueDate'),
+      ).subtract(Duration(days: d.number('remindDays')));
+      add('return:${d.id}', date(dateOnly(due)), 'Rücklauf');
+    }
+  }
+  if (settings['appointments'] != false) {
+    final lessons = {
+      for (final l in lessonOccurrences(
+        data.classroom,
+        dateOnly(now.subtract(const Duration(days: 30))),
+        dateOnly(now.add(const Duration(days: 366))),
+      ))
+        l.target: l,
+    };
+    // A postponed reminder may refer to an older occurrence outside the usual window.
+    for (final target in overrides.keys.where((k) => k.startsWith('lesson:'))) {
+      final original = target.split(':').last;
+      if (validDate(original)) {
+        for (final l in lessonOccurrences(data.classroom, original, original)) {
+          if (l.target == target) lessons[target] = l;
+        }
+      }
+    }
+    for (final l in lessons.values) {
+      add(
+        l.target,
+        date(
+          l.date,
+          l.start,
+        ).subtract(Duration(minutes: l.document.number('remindMinutes'))),
+        'Unterricht',
+      );
+    }
+  }
+  // Keep nearest reminders within Android/OEM alarm limits. Refresh on resume
+  // replenishes the horizon; IDs remain stable when the visible window changes.
+  candidates.sort((a, b) => a.when.compareTo(b.when));
+  if (candidates.length > 200) candidates.removeRange(200, candidates.length);
   candidates.sort((a, b) => a.target.compareTo(b.target));
   final used = <int>{};
   return candidates.map((item) {

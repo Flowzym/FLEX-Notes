@@ -54,8 +54,79 @@ const conflictFieldLabels = <String, String>{
   'nextStep': 'Nächster Schritt',
   'delivery': 'Abgabe',
   'taskText': 'Aufgabe',
+  'date': 'Beginn / Datum',
+  'endDate': 'Enddatum',
+  'start': 'Beginn',
+  'end': 'Ende',
+  'room': 'Raum',
+  'materialIds': 'Materialien',
+  'repeat': 'Wiederholung',
+  'frequency': 'Häufigkeit',
+  'interval': 'Abstand',
+  'weekdays': 'Wochentage',
+  'until': 'Bis',
+  'skipHolidays': 'Ferien auslassen',
+  'excluded': 'Ausgelassene Tage',
+  'exceptions': 'Einzelne Änderungen',
+  'cancelled': 'Entfällt',
+  'movedTo': 'Verschoben auf',
+  'remindMinutes': 'Minuten vorher',
+  'remindDays': 'Tage vorher',
+  'participants': 'Rückmeldungen',
+  'name': 'Name',
+  'status': 'Rücklaufstatus',
+  'paid': 'Eingegangener Betrag',
+  'amountDue': 'Betrag pro Schüler',
+  'type': 'Art',
+  'closed': 'Abgeschlossen',
+  'url': 'Link',
+  'extension': 'Dateityp',
+  'topic': 'Thema',
+  'week': 'Planungswoche',
+  'sourceModifiedAt': 'Dateistand',
+  'size': 'Dateigröße',
+  'localKey': 'Offline-Dateiverweis',
+  'etag': 'Dateiversion',
+  'driveId': 'OneDrive-Laufwerk',
+  'itemId': 'OneDrive-Datei',
+  'entryId': 'Serienvorlage',
+  'template': 'Vorlage',
+  'stopped': 'Serie beendet',
+  'target': 'Erinnerungsbezug',
+  'at': 'Erinnerungszeit',
+  'dismissed': 'Erinnerung ausgeschaltet',
+  'icsUid': 'Kalender-ID',
+  'icsSource': 'Kalenderquelle',
+  'icsStamp': 'Kalenderstand',
 };
 String conflictText(String key, Object? value, NotebookController c) {
+  if ((key == 'paid' || key == 'amountDue') && value is int) {
+    return '${(value / 100).toStringAsFixed(2)} €';
+  }
+  if (key == 'materialIds' && value is String) {
+    return c.classroom.where((d) => d.id == value).firstOrNull?.title ??
+        'Material nicht verfügbar';
+  }
+  if (key == 'status') {
+    return const {
+          'open': 'Offen',
+          'partial': 'Teilbezahlt',
+          'received': 'Erhalten / bezahlt',
+          'yes': 'Zugestimmt',
+          'no': 'Abgelehnt',
+          'exempt': 'Nicht erforderlich',
+        }[value] ??
+        '$value';
+  }
+  if (key == 'frequency') {
+    return const {
+          'none': 'Einmal',
+          'daily': 'Täglich',
+          'weekly': 'Wöchentlich',
+          'monthly': 'Monatlich',
+        }[value] ??
+        '$value';
+  }
   if (key == 'appointmentTime' && value == '') return 'Ganztägig';
   if (key == 'appointmentDate' && value is String && validDate(value)) {
     return displayDate(value);

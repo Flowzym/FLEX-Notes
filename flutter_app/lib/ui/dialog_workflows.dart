@@ -453,6 +453,8 @@ Future<void> showBulk(
   BuildContext context,
   NotebookController c, {
   DialogDraft? draft,
+  String initialKind = 'social',
+  String initialSubject = '',
 }) async {
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
@@ -471,10 +473,10 @@ Future<void> showBulk(
       title: 'Für mehrere erfassen',
       accept: 'Für ausgewählte Schüler speichern',
       initial: {
-        'kind': 'social',
+        'kind': initialKind,
         'recipients': <String>[],
         'context': '',
-        'subject': '',
+        'subject': initialSubject,
         'body': '',
         'individual': <String, dynamic>{},
         'observedOn': dateOnly(DateTime.now()),

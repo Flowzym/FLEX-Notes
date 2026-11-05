@@ -8,16 +8,24 @@ class FlexPagePills extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.more,
+    this.classroomPages = false,
   });
   final int selected;
   final ValueChanged<int> onSelected;
   final Widget more;
+  final bool classroomPages;
 
   @override
   Widget build(BuildContext context) {
+    final pages = {
+      0: 'Übersicht',
+      1: 'Schüler',
+      if (classroomPages) 2: 'Kalender',
+      if (classroomPages) 3: 'Materialien',
+    };
     final colors = Theme.of(context).colorScheme;
     final palette = Theme.of(context).extension<FlexSurfaces>()?.palette;
-    if (MediaQuery.textScalerOf(context).scale(1) > 1.5 &&
+    if ((classroomPages || MediaQuery.textScalerOf(context).scale(1) > 1.5) &&
         MediaQuery.sizeOf(context).width < 600) {
       return Center(
         child: Wrap(
@@ -26,7 +34,7 @@ class FlexPagePills extends StatelessWidget {
           runSpacing: 6,
           alignment: WrapAlignment.center,
           children: [
-            for (final item in const {0: 'Übersicht', 1: 'Schüler'}.entries)
+            for (final item in pages.entries)
               TextButton(
                 key: ValueKey('page-${item.key}'),
                 onPressed: () => onSelected(item.key),
@@ -45,7 +53,7 @@ class FlexPagePills extends StatelessWidget {
                 child: Text(item.value, textAlign: TextAlign.center),
               ),
             Material(
-              color: selected == 2
+              color: selected == pages.length
                   ? colors.primary
                   : palette?.workspace ?? colors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(999),
@@ -53,7 +61,9 @@ class FlexPagePills extends StatelessWidget {
                 width: 64,
                 child: DefaultTextStyle.merge(
                   style: TextStyle(
-                    color: selected == 2 ? colors.onPrimary : colors.onSurface,
+                    color: selected == pages.length
+                        ? colors.onPrimary
+                        : colors.onSurface,
                   ),
                   child: more,
                 ),
@@ -91,7 +101,7 @@ class FlexPagePills extends StatelessWidget {
     );
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+        constraints: BoxConstraints(maxWidth: classroomPages ? 650 : 380),
         child: SizedBox(
           key: const ValueKey('page-pills'),
           height: 64,
@@ -110,10 +120,7 @@ class FlexPagePills extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  for (final item in const {
-                    0: 'Übersicht',
-                    1: 'Schüler',
-                  }.entries)
+                  for (final item in pages.entries)
                     segment(
                       item.key,
                       Semantics(
@@ -135,7 +142,7 @@ class FlexPagePills extends StatelessWidget {
                         ),
                       ),
                     ),
-                  segment(2, more),
+                  segment(pages.length, more),
                 ],
               ),
             ),

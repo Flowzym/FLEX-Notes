@@ -1,8 +1,24 @@
 import 'models.dart';
 import 'school.dart';
 import 'observation_catalog.dart';
+import 'classroom.dart';
 
 abstract interface class NotebookRepository {
+  Future<List<ClassroomDocument>> classroomDocuments();
+  Future<ClassroomDocument> saveClassroomDocument(
+    ClassroomDocument document, {
+    DialogDraft? draft,
+  });
+  Future<void> saveClassroomDocuments(
+    List<ClassroomDocument> documents, {
+    DialogDraft? draft,
+  });
+  Future<void> configureRepeat(
+    OrgaEntry entry,
+    RepeatRule rule, {
+    String? effectiveFrom,
+  });
+  Future<void> materializeRepeats(DateTime now);
   Future<NotebookSnapshot> snapshot();
   Future<void> initialize();
   Future<List<Pupil>> pupils();
@@ -85,6 +101,7 @@ class NotebookSnapshot {
     required this.appearance,
     required this.legacyCount,
     this.dialogDrafts = const [],
+    this.classroom = const [],
   });
   final List<Pupil> pupils;
   final List<OrgaEntry> entries;
@@ -92,6 +109,7 @@ class NotebookSnapshot {
   final List<SchoolRecord> records;
   final List<SchoolDraft> schoolDrafts;
   final List<DialogDraft> dialogDrafts;
+  final List<ClassroomDocument> classroom;
   final Appearance appearance;
   final int legacyCount;
 }

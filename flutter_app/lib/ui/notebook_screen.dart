@@ -22,6 +22,14 @@ import '../domain/school.dart';
 import 'flex_icons.dart';
 import 'flex_modal.dart';
 import 'school_workspace.dart';
+import '../domain/classroom.dart';
+import '../domain/calendar.dart';
+import 'classroom_editor.dart';
+import 'calendar_page.dart';
+import 'material_library.dart';
+import 'return_lists.dart';
+import 'repeat_editor.dart';
+import 'reminder_actions.dart';
 
 class NotebookScreen extends StatefulWidget {
   const NotebookScreen({super.key, required this.controller});
@@ -88,6 +96,20 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 content: Text('Dieser Eintrag ist nicht mehr verfügbar.'),
               ),
             );
+          }
+        } else if (target.startsWith('return:')) {
+          await showReturnDetail(context, c, id);
+        } else if (target.startsWith('lesson:')) {
+          final date = target.split(':').last;
+          if (validDate(date)) {
+            final item = calendarItems(
+              c.currentSnapshot,
+              dateOnly(schoolDay(date).subtract(const Duration(days: 365))),
+              dateOnly(schoolDay(date).add(const Duration(days: 365))),
+            ).where((e) => e.id == target).firstOrNull;
+            if (item != null && mounted) {
+              await showCalendarItem(context, c, item);
+            }
           }
         } else if (target.startsWith('school:')) {
           final record = c.records
@@ -193,6 +215,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
             return FlexModal(
               maxWidth: 1000,
               title: const Text('Klassen-Orga'),
+              headerActions: [
+                TextButton.icon(
+                  onPressed: () => showReturnLists(ctx, c),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('Rückläufe'),
+                ),
+              ],
               onClose: () => Navigator.pop(ctx),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -367,6 +396,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
         );
       } else if (value == 'bulk') {
         showBulk(context, c);
+      } else if (value == 'returns') {
+        showReturnLists(context, c);
       } else if (['drafts', 'class', 'trash'].contains(value)) {
         _auxDialog(value);
       } else {
@@ -380,6 +411,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
       ),
       const PopupMenuItem(value: 'bulk', child: Text('Für mehrere erfassen')),
       const PopupMenuItem(value: 'class', child: Text('Klassen-Orga')),
+      const PopupMenuItem(value: 'returns', child: Text('Rückläufe')),
       PopupMenuItem(value: 'drafts', child: Text('Entwürfe (${c.draftCount})')),
       const PopupMenuItem(value: 'archive', child: Text('Archiv')),
       const PopupMenuItem(value: 'trash', child: Text('Papierkorb')),
@@ -410,7 +442,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
               child: FlexPagePills(
-                selected: _aux == null ? _primary : 2,
+                selected: _aux == null ? _primary : 4,
+                classroomPages: true,
                 onSelected: _main,
                 more: _more(),
               ),
@@ -454,7 +487,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
         FocusManager.instance.primaryFocus?.unfocus();
         _changeView(() => _primary = index);
       },
-      children: [_overview(), _pupils()],
+      children: [
+        _overview(),
+        _pupils(),
+        CalendarPage(controller: c),
+        MaterialLibraryPage(controller: c),
+      ],
     );
   }
 
@@ -677,6 +715,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
               ),
               icon: const Icon(Icons.event_outlined, size: 18),
               label: const Text('Termin'),
+            ),
+            TextButton.icon(
+              onPressed: () => showReturnLists(context, c),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('Rückläufe'),
             ),
             if (c.draftCount > 0)
               TextButton.icon(
@@ -1325,6 +1368,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     icon: e.done ? Icons.undo : Icons.check_circle_outline,
                     label: e.done ? 'Wieder öffnen' : 'Erledigen',
                   ),
+                if ((e.isTask || e.isAppointment) && !e.done)
+                  IconButton(
+                    tooltip: 'Wiederholung',
+                    onPressed: busy
+                        ? null
+                        : () => showOrgaRepeat(context, c, e),
+                    icon: const Icon(Icons.repeat),
+                  ),
+                if (e.pending)
+                  IconButton(
+                    tooltip: 'Erinnerung verschieben',
+                    onPressed: busy
+                        ? null
+                        : () => showReminderActions(
+                            context,
+                            c,
+                            'orga:${e.id}',
+                            e.title,
+                          ),
+                    icon: const Icon(Icons.snooze),
+                  ),
                 if (e.reminderState == ReminderState.planned)
                   TextButton(
                     onPressed: busy ? null : () => _mutate(e.acknowledge()),
@@ -1398,6 +1462,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 id: 'dialog-${d.id}',
                 title: d.type == 'pupil'
                     ? 'Schüler · ${d.data['name']}'
+                    : d.type == 'classroom'
+                    ? 'FLEX-Klasse · ${d.data['title'] ?? 'Entwurf'}'
                     : d.type == 'context'
                     ? 'Gemeinsame Situation'
                     : d.type == 'catalog'
@@ -1407,7 +1473,14 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     '${d.data['text'] ?? d.data['context'] ?? d.data['body'] ?? ''}',
                 time: d.updatedAtUtc,
                 open: () {
-                  if (d.type == 'pupil') {
+                  if (d.type == 'classroom') {
+                    showClassroomEditor(
+                      context,
+                      c,
+                      ClassroomKind.values.byName(d.data['kind'] as String),
+                      draft: d,
+                    );
+                  } else if (d.type == 'pupil') {
                     _pupilEditor(null, d);
                   } else if (d.type == 'catalog') {
                     showCatalog(context, c, d.ownerId, draft: d);

@@ -2,6 +2,7 @@ import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
 import 'symbol_button.dart';
 import 'pupil_history.dart';
+import 'reminder_actions.dart';
 import 'draft_buffer.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
@@ -476,6 +477,17 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                     label: const Text('Notiz & Verlauf'),
                   ),
                 ),
+              if (r.pending)
+                TextButton.icon(
+                  onPressed: () => showReminderActions(
+                    context,
+                    c,
+                    'school:${r.id}',
+                    r.title.isEmpty ? r.kind.label : r.title,
+                  ),
+                  icon: const Icon(Icons.snooze),
+                  label: const Text('Erinnerung verschieben'),
+                ),
               Text(
                 'Abgabe: ${const {'unknown': 'Nicht überprüft', 'submitted': 'Vorgelegt', 'missing': 'Nicht vorgelegt', 'absent': 'Abwesend'}[r.delivery]}',
               ),
@@ -788,13 +800,16 @@ class SchoolTools extends StatelessWidget {
 Future<void> showBrief(
   BuildContext context,
   NotebookController c,
-  Pupil pupil,
-) async {
-  String? from;
-  String? to = dateOnly(DateTime.now());
+  Pupil pupil, {
+  String? initialFrom,
+  String? initialTo,
+  Set<String> initialSelection = const {},
+}) async {
+  String? from = initialFrom;
+  String? to = initialTo ?? dateOnly(DateTime.now());
   var names = false;
   var preview = '', error = '';
-  final selection = <String>{};
+  final selection = <String>{...initialSelection};
   final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
   await showDialog<void>(
     context: context,
