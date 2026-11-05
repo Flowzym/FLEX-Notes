@@ -1,0 +1,11 @@
+FLEX Test – Build 38
+
+APK über die vorhandene FLEX Test installieren. Nicht deinstallieren.
+Paketkennung und Signatur sind unverändert; vorhandene Daten bleiben beim Update erhalten.
+
+Neu: Kalender, Materialien, Rückläufe, Orga-Serien und Entwicklungsübersicht.
+Direkte OneDrive-Anmeldung benötigt noch die Microsoft-Appregistrierung/Client-ID.
+Dateiauswahl und Links sind bereits nutzbar.
+
+Materialdateien werden separat als verschlüsseltes Materialpaket gesichert.
+Bitte neue Gerätefunktionen zunächst mit wenigen Testeinträgen prüfen.
