@@ -189,6 +189,10 @@ mixin ClassroomStore on SchoolStore {
     final existing = {for (final e in await entries()) e.id: e};
     final source = existing[series.text('entryId')];
     if (source == null) return;
+    if (source.pupilId != null &&
+        !(await pupils()).any((p) => p.id == source.pupilId && !p.archived)) {
+      return;
+    }
     final generated = series.map('generated');
     var changed = false;
     final template = OrgaEntry.fromJson(series.map('template'));

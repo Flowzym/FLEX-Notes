@@ -57,6 +57,29 @@ void main() {
   });
   tearDown(() async => repo.close());
   test(
+    'archived pupils pause future generation and restoring them resumes it',
+    () async {
+      final pupil = await repo.savePupil(const Pupil(id: 'p', name: 'Kind'));
+      final entry = await repo.saveEntry(
+        OrgaEntry.empty(pupilId: 'p').copyWith(
+          title: 'Wöchentlich',
+          body: 'Üben',
+          isTask: true,
+          dueDate: dateOnly(DateTime.now()),
+        ),
+      );
+      await repo.configureRepeat(entry, const RepeatRule(frequency: 'weekly'));
+      final count = (await repo.entries()).length;
+      final archived = await repo.savePupil(pupil.copyWith(archived: true));
+      final later = DateTime.now().add(const Duration(days: 30));
+      await repo.materializeRepeats(later);
+      expect((await repo.entries()).length, count);
+      await repo.savePupil(archived.copyWith(archived: false));
+      await repo.materializeRepeats(later);
+      expect((await repo.entries()).length, greaterThan(count));
+    },
+  );
+  test(
     'maintenance retains series tombstones and completed sources can stop their series',
     () async {
       final entry = await repo.saveEntry(
