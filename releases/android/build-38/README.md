@@ -20,7 +20,7 @@ Dateiauswahl und gespeicherte Links funktionieren bereits.
 305 Flutter-Tests mit Coverage auf GitHub (41 neue), 11 SQLite-Tests, Formatprüfung und statische Analyse bestanden.
 Android- und Web-Releasebuild, 3 HTTP-Serverprüfungen, APK-Signatur, Manifest, native
 Materialfunktionen und 16-KB-Ausrichtung erfolgreich geprüft.
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42100131746).
+[GitHub-Testpipeline: alle Prüfungen erfolgreich](https://github.com/Flowzym/FLEX-Notes/actions/runs/42100131746).
 Kein physischer Android-Gerätelauf; Microsoft-Anmeldung wurde mit Testantworten geprüft.
 
 APK: 77232584 Bytes. SHA-256:

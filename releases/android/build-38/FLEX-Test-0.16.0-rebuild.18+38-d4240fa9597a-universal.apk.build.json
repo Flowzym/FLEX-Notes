@@ -61,5 +61,6 @@
   "github_ci_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42100131746",
   "flutter_regression_tests_passed": 21,
   "onedrive_upload_verified": true,
-  "onedrive_quickxor": "Cz/ddrS3lT7W6DPbtWawsUFPN3c="
+  "onedrive_quickxor": "Cz/ddrS3lT7W6DPbtWawsUFPN3c=",
+  "github_ci_conclusion": "success"
 }
