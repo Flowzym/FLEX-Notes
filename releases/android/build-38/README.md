@@ -1,6 +1,6 @@
 # FLEX Test – Android Build 38
 
-[APK herunterladen](https://github.com/Flowzym/FLEX-Notes/raw/refs/heads/fix/dialog-reference-audit/releases/android/build-38/FLEX-Test-0.16.0-rebuild.18%2B38-6b9495403337-universal.apk)
+[APK herunterladen](https://github.com/Flowzym/FLEX-Notes/raw/refs/heads/fix/dialog-reference-audit/releases/android/build-38/FLEX-Test-0.16.0-rebuild.18%2B38-d4240fa9597a-universal.apk)
 
 Version **0.16.0-rebuild.18+38**, Android 7.0 oder neuer; ARM64, ARMv7 und x86_64.
 Über die vorhandene **FLEX Test** installieren, nicht deinstallieren.
@@ -17,15 +17,15 @@ behält die gespeicherten Daten; eine aktuelle Sicherung bleibt vor einem Testup
 Microsoft-Client-ID. [Einrichtungsschritte](../../../docs/ONEDRIVE_EINRICHTEN.md).
 Dateiauswahl und gespeicherte Links funktionieren bereits.
 
-304 Flutter-Tests (40 neue), 11 SQLite-Tests, Formatprüfung und statische Analyse bestanden.
+305 Flutter-Tests mit Coverage auf GitHub (41 neue), 11 SQLite-Tests, Formatprüfung und statische Analyse bestanden.
 Android- und Web-Releasebuild, 3 HTTP-Serverprüfungen, APK-Signatur, Manifest, native
 Materialfunktionen und 16-KB-Ausrichtung erfolgreich geprüft.
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42099150513).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42100131746).
 Kein physischer Android-Gerätelauf; Microsoft-Anmeldung wurde mit Testantworten geprüft.
 
 APK: 77232584 Bytes. SHA-256:
-`5137378768bc0b28008e5485b85c00323274621dcdf68c4913033e6b7f17c32a`.
-Quellcommit: `6b9495403337854be7a4d75ad20dc6611b1a3acc`.
+`a685a55b1ca6fba1a6d9ae1eab8da1746f76b4fe5342fbbfdc5f53ae1a37ee7c`.
+Quellcommit: `d4240fa9597ab9292d53c71e14764e8cb3de185d`.
 
 [Funktionsumfang, Grenzen und Prüfungen](../../../audit/KLASSENFUNKTIONEN_BUILD_38.md) ·
 [Installation](../../../flutter_app/ANDROID-TEST.md)

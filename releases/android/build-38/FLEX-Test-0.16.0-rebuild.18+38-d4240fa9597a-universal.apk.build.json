@@ -12,7 +12,7 @@
   "mode": "release",
   "signing": "local Android test/debug certificate",
   "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
-  "apk_sha256": "5137378768bc0b28008e5485b85c00323274621dcdf68c4913033e6b7f17c32a",
+  "apk_sha256": "a685a55b1ca6fba1a6d9ae1eab8da1746f76b4fe5342fbbfdc5f53ae1a37ee7c",
   "bytes": 77232584,
   "signature_verified": true,
   "zip_alignment_16kb_verified": true,
@@ -37,16 +37,17 @@
       "lib/x86_64/libsqlite3.so"
     ]
   },
-  "flutter_tests_passed": 304,
+  "flutter_tests_passed": 305,
   "flutter_test_scope": [
-    "full Flutter test suite",
-    "40 new classroom, material and UI checks"
+    "305 tests with coverage in GitHub CI on final source",
+    "304 tests locally before archive refinement",
+    "21 classroom regression tests after final archive refinement"
   ],
   "android_device_tested": false,
   "browser_tests": false,
   "android_manifest_verified": true,
   "native_backup_bridge_verified": true,
-  "source_commit": "6b9495403337854be7a4d75ad20dc6611b1a3acc",
+  "source_commit": "d4240fa9597ab9292d53c71e14764e8cb3de185d",
   "source_branch": "fix/dialog-reference-audit",
   "flutter": "3.47.9",
   "dart": "3.13.7",
@@ -57,5 +58,8 @@
   "native_material_bridge_verified": true,
   "web_build_passed": true,
   "preview_server_tests_passed": 3,
-  "github_ci_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42099150513"
+  "github_ci_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42100131746",
+  "flutter_regression_tests_passed": 21,
+  "onedrive_upload_verified": true,
+  "onedrive_quickxor": "Cz/ddrS3lT7W6DPbtWawsUFPN3c="
 }

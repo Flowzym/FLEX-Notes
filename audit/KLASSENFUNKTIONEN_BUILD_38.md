@@ -22,7 +22,8 @@ Version: **0.16.0-rebuild.18+38**. Paketkennung und Testsignatur bleiben erhalte
 - **Orga-Serien und Erinnerungen:** Täglich, wöchentlich, zweiwöchentlich oder monatlich;
   Enddatum, Wochentage und Ferien auslassen. Wiederholung über das sichtbare Seriensymbol
   eines gespeicherten Termins oder einer fälligen Aufgabe. Einzeln geänderte, erledigte oder
-  gelöschte Durchführungen bleiben bei Serienänderungen erhalten. Erinnerung eine Stunde,
+  gelöschte Durchführungen bleiben bei Serienänderungen erhalten. Archivierte Schüler
+  pausieren die Erzeugung weiterer Durchführungen bis zur Wiederherstellung. Erinnerung eine Stunde,
   auf morgen 09:00 oder auf einen gewählten Zeitpunkt verschieben; Fristen bleiben gleich.
 - **Entwicklungsübersicht:** Im Schülerdialog „Entwicklung“ öffnen; Zeitraum, Sozial/Arbeit
   und Thema/Tag/Freitext filtern. Wochen inklusive leerer Wochen, Originalbeobachtungen und
@@ -75,4 +76,7 @@ DOCX/PDF-Typprüfung, Gerätecodeflow/Abbruch/Refresh und sichere Download-Heade
 Widgettests prüfen Entwurfswiederherstellung, Fokus nach Autosave, Seriensplitting,
 Rücklauf- und Zahlungsaktionen, Navigation per Swipe sowie große Schrift auf 390-Pixel-Displays.
 Direkte Flutter-Aufnahmen von Kalender und Materialseite wurden visuell geprüft.
-Die abschließenden Testergebnisse und APK-Prüfsummen stehen im Build-38-Releaseordner.
+305 Flutter-Tests mit Coverage und 11 SQLite-Prüfungen bestehen auf dem finalen Quellstand
+auch in GitHub Actions. Statische Analyse und Formatprüfung sind ohne Befund. Android-
+und Web-Releasebuild sowie die 3 HTTP-Serverprüfungen sind lokal erfolgreich.
+Die APK-Prüfsummen und der Link zur Pipeline stehen im Build-38-Releaseordner.
