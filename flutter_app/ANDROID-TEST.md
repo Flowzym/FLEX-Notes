@@ -1,10 +1,15 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.19+39**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.20+40**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Build 39 ergänzt kompakte Materialzeilen, Tagesvorbereitung, Unterrichtspakete,
+Build 40 ordnet den Kalender neu: Tagesachse, echtes Wochenraster, ruhige Monatsansicht,
+separate Fälligkeiten und sichtbare Zugänge zu Anlegen, Unterlagen und Verwaltung.
+Dateien und Planungen einzelner Stunden bleiben beim Verschieben und Absagen erhalten.
+[Funktionsumfang und Prüfungen](../audit/KALENDER_BUILD_40.md).
+
+Build 39 ergänzte kompakte Materialzeilen, Tagesvorbereitung, Unterrichtspakete,
 Schülerunterlagen, Planungsverwaltung und eine DOCX-Textvorschau.
 [Funktionsumfang und Grenzen](../audit/MATERIALIEN_BUILD_39.md).
 
@@ -21,7 +26,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 39 auf GitHub herunterladen](../releases/android/build-39/README.md).
+[APK Build 40 auf GitHub herunterladen](../releases/android/build-40/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

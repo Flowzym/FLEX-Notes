@@ -70,11 +70,11 @@ List<ClassroomDocument> suggestedMaterials(
   final day = schoolDay(date);
   final monday = day.subtract(Duration(days: day.weekday - 1));
   final ids = <String>{
-    for (final l in lessons) ...l.document.strings('materialIds'),
+    for (final l in lessons) ...l.materialIds,
+    for (final l in lessons)
+      for (final p in lessonPlans(docs, l)) ...p.strings('materialIds'),
     for (final p in docs.where(
-      (p) =>
-          planOnDay(p, date) ||
-          lessons.any((l) => planOnDay(p, date, lessonId: l.document.id)),
+      (p) => p.strings('lessonIds').isEmpty && planOnDay(p, date),
     ))
       ...p.strings('materialIds'),
     for (final m in docs.where(
@@ -92,6 +92,19 @@ List<ClassroomDocument> suggestedMaterials(
   final selected = preparationFor(docs, date).strings('materialIds').toSet();
   return resolveMaterials(docs, ids.where((id) => !selected.contains(id)));
 }
+
+List<ClassroomDocument> lessonPlans(
+  Iterable<ClassroomDocument> docs,
+  LessonOccurrence lesson,
+) => [
+  for (final p in docs)
+    if (!p.deleted &&
+        p.kind == ClassroomKind.plan &&
+        (lesson.exception.containsKey('planIds')
+            ? lesson.planIds.contains(p.id)
+            : planOnDay(p, lesson.date, lessonId: lesson.document.id)))
+      p,
+];
 
 bool materialMatches(
   ClassroomDocument d,

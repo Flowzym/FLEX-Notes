@@ -81,6 +81,41 @@ class IcsImport {
   final List<String> warnings;
 }
 
+const importedLessonFields = {
+  'title',
+  'date',
+  'start',
+  'end',
+  'repeat',
+  'note',
+  'room',
+};
+
+/// An external refresh may change its own fields, but never silently discard
+/// local preparation. An incompatible series needs an explicit manual edit.
+ClassroomDocument mergeImportedLesson(
+  ClassroomDocument? existing,
+  ClassroomDocument incoming,
+) {
+  if (existing == null) return incoming;
+  for (final exception in existing.rows('exceptions')) {
+    if (!incoming.rule.includes(
+      incoming.text('date'),
+      exception['date'] as String,
+      [],
+    )) {
+      throw const DomainError(
+        'Die importierte Serie würde angepasste Stunden entfernen. Bitte diese Serie über „Verwalten“ bearbeiten.',
+      );
+    }
+  }
+  return existing.patch({
+    for (final key in importedLessonFields) key: incoming.toJson()[key],
+    'icsStamp': incoming.text('icsStamp'),
+    'deleted': false,
+  });
+}
+
 /// Strict supported subset: unsupported recurrence is reported, never silently
 /// interpreted as a one-off appointment. Imports remain a reviewable preview.
 IcsImport parseCalendarIcs(String text, {String source = 'Kalender'}) {

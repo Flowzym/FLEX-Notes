@@ -161,7 +161,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('page-1')));
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
-      expect(find.text('Kalender · FLEX-Klasse'), findsOneWidget);
+      expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
       await capture(t, key, 'calendar-phone');
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
@@ -401,8 +401,8 @@ void main() {
   ) async {
     final c = await controller();
     await host(t, (_) => CalendarPage(controller: c), scale: 2);
-    for (final label in ['Tag', 'Woche', 'Monat']) {
-      await tap(t, find.text(label));
+    for (final mode in ['day', 'week', 'month']) {
+      await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
       expect(t.takeException(), isNull);
     }
     await t.pumpWidget(const SizedBox());

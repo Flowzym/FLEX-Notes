@@ -104,8 +104,23 @@ mixin ClassroomStore on SchoolStore {
         .map((d) => d.id)
         .toSet();
     final orga = (await entries()).map((e) => e.id).toSet();
+    final plans = docs
+        .where((d) => d.kind == ClassroomKind.plan)
+        .map((d) => d.id)
+        .toSet();
     for (final d in docs) {
       if (!materials.containsAll(d.strings('materialIds')) ||
+          d
+              .rows('exceptions')
+              .any(
+                (e) =>
+                    !materials.containsAll(
+                      List<String>.from(e['materialIds'] as List? ?? []),
+                    ) ||
+                    !plans.containsAll(
+                      List<String>.from(e['planIds'] as List? ?? []),
+                    ),
+              ) ||
           !people.containsAll(d.strings('pupilIds')) ||
           !lessons.containsAll(d.strings('lessonIds')) ||
           d.kind == ClassroomKind.returnList &&

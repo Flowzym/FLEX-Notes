@@ -411,6 +411,8 @@ class ClassroomDocument {
                 'end',
                 'title',
                 'note',
+                'materialIds',
+                'planIds',
               }.contains(k),
             )) {
           throw const DomainError('Ungültige Unterrichtsausnahme.');
@@ -418,6 +420,18 @@ class ClassroomDocument {
         if (exception['movedTo'] != null &&
             !validDate(exception['movedTo'] as String)) {
           throw const DomainError('Ungültiges Verschiebedatum.');
+        }
+        for (final key in ['materialIds', 'planIds']) {
+          if (!exception.containsKey(key)) continue;
+          final ids = exception[key];
+          if (ids is! List ||
+              ids.length > 5000 ||
+              ids.any((id) => id is! String || id.isEmpty || id.length > 250) ||
+              ids.toSet().length != ids.length) {
+            throw const DomainError(
+              'Ungültige Zuordnung zur Unterrichtsstunde.',
+            );
+          }
         }
         if (exception['start'] != null &&
             (!validClock(exception['start'] as String) ||
@@ -575,6 +589,41 @@ class LessonOccurrence {
   final ClassroomDocument document;
   final String originalDate, date, start, end, title, note;
   String get target => 'lesson:${document.id}:$originalDate';
+  Json get exception =>
+      document
+          .rows('exceptions')
+          .where((e) => e['date'] == originalDate)
+          .firstOrNull ??
+      {};
+  List<String> get materialIds => exception.containsKey('materialIds')
+      ? List<String>.from(exception['materialIds'] as List)
+      : document.strings('materialIds');
+  List<String> get planIds =>
+      List<String>.from(exception['planIds'] as List? ?? []);
+}
+
+/// Patch one stable occurrence, retaining movement, cancellation and preparation.
+ClassroomDocument patchLessonOccurrence(
+  ClassroomDocument document,
+  String originalDate,
+  Json fields,
+) {
+  if (document.kind != ClassroomKind.lesson ||
+      !validDate(originalDate) ||
+      !document.rule.includes(document.text('date'), originalDate, [])) {
+    throw const DomainError('Diese Unterrichtsstunde gehört nicht zur Serie.');
+  }
+  final old = document
+      .rows('exceptions')
+      .where((e) => e['date'] == originalDate)
+      .firstOrNull;
+  return document.patch({
+    'exceptions': [
+      for (final e in document.rows('exceptions'))
+        if (e['date'] != originalDate) e,
+      {'date': originalDate, 'cancelled': false, ...?old, ...fields},
+    ],
+  });
 }
 
 List<LessonOccurrence> lessonOccurrences(

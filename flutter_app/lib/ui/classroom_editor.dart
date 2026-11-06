@@ -235,6 +235,8 @@ Future<void> showClassroomEditor(
         'end': exception?['end'] ?? occurrence?.end ?? document.text('end'),
         'title': exception?['title'] ?? document.title,
         'note': exception?['note'] ?? document.text('note'),
+        'materialIds':
+            exception?['materialIds'] ?? document.strings('materialIds'),
       });
     }
   }
@@ -260,6 +262,10 @@ Future<void> showClassroomEditor(
           for (final e in data.entries)
             if (!e.key.startsWith('_')) e.key: e.value,
         };
+        if (data['_occurrenceDate'] is String) {
+          clean['repeat'] = const RepeatRule().toJson();
+          clean['exceptions'] = <Json>[];
+        }
         final value = ClassroomDocument.fromJson(clean);
         if (data['_occurrenceDate'] is String) {
           final source = c.classroom.where((d) => d.id == value.id).firstOrNull;
@@ -267,21 +273,32 @@ Future<void> showClassroomEditor(
             throw const StaleRevision();
           }
           final original = data['_occurrenceDate'] as String;
+          final old =
+              source
+                  .rows('exceptions')
+                  .where((e) => e['date'] == original)
+                  .firstOrNull ??
+              <String, dynamic>{};
           await c.repository.saveClassroomDocument(
-            source.patch({
-              'exceptions': [
-                for (final e in source.rows('exceptions'))
-                  if (e['date'] != original) e,
-                {
-                  'date': original,
-                  'cancelled': false,
-                  'movedTo': value.text('date'),
-                  'start': value.text('start'),
-                  'end': value.text('end'),
-                  'title': value.title,
-                  'note': value.text('note'),
-                },
-              ],
+            patchLessonOccurrence(source, original, {
+              'cancelled': false,
+              if (value.text('date') != original || old.containsKey('movedTo'))
+                'movedTo': value.text('date'),
+              if (value.text('start') != source.text('start') ||
+                  value.text('end') != source.text('end') ||
+                  old.containsKey('start')) ...{
+                'start': value.text('start'),
+                'end': value.text('end'),
+              },
+              if (value.title != source.title || old.containsKey('title'))
+                'title': value.title,
+              if (value.text('note') != source.text('note') ||
+                  old.containsKey('note'))
+                'note': value.text('note'),
+              if (old.containsKey('materialIds') ||
+                  value.strings('materialIds').join('\n') !=
+                      source.strings('materialIds').join('\n'))
+                'materialIds': value.strings('materialIds'),
             }),
             draft: buffer,
           );
@@ -306,6 +323,42 @@ Future<void> showClassroomEditor(
                   .toList(),
             }),
             value,
+            for (final plan in c.classroom.where(
+              (p) =>
+                  p.kind == ClassroomKind.plan &&
+                  p.strings('lessonIds').contains(source.id),
+            ))
+              plan.patch({
+                'lessonIds': {...plan.strings('lessonIds'), value.id}.toList(),
+              }),
+          ], draft: buffer);
+        } else if (kind == ClassroomKind.plan &&
+            data['_attachLessonId'] is String) {
+          final source = c.classroom
+              .where((d) => d.id == data['_attachLessonId'])
+              .firstOrNull;
+          if (source == null ||
+              source.deleted ||
+              source.revision != data['_attachLessonRevision']) {
+            throw const StaleRevision();
+          }
+          final original = data['_attachOriginalDate'] as String;
+          final prior = source
+              .rows('exceptions')
+              .where((e) => e['date'] == original)
+              .firstOrNull;
+          await c.repository.saveClassroomDocuments([
+            value,
+            patchLessonOccurrence(source, original, {
+              'planIds': {
+                ...List<String>.from(
+                  data['_attachPlanIds'] as List? ??
+                      prior?['planIds'] as List? ??
+                      [],
+                ),
+                value.id,
+              }.toList(),
+            }),
           ], draft: buffer);
         } else {
           await c.repository.saveClassroomDocument(value, draft: buffer);
@@ -349,6 +402,27 @@ Future<void> showClassroomEditor(
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (kind == ClassroomKind.plan && data['_attachDate'] is String)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Für diese Stunde · ${displayDate(data['_attachDate'] as String)}',
+                ),
+              ),
+            if (kind == ClassroomKind.lesson)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  data['_occurrenceDate'] != null
+                      ? 'Nur diese Stunde'
+                      : data['_splitFrom'] != null
+                      ? 'Diese und folgende Stunden'
+                      : document?.rule.repeats == true
+                      ? 'Gesamte Unterrichtsserie'
+                      : 'Unterricht anlegen',
+                  style: Theme.of(ctx).textTheme.titleSmall,
+                ),
+              ),
             text(
               'title',
               kind == ClassroomKind.lesson
@@ -602,8 +676,7 @@ Future<void> showClassroomEditor(
                   }),
                 ),
             ],
-            if (kind == ClassroomKind.lesson &&
-                    data['_occurrenceDate'] == null ||
+            if (kind == ClassroomKind.lesson ||
                 kind == ClassroomKind.returnList ||
                 kind == ClassroomKind.materialSet ||
                 kind == ClassroomKind.plan) ...[
