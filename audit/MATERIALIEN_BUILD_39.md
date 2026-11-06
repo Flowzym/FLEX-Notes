@@ -79,7 +79,9 @@ Zusammenführen von Sicherungen ordnet auch die neuen Schülerverweise korrekt z
 
 **330 Flutter-Tests** in der vollständigen Suite und die abschließenden Material-UI-Prüfungen
 bestanden. Strenge statische Analyse, Formatprüfung, 11 SQLite-Tests und 3
-HTTP-Serverprüfungen bestanden.
+HTTP-Serverprüfungen bestanden. Android- und Web-Releasebuild sowie APK-Signatur,
+Manifest und 16-KB-Ausrichtung geprüft.
+[GitHub-Pipeline auf dem Quellstand der APK: vollständig erfolgreich](https://github.com/Flowzym/FLEX-Notes/actions/runs/42290885316).
 
 [Materialansicht](materialien-build-39/materialien.png) ·
 [Tagesvorbereitung](materialien-build-39/bereitgelegt.png) – direkte Flutter-Renderbilder

@@ -22,7 +22,7 @@ APK-Signatur, Manifest und 16-KB-Ausrichtung geprüft. Direkte Flutter-Renderbil
 und große Schrift auf schmalen Displays geprüft. Kein physischer Android-Gerätelauf,
 kein Browserlauf und keine echte Microsoft-Anmeldung in der Testumgebung.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42290885316) – läuft.
+[GitHub-Testpipeline: alle Prüfungen erfolgreich](https://github.com/Flowzym/FLEX-Notes/actions/runs/42290885316).
 
 APK: 79182948 Bytes. SHA-256:
 `a537f4d70c38781a8b8557bef5a65b51e245d0782f32573a4456256a63a9de76`.

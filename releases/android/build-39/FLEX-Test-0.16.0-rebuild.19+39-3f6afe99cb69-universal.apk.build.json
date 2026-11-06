@@ -56,13 +56,14 @@
   "static_analysis_passed": true,
   "format_passed": true,
   "ci_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42290885316",
-  "ci_status": "in_progress",
+  "ci_status": "success",
   "web_build_passed": true,
   "drift_worker_build_passed": true,
-  "onedrive": {
-    "drive_id": "00B0037104A6A978",
-    "item_id": "B0037104A6A978!sd4d8cc7d3e8647539ef40f8cc7d2ad39",
-    "web_url": "https://onedrive.live.com?cid=00B0037104A6A978&id=B0037104A6A978!sd4d8cc7d3e8647539ef40f8cc7d2ad39",
-    "size_and_quickxor_verified": true
+  "onedrive_upload_verified": true,
+  "ci_jobs": {
+    "Analysis and tests": "success",
+    "Android release build": "success",
+    "Web build and preview server": "success",
+    "CI passed": "success"
   }
 }
