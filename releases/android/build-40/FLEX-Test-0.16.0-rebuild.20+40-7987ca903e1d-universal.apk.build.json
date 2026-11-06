@@ -57,7 +57,7 @@
   "new_tests": 22,
   "apk": "FLEX-Test-0.16.0-rebuild.20+40-7987ca903e1d-universal.apk",
   "quick_xor_hash": "1X/49YDoWz5iLXVjcm5vjJOYu/k=",
-  "github_actions_conclusion": "in_progress",
+  "github_actions_conclusion": "success",
   "onedrive_upload_verified": true,
   "local_checks": {
     "flutter_tests": 352,
@@ -68,5 +68,28 @@
     "format": "passed",
     "android_release": "passed",
     "web_release": "passed"
-  }
+  },
+  "github_actions_jobs": [
+    {
+      "id": 128168339853,
+      "name": "Analysis and tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 128170236896,
+      "name": "Android release build",
+      "conclusion": "success"
+    },
+    {
+      "id": 128170237122,
+      "name": "Web build and preview server",
+      "conclusion": "success"
+    },
+    {
+      "id": 128172619511,
+      "name": "CI passed",
+      "conclusion": "success"
+    }
+  ],
+  "github_download_verified": true
 }

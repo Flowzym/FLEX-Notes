@@ -58,6 +58,8 @@ Zusammenführen und Transaktions-Rollback bei veralteten Daten ab.
 Lokal bestanden: **352 Flutter-Tests mit Coverage**, strenge Analyse ohne Meldungen,
 Formatprüfung, 11 SQLite-Tests und 3 HTTP-Serverprüfungen. Die abschließende responsive
 Darstellung wurde zusätzlich mit allen 10 Kalender-Widgettests nachgeprüft.
+Auch die [GitHub-Pipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42298060865)
+ist vollständig erfolgreich: Analyse/Tests, Android, Web und Abschlussprüfung.
 APK-Metadaten und Pipeline-Ergebnis stehen beim
 [Android-Build 40](../releases/android/build-40/README.md).
 

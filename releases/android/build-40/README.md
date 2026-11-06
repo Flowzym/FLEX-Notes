@@ -18,7 +18,7 @@ APK-Signatur, App-ID, Manifest, ZIP- und ELF-Ausrichtung für 16-KB-Seiten gepr�
 Die abschließende responsive Darstellung wurde zusätzlich mit 10 Kalender-Widgettests geprüft.
 Kein physischer Android-Gerätelauf und kein Browserlauf.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42298060865): läuft noch.
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42298060865): **alle Prüfungen erfolgreich**.
 
 APK: 79461672 Bytes. SHA-256:
 `5fff887133e12cc17c4bc1947a4471071aa236eb2a8d30912d3bca720168e4ce`.
