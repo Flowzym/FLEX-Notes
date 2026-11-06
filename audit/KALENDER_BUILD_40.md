@@ -55,8 +55,11 @@ zugehörige Dateibytes bleiben Bestandteil der separaten Materialsicherung.
 Zuordnung je Stunde, Serienaufteilung, Import, Sicherung/Wiederherstellung,
 Zusammenführen und Transaktions-Rollback bei veralteten Daten ab.
 
-Die vollständigen Testergebnisse, APK-Metadaten und der Pipeline-Link werden beim
-[Android-Build 40](../releases/android/build-40/README.md) festgehalten.
+Lokal bestanden: **352 Flutter-Tests mit Coverage**, strenge Analyse ohne Meldungen,
+Formatprüfung, 11 SQLite-Tests und 3 HTTP-Serverprüfungen. Die abschließende responsive
+Darstellung wurde zusätzlich mit allen 10 Kalender-Widgettests nachgeprüft.
+APK-Metadaten und Pipeline-Ergebnis stehen beim
+[Android-Build 40](../releases/android/build-40/README.md).
 
 Die beigefügten Bilder stammen direkt aus Flutter-Widget-Renderings mit Testdaten.
 Es gab keinen Browserlauf und keinen physischen Android-Gerätelauf. Die tatsächliche

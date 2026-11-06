@@ -1,0 +1,15 @@
+FLEX Test – Build 40
+Version: 0.16.0-rebuild.20+40
+Android 7.0 oder neuer (ARM64, ARMv7, x86_64).
+
+APK herunterladen und in Downloads öffnen.
+Über die vorhandene FLEX Test installieren; nicht vorher deinstallieren.
+App-ID und Testsignatur sind unverändert. Ein normales Update behält die Daten.
+Falls Android danach fragt, Installation für den Browser/Dateimanager erlauben.
+
+Neu: Tagesachse, Wochenraster, Monatsansicht, separate Fälligkeiten,
+Dateien und Planungen für einzelne Unterrichtsstunden.
+
+Geprüft: 352 Flutter-Tests, 11 SQLite-Tests, 3 HTTP-Tests, Analyse,
+Android-/Web-Build, APK-Signatur und 16-KB-Ausrichtung.
+Kein physischer Android-Gerätetest in der Entwicklungsumgebung.
