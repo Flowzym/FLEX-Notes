@@ -6,11 +6,38 @@ enum ClassroomKind {
   lesson,
   holiday,
   material,
+  materialSet,
+  preparation,
+  plan,
   folder,
   returnList,
   repeat,
   reminder,
 }
+
+const materialTypes = {
+  'other': 'Dokument',
+  'worksheet': 'Arbeitsblatt',
+  'solution': 'Lösung',
+  'weekPlan': 'Wochenplan',
+  'learningPlan': 'Lernplan',
+  'planning': 'Unterrichtsplanung',
+  'protocol': 'Protokoll',
+  'parentInfo': 'Elterninformation',
+  'template': 'Vorlage',
+};
+const materialAudiences = {
+  'all': 'Alle',
+  'pupils': 'Schüler',
+  'teacher': 'Lehrkraft',
+  'parents': 'Eltern',
+};
+const planStatuses = {
+  'planned': 'Geplant',
+  'started': 'Begonnen',
+  'done': 'Durchgeführt',
+  'moved': 'Verschoben',
+};
 
 DateTime schoolDay(String value) {
   if (!validDate(value)) {
@@ -194,6 +221,9 @@ class ClassroomDocument {
     ClassroomKind.lesson => 'Unterricht',
     ClassroomKind.holiday => 'Ferien / Ausfall',
     ClassroomKind.material => 'Material',
+    ClassroomKind.materialSet => 'Unterrichtspaket',
+    ClassroomKind.preparation => 'Bereitgelegt',
+    ClassroomKind.plan => 'Planung',
     ClassroomKind.folder => 'OneDrive-Ordner',
     ClassroomKind.returnList => 'Rücklauf',
     ClassroomKind.repeat => 'Wiederholung',
@@ -244,6 +274,32 @@ class ClassroomDocument {
         'etag',
         'sourceModifiedAt',
         'size',
+        'documentType',
+        'audience',
+        'pupilIds',
+        'tags',
+        'favorite',
+        'sourcePath',
+      },
+      ClassroomKind.materialSet => {
+        'materialIds',
+        'pupilIds',
+        'subject',
+        'topic',
+        'note',
+      },
+      ClassroomKind.preparation => {'date', 'materialIds'},
+      ClassroomKind.plan => {
+        'materialIds',
+        'pupilIds',
+        'lessonIds',
+        'subject',
+        'topic',
+        'note',
+        'date',
+        'endDate',
+        'status',
+        'followUp',
       },
       ClassroomKind.folder => {'driveId', 'itemId', 'url'},
       ClassroomKind.returnList => {
@@ -285,6 +341,40 @@ class ClassroomDocument {
       if (text(key).length > (key == 'note' ? 20000 : 200)) {
         throw const DomainError('Der Text ist zu lang.');
       }
+    }
+    for (final key in ['materialIds', 'pupilIds', 'lessonIds', 'tags']) {
+      final values = strings(key);
+      if (values.length > 5000 ||
+          values.toSet().length != values.length ||
+          values.any((v) => v.trim().isEmpty || v.length > 250)) {
+        throw const DomainError('Ungültige oder doppelte Zuordnung.');
+      }
+    }
+    if (kind == ClassroomKind.preparation &&
+        (!validDate(text('date')) ||
+            id !=
+                const Uuid().v5(
+                  Namespace.url.value,
+                  'flex-preparation:${text('date')}',
+                ))) {
+      throw const DomainError('Bitte einen Tag zum Bereitlegen wählen.');
+    }
+    if (kind == ClassroomKind.plan &&
+        (!planStatuses.containsKey(text('status', 'planned')) ||
+            text('date').isNotEmpty && !validDate(text('date')) ||
+            text('endDate').isNotEmpty &&
+                (!validDate(text('endDate')) ||
+                    text('date').isEmpty ||
+                    text('endDate').compareTo(text('date')) < 0) ||
+            text('followUp').length > 20000)) {
+      throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
+    }
+    if (kind == ClassroomKind.material &&
+        (!materialTypes.containsKey(text('documentType', 'other')) ||
+            !materialAudiences.containsKey(text('audience', 'all')) ||
+            _json.containsKey('favorite') && _json['favorite'] is! bool ||
+            text('sourcePath').length > 5000)) {
+      throw const DomainError('Ungültige Materialangaben.');
     }
     if (kind == ClassroomKind.lesson ||
         kind == ClassroomKind.holiday ||

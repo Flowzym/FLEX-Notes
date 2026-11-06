@@ -1,10 +1,14 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.18+38**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.19+39**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Build 38 ergänzt Kalender/Stundenplan, Materialablage, Rückläufe, Orga-Serien und
+Build 39 ergänzt kompakte Materialzeilen, Tagesvorbereitung, Unterrichtspakete,
+Schülerunterlagen, Planungsverwaltung und eine DOCX-Textvorschau.
+[Funktionsumfang und Grenzen](../audit/MATERIALIEN_BUILD_39.md).
+
+Build 38 ergänzte Kalender/Stundenplan, Materialablage, Rückläufe, Orga-Serien und
 Entwicklungsübersichten für die FLEX-Klasse. Direkte OneDrive-Anmeldung wartet noch auf
 die [Microsoft-Appregistrierung](../docs/ONEDRIVE_EINRICHTEN.md).
 [Funktionsumfang und Grenzen](../audit/KLASSENFUNKTIONEN_BUILD_38.md).
@@ -17,7 +21,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 38 auf GitHub herunterladen](../releases/android/build-38/README.md).
+[APK Build 39 auf GitHub herunterladen](../releases/android/build-39/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten
@@ -61,7 +65,7 @@ verschlüsselt aber nicht die SQLite-Datenbank. PIN und Sicherungspasswort sind 
 Android-Systembackups/-Geräteübertragungen sind für diese App deaktiviert; für einen
 Gerätewechsel die ausdrücklich exportierte FLEX-Sicherung verwenden.
 
-Noch am echten Gerät abzunehmen: Update über Build 37 mit vorhandenen Daten, Ordnerzugriff
+Noch am echten Gerät abzunehmen: Update über Build 38 mit vorhandenen Daten, Ordnerzugriff
 nach App-Ende/Neustart, Benachrichtigungen nach Prozessende/Neustart, Verhalten bei Doze,
 Biometrie/Abbruch und Speichern/Öffnen einer PDF-Datei. Automatisierte Tests und ein
 Releasebuild ersetzen diese hardware- und herstellerspezifischen Prüfungen nicht.

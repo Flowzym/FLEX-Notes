@@ -88,7 +88,7 @@ class MaterialBundle {
     }
     if (files.values.fold(0, (n, b) => n + b.length) > maxFileTotal) {
       throw const DomainError(
-        'Das Materialpaket überschreitet 40 MB. Bitte weniger Dateien auswählen.',
+        'Die Materialsicherung überschreitet 40 MB. Bitte weniger Dateien auswählen.',
       );
     }
     final payload = {
@@ -105,7 +105,7 @@ class MaterialBundle {
     };
     final plain = utf8.encode(jsonEncode(payload));
     if (plain.length > maxPlain) {
-      throw const DomainError('Das Materialpaket ist zu groß.');
+      throw const DomainError('Die Materialsicherung ist zu groß.');
     }
     final random = Random.secure(),
         salt = List<int>.generate(16, (_) => random.nextInt(256)),
@@ -132,7 +132,7 @@ class MaterialBundle {
     if (bytes.length < 52 ||
         bytes.length > maxPlain + 52 ||
         ascii.decode(bytes.sublist(0, 8), allowInvalid: true) != 'FLEXMAT1') {
-      throw const DomainError('Kein gültiges Materialpaket.');
+      throw const DomainError('Keine gültige Materialsicherung.');
     }
     try {
       final plain = await cipher.decrypt(
@@ -189,7 +189,9 @@ class MaterialBundle {
       return (documents: docs, files: files);
     } catch (e) {
       if (e is DomainError) rethrow;
-      throw const DomainError('Passwort falsch oder Materialpaket beschädigt.');
+      throw const DomainError(
+        'Passwort falsch oder Materialsicherung beschädigt.',
+      );
     }
   }
 }

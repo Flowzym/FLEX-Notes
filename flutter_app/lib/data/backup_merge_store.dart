@@ -81,10 +81,14 @@ mixin BackupMergeStore on SchoolStore {
             entry.key: visit(entry.value, entry.key as String),
         };
       }
-      if (item is List) return item.map((v) => visit(v, key)).toList();
+      if (item is List) {
+        final values = item.map((v) => visit(v, key)).toList();
+        return key == 'pupilIds' ? values.toSet().toList() : values;
+      }
       if (item is String &&
           const {
             'pupilId',
+            'pupilIds',
             'pupil_id',
             'participantIds',
             'recipients',

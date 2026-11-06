@@ -501,6 +501,8 @@ class DialogDraft {
             'lesson',
             'holiday',
             'material',
+            'materialSet',
+            'plan',
             'returnList',
           ].contains(data['kind']) ||
           data['revision'] is! int ||
@@ -520,9 +522,16 @@ class DialogDraft {
             'type',
             'dueDate',
             'endDate',
+            'status',
+            'followUp',
+            'documentType',
+            'audience',
           ].any((key) => data.containsKey(key) && data[key] is! String) ||
           [
             'materialIds',
+            'pupilIds',
+            'lessonIds',
+            'tags',
             'participants',
             'exceptions',
           ].any((key) => data.containsKey(key) && data[key] is! List)) {

@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 38 herunterladen**](releases/android/build-38/README.md)
+[**Android-Testapp Build 39 herunterladen**](releases/android/build-39/README.md)
+
+[Materialien, Tagesvorbereitung, Unterrichtspakete und Planungen](audit/MATERIALIEN_BUILD_39.md).
 
 [Automatische Testpipeline und Prüfergebnisse](docs/CI.md) ·
 [GitHub Actions](https://github.com/Flowzym/FLEX-Notes/actions/workflows/flutter-ci.yml)

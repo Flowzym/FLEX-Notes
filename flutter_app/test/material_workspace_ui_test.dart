@@ -1,0 +1,388 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flex_notizbuch/application/notebook_controller.dart';
+import 'package:flex_notizbuch/domain/classroom.dart';
+import 'package:flex_notizbuch/domain/material_workspace.dart';
+import 'package:flex_notizbuch/domain/models.dart';
+import 'package:flex_notizbuch/ui/app.dart';
+import 'package:flex_notizbuch/ui/material_library.dart';
+import 'package:flex_notizbuch/ui/classroom_editor.dart';
+import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'classroom_test.dart' show classroomMemory;
+import 'material_workspace_test.dart' show material;
+
+void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'FlexSans',
+    )..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'))).load();
+    await (FontLoader(
+      'FlexSerif',
+    )..addFont(rootBundle.load('assets/fonts/Gelasio-Regular.ttf'))).load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+  });
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          (_) async => null,
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('at.flowzym.flex_notizbuch/device'),
+          (_) async => false,
+        );
+  });
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          null,
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('at.flowzym.flex_notizbuch/device'),
+          null,
+        );
+  });
+  Future<NotebookController> controller() async {
+    final c = NotebookController(classroomMemory());
+    await c.initialize();
+    addTearDown(() async {
+      c.dispose();
+      await c.repository.close();
+    });
+    return c;
+  }
+
+  Future<void> host(
+    WidgetTester t,
+    Widget Function(BuildContext) child, {
+    double scale = 1,
+  }) async {
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    await t.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(fontFamily: 'FlexSans'),
+        builder: (ctx, w) => MediaQuery(
+          data: MediaQuery.of(
+            ctx,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: w!,
+        ),
+        home: Scaffold(body: Builder(builder: child)),
+      ),
+    );
+    await t.pumpAndSettle();
+  }
+
+  Future<void> tap(WidgetTester t, Finder f) async {
+    await t.ensureVisible(f);
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
+
+  Future<void> capture(WidgetTester t, GlobalKey key, String name) async {
+    final folder = Platform.environment['FLEX_TEST_ARTIFACT_DIR'];
+    if (folder == null) return;
+    await t.runAsync(() async {
+      final render =
+          key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final image = await render.toImage();
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      await Directory(folder).create(recursive: true);
+      await File('$folder/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
+      image.dispose();
+    });
+  }
+
+  testWidgets(
+    'file title opens directly and edit/star controls have independent targets',
+    (t) async {
+      var opened = 0, edited = 0, favorite = 0;
+      await host(
+        t,
+        (_) => MaterialRow(
+          material: material('Arbeitsblatt'),
+          onOpen: () => opened++,
+          onEdit: () => edited++,
+          onFavorite: () => favorite++,
+        ),
+      );
+      await tap(t, find.text('Arbeitsblatt'));
+      expect(opened, 1);
+      await tap(t, find.byTooltip('Materialangaben und Aktionen'));
+      expect(edited, 1);
+      expect(opened, 1);
+      await tap(t, find.byTooltip('Als Favorit merken'));
+      expect(favorite, 1);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'library retains search when switching views and reloading data',
+    (t) async {
+      final c = await controller();
+      await c.saveClassroom(material('Brüche'));
+      await c.saveClassroom(material('Englisch'));
+      await host(t, (_) => MaterialLibraryPage(controller: c));
+      await tap(t, find.byTooltip('Materialien suchen'));
+      await t.enterText(find.byType(TextField), 'Brüche');
+      await t.pumpAndSettle();
+      expect(find.text('Englisch'), findsNothing);
+      await tap(t, find.widgetWithText(ChoiceChip, 'Pakete'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Dateien'));
+      await c.reload();
+      await t.pumpAndSettle();
+      expect(
+        t.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Brüche',
+      );
+      expect(find.text('Englisch'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'multi-selection assigns two files to pupil atomically without duplication',
+    (t) async {
+      final c = await controller();
+      await c.repository.savePupil(const Pupil(id: 'p', name: 'Kind'));
+      await c.reload();
+      final a = material('A'), b = material('B');
+      await c.repository.saveClassroomDocuments([a, b]);
+      await c.reload();
+      await host(t, (_) => MaterialLibraryPage(controller: c));
+      await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
+      await tap(t, find.text('Alle angezeigten auswählen'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.widgetWithText(OutlinedButton, 'Schüler'));
+      await tap(t, find.text('Kind'));
+      await tap(t, find.text('Übernehmen'));
+      expect(
+        c.classroom.where((d) => d.strings('pupilIds').contains('p')).length,
+        2,
+      );
+      expect(find.text('2 ausgewählt'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'prepared day removes reference only; next day has a separate selection',
+    (t) async {
+      final c = await controller();
+      final a = material('A'), b = material('B');
+      await c.repository.saveClassroomDocuments([
+        a,
+        b,
+        prepareMaterials([], '2026-11-09', [a.id, b.id]),
+      ]);
+      await c.reload();
+      await host(
+        t,
+        (ctx) => TextButton(
+          onPressed: () => showPreparedMaterials(ctx, c, date: '2026-11-09'),
+          child: const Text('Open'),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      await tap(t, find.byTooltip('Vom Tag entfernen').first);
+      expect(preparationFor(c.classroom, '2026-11-09').strings('materialIds'), [
+        b.id,
+      ]);
+      expect(c.classroom.firstWhere((d) => d.id == a.id).deleted, isFalse);
+      await tap(t, find.byTooltip('Nächster Tag'));
+      expect(
+        find.text('Für diesen Tag ist noch nichts bereitgelegt.'),
+        findsOneWidget,
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'package picker expands file references and clearing does not lose other choices',
+    (t) async {
+      final c = await controller();
+      final a = material('A'), b = material('B'), other = material('C');
+      final p = ClassroomDocument.create(
+        ClassroomKind.materialSet,
+        'Mathepaket',
+        {
+          'materialIds': [a.id, b.id],
+        },
+      );
+      await c.repository.saveClassroomDocuments([a, b, other, p]);
+      await c.reload();
+      List<String>? result;
+      await host(
+        t,
+        (ctx) => TextButton(
+          onPressed: () async {
+            result = await chooseMaterials(ctx, c, [other.id]);
+          },
+          child: const Text('Open'),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      await tap(t, find.text('Mathepaket'));
+      await tap(t, find.text('Übernehmen'));
+      expect(result!.toSet(), {a.id, b.id, other.id});
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'pupil unlink keeps shared material and package accessible elsewhere',
+    (t) async {
+      final c = await controller();
+      const p = Pupil(id: 'p', name: 'Kind');
+      await c.repository.savePupil(p);
+      await c.repository.savePupil(const Pupil(id: 'q', name: 'Anderes Kind'));
+      final m = material(
+        'Lernplan',
+        fields: {
+          'pupilIds': ['p', 'q'],
+        },
+      );
+      await c.repository.saveClassroomDocument(m);
+      await c.reload();
+      await host(
+        t,
+        (ctx) => TextButton(
+          onPressed: () => showPupilMaterials(ctx, c, p),
+          child: const Text('Open'),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      await tap(t, find.byTooltip('Schülerzuordnung entfernen'));
+      expect(c.classroom.single.strings('pupilIds'), ['q']);
+      expect(c.classroom.single.deleted, isFalse);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'plan editor saves minimal name and keeps text focus through autosave',
+    (t) async {
+      final c = await controller();
+      await host(
+        t,
+        (ctx) => TextButton(
+          onPressed: () => showClassroomEditor(ctx, c, ClassroomKind.plan),
+          child: const Text('Open'),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      final field = find.widgetWithText(TextFormField, 'Bezeichnung');
+      await t.enterText(field, 'Woche 1');
+      await t.pump(const Duration(seconds: 2));
+      expect(t.testTextInput.isVisible, isTrue);
+      await tap(t, find.widgetWithText(FilledButton, 'Speichern'));
+      expect(c.classroom.single.title, 'Woche 1');
+      expect(c.classroom.single.text('status'), 'planned');
+      expect(await c.repository.dialogDrafts(), isEmpty);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('material view and selection fit phone at text scale $scale', (
+      t,
+    ) async {
+      final c = await controller();
+      await c.saveClassroom(
+        material(
+          'Langer Titel für ein differenziertes Arbeitsblatt',
+          fields: {'subject': 'Mathematik', 'documentType': 'worksheet'},
+        ),
+      );
+      await host(t, (_) => MaterialLibraryPage(controller: c), scale: scale);
+      await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
+      expect(t.takeException(), isNull);
+      await tap(t, find.text('Fertig'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Planungen'));
+      expect(t.takeException(), isNull);
+    });
+  }
+
+  testWidgets('prepared dialog retains title/close and fits large text', (
+    t,
+  ) async {
+    final c = await controller();
+    await host(
+      t,
+      (ctx) => TextButton(
+        onPressed: () => showPreparedMaterials(ctx, c, date: '2026-11-09'),
+        child: const Text('Open'),
+      ),
+      scale: 2,
+    );
+    await tap(t, find.text('Open'));
+    expect(find.text('Bereitgelegt'), findsOneWidget);
+    expect(find.byTooltip('Schließen und Eingaben sichern'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+    expect(find.text('Bereitgelegt'), findsNothing);
+  });
+
+  testWidgets('actual app material screen and prepared day screenshots', (
+    t,
+  ) async {
+    final c = await controller();
+    for (final (name, subject, type) in [
+      ('Brüche – Übungsblatt', 'Mathematik', 'worksheet'),
+      ('Past tense – Wochenplan', 'Englisch', 'weekPlan'),
+      ('Elterninformation Wandertag', '', 'parentInfo'),
+    ]) {
+      await c.saveClassroom(
+        material(name, fields: {'subject': subject, 'documentType': type}),
+      );
+    }
+    final docs = c.classroom;
+    await c.saveClassroom(
+      prepareMaterials(
+        docs,
+        dateOnly(DateTime.now()),
+        docs.take(2).map((d) => d.id),
+      ),
+    );
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final key = GlobalKey();
+    await t.pumpWidget(
+      RepaintBoundary(
+        key: key,
+        child: FlexApp(controller: c),
+      ),
+    );
+    await t.pumpAndSettle();
+    // Four-page navigation remains unchanged.
+    await t.tap(
+      find.descendant(
+        of: find.byType(FlexPagePills),
+        matching: find.text('Materialien'),
+      ),
+    );
+    await t.pumpAndSettle();
+    await capture(t, key, 'materialien');
+    expect(t.takeException(), isNull);
+    await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+    await tap(t, find.text('2 Unterlagen bereitgelegt'));
+    await capture(t, key, 'bereitgelegt');
+    expect(t.takeException(), isNull);
+  });
+}

@@ -99,9 +99,15 @@ mixin ClassroomStore on SchoolStore {
         .map((d) => d.id)
         .toSet();
     final people = (await pupils()).map((p) => p.id).toSet();
+    final lessons = docs
+        .where((d) => d.kind == ClassroomKind.lesson)
+        .map((d) => d.id)
+        .toSet();
     final orga = (await entries()).map((e) => e.id).toSet();
     for (final d in docs) {
       if (!materials.containsAll(d.strings('materialIds')) ||
+          !people.containsAll(d.strings('pupilIds')) ||
+          !lessons.containsAll(d.strings('lessonIds')) ||
           d.kind == ClassroomKind.returnList &&
               !d
                   .rows('participants')

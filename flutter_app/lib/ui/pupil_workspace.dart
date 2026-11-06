@@ -10,6 +10,7 @@ import 'flex_modal.dart';
 import 'pupil_history.dart';
 import 'school_workspace.dart';
 import 'development_dialog.dart';
+import 'material_library.dart';
 
 /// One pupil's entries with persistent area navigation and a quiet action bar.
 class PupilWorkspaceDialog extends StatefulWidget {
@@ -317,7 +318,16 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           padding: EdgeInsets.zero,
           children: [
             navigation(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => showPupilMaterials(context, c, p),
+                icon: const Icon(Icons.folder_open_outlined),
+                label: const Text('Unterlagen'),
+              ),
+            ),
+            const SizedBox(height: 8),
             CollapsibleSearch(
               fieldKey: const ValueKey('pupil-entry-search'),
               buttonKey: const ValueKey('pupil-search-button'),

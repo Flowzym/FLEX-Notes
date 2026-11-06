@@ -6,6 +6,7 @@ import '../application/notebook_controller.dart';
 import '../domain/backup_merge.dart';
 import '../domain/calendar.dart';
 import '../domain/classroom.dart';
+import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
 import '../services/calendar_ics.dart';
@@ -212,6 +213,15 @@ Future<void> showCalendarItem(
                 'Planungen & Materialien',
                 style: Theme.of(ctx).textTheme.titleMedium,
               ),
+              for (final plan in c.classroom.where(
+                (p) => planOnDay(p, current.date, lessonId: doc.id),
+              ))
+                ListTile(
+                  leading: const Icon(Icons.event_note_outlined),
+                  title: Text(plan.title),
+                  subtitle: Text(planStatuses[plan.text('status', 'planned')]!),
+                  onTap: () => showMaterialCollection(ctx, c, plan),
+                ),
               for (final key in doc.strings('materialIds'))
                 if (c.classroom.any((d) => d.id == key && !d.deleted))
                   ListTile(
@@ -729,6 +739,16 @@ class _CalendarPageState extends State<CalendarPage>
               ],
             ),
             if (busy) const LinearProgressIndicator(),
+            PreparedMaterialsTile(controller: c, date: dateOnly(selected)),
+            for (final plan in c.classroom.where(
+              (p) => planOnDay(p, dateOnly(selected)),
+            ))
+              ListTile(
+                leading: const Icon(Icons.event_note_outlined),
+                title: Text(plan.title),
+                subtitle: Text(planStatuses[plan.text('status', 'planned')]!),
+                onTap: () => showMaterialCollection(ctx, c, plan),
+              ),
             for (final m in c.classroom.where(
               (d) =>
                   !d.deleted &&

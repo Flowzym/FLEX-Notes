@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
 import '../domain/school.dart';
 import 'common.dart';
 import 'flex_modal.dart';
@@ -60,6 +61,14 @@ const conflictFieldLabels = <String, String>{
   'end': 'Ende',
   'room': 'Raum',
   'materialIds': 'Materialien',
+  'pupilIds': 'Schülerzuordnungen',
+  'lessonIds': 'Unterrichtszuordnungen',
+  'documentType': 'Dokumentart',
+  'audience': 'Für wen',
+  'favorite': 'Favorit',
+  'tags': 'Schlagwörter',
+  'followUp': 'Nachbereitung',
+  'sourcePath': 'Quellordner',
   'repeat': 'Wiederholung',
   'frequency': 'Häufigkeit',
   'interval': 'Abstand',
@@ -74,7 +83,7 @@ const conflictFieldLabels = <String, String>{
   'remindDays': 'Tage vorher',
   'participants': 'Rückmeldungen',
   'name': 'Name',
-  'status': 'Rücklaufstatus',
+  'status': 'Stand',
   'paid': 'Eingegangener Betrag',
   'amountDue': 'Betrag pro Schüler',
   'type': 'Art',
@@ -103,9 +112,14 @@ String conflictText(String key, Object? value, NotebookController c) {
   if ((key == 'paid' || key == 'amountDue') && value is int) {
     return '${(value / 100).toStringAsFixed(2)} €';
   }
-  if (key == 'materialIds' && value is String) {
+  if ((key == 'materialIds' || key == 'lessonIds') && value is String) {
     return c.classroom.where((d) => d.id == value).firstOrNull?.title ??
         'Material nicht verfügbar';
+  }
+  if (key == 'documentType') return materialTypes[value] ?? '$value';
+  if (key == 'audience') return materialAudiences[value] ?? '$value';
+  if (key == 'status' && planStatuses.containsKey(value)) {
+    return planStatuses[value]!;
   }
   if (key == 'status') {
     return const {
@@ -145,7 +159,7 @@ String conflictText(String key, Object? value, NotebookController c) {
         )
         .join(' · ');
   }
-  if (key == 'pupilId' || key == 'participantIds') {
+  if (key == 'pupilId' || key == 'participantIds' || key == 'pupilIds') {
     return c.pupils.where((p) => p.id == value).firstOrNull?.name ??
         'Nicht mehr vorhanden';
   }

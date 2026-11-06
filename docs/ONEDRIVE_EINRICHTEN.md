@@ -1,6 +1,6 @@
 # OneDrive für FLEX registrieren
 
-Build 38 enthält die Verbindung, aber **keine Microsoft-Client-ID**. Eine direkte
+Build 39 enthält die Verbindung, aber **keine Microsoft-Client-ID**. Eine direkte
 Anmeldung ist deshalb in diesem Build nicht aktiv. OneDrive-Links und der Android-
 Dateiauswahldialog funktionieren unabhängig davon; der Systemdialog kann auch
 Dateien eines installierten OneDrive-Dokumentanbieters anbieten.

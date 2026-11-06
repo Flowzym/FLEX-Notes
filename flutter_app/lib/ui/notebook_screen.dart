@@ -23,6 +23,7 @@ import 'flex_icons.dart';
 import 'flex_modal.dart';
 import 'school_workspace.dart';
 import '../domain/classroom.dart';
+import '../domain/material_workspace.dart';
 import '../domain/calendar.dart';
 import 'classroom_editor.dart';
 import 'calendar_page.dart';
@@ -562,6 +563,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   Widget _overview() {
+    final today = dateOnly(DateTime.now());
+    final prepared = resolveMaterials(
+      c.classroom,
+      preparationFor(c.classroom, today).strings('materialIds'),
+    );
     final records = c.records.where((r) => !r.deleted).toList();
     final pendingRecords = records.where((r) => r.pending).toList();
     final pendingOrga = c.upcoming(c.entries);
@@ -618,6 +624,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
           displayDate(dateOnly(DateTime.now())),
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (prepared.isNotEmpty ||
+            suggestedMaterials(c.classroom, today).isNotEmpty)
+          PreparedMaterialsTile(controller: c, date: today),
         const SizedBox(height: 18),
         LayoutBuilder(
           builder: (context, constraints) {

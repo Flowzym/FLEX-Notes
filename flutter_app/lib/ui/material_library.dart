@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
+import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import '../services/material_files.dart';
 import '../services/onedrive.dart';
@@ -17,7 +18,11 @@ import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'material_pdf.dart';
-import 'surfaces.dart';
+import '../services/material_index.dart';
+import 'material_docx.dart';
+
+part 'material_workspace_views.dart';
+part 'material_index_review.dart';
 
 bool get materialDeviceAvailable =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -265,8 +270,13 @@ Future<void> browseOneDrive(
                                     .last
                                     .toLowerCase(),
                                 'size': item['size'] ?? 0,
-                                'sourceModifiedAt':
-                                    item['lastModifiedDateTime'] ?? '',
+                                if (old == null || old.text('localKey').isEmpty)
+                                  'sourceModifiedAt':
+                                      item['lastModifiedDateTime'] ?? '',
+                                if (old == null)
+                                  ...suggestMaterialMetadata(
+                                    item['name'] as String,
+                                  ),
                                 'deleted': false,
                               };
                               await c.saveClassroom(
@@ -410,7 +420,7 @@ Future<void> openMaterial(
   MaterialFiles files = const DeviceMaterialFiles(),
 }) async {
   var current = material;
-  if (current.text('extension') != 'pdf' && current.text('url').isNotEmpty) {
+  if (current.text('extension') == 'link' && current.text('url').isNotEmpty) {
     await _launchMaterial(current.text('url'));
     return;
   }
@@ -449,7 +459,7 @@ Future<void> openMaterial(
         return;
       }
       throw const DomainError(
-        'Die lokale Datei fehlt. Bitte das Materialpaket wiederherstellen.',
+        'Die lokale Datei fehlt. Bitte die Materialsicherung wiederherstellen.',
       );
     }
     if (!context.mounted) return;
@@ -462,11 +472,20 @@ Future<void> openMaterial(
         ),
       );
     } else {
-      await FlexDevice.channel.invokeMethod('openMaterial', {
-        'key': current.text('localKey'),
-        'extension': current.text('extension'),
-        'name': current.text('name', '${current.title}.docx'),
-      });
+      final bytes = await files.read(current.text('localKey'));
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => MaterialDocx(
+          title: current.title,
+          bytes: bytes,
+          openOriginal: () => FlexDevice.channel.invokeMethod('openMaterial', {
+            'key': current.text('localKey'),
+            'extension': current.text('extension'),
+            'name': current.text('name', '${current.title}.docx'),
+          }),
+        ),
+      );
     }
   } finally {
     if (ownDrive) client.dispose();
@@ -485,8 +504,16 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   NotebookController get c => widget.controller;
   final drive = OneDriveClient();
   final files = const DeviceMaterialFiles();
-  String query = '';
-  bool busy = false, trash = false;
+  String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
+  final search = TextEditingController();
+  final selection = <String>{};
+  bool busy = false,
+      trash = false,
+      searching = false,
+      filters = false,
+      favorites = false,
+      selecting = false;
+  bool progress = false;
   String? error;
   @override
   bool get wantKeepAlive => true;
@@ -501,13 +528,18 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   @override
   void dispose() {
     drive.dispose();
+    search.dispose();
     super.dispose();
   }
 
-  Future<void> action(Future<void> Function() run) async {
+  Future<void> action(
+    Future<void> Function() run, {
+    bool showProgress = true,
+  }) async {
     if (busy) return;
     setState(() {
       busy = true;
+      progress = showProgress;
       error = null;
     });
     try {
@@ -556,6 +588,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
           'extension': ext,
           'size': data.length,
           'sourceModifiedAt': utcNow(),
+          ...suggestMaterialMetadata(file.name),
         }),
       );
     } catch (_) {
@@ -603,7 +636,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(
-          label: 'FLEX-Materialpaket',
+          label: 'FLEX-Materialsicherung',
           extensions: ['flexmaterials'],
           mimeTypes: ['application/octet-stream'],
         ),
@@ -611,12 +644,12 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     );
     if (file == null) return;
     if (await file.length() > MaterialBundle.maxPlain + 52) {
-      throw const DomainError('Das Materialpaket ist zu groß.');
+      throw const DomainError('Die Materialsicherung ist zu groß.');
     }
     final buffer = BytesBuilder();
     await for (final chunk in file.openRead()) {
       if (buffer.length + chunk.length > MaterialBundle.maxPlain + 52) {
-        throw const DomainError('Das Materialpaket ist zu groß.');
+        throw const DomainError('Die Materialsicherung ist zu groß.');
       }
       buffer.add(chunk);
     }
@@ -629,6 +662,11 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     });
     if (!mounted) return;
     final before = {for (final d in c.classroom) d.id: d};
+    final knownPupils = c.pupils.map((p) => p.id).toSet();
+    final missingPupils = bundle.documents
+        .expand((d) => d.strings('pupilIds'))
+        .where((id) => !knownPupils.contains(id))
+        .toSet();
     final selected = {
       for (final d in bundle.documents)
         if (!before.containsKey(d.id)) d.id,
@@ -637,11 +675,15 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, update) => FlexModal(
-          title: const Text('Materialpaket prüfen'),
+          title: const Text('Materialsicherung prüfen'),
           onClose: () => Navigator.pop(ctx, false),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (missingPupils.isNotEmpty)
+                Text(
+                  '${missingPupils.length} Schüler sind hier nicht vorhanden. Ihre Dateizuordnungen werden nicht übernommen. Für eine vollständige Wiederherstellung zuerst die Notizbuchsicherung öffnen.',
+                ),
               for (final d in bundle.documents)
                 CheckboxListTile(
                   title: Text(d.title),
@@ -692,6 +734,10 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
         final old = before[doc.id];
         documents.add(
           next.patch({
+            'pupilIds': next
+                .strings('pupilIds')
+                .where(knownPupils.contains)
+                .toList(),
             'revision': old?.revision ?? 0,
             'createdAtUtc':
                 old?.text('createdAtUtc') ?? next.text('createdAtUtc'),
@@ -718,267 +764,654 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     }
   }
 
+  Future<void> assignSelection() async {
+    final ids = await chooseMaterialPupils(context, c, []);
+    if (ids == null || ids.isEmpty) return;
+    await c.repository.saveClassroomDocuments([
+      for (final d in c.classroom.where((d) => selection.contains(d.id)))
+        d.patch({
+          'pupilIds': {...d.strings('pupilIds'), ...ids}.toList(),
+        }),
+    ]);
+    await c.reload();
+    if (mounted) {
+      setState(() {
+        selection.clear();
+        selecting = false;
+      });
+    }
+  }
+
+  Future<void> addSelectionToPackage() async {
+    final packages = c.classroom
+        .where((d) => !d.deleted && d.kind == ClassroomKind.materialSet)
+        .toList();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => FlexModal(
+        title: const Text('Zu Unterrichtspaket hinzufügen'),
+        onClose: () => Navigator.pop(ctx),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Neues Paket'),
+              onTap: () => Navigator.pop(ctx, 'new'),
+            ),
+            for (final p in packages)
+              ListTile(
+                leading: const Icon(Icons.folder_copy_outlined),
+                title: Text(p.title),
+                onTap: () => Navigator.pop(ctx, p.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    if (result == 'new') {
+      await showClassroomEditor(
+        context,
+        c,
+        ClassroomKind.materialSet,
+        fields: {'materialIds': selection.toList()},
+      );
+    } else {
+      final p = c.classroom.firstWhere((d) => d.id == result);
+      await c.saveClassroom(
+        p.patch({
+          'materialIds': {...p.strings('materialIds'), ...selection}.toList(),
+        }),
+      );
+    }
+  }
+
+  Widget selectionBar(BuildContext ctx) => Material(
+    color: Theme.of(ctx).colorScheme.surfaceContainerHigh,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('${selection.length} ausgewählt')),
+                TextButton(
+                  onPressed: busy
+                      ? null
+                      : () => setState(() {
+                          selection.clear();
+                          selecting = false;
+                        }),
+                  child: const Text('Fertig'),
+                ),
+              ],
+            ),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () => action(
+                          () => prepareForDate(ctx, c, selection.toList()),
+                        ),
+                  icon: const Icon(Icons.today_outlined),
+                  label: const Text('Bereitlegen'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () => action(assignSelection, showProgress: false),
+                  icon: const Icon(Icons.people_outline),
+                  label: const Text('Schüler'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () =>
+                            action(addSelectionToPackage, showProgress: false),
+                  icon: const Icon(Icons.folder_copy_outlined),
+                  label: const Text('Paket'),
+                ),
+                IconButton(
+                  tooltip: 'Auswahl offline laden',
+                  onPressed:
+                      busy || selection.isEmpty || !materialDeviceAvailable
+                      ? null
+                      : () => action(
+                          () => cacheMaterials(
+                            ctx,
+                            c,
+                            resolveMaterials(c.classroom, selection),
+                            drive: drive,
+                          ),
+                        ),
+                  icon: const Icon(Icons.download_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Auswahl in Papierkorb',
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () => action(() async {
+                          final docs = c.classroom
+                              .where((d) => selection.contains(d.id))
+                              .toList();
+                          await c.repository.saveClassroomDocuments([
+                            for (final d in docs) d.patch({'deleted': true}),
+                          ]);
+                          await c.reload();
+                          if (mounted) {
+                            setState(() {
+                              selection.clear();
+                              selecting = false;
+                            });
+                          }
+                        }),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return AnimatedBuilder(
       animation: Listenable.merge([c, drive]),
       builder: (ctx, _) {
-        final materials = c.classroom
-            .where(
-              (d) =>
-                  d.kind == ClassroomKind.material &&
-                  d.deleted == trash &&
-                  '${d.title} ${d.text('subject')} ${d.text('topic')} ${d.text('note')}'
-                      .toLowerCase()
-                      .contains(query.toLowerCase()),
-            )
-            .toList();
-        return ListView(
-          padding: const EdgeInsets.all(20),
+        final kind = view == 'packages'
+            ? ClassroomKind.materialSet
+            : view == 'plans'
+            ? ClassroomKind.plan
+            : ClassroomKind.material;
+        final documents =
+            c.classroom
+                .where(
+                  (d) =>
+                      d.kind == kind &&
+                      d.deleted == trash &&
+                      materialMatches(d, query, pupils: c.pupils) &&
+                      (kind != ClassroomKind.material ||
+                          (!favorites || d.flag('favorite')) &&
+                              (typeFilter == 'all' ||
+                                  d.text('documentType', 'other') ==
+                                      typeFilter) &&
+                              (subjectFilter.isEmpty ||
+                                  d.text('subject') == subjectFilter)),
+                )
+                .toList()
+              ..sort(
+                (a, b) =>
+                    a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+              );
+        final subjects =
+            c.classroom
+                .where((d) => !d.deleted && d.kind == ClassroomKind.material)
+                .map((d) => d.text('subject'))
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+        return Column(
           children: [
-            Text(
-              'Materialien & Planungen',
-              style: Theme.of(ctx).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                FilledButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => action(() => connectOneDrive(ctx, drive)),
-                  icon: Icon(
-                    drive.connected
-                        ? Icons.cloud_done_outlined
-                        : Icons.cloud_outlined,
+            Expanded(
+              child: ListView(
+                key: const PageStorageKey('materials-library'),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  Text(
+                    'Materialien & Planungen',
+                    style: Theme.of(ctx).textTheme.headlineSmall,
                   ),
-                  label: Text(
-                    drive.connected
-                        ? 'OneDrive verbunden'
-                        : 'OneDrive verbinden',
-                  ),
-                ),
-                if (drive.connected) ...[
-                  OutlinedButton.icon(
-                    onPressed: busy
-                        ? null
-                        : () => action(() => browseOneDrive(ctx, c, drive)),
-                    icon: const Icon(Icons.folder_open),
-                    label: const Text('Ordner wählen'),
-                  ),
-                  TextButton(
-                    onPressed: busy ? null : () => action(drive.disconnect),
-                    child: const Text('Trennen'),
-                  ),
-                ],
-                OutlinedButton.icon(
-                  onPressed: busy || !materialDeviceAvailable
-                      ? null
-                      : () => action(importFile),
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Datei hinzufügen'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () =>
-                            showClassroomEditor(ctx, c, ClassroomKind.material),
-                  icon: const Icon(Icons.link),
-                  label: const Text('Link hinzufügen'),
-                ),
-              ],
-            ),
-            for (final f in c.classroom.where(
-              (d) => !d.deleted && d.kind == ClassroomKind.folder,
-            ))
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(f.title),
-                onTap: busy
-                    ? null
-                    : () => action(
-                        () => browseOneDrive(ctx, c, drive, folder: f),
-                      ),
-                trailing: IconButton(
-                  tooltip: 'Ordnerverknüpfung entfernen',
-                  onPressed: busy
-                      ? null
-                      : () => action(
-                          () => c.saveClassroom(f.patch({'deleted': true})),
-                        ),
-                  icon: const Icon(Icons.link_off),
-                ),
-              ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                labelText: 'Materialien durchsuchen',
-              ),
-              onChanged: (v) => setState(() => query = v),
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Aktiv'),
-                  selected: !trash,
-                  onSelected: (_) => setState(() => trash = false),
-                ),
-                ChoiceChip(
-                  label: const Text('Papierkorb'),
-                  selected: trash,
-                  onSelected: (_) => setState(() => trash = true),
-                ),
-                TextButton.icon(
-                  onPressed: busy || !materialDeviceAvailable
-                      ? null
-                      : () => action(exportBundle),
-                  icon: const Icon(Icons.enhanced_encryption_outlined),
-                  label: const Text('Materialpaket sichern'),
-                ),
-                TextButton.icon(
-                  onPressed: busy || !materialDeviceAvailable
-                      ? null
-                      : () => action(importBundle),
-                  icon: const Icon(Icons.restore),
-                  label: const Text('Materialpaket öffnen'),
-                ),
-              ],
-            ),
-            if (busy) const LinearProgressIndicator(),
-            if (error != null)
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                ),
-              ),
-            if (materials.isEmpty)
-              const EmptyState(
-                'Noch keine passenden Materialien.',
-                icon: Icons.folder_open,
-              ),
-            for (final d in materials)
-              FlexCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 6,
                     children: [
-                      Text(d.title, style: Theme.of(ctx).textTheme.titleMedium),
-                      Text(
-                        [
-                          d.text('extension').toUpperCase(),
-                          d.text('subject'),
-                          d.text('topic'),
-                        ].where((s) => s.isNotEmpty).join(' · '),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        onPressed: busy || !materialDeviceAvailable
+                            ? null
+                            : () => action(importFile),
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Datei'),
                       ),
-                      if (d.text('week').isNotEmpty)
-                        Text('Wochenplanung ab ${displayDate(d.text('week'))}'),
-                      FutureBuilder<bool>(
-                        future: materialDeviceAvailable
-                            ? files.exists(d.text('localKey'))
-                            : Future.value(false),
-                        builder: (ctx, s) => Text(
-                          s.data == true
-                              ? 'Auf diesem Gerät · ${displayDate(d.text('sourceModifiedAt').isEmpty ? null : d.text('sourceModifiedAt'))}'
-                              : d.text('localKey').isNotEmpty &&
-                                    d.text('url').isEmpty
-                              ? 'Datei fehlt · Materialpaket öffnen'
-                              : 'Online',
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        onPressed: busy
+                            ? null
+                            : () => showClassroomEditor(
+                                ctx,
+                                c,
+                                ClassroomKind.material,
+                              ),
+                        icon: const Icon(Icons.link),
+                        label: const Text('Link'),
+                      ),
+                      IconButton(
+                        tooltip: drive.connected
+                            ? 'OneDrive-Ordner öffnen'
+                            : 'OneDrive verbinden',
+                        icon: Icon(
+                          drive.connected
+                              ? Icons.cloud_done_outlined
+                              : Icons.cloud_outlined,
+                        ),
+                        onPressed: busy
+                            ? null
+                            : () => action(
+                                () => drive.connected
+                                    ? browseOneDrive(ctx, c, drive)
+                                    : connectOneDrive(ctx, drive),
+                                showProgress: false,
+                              ),
+                      ),
+                      IconButton(
+                        tooltip: 'Materialien suchen',
+                        isSelected: searching,
+                        icon: const Icon(Icons.search),
+                        onPressed: () => setState(() => searching = !searching),
+                      ),
+                      if (view == 'files' && !trash)
+                        IconButton(
+                          tooltip: 'Mehrere Dateien auswählen',
+                          isSelected: selecting,
+                          icon: const Icon(Icons.checklist),
+                          onPressed: () => setState(() {
+                            selecting = !selecting;
+                            if (!selecting) selection.clear();
+                          }),
+                        ),
+                    ],
+                  ),
+                  if (searching || query.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextField(
+                        controller: search,
+                        autofocus: searching,
+                        decoration: InputDecoration(
+                          labelText: 'Dateien, Themen, Schüler suchen',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: IconButton(
+                            tooltip: 'Suche leeren',
+                            onPressed: () => setState(() {
+                              search.clear();
+                              query = '';
+                              searching = false;
+                            }),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ),
+                        onChanged: (v) => setState(() => query = v),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final item in const [
+                        ('files', 'Dateien'),
+                        ('prepared', 'Bereitgelegt'),
+                        ('packages', 'Pakete'),
+                        ('plans', 'Planungen'),
+                      ])
+                        ChoiceChip(
+                          showCheckmark: false,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          labelPadding: EdgeInsets.zero,
+                          label: Text(item.$2),
+                          selected: view == item.$1,
+                          onSelected: (_) => setState(() {
+                            view = item.$1;
+                            selecting = false;
+                            selection.clear();
+                          }),
+                        ),
+                    ],
+                  ),
+                  if (busy && progress) const LinearProgressIndicator(),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error,
                         ),
                       ),
+                    ),
+                  if (view == 'prepared') ...[
+                    PreparedMaterialsTile(
+                      controller: c,
+                      date: dateOnly(DateTime.now()),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => showPreparedMaterials(ctx, c),
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: const Text('Tag wählen / vorbereiten'),
+                    ),
+                    for (final d
+                        in (c.classroom
+                            .where(
+                              (d) =>
+                                  !d.deleted &&
+                                  d.kind == ClassroomKind.preparation &&
+                                  d.strings('materialIds').isNotEmpty &&
+                                  d.text('date') != dateOnly(DateTime.now()),
+                            )
+                            .toList()
+                          ..sort(
+                            (a, b) => b.text('date').compareTo(a.text('date')),
+                          )))
+                      PreparedMaterialsTile(
+                        controller: c,
+                        date: d.text('date'),
+                      ),
+                  ] else ...[
+                    if (view == 'files') ...[
                       Wrap(
-                        spacing: 8,
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (!trash) ...[
-                            TextButton.icon(
-                              onPressed: busy
-                                  ? null
-                                  : () => action(
-                                      () => openMaterial(
-                                        ctx,
-                                        c,
-                                        d,
-                                        drive: drive,
-                                        files: files,
-                                      ),
-                                    ),
-                              icon: const Icon(Icons.open_in_new),
-                              label: const Text('Öffnen'),
-                            ),
-                            TextButton.icon(
-                              onPressed: busy
-                                  ? null
-                                  : () => showClassroomEditor(
-                                      ctx,
-                                      c,
-                                      ClassroomKind.material,
-                                      document: d,
-                                    ),
-                              icon: const Icon(Icons.edit_outlined),
-                              label: const Text('Bearbeiten'),
-                            ),
-                            if (d.text('itemId').isNotEmpty &&
-                                materialDeviceAvailable)
-                              TextButton.icon(
-                                onPressed: busy
-                                    ? null
-                                    : () => action(() async {
-                                        await cacheMaterial(c, d, drive, files);
-                                      }),
-                                icon: const Icon(Icons.download_outlined),
-                                label: const Text(
-                                  'Offline laden / aktualisieren',
-                                ),
-                              ),
-                            if (materialDeviceAvailable &&
-                                d.text('localKey').isNotEmpty &&
-                                (d.text('itemId').isNotEmpty ||
-                                    d.text('url').isNotEmpty))
-                              TextButton.icon(
-                                icon: const Icon(Icons.cloud_outlined),
-                                label: const Text('Offline-Kopie entfernen'),
-                                onPressed: busy
-                                    ? null
-                                    : () => action(() async {
-                                        await c.saveClassroom(
-                                          d.patch({'localKey': ''}),
-                                        );
-                                        await removeUnusedMaterialFile(
-                                          c,
-                                          files,
-                                          d.text('localKey'),
-                                        );
-                                      }),
-                              ),
-                          ],
-                          IconButton(
-                            tooltip: trash
-                                ? 'Wiederherstellen'
-                                : 'In Papierkorb',
-                            onPressed: busy
-                                ? null
-                                : () => action(
-                                    () => c.saveClassroom(
-                                      d.patch({'deleted': !trash}),
-                                    ),
-                                  ),
-                            icon: Icon(
-                              trash ? Icons.restore : Icons.delete_outline,
+                          FilterChip(
+                            label: const Text('Favoriten'),
+                            avatar: const Icon(Icons.star_border, size: 18),
+                            selected: favorites,
+                            onSelected: (v) => setState(() => favorites = v),
+                          ),
+                          FilterChip(
+                            label: const Text('Papierkorb'),
+                            selected: trash,
+                            onSelected: (v) => setState(() {
+                              trash = v;
+                              selection.clear();
+                              selecting = false;
+                            }),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => setState(() => filters = !filters),
+                            icon: const Icon(Icons.tune),
+                            label: Text(
+                              typeFilter != 'all' || subjectFilter.isNotEmpty
+                                  ? 'Filter aktiv'
+                                  : 'Filter',
                             ),
                           ),
                         ],
                       ),
+                      if (filters)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            children: [
+                              DropdownButtonFormField<String>(
+                                key: ValueKey('type-$typeFilter'),
+                                initialValue: typeFilter,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Dokumentart',
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: 'all',
+                                    child: Text('Alle Dokumentarten'),
+                                  ),
+                                  for (final e in materialTypes.entries)
+                                    DropdownMenuItem(
+                                      value: e.key,
+                                      child: Text(e.value),
+                                    ),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => typeFilter = v!),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey('subject-$subjectFilter'),
+                                initialValue: subjectFilter,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Fach',
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: '',
+                                    child: Text('Alle Fächer'),
+                                  ),
+                                  for (final s in {
+                                    ...subjects,
+                                    if (subjectFilter.isNotEmpty) subjectFilter,
+                                  })
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => subjectFilter = v!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (selecting)
+                        TextButton(
+                          onPressed: () => setState(
+                            () => selection.addAll(documents.map((d) => d.id)),
+                          ),
+                          child: const Text('Alle angezeigten auswählen'),
+                        ),
+                    ] else
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () => showClassroomEditor(ctx, c, kind),
+                            icon: const Icon(Icons.add),
+                            label: Text(
+                              view == 'plans'
+                                  ? 'Planung anlegen'
+                                  : 'Paket anlegen',
+                            ),
+                          ),
+                          FilterChip(
+                            label: const Text('Papierkorb'),
+                            selected: trash,
+                            onSelected: (v) => setState(() => trash = v),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 8),
+                    if (documents.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Text('Keine passenden Einträge.'),
+                      ),
+                    for (final d in documents)
+                      if (kind == ClassroomKind.material)
+                        MaterialRow(
+                          key: ValueKey(d.id),
+                          material: d,
+                          files: files,
+                          selected: selecting ? selection.contains(d.id) : null,
+                          onSelect: (v) => setState(() {
+                            if (v) {
+                              selection.add(d.id);
+                            } else {
+                              selection.remove(d.id);
+                            }
+                          }),
+                          onOpen: () => action(
+                            () => trash
+                                ? showMaterialDetails(ctx, c, d, drive: drive)
+                                : openMaterial(
+                                    ctx,
+                                    c,
+                                    d,
+                                    drive: drive,
+                                    files: files,
+                                  ),
+                          ),
+                          onFavorite: trash
+                              ? null
+                              : () => action(
+                                  () => c.saveClassroom(
+                                    d.patch({'favorite': !d.flag('favorite')}),
+                                  ),
+                                ),
+                          onEdit: () =>
+                              showMaterialDetails(ctx, c, d, drive: drive),
+                          trailing: trash
+                              ? IconButton(
+                                  tooltip: 'Wiederherstellen',
+                                  onPressed: () => action(
+                                    () => c.saveClassroom(
+                                      d.patch({'deleted': false}),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.restore),
+                                )
+                              : null,
+                        )
+                      else
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          leading: Icon(
+                            kind == ClassroomKind.plan
+                                ? Icons.event_note_outlined
+                                : Icons.folder_copy_outlined,
+                          ),
+                          title: Text(d.title),
+                          subtitle: Text(
+                            [
+                              if (kind == ClassroomKind.plan)
+                                planStatuses[d.text('status', 'planned')]!,
+                              d.text('subject'),
+                              '${resolveMaterials(c.classroom, d.strings('materialIds')).length} Dateien',
+                            ].where((s) => s.isNotEmpty).join(' · '),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => showMaterialCollection(ctx, c, d),
+                        ),
+                  ],
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      TextButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => action(() => connectOneDrive(ctx, drive)),
+                        icon: Icon(
+                          drive.connected
+                              ? Icons.cloud_done_outlined
+                              : Icons.cloud_outlined,
+                        ),
+                        label: Text(
+                          drive.connected
+                              ? 'OneDrive verbunden'
+                              : 'OneDrive verbinden',
+                        ),
+                      ),
+                      if (drive.connected) ...[
+                        TextButton.icon(
+                          onPressed: busy
+                              ? null
+                              : () =>
+                                    action(() => browseOneDrive(ctx, c, drive)),
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Ordner wählen'),
+                        ),
+                        TextButton(
+                          onPressed: busy
+                              ? null
+                              : () => action(drive.disconnect),
+                          child: const Text('Trennen'),
+                        ),
+                      ],
                     ],
                   ),
-                ),
+                  for (final f in c.classroom.where(
+                    (d) => !d.deleted && d.kind == ClassroomKind.folder,
+                  ))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.folder_outlined),
+                      title: Text(f.title),
+                      onTap: busy
+                          ? null
+                          : () => action(
+                              () => browseOneDrive(ctx, c, drive, folder: f),
+                            ),
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                            tooltip: 'Ordner einlesen / aktualisieren',
+                            onPressed: busy
+                                ? null
+                                : () => action(
+                                    () =>
+                                        reviewOneDriveFolder(ctx, c, drive, f),
+                                  ),
+                            icon: const Icon(Icons.sync),
+                          ),
+                          IconButton(
+                            tooltip: 'Ordnerverknüpfung entfernen',
+                            onPressed: busy
+                                ? null
+                                : () => action(
+                                    () => c.saveClassroom(
+                                      f.patch({'deleted': true}),
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.link_off),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        onPressed: busy || !materialDeviceAvailable
+                            ? null
+                            : () => action(exportBundle),
+                        icon: const Icon(Icons.enhanced_encryption_outlined),
+                        label: const Text('Materialsicherung erstellen'),
+                      ),
+                      TextButton.icon(
+                        onPressed: busy || !materialDeviceAvailable
+                            ? null
+                            : () => action(importBundle),
+                        icon: const Icon(Icons.restore),
+                        label: const Text('Materialsicherung öffnen'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
+            if (selecting) selectionBar(ctx),
           ],
         );
       },

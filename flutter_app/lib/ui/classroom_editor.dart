@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
+import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'common.dart';
 import 'dialog_workflows.dart';
@@ -44,6 +45,20 @@ Json classroomInitial(
     'note': '',
     'week': '',
   },
+  if (kind == ClassroomKind.materialSet || kind == ClassroomKind.plan) ...{
+    'materialIds': <String>[],
+    'pupilIds': <String>[],
+    'subject': '',
+    'topic': '',
+    'note': '',
+  },
+  if (kind == ClassroomKind.plan) ...{
+    'date': date ?? '',
+    'endDate': '',
+    'lessonIds': <String>[],
+    'status': 'planned',
+    'followUp': '',
+  },
   if (kind == ClassroomKind.returnList) ...{
     'type': 'form',
     'dueDate': date ?? '',
@@ -71,6 +86,7 @@ Future<List<String>?> chooseMaterials(
   List<String> selected,
 ) async {
   final ids = selected.toSet();
+  var query = '';
   return showDialog<List<String>>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -80,6 +96,48 @@ Future<List<String>?> chooseMaterials(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'Datei oder Paket suchen',
+              ),
+              onChanged: (v) => update(() => query = v),
+            ),
+            for (final package in c.classroom.where(
+              (d) =>
+                  !d.deleted &&
+                  d.kind == ClassroomKind.materialSet &&
+                  materialMatches(d, query),
+            ))
+              CheckboxListTile(
+                secondary: const Icon(Icons.folder_copy_outlined),
+                title: Text(package.title),
+                subtitle: Text(
+                  '${resolveMaterials(c.classroom, package.strings('materialIds')).length} Dateien',
+                ),
+                value:
+                    resolveMaterials(
+                      c.classroom,
+                      package.strings('materialIds'),
+                    ).isNotEmpty &&
+                    ids.containsAll(
+                      resolveMaterials(
+                        c.classroom,
+                        package.strings('materialIds'),
+                      ).map((m) => m.id),
+                    ),
+                onChanged: (v) => update(() {
+                  final valid = resolveMaterials(
+                    c.classroom,
+                    package.strings('materialIds'),
+                  ).map((m) => m.id);
+                  if (v == true) {
+                    ids.addAll(valid);
+                  } else {
+                    ids.removeAll(valid);
+                  }
+                }),
+              ),
             if (!c.classroom.any(
               (d) => !d.deleted && d.kind == ClassroomKind.material,
             ))
@@ -87,7 +145,10 @@ Future<List<String>?> chooseMaterials(
                 'Noch keine Materialien. Dateien oder Links unter Materialien hinzufügen.',
               ),
             for (final m in c.classroom.where(
-              (d) => !d.deleted && d.kind == ClassroomKind.material,
+              (d) =>
+                  !d.deleted &&
+                  d.kind == ClassroomKind.material &&
+                  materialMatches(d, query, pupils: c.pupils),
             ))
               CheckboxListTile(
                 title: Text(m.title),
@@ -132,11 +193,12 @@ Future<void> showClassroomEditor(
   String? date,
   String? occurrenceDate,
   bool following = false,
+  Json? fields,
 }) async {
   final initial =
       draft?.data ??
       document?.toJson() ??
-      classroomInitial(kind, c, date: date);
+      {...classroomInitial(kind, c, date: date), ...?fields};
   if (draft == null && occurrenceDate != null && document != null) {
     if (following && occurrenceDate.compareTo(document.text('date')) > 0) {
       initial.addAll({
@@ -187,7 +249,9 @@ Future<void> showClassroomEditor(
         ClassroomKind.lesson => 'Unterricht · FLEX-Klasse',
         ClassroomKind.holiday => 'Ferien / Ausfall',
         ClassroomKind.returnList => 'Rücklauf · FLEX-Klasse',
-        _ => 'Material / Planung',
+        ClassroomKind.materialSet => 'Unterrichtspaket',
+        ClassroomKind.plan => 'Planung',
+        _ => 'Material',
       },
       initial: initial,
       draft: draft,
@@ -361,6 +425,104 @@ Future<void> showClassroomEditor(
                 ),
               text('note', 'Notiz', lines: 2),
             ],
+            if (kind == ClassroomKind.material ||
+                kind == ClassroomKind.materialSet ||
+                kind == ClassroomKind.plan) ...[
+              if (kind != ClassroomKind.material) ...[
+                text('subject', 'Fach · optional'),
+                text('topic', 'Thema · optional'),
+                text('note', 'Notiz · optional', lines: 2),
+              ],
+              OutlinedButton.icon(
+                icon: const Icon(Icons.people_outline),
+                label: Text(
+                  'Schüler zuordnen · ${(data['pupilIds'] as List? ?? []).length}',
+                ),
+                onPressed: () async {
+                  final ids = await chooseMaterialPupils(
+                    ctx,
+                    c,
+                    List<String>.from(data['pupilIds'] as List? ?? []),
+                  );
+                  if (ids != null) change({'pupilIds': ids});
+                },
+              ),
+            ],
+            if (kind == ClassroomKind.material) ...[
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: data['documentType'] as String? ?? 'other',
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Dokumentart'),
+                items: [
+                  for (final e in materialTypes.entries)
+                    DropdownMenuItem(value: e.key, child: Text(e.value)),
+                ],
+                onChanged: (v) => change({'documentType': v}),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: data['audience'] as String? ?? 'all',
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Für wen'),
+                items: [
+                  for (final e in materialAudiences.entries)
+                    DropdownMenuItem(value: e.key, child: Text(e.value)),
+                ],
+                onChanged: (v) => change({'audience': v}),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                initialValue: (data['tags'] as List? ?? []).join(', '),
+                decoration: const InputDecoration(
+                  labelText: 'Schlagwörter · mit Komma trennen',
+                ),
+                onChanged: (v) => change({
+                  'tags': v
+                      .split(',')
+                      .map((s) => s.trim())
+                      .where((s) => s.isNotEmpty)
+                      .toSet()
+                      .toList(),
+                }),
+              ),
+            ],
+            if (kind == ClassroomKind.plan) ...[
+              day('date', 'Von · optional'),
+              day('endDate', 'Bis · optional'),
+              if ((data['date'] as String? ?? '').isNotEmpty)
+                TextButton(
+                  onPressed: () => change({'date': '', 'endDate': ''}),
+                  child: const Text('Zeitraum entfernen'),
+                ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final e in planStatuses.entries)
+                    ChoiceChip(
+                      label: Text(e.value),
+                      selected: data['status'] == e.key,
+                      onSelected: (_) => change({'status': e.key}),
+                    ),
+                ],
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.school_outlined),
+                label: Text(
+                  'Unterricht verknüpfen · ${(data['lessonIds'] as List? ?? []).length}',
+                ),
+                onPressed: () async {
+                  final ids = await choosePlanLessons(
+                    ctx,
+                    c,
+                    List<String>.from(data['lessonIds'] as List? ?? []),
+                  );
+                  if (ids != null) change({'lessonIds': ids});
+                },
+              ),
+              text('followUp', 'Nachbereitung · optional', lines: 2),
+            ],
             if (kind == ClassroomKind.returnList) ...[
               Wrap(
                 spacing: 6,
@@ -442,7 +604,9 @@ Future<void> showClassroomEditor(
             ],
             if (kind == ClassroomKind.lesson &&
                     data['_occurrenceDate'] == null ||
-                kind == ClassroomKind.returnList) ...[
+                kind == ClassroomKind.returnList ||
+                kind == ClassroomKind.materialSet ||
+                kind == ClassroomKind.plan) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 icon: const Icon(Icons.attach_file),
@@ -461,6 +625,86 @@ Future<void> showClassroomEditor(
           ],
         );
       },
+    ),
+  );
+}
+
+Future<List<String>?> chooseMaterialPupils(
+  BuildContext context,
+  NotebookController c,
+  List<String> selected,
+) => _chooseReferences(context, 'Schüler zuordnen', selected, {
+  for (final p in c.pupils.where((p) => !p.archived || selected.contains(p.id)))
+    p.id: p.name,
+});
+
+Future<List<String>?> choosePlanLessons(
+  BuildContext context,
+  NotebookController c,
+  List<String> selected,
+) => _chooseReferences(context, 'Unterricht verknüpfen', selected, {
+  for (final d in c.classroom.where(
+    (d) => !d.deleted && d.kind == ClassroomKind.lesson,
+  ))
+    d.id: '${d.title} · ${displayDate(d.text('date'))}',
+});
+
+Future<List<String>?> _chooseReferences(
+  BuildContext context,
+  String title,
+  List<String> selected,
+  Map<String, String> choices,
+) async {
+  final ids = selected.toSet();
+  var query = '';
+  return showDialog<List<String>>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, update) => FlexModal(
+        title: Text(title),
+        onClose: () => Navigator.pop(ctx),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Suchen',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (v) => update(() => query = v.toLowerCase()),
+            ),
+            if (choices.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('Noch keine Einträge.'),
+              ),
+            for (final e in choices.entries.where(
+              (e) => e.value.toLowerCase().contains(query),
+            ))
+              CheckboxListTile(
+                title: Text(e.value),
+                value: ids.contains(e.key),
+                onChanged: (v) => update(() {
+                  if (v == true) {
+                    ids.add(e.key);
+                  } else {
+                    ids.remove(e.key);
+                  }
+                }),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ids.toList()),
+            child: const Text('Übernehmen'),
+          ),
+        ],
+      ),
     ),
   );
 }
