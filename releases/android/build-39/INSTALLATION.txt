@@ -1,0 +1,10 @@
+FLEX Test Build 39
+
+Die APK über die vorhandene FLEX Test installieren. Nicht deinstallieren.
+App-ID und Testsignatur sind unverändert; ein normales Update erhält die Daten.
+Android 7.0 oder neuer.
+
+Dateien direkt öffnen; unter Materialien bereitlegen, Pakete und Planungen verwalten.
+Unterlagen sind auch bei Schülern und im Kalender erreichbar.
+Die direkte OneDrive-Anmeldung benötigt weiterhin die Microsoft-Appregistrierung.
+Lokaler DOCX-/PDF-Import und gespeicherte Links sind nutzbar.

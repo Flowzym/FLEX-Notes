@@ -1,0 +1,68 @@
+{
+  "version": "0.16.0-rebuild.19+39",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "a537f4d70c38781a8b8557bef5a65b51e245d0782f32573a4456256a63a9de76",
+  "bytes": 79182948,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 330,
+  "flutter_test_scope": [
+    "full Flutter test suite",
+    "25 new material workflow, persistence, import and UI checks"
+  ],
+  "android_device_tested": false,
+  "browser_tests": false,
+  "android_manifest_verified": true,
+  "native_backup_bridge_verified": true,
+  "source_commit": "3f6afe99cb698146ab4bc7d0b147ac0464a4fa0d",
+  "apk": "FLEX-Test-0.16.0-rebuild.19+39-3f6afe99cb69-universal.apk",
+  "quick_xor_hash": "S4rLDiuZpolqrmi9VE1LAGEw4WY=",
+  "onedrive_configured": false,
+  "onedrive_live_auth_tested": false,
+  "sqlite_tests_passed": 11,
+  "preview_server_tests_passed": 3,
+  "static_analysis_passed": true,
+  "format_passed": true,
+  "ci_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42290885316",
+  "ci_status": "in_progress",
+  "web_build_passed": true,
+  "drift_worker_build_passed": true,
+  "onedrive": {
+    "drive_id": "00B0037104A6A978",
+    "item_id": "B0037104A6A978!sd4d8cc7d3e8647539ef40f8cc7d2ad39",
+    "web_url": "https://onedrive.live.com?cid=00B0037104A6A978&id=B0037104A6A978!sd4d8cc7d3e8647539ef40f8cc7d2ad39",
+    "size_and_quickxor_verified": true
+  }
+}
