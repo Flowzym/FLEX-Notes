@@ -19,7 +19,8 @@ Fokus während der automatischen Sicherung und Persistenz nach Neuladen.
 Kein physischer Android-Gerätelauf. APK-Signatur, App-ID, Manifest, ZIP- und
 ELF-Ausrichtung für 16-KB-Seiten sind geprüft.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42377770028).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42377770028): **alle Prüfungen erfolgreich**, einschließlich
+372 Flutter-Tests, Android-/Web-Releasebuild und Abschlussprüfung.
 
 APK: 79691112 Bytes. SHA-256:
 `f196d9b05052ce90c7b7157b52d93922650b16acf6b75c1a8bf5ae95bb0cc0a4`.

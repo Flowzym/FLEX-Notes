@@ -42,3 +42,9 @@ Seitenfehler. Die Prüfung nutzte getrennte lokale Testprofile ohne Nutzerdaten.
 [Browser: Handy-Woche](kalender-unterseiten-build-42/browser-week-phone.png) ·
 [Browser: Handy-Tag](kalender-unterseiten-build-42/browser-day-phone.png) ·
 [Browser-Prüfergebnis](kalender-unterseiten-build-42/browser-checks.json).
+
+Die [GitHub-Pipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42377770028) ist vollständig erfolgreich:
+372 Flutter-Tests, Analyse, Android-/Web-Releasebuild und Abschlussprüfung.
+Die private Webvorschau ist unter derselben Adresse aktualisiert. Android Build 42
+ist auf GitHub und im verifizierten persönlichen OneDrive verfügbar; App-Signatur,
+Dateigröße, SHA-256 und OneDrive-Prüfsumme wurden geprüft.
