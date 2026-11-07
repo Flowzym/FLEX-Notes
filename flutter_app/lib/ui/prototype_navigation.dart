@@ -38,8 +38,8 @@ class FlexPagePills extends StatelessWidget {
           ),
           child: Wrap(
             key: const ValueKey('page-pills'),
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 2,
+            runSpacing: 4,
             alignment: WrapAlignment.center,
             children: [
               for (final item in pages.entries)
@@ -47,6 +47,7 @@ class FlexPagePills extends StatelessWidget {
                   key: ValueKey('page-${item.key}'),
                   onPressed: () => onSelected(item.key),
                   style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 42),
                     backgroundColor: selected == item.key
                         ? colors.primary
                         : Colors.transparent,
@@ -54,7 +55,7 @@ class FlexPagePills extends StatelessWidget {
                         ? colors.onPrimary
                         : palette?.workspaceInk ?? colors.onSurface,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 8,
                       vertical: 10,
                     ),
                   ),
@@ -66,7 +67,7 @@ class FlexPagePills extends StatelessWidget {
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
                 child: SizedBox(
-                  width: 64,
+                  width: 40,
                   child: DefaultTextStyle.merge(
                     style: TextStyle(
                       color: selected == pages.length
