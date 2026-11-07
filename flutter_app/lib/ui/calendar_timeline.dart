@@ -43,8 +43,10 @@ class CalendarTimeline extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (ctx, constraints) {
       final scale = MediaQuery.textScalerOf(ctx).scale(1).clamp(1.0, 2.5);
-      final pixels = week ? 1.35 * scale : 1.65 * scale;
-      final minMinutes = week ? 36 : 38;
+      final pixels = (week ? 1.1 : 1.2) * scale;
+      // Keep the existing week overlap boundaries: making short blocks longer
+      // would incorrectly pull a following lesson into the same group.
+      final minMinutes = week ? 36 : 40;
       final baseHours = calendarHours(items, minimumMinutes: minMinutes);
       final todayIndex = highlightNow
           ? days.indexWhere((day) => dateOnly(day) == dateOnly(now))
@@ -73,7 +75,7 @@ class CalendarTimeline extends StatelessWidget {
         1,
         (colWidth / ((week ? 90 : 140) * scale)).floor(),
       );
-      final headHeight = week ? 64.0 * scale : 0.0;
+      final headHeight = week ? 48.0 * scale : 0.0;
       final scheme = Theme.of(ctx).colorScheme;
       final current = highlightNow ? currentCalendarItem(items, now) : null,
           next = highlightNow ? nextCalendarItem(items, now) : null;
@@ -203,13 +205,15 @@ class CalendarTimeline extends StatelessWidget {
                             children: [
                               Text(
                                 '${cluster.length}',
-                                style: Theme.of(ctx).textTheme.titleMedium,
+                                style: Theme.of(ctx).textTheme.labelLarge
+                                    ?.copyWith(fontSize: 12, height: 1.15),
                               ),
                               Text(
                                 'Einträge',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(ctx).textTheme.bodySmall,
+                                style: Theme.of(ctx).textTheme.bodySmall
+                                    ?.copyWith(fontSize: 11, height: 1.15),
                               ),
                             ],
                           ),
@@ -381,7 +385,9 @@ class _TimeBlock extends StatelessWidget {
                 height: 1.15,
               );
               return Padding(
-                padding: EdgeInsets.all(narrow ? 4 : 8),
+                padding: EdgeInsets.all(
+                  narrow || box.maxHeight < 60 * scale ? 4 : 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -404,7 +410,7 @@ class _TimeBlock extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: titleStyle,
                     ),
-                    if (box.maxHeight > 40 * scale)
+                    if (box.maxHeight > (compact && narrow ? 32 : 40) * scale)
                       Text(
                         compact && !details ? item.time : time,
                         maxLines: 1,

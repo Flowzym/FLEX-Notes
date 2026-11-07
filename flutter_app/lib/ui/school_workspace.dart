@@ -1,4 +1,5 @@
 import 'document_attachments.dart';
+import 'collapsible_search.dart';
 import '../domain/document_scanner.dart';
 import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
@@ -58,6 +59,14 @@ class SchoolWorkspace extends StatefulWidget {
 class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   String query = '';
   bool onlyOpen = false;
+  final search = TextEditingController();
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final values =
@@ -98,64 +107,102 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(
-              grouped
-                  ? widget.kind == SchoolKind.goal
-                        ? 'In Arbeit ${open.length}'
-                        : open.isEmpty
-                        ? 'Alles erledigt'
-                        : '${open.length} offen'
-                  : '${values.length} ${values.length == 1 ? 'Eintrag' : 'Einträge'}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (!widget.pupil.archived)
-              FilledButton(
-                onPressed: () => editSchool(
-                  context,
-                  widget.controller,
-                  SchoolRecord.empty(widget.kind, widget.pupil.id),
-                ),
-                child: Text(
-                  widget.kind == SchoolKind.homework
-                      ? '+ Hausübung'
-                      : widget.kind == SchoolKind.goal
-                      ? '+ Neues Ziel'
-                      : 'Eintrag anlegen',
+        if (widget.kind == SchoolKind.homework) ...[
+          CollapsibleSearch(
+            controller: search,
+            onChanged: (value) => setState(() => query = value),
+            label: 'Hausübungen durchsuchen',
+            fieldKey: const ValueKey('homework-search-field'),
+            buttonKey: const ValueKey('homework-search'),
+            iconOnly: true,
+            leading: Align(
+              alignment: Alignment.centerLeft,
+              child: transparentChip(
+                FilterChip(
+                  label: Text(
+                    onlyOpen ? 'Nur offen · ${open.length}' : 'Nur offen',
+                  ),
+                  selected: onlyOpen,
+                  onSelected: (value) => setState(() => onlyOpen = value),
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Einträge durchsuchen',
-            prefixIcon: Icon(Icons.search),
+            ),
+            actions: [
+              if (!widget.pupil.archived)
+                IconButton(
+                  tooltip: 'Hausübung hinzufügen',
+                  onPressed: () => editSchool(
+                    context,
+                    widget.controller,
+                    SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                  ),
+                  icon: const Icon(Icons.add),
+                ),
+            ],
           ),
-          onChanged: (v) => setState(() => query = v),
-        ),
-        if ([SchoolKind.homework, SchoolKind.goal].contains(widget.kind))
-          Align(
-            alignment: Alignment.centerLeft,
-            child: transparentChip(
-              FilterChip(
-                label: const Text('Nur offen'),
-                selected: onlyOpen,
-                onSelected: (v) => setState(() => onlyOpen = v),
+          const SizedBox(height: 8),
+        ] else ...[
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                grouped
+                    ? widget.kind == SchoolKind.goal
+                          ? 'In Arbeit ${open.length}'
+                          : open.isEmpty
+                          ? 'Alles erledigt'
+                          : '${open.length} offen'
+                    : '${values.length} ${values.length == 1 ? 'Eintrag' : 'Einträge'}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (!widget.pupil.archived)
+                FilledButton(
+                  onPressed: () => editSchool(
+                    context,
+                    widget.controller,
+                    SchoolRecord.empty(widget.kind, widget.pupil.id),
+                  ),
+                  child: Text(
+                    widget.kind == SchoolKind.homework
+                        ? '+ Hausübung'
+                        : widget.kind == SchoolKind.goal
+                        ? '+ Neues Ziel'
+                        : 'Eintrag anlegen',
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Einträge durchsuchen',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: (v) => setState(() => query = v),
+          ),
+          if ([SchoolKind.homework, SchoolKind.goal].contains(widget.kind))
+            Align(
+              alignment: Alignment.centerLeft,
+              child: transparentChip(
+                FilterChip(
+                  label: const Text('Nur offen'),
+                  selected: onlyOpen,
+                  onSelected: (v) => setState(() => onlyOpen = v),
+                ),
               ),
             ),
-          ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
         if (values.isEmpty)
           EmptyState(
             widget.kind == SchoolKind.goal
                 ? 'Noch kein Ziel vereinbart.\nHalte fest, was als Nächstes gelingen soll.'
                 : widget.kind == SchoolKind.homework
-                ? 'Noch keine Hausübung.\nMit „+ Hausübung“ legst du eine Aufgabenliste an.'
+                ? query.isNotEmpty || onlyOpen
+                      ? 'Keine passenden Hausübungen.'
+                      : 'Noch keine Hausübung.\nMit + legst du eine Aufgabenliste an.'
                 : 'Noch keine passenden Einträge.',
           ),
         for (final r in grouped ? open : values)
@@ -286,7 +333,11 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   Widget build(BuildContext context) {
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
     final heading = r.kind == SchoolKind.homework
-        ? 'Hausübung'
+        ? r.title.isNotEmpty
+              ? r.title
+              : r.subject.isNotEmpty
+              ? r.subject
+              : 'Hausübung'
         : r.title.isEmpty
         ? r.kind.label
         : r.title;
@@ -329,7 +380,11 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(
-                      '${owner?.name ?? 'Unbekannt'} · ${displayDate(r.observedOn)} ${r.observedTime}',
+                      '${owner?.name ?? 'Unbekannt'} · ${displayDate(r.observedOn)} ${r.observedTime}'
+                          .trim(),
+                      style: r.kind == SchoolKind.homework
+                          ? Theme.of(context).textTheme.bodySmall
+                          : null,
                     ),
                   ],
                 );
@@ -374,29 +429,61 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 );
               },
             ),
-            if (r.kind == SchoolKind.homework && homeworkExpanded) ...[
-              if (r.subject.isNotEmpty) Text(r.subject),
-              if (r.dueDate != null) Text('Fällig: ${displayDate(r.dueDate)}'),
-              Text(
-                '${r.tasks.where((task) => r.taskState(task) == TaskState.complete).length} von ${r.tasks.length} vollständig',
-                key: ValueKey('homework-progress-${r.id}'),
-                style: Theme.of(context).textTheme.bodySmall,
+            if (r.kind == SchoolKind.homework)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    Text(
+                      '${r.tasks.where((task) => r.taskState(task) == TaskState.complete).length} von ${r.tasks.length} vollständig',
+                      key: ValueKey('homework-progress-${r.id}'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    if (r.subject.isNotEmpty && r.subject != heading)
+                      Text(
+                        r.subject,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    if (r.dueDate != null)
+                      Text(
+                        'Fällig: ${displayDate(r.dueDate)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
+                ),
               ),
+            if (r.kind == SchoolKind.homework && homeworkExpanded) ...[
               for (final task in r.tasks)
                 Padding(
                   padding: EdgeInsets.only(
                     left: task.parentId == null ? 0 : 16,
-                    top: 16,
+                    top: 10,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const Divider(height: 8),
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              task.text,
-                              style: Theme.of(context).textTheme.titleMedium,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  task.text,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                Text(
+                                  'Stand: ${r.taskState(task).label}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
                             ),
                           ),
                           IconButton(
@@ -423,33 +510,6 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                           ),
                         ],
                       ),
-                      Wrap(
-                        spacing: 2,
-                        runSpacing: 2,
-                        children: [
-                          for (final state in TaskState.values)
-                            FlexSymbolButton(
-                              key: ValueKey('status-${task.id}-${state.name}'),
-                              label: state.label,
-                              icon: switch (state) {
-                                TaskState.open => Icons.radio_button_unchecked,
-                                TaskState.complete =>
-                                  Icons.check_circle_outline,
-                                TaskState.partial => Icons.contrast,
-                                TaskState.missing => Icons.cancel_outlined,
-                              },
-                              selected: r.taskState(task) == state,
-                              exclusive: true,
-                              onPressed: busy || r.deleted
-                                  ? null
-                                  : () => setTask(task, state),
-                            ),
-                        ],
-                      ),
-                      Text(
-                        'Stand: ${r.taskState(task).label}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
                       DocumentAttachmentSection(
                         key: ValueKey('task-attachments-${task.id}'),
                         compact: true,
@@ -460,6 +520,33 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                           taskIds: {r.id: task.id},
                         ),
                         readOnly: r.deleted,
+                        leadingActions: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final state in TaskState.values)
+                                FlexSymbolButton(
+                                  key: ValueKey(
+                                    'status-${task.id}-${state.name}',
+                                  ),
+                                  label: state.label,
+                                  icon: switch (state) {
+                                    TaskState.open =>
+                                      Icons.radio_button_unchecked,
+                                    TaskState.complete =>
+                                      Icons.check_circle_outline,
+                                    TaskState.partial => Icons.contrast,
+                                    TaskState.missing => Icons.cancel_outlined,
+                                  },
+                                  selected: r.taskState(task) == state,
+                                  exclusive: true,
+                                  onPressed: busy || r.deleted
+                                      ? null
+                                      : () => setTask(task, state),
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
                       if (r.liveFeedback
                           .where(
@@ -480,34 +567,16 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                     ],
                   ),
                 ),
-              const SizedBox(height: 12),
-              if (!r.deleted)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => editSchool(context, c, r, mode: 'comment'),
-                    icon: const Icon(Icons.chat_bubble),
-                    label: const Text('Notiz & Verlauf'),
-                  ),
-                ),
-              if (r.pending)
-                TextButton.icon(
-                  onPressed: () => showReminderActions(
-                    context,
-                    c,
-                    'school:${r.id}',
-                    r.title.isEmpty ? r.kind.label : r.title,
-                  ),
-                  icon: const Icon(Icons.snooze),
-                  label: const Text('Erinnerung verschieben'),
-                ),
+              const SizedBox(height: 10),
               Text(
                 'Abgabe: ${const {'unknown': 'Nicht überprüft', 'submitted': 'Vorgelegt', 'missing': 'Nicht vorgelegt', 'absent': 'Abwesend'}[r.delivery]}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               if (r.feedback.isNotEmpty)
                 ExpansionTile(
                   key: PageStorageKey('feedback-${r.id}'),
-                  title: Text('Rückmeldungsverlauf · ${r.liveFeedback.length}'),
+                  tilePadding: EdgeInsets.zero,
+                  title: Text('Verlauf · ${r.liveFeedback.length}'),
                   children: [
                     for (final f in r.liveFeedback.reversed)
                       ListTile(
@@ -659,37 +728,64 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 ),
             ],
             if (r.needsCompletion) const Text('Später ergänzen'),
-            DocumentAttachmentSection(
-              key: ValueKey('record-attachments-${r.id}'),
-              controller: c,
-              scope: schoolScanContext(c, [r], includeTasks: false),
-              readOnly: r.deleted,
-              compact: true,
-              actions: [
-                IconButton(
-                  tooltip: r.deleted ? 'Wiederherstellen' : 'Papierkorb',
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          if (r.deleted ||
-                              await confirmFlex(
+            if (r.kind != SchoolKind.homework || homeworkExpanded)
+              DocumentAttachmentSection(
+                key: ValueKey('record-attachments-${r.id}'),
+                controller: c,
+                scope: schoolScanContext(c, [r], includeTasks: false),
+                readOnly: r.deleted,
+                compact: true,
+                leadingActions: [
+                  if (r.kind == SchoolKind.homework && !r.deleted) ...[
+                    IconButton(
+                      tooltip: 'Notiz & Verlauf',
+                      onPressed: busy
+                          ? null
+                          : () => editSchool(context, c, r, mode: 'comment'),
+                      icon: const Icon(Icons.chat_bubble_outline),
+                    ),
+                    if (r.pending)
+                      IconButton(
+                        tooltip: 'Erinnerung verschieben',
+                        onPressed: busy
+                            ? null
+                            : () => showReminderActions(
                                 context,
-                                'Eintrag in den Papierkorb?',
-                                'Der Eintrag bleibt wiederherstellbar.',
-                                accept: 'In den Papierkorb',
-                              )) {
-                            await mutate(r.patch({'deleted': !r.deleted}));
-                          }
-                        },
-                  icon: Icon(r.deleted ? Icons.restore : Icons.delete_outline),
-                ),
-                IconButton(
-                  tooltip: 'Änderungen',
-                  onPressed: () => showJournal(context, c, r.id),
-                  icon: const Icon(Icons.history),
-                ),
-              ],
-            ),
+                                c,
+                                'school:${r.id}',
+                                heading,
+                              ),
+                        icon: const Icon(Icons.snooze),
+                      ),
+                  ],
+                ],
+                actions: [
+                  IconButton(
+                    tooltip: r.deleted ? 'Wiederherstellen' : 'Papierkorb',
+                    onPressed: busy
+                        ? null
+                        : () async {
+                            if (r.deleted ||
+                                await confirmFlex(
+                                  context,
+                                  'Eintrag in den Papierkorb?',
+                                  'Der Eintrag bleibt wiederherstellbar.',
+                                  accept: 'In den Papierkorb',
+                                )) {
+                              await mutate(r.patch({'deleted': !r.deleted}));
+                            }
+                          },
+                    icon: Icon(
+                      r.deleted ? Icons.restore : Icons.delete_outline,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Änderungen',
+                    onPressed: () => showJournal(context, c, r.id),
+                    icon: const Icon(Icons.history),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

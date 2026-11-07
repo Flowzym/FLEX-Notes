@@ -183,6 +183,75 @@ void main() {
     });
   }
 
+  for (final week in [false, true]) {
+    testWidgets(
+      'compact ${week ? 'week' : 'day'} keeps short events tappable and adjacent lessons separate',
+      (t) async {
+        final c = await controller();
+        String? opened;
+        for (final scale in [1.0, 2.0]) {
+          await host(
+            t,
+            c,
+            scale: scale,
+            builder: (_) => SingleChildScrollView(
+              child: CalendarTimeline(
+                week: week,
+                days: [
+                  for (var day = 2; day <= (week ? 6 : 2); day++)
+                    DateTime(2026, 11, day),
+                ],
+                selectedDate: '2026-11-02',
+                now: DateTime(2026, 11, 2, 8),
+                items: const [
+                  CalendarItem(
+                    id: 'first',
+                    date: '2026-11-02',
+                    title: 'Deutsch',
+                    category: 'lesson',
+                    time: '08:00',
+                    end: '08:45',
+                  ),
+                  CalendarItem(
+                    id: 'next',
+                    date: '2026-11-02',
+                    title: 'Mathematik',
+                    category: 'lesson',
+                    time: '08:45',
+                    end: '09:30',
+                  ),
+                  CalendarItem(
+                    id: 'short',
+                    date: '2026-11-02',
+                    title: 'Rückfrage',
+                    category: 'appointment',
+                    time: '10:00',
+                    end: '10:05',
+                  ),
+                ],
+                onOpen: (item) => opened = item.id,
+                onDay: (_) {},
+              ),
+            ),
+          );
+          final first = find.byKey(const ValueKey('calendar-slot-first'));
+          final next = find.byKey(const ValueKey('calendar-slot-next'));
+          final short = find.byKey(const ValueKey('calendar-slot-short'));
+          expect(first, findsOneWidget);
+          expect(next, findsOneWidget);
+          expect(t.getRect(first).bottom, lessThan(t.getRect(next).top));
+          expect(t.getSize(short).height, greaterThanOrEqualTo(week ? 32 : 44));
+          final hour = (t.getTopLeft(short).dy - t.getTopLeft(first).dy) / 2;
+          expect(hour / scale, lessThanOrEqualTo(72.01));
+          await tap(t, short);
+          expect(opened, 'short');
+          expect(t.takeException(), isNull);
+        }
+        await t.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets('time marker stays above ongoing blocks and passes taps through', (
     t,
   ) async {
@@ -265,7 +334,7 @@ void main() {
         final oldY = t.getTopLeft(line).dy;
         now = now.add(const Duration(minutes: 1));
         await t.pump(const Duration(minutes: 1));
-        expect(t.getTopLeft(line).dy - oldY, closeTo(1.65, .01));
+        expect(t.getTopLeft(line).dy - oldY, closeTo(1.2, .01));
         expect(
           find.descendant(of: label, matching: find.text('08:${now.minute}')),
           findsOneWidget,

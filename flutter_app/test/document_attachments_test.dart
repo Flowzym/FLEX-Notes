@@ -274,6 +274,109 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  testWidgets(
+    'homework search retains query when collapsed and combines with open filter',
+    (t) async {
+      final openRecord = await repo.saveSchoolRecord(
+        taskRecord('p').patch({'title': 'Deutsch Lesen'}),
+      );
+      await repo.saveSchoolRecord(
+        taskRecord('p').patch({
+          'title': 'Mathematik Rechnen',
+          'tasks': [
+            const HomeworkTask(
+              id: 'done',
+              text: 'Fertig',
+              initialState: TaskState.complete,
+            ).toJson(),
+          ],
+        }),
+      );
+      await c.reload();
+      await host(
+        t,
+        SizedBox(
+          height: 800,
+          child: SchoolWorkspace(
+            controller: c,
+            pupil: c.pupils.firstWhere((p) => p.id == 'p'),
+            kind: SchoolKind.homework,
+          ),
+        ),
+      );
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byTooltip('Hausübung hinzufügen'), findsOneWidget);
+      expect(find.byKey(ValueKey(openRecord.id)), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('homework-search')));
+      await t.enterText(
+        find.byKey(const ValueKey('homework-search-field')),
+        'Rechnen',
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(ValueKey(openRecord.id)), findsNothing);
+      expect(find.text('Erledigt (1)'), findsOneWidget);
+      await t.testTextInput.receiveAction(TextInputAction.search);
+      await t.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.byTooltip('Hausübungen durchsuchen: Rechnen'),
+        findsOneWidget,
+      );
+      await tap(t, find.byType(FilterChip));
+      expect(find.text('Keine passenden Hausübungen.'), findsOneWidget);
+      await tap(t, find.byTooltip('Suchtext leeren'));
+      expect(find.byKey(ValueKey(openRecord.id)), findsOneWidget);
+      expect(find.text('Erledigt (1)'), findsNothing);
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
+
+  for (final layout in [(390.0, 1.0), (320.0, 2.0)]) {
+    testWidgets(
+      'homework summary survives collapse and actions remain reachable at $layout',
+      (t) async {
+        final r = await repo.saveSchoolRecord(
+          taskRecord(
+            'p',
+          ).patch({'subject': 'Deutsch', 'dueDate': '2026-11-09'}),
+        );
+        await c.reload();
+        await host(
+          t,
+          SchoolRecordCard(controller: c, record: r),
+          width: layout.$1,
+          scale: layout.$2,
+        );
+        expect(find.text('Deutsch'), findsOneWidget);
+        expect(find.text('Fällig: 09.11.2026'), findsOneWidget);
+        expect(find.byTooltip('Notiz & Verlauf'), findsOneWidget);
+        expect(find.byTooltip('Erinnerung verschieben'), findsOneWidget);
+        expect(find.byTooltip('Papierkorb'), findsOneWidget);
+        expect(find.byTooltip('Änderungen'), findsOneWidget);
+        await tap(t, find.byTooltip('Hausübung einklappen'));
+        expect(
+          find.byKey(ValueKey('homework-progress-${r.id}')),
+          findsOneWidget,
+        );
+        expect(find.text('Fällig: 09.11.2026'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('task-attachments-child')),
+          findsNothing,
+        );
+        await tap(t, find.byTooltip('Hausübung aufklappen'));
+        expect(
+          find.byKey(const ValueKey('task-attachments-child')),
+          findsOneWidget,
+        );
+        await tap(t, find.byTooltip('Erinnerung verschieben'));
+        expect(find.text('Morgen um 09:00'), findsOneWidget);
+        expect(t.takeException(), isNull);
+        await finish(t);
+      },
+    );
+  }
+
   for (final kind in [SchoolKind.goal, SchoolKind.social, SchoolKind.work]) {
     testWidgets(
       '${kind.name} bottom scanner saves new entry before assigning it',
