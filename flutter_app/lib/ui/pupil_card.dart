@@ -78,7 +78,7 @@ class PupilCard extends StatelessWidget {
                         if (count > 0)
                           Positioned(
                             right: 0,
-                            top: -10,
+                            top: -4,
                             child: Tooltip(
                               message:
                                   '$openCount offene Einträge · $drafts Entwürfe',

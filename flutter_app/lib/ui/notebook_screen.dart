@@ -622,7 +622,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 ],
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -640,7 +640,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
               child: FlexPagePills(
                 keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
                 selected: switch (_destination) {
