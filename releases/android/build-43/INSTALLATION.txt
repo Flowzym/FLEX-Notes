@@ -1,0 +1,6 @@
+FLEX Test Build 43
+
+APK über die vorhandene FLEX Test installieren.
+Nicht deinstallieren: Das normale Update behält die lokalen Daten.
+Gemeinsame Navigationspille, Beobachtungsfarben und aktuelle Zeit in beiden Tagesansichten.
+Details stehen in README.md.
