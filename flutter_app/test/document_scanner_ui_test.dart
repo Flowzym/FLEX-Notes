@@ -12,6 +12,7 @@ import 'package:flex_notizbuch/domain/document_scanner.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/scan_editor.dart';
 import 'package:flex_notizbuch/ui/scan_page_editor.dart';
+import 'scan_edges_test.dart' show perspectivePage;
 import 'classroom_test.dart' show classroomMemory;
 import 'document_scanner_test.dart' show scannerImage;
 import 'material_workspace_test.dart' show MemoryMaterialFiles;
@@ -70,7 +71,7 @@ void main() {
       ),
     );
     await t.tap(find.text('Öffnen'));
-    await t.pumpAndSettle();
+    await t.pump(const Duration(milliseconds: 300));
   }
 
   Future<void> settleWork(WidgetTester t, bool Function() ready) async {
@@ -80,7 +81,7 @@ void main() {
       );
       await t.pump(const Duration(milliseconds: 40));
       if (ready()) {
-        await t.pumpAndSettle();
+        await t.pump(const Duration(milliseconds: 300));
         return;
       }
     }
@@ -92,6 +93,225 @@ void main() {
     await t.tap(f);
     await t.pump();
   }
+
+  testWidgets(
+    'batch camera saves each page, cancellation retains batch and drag order persists',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      var shot = 0;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          capturePhoto: () async =>
+              ++shot <= 2 ? scannerImage(width: 180 + shot * 20) : null,
+        ),
+      );
+      await tap(t, find.byKey(const ValueKey('scanner-batch')));
+      await settleWork(
+        t,
+        () => find.text('Nächste Aufnahme').evaluate().isNotEmpty,
+      );
+      await tap(t, find.text('Nächste Aufnahme'));
+      await settleWork(t, () => find.text('2 Aufnahmen').evaluate().isNotEmpty);
+      await tap(t, find.text('Nächste Aufnahme'));
+      await settleWork(
+        t,
+        () => find.text('Nächste Aufnahme').evaluate().isEmpty,
+      );
+      expect(shot, 3);
+      final original = List<Json>.from(
+        (c.dialogDrafts.single.data['pages'] as List).map(
+          (v) => Json.from(v as Map),
+        ),
+      );
+      expect(original.map((v) => v['width']), [200, 220]);
+      final list = t.widget<ReorderableListView>(
+        find.byKey(const ValueKey('scan-page-order')),
+      );
+      list.onReorderItem!(0, 1);
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).first['key'] ==
+            original.last['key'],
+      );
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      expect(
+        (c.dialogDrafts.single.data['pages'] as List).map((v) => v['width']),
+        [220, 200],
+      );
+      expect(files.values, hasLength(2));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final failWrite in [false, true]) {
+    testWidgets(
+      'replacement stays at same position; prior bytes survive failed commit=$failWrite',
+      (t) async {
+        final c = await controller(), files = MemoryMaterialFiles();
+        await host(
+          t,
+          (_) => ScanEditor(
+            controller: c,
+            files: files,
+            initialImages: [scannerImage(), scannerImage(width: 200)],
+            pickFiles: () async => [
+              XFile.fromData(scannerImage(width: 300), name: 'replacement.jpg'),
+            ],
+          ),
+        );
+        await settleWork(
+          t,
+          () =>
+              c.dialogDrafts.isNotEmpty &&
+              (c.dialogDrafts.single.data['pages'] as List).length == 2,
+        );
+        final before = c.dialogDrafts.single.data['pages'] as List;
+        final oldKey = before.first['key'] as String;
+        await tap(t, find.byKey(const ValueKey('scan-replace-page-0')));
+        await t.pumpAndSettle();
+        (c.repository as InterruptedScanRepository).failWrite = failWrite;
+        await tap(t, find.text('Bild auswählen'));
+        await settleWork(
+          t,
+          () =>
+              files.values.length == (failWrite ? 3 : 2) &&
+              (failWrite
+                  ? find
+                        .textContaining('Speicherung unterbrochen')
+                        .evaluate()
+                        .isNotEmpty
+                  : (c.dialogDrafts.single.data['pages'] as List)
+                            .first['width'] ==
+                        300),
+        );
+        expect(files.values.containsKey(oldKey), failWrite);
+        await tap(t, find.text('Später fortsetzen'));
+        await t.pumpAndSettle();
+        final after = c.dialogDrafts.single.data['pages'] as List;
+        expect(after.map((v) => v['width']), [300, 200]);
+        expect(after.last['key'], before.last['key']);
+        expect(files.values.containsKey(oldKey), false);
+        expect(files.values, hasLength(2));
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('cancelled replacement leaves the original untouched', (t) async {
+    final c = await controller(), files = MemoryMaterialFiles();
+    await host(
+      t,
+      (_) => ScanEditor(
+        controller: c,
+        files: files,
+        initialImages: [scannerImage()],
+        capturePhoto: () async => null,
+      ),
+    );
+    await settleWork(
+      t,
+      () =>
+          c.dialogDrafts.isNotEmpty &&
+          (c.dialogDrafts.single.data['pages'] as List).length == 1,
+    );
+    final before = c.dialogDrafts.single.data['pages'];
+    await tap(t, find.byKey(const ValueKey('scan-replace-page-0')));
+    await t.pumpAndSettle();
+    await tap(t, find.text('Neu aufnehmen'));
+    await settleWork(t, () => find.text('Neu aufnehmen').evaluate().isEmpty);
+    expect(c.dialogDrafts.single.data['pages'], before);
+    expect(files.values, hasLength(1));
+    await t.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'filter updates preview before Apply, latest selection wins and export stays full size',
+    (t) async {
+      Map<String, dynamic>? result;
+      await host(
+        t,
+        (_) => ScanPageEditor(
+          bytes: scannerImage(width: 900, height: 1200),
+          pageNumber: 1,
+          width: 900,
+          height: 1200,
+          photo: true,
+        ),
+        onResult: (v) => result = v as Map<String, dynamic>?,
+      );
+      Uint8List preview() =>
+          (t
+                      .widget<Image>(
+                        find.byKey(const ValueKey('scan-live-preview')),
+                      )
+                      .image
+                  as MemoryImage)
+              .bytes;
+      await settleWork(
+        t,
+        () => find
+            .byType(ChoiceChip)
+            .evaluate()
+            .every((e) => (e.widget as ChoiceChip).avatar != null),
+      );
+      await tap(t, find.text('Warm'));
+      await tap(t, find.text('Graustufen'));
+      await settleWork(t, () {
+        final p = img.decodeJpg(preview())!;
+        final color = p.getPixel(p.width ~/ 2, p.height ~/ 2);
+        return p.height <= 720 &&
+            (color.r - color.g).abs() < 3 &&
+            color.r < 200;
+      });
+      expect(result, isNull);
+      await tap(t, find.text('Übernehmen'));
+      await settleWork(t, () => result != null);
+      expect([result!['width'], result!['height']], [900, 1200]);
+      final pixel = img
+          .decodeJpg(result!['bytes'] as Uint8List)!
+          .getPixel(450, 600);
+      expect((pixel.r - pixel.g).abs(), lessThan(3));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets('automatic crop survives switching to filters before saving', (
+    t,
+  ) async {
+    Map<String, dynamic>? result;
+    await host(
+      t,
+      (_) => ScanPageEditor(
+        bytes: perspectivePage(),
+        pageNumber: 1,
+        width: 480,
+        height: 640,
+      ),
+      onResult: (v) => result = v as Map<String, dynamic>?,
+    );
+    await tap(t, find.text('Zuschneiden'));
+    await settleWork(
+      t,
+      () => find.text('Dokumentränder erkannt.').evaluate().isNotEmpty,
+    );
+    await tap(t, find.text('Filter'));
+    await settleWork(
+      t,
+      () =>
+          find.text('Filtervorschau').evaluate().isNotEmpty &&
+          find.byType(LinearProgressIndicator).evaluate().isEmpty,
+    );
+    await tap(t, find.text('Übernehmen'));
+    await settleWork(t, () => result != null);
+    expect(result!['width'], lessThan(480));
+    expect(result!['height'], lessThan(640));
+    expect(t.takeException(), isNull);
+  });
 
   testWidgets(
     'photo capture uses photo editor, tags survive draft resume and JPG save',
@@ -224,7 +444,7 @@ void main() {
         }
         expect(calls, containsAllInOrder(['scanDocument', 'capturePhoto']));
         expect(
-          find.textContaining('Automatische Dokumenterkennung nicht verfügbar'),
+          find.textContaining('Aufnahme mit der normalen Kamera'),
           findsOneWidget,
         );
         await t.pumpWidget(const SizedBox());

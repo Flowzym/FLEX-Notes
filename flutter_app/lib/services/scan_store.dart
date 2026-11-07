@@ -114,7 +114,7 @@ Future<ClassroomDocument> saveScan(
         'extension': photo ? 'jpg' : 'pdf',
         'localKey': key,
         'size': item.$2.length,
-        'scan': !photo, 'pageCount': photo ? 1 : pages.length,
+        'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
         'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
       };

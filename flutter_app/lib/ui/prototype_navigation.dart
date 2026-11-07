@@ -2,12 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'surfaces.dart';
 
-const livePages = {
-  0: 'Aktuell',
-  1: 'Aufzeichnung',
-  2: 'Ablauf',
-  3: 'Stundenplan',
-};
+const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf', 3: 'Stundenplan'};
 
 /// Compact tracks with a raised selection. All destinations wrap at large text.
 class FlexPagePills extends StatelessWidget {
@@ -85,10 +80,10 @@ class FlexPagePills extends StatelessWidget {
                         clipBehavior: Clip.none,
                         children: [
                           Positioned(
-                            left: 6,
-                            right: 6,
-                            top: 8,
-                            bottom: 8,
+                            left: 3,
+                            right: 3,
+                            top: 5,
+                            bottom: 5,
                             child: DecoratedBox(
                               key: ValueKey('$keyPrefix-track-${row.first.$1}'),
                               decoration: BoxDecoration(
@@ -180,7 +175,8 @@ class FlexBottomNavigation extends StatelessWidget {
   Widget _content(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: scheme.surfaceContainer,
+      key: const ValueKey('bottom-navigation-surface'),
+      color: Colors.black,
       child: SafeArea(
         top: false,
         child: Padding(
@@ -228,7 +224,7 @@ class FlexBottomNavigation extends StatelessWidget {
                                   size: 23,
                                   color: selected == e.$1
                                       ? scheme.onPrimaryContainer
-                                      : scheme.onSurfaceVariant,
+                                      : Colors.white70,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -237,6 +233,9 @@ class FlexBottomNavigation extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 softWrap: true,
                                 style: TextStyle(
+                                  color: selected == e.$1
+                                      ? Colors.white
+                                      : Colors.white70,
                                   fontSize: 11,
                                   height: 1.1,
                                   fontWeight: selected == e.$1

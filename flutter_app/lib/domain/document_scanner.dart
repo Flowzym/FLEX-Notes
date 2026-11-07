@@ -154,6 +154,9 @@ void validateScanData(Json j) {
           !{'pdf', 'jpg'}.contains(j['outputFormat']) ||
       j['capturePending'] != null && j['capturePending'] is! bool ||
       j['captureAsDocument'] != null && j['captureAsDocument'] is! bool ||
+      j['captureReplaceKey'] != null &&
+          (j['captureReplaceKey'] is! String ||
+              (j['captureReplaceKey'] as String).length > 250) ||
       j['tags'] != null &&
           (j['tags'] is! List ||
               (j['tags'] as List).length > 30 ||

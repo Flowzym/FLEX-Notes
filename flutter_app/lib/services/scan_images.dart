@@ -60,6 +60,15 @@ Map<String, dynamic> normalizeScan(Uint8List bytes) {
 /// pixels after all transforms; the PDF never contains source text or overlays.
 Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
   var pixels = scanPixels(args['bytes'] as Uint8List);
+  final maxSize = args['previewMax'] as int?;
+  if (maxSize != null && math.max(pixels.width, pixels.height) > maxSize) {
+    pixels = img.copyResize(
+      pixels,
+      width: pixels.width >= pixels.height ? maxSize : null,
+      height: pixels.height > pixels.width ? maxSize : null,
+      interpolation: img.Interpolation.average,
+    );
+  }
   final turns = args['turns'] as int? ?? 0;
   if (turns % 4 != 0) pixels = img.copyRotate(pixels, angle: (turns % 4) * 90);
   if (args['flip'] == true) pixels = img.flipHorizontal(pixels);
@@ -117,12 +126,20 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
     1.5,
   );
   final contrast = (args['contrast'] as num? ?? 1).toDouble().clamp(.5, 1.8);
+  if (filter == 'document') {
+    // Stretch the paper/ink range without a binary threshold; colored markings
+    // remain legible. The same renderer is used for preview and saved output.
+    img.normalize(pixels, min: 0, max: 255);
+  }
+  if ({'gray', 'bw'}.contains(filter)) {
+    img.grayscale(pixels);
+  }
   img.adjustColor(
     pixels,
     brightness: brightness,
-    contrast: contrast,
+    contrast: filter == 'document' ? contrast * 1.15 : contrast,
     saturation: {'gray', 'bw'}.contains(filter)
-        ? 0
+        ? null
         : (args['saturation'] as num? ?? 1).clamp(0, 2),
   );
   if (filter == 'warm' || filter == 'cool') {
@@ -158,6 +175,31 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
     'bytes': Uint8List.fromList(img.encodeJpg(pixels, quality: 92)),
     'width': pixels.width,
     'height': pixels.height,
+  };
+}
+
+const scanFilters = {
+  'color': 'Original',
+  'document': 'Dokument',
+  'gray': 'Graustufen',
+  'bw': 'Schwarzweiß',
+  'warm': 'Warm',
+  'cool': 'Kühl',
+};
+
+Map<String, dynamic> scanPreviewBundle(Uint8List bytes) {
+  final base =
+      editScanPixels({'bytes': bytes, 'previewMax': 720})['bytes'] as Uint8List;
+  return {
+    'preview': base,
+    'thumbnails': {
+      for (final filter in scanFilters.keys)
+        filter: editScanPixels({
+          'bytes': base,
+          'previewMax': 96,
+          'filter': filter,
+        })['bytes'],
+    },
   };
 }
 

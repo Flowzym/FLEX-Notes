@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../services/scan_images.dart';
+import '../services/scan_edges.dart';
 import 'common.dart';
 import 'flex_modal.dart';
 
@@ -29,7 +30,7 @@ class ScanPageEditor extends StatefulWidget {
 class _ScanPageEditorState extends State<ScanPageEditor> {
   late Uint8List current = widget.bytes;
   late int currentWidth = widget.width, currentHeight = widget.height;
-  String mode = 'preview', filter = 'color';
+  String mode = 'filter', filter = 'color';
   double brightness = 1, contrast = 1, saturation = 1;
   bool busy = false;
   String? error;
@@ -42,6 +43,95 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
   ];
   Offset? start, end;
   int? dragging;
+  Uint8List? previewSource, preview;
+  Map<String, Uint8List> thumbnails = {};
+  List<Offset> detected = [], edges = [];
+  bool detecting = false, snapping = true, snapped = false, previewBusy = false;
+  String? detectionMessage;
+  Timer? previewTimer;
+  int previewRevision = 0, sourceRevision = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    preparePreview();
+  }
+
+  @override
+  void dispose() {
+    previewTimer?.cancel();
+    previewRevision++;
+    sourceRevision++;
+    super.dispose();
+  }
+
+  Future<void> preparePreview() async {
+    final revision = ++sourceRevision;
+    try {
+      final bundle = await compute(scanPreviewBundle, current);
+      if (!mounted || revision != sourceRevision) return;
+      setState(() {
+        previewSource = bundle['preview'] as Uint8List;
+        thumbnails = Map<String, Uint8List>.from(bundle['thumbnails'] as Map);
+      });
+      schedulePreview();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    }
+  }
+
+  void schedulePreview() {
+    final revision = ++previewRevision;
+    previewTimer?.cancel();
+    previewTimer = Timer(const Duration(milliseconds: 120), () async {
+      if (!mounted || previewSource == null) return;
+      setState(() => previewBusy = true);
+      try {
+        final result = await compute(editScanPixels, {
+          ...args(crop: mode == 'crop'),
+          'bytes': previewSource!,
+        });
+        if (mounted && revision == previewRevision) {
+          setState(() => preview = result['bytes'] as Uint8List);
+        }
+      } catch (_) {
+        // A temporarily crossed polygon is shown as an overlay, never committed.
+      } finally {
+        if (mounted && revision == previewRevision) {
+          setState(() => previewBusy = false);
+        }
+      }
+    });
+  }
+
+  Future<void> detectEdges() async {
+    if (detecting || busy) return;
+    final revision = sourceRevision;
+    setState(() => detecting = true);
+    try {
+      final result = await compute(detectScanEdges, current);
+      if (!mounted || revision != sourceRevision) return;
+      List<Offset> points(dynamic values) => (values as List? ?? [])
+          .map(
+            (v) => Offset((v[0] as num).toDouble(), (v[1] as num).toDouble()),
+          )
+          .toList();
+      setState(() {
+        detected = points(result['corners']);
+        edges = points(result['edges']);
+        if (detected.length == 4) corners = [...detected];
+        detectionMessage = detected.isEmpty
+            ? 'Keine sicheren Ränder erkannt. Ecken manuell setzen.'
+            : 'Dokumentränder erkannt.';
+      });
+      schedulePreview();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => detecting = false);
+    }
+  }
+
   Map<String, dynamic> args({int turns = 0, bool crop = false}) => {
     'bytes': current,
     'turns': turns,
@@ -60,7 +150,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     bool finish = false,
     bool flip = false,
   }) async {
-    if (busy) return;
+    if (busy || detecting) return;
     setState(() {
       busy = true;
       error = null;
@@ -90,7 +180,13 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
         redactions.clear();
         corners = const [Offset.zero, Offset(1, 0), Offset(1, 1), Offset(0, 1)];
         mode = 'preview';
+        preview = null;
+        previewSource = null;
+        detected = [];
+        edges = [];
       });
+      previewRevision++;
+      await preparePreview();
     } catch (e) {
       if (mounted) setState(() => error = friendlyError(e));
     } finally {
@@ -120,15 +216,16 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                 ('redact', 'Schwärzen', Icons.format_color_fill),
               ])
                 OutlinedButton.icon(
-                  onPressed: busy
+                  onPressed: busy || detecting
                       ? null
                       : () async {
-                          if (redactions.isNotEmpty ||
+                          if (mode == 'crop' ||
+                              redactions.isNotEmpty ||
                               filter != 'color' ||
                               brightness != 1 ||
                               contrast != 1 ||
                               saturation != 1) {
-                            await render();
+                            await render(crop: mode == 'crop');
                           }
                           if (mounted) {
                             setState(() {
@@ -136,19 +233,29 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                               start = null;
                               end = null;
                             });
+                            if (mode == 'crop' &&
+                                !widget.photo &&
+                                edges.isEmpty) {
+                              await detectEdges();
+                            }
+                            schedulePreview();
                           }
                         },
                   icon: Icon(tool.$3),
                   label: Text(tool.$2),
                 ),
               OutlinedButton.icon(
-                onPressed: busy ? null : () => render(turns: 1),
+                onPressed: busy || detecting
+                    ? null
+                    : () => render(turns: 1, crop: mode == 'crop'),
                 icon: const Icon(Icons.rotate_right),
                 label: const Text('Drehen'),
               ),
               if (widget.photo)
                 OutlinedButton.icon(
-                  onPressed: busy ? null : () => render(flip: true),
+                  onPressed: busy || detecting
+                      ? null
+                      : () => render(flip: true, crop: mode == 'crop'),
                   icon: const Icon(Icons.flip),
                   label: const Text('Spiegeln'),
                 ),
@@ -171,6 +278,13 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                           Offset(0, 1),
                         ];
                         mode = 'preview';
+                        preview = null;
+                        previewSource = null;
+                        previewRevision++;
+                        previewTimer?.cancel();
+                        detected = [];
+                        edges = [];
+                        preparePreview();
                       }),
                 icon: const Icon(Icons.undo),
                 label: const Text('Zurücksetzen'),
@@ -184,13 +298,31 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             ),
           if (busy) const LinearProgressIndicator(),
           if (mode == 'crop') ...[
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  key: const ValueKey('scan-auto-edges'),
+                  onPressed: busy || detecting ? null : detectEdges,
+                  icon: const Icon(Icons.auto_fix_high),
+                  label: Text(detecting ? 'Erkennen …' : 'Kanten erkennen'),
+                ),
+                FilterChip(
+                  label: const Text('Einrasten'),
+                  selected: snapping,
+                  onSelected: (v) => setState(() => snapping = v),
+                ),
+              ],
+            ),
+            if (detectionMessage != null) Text(detectionMessage!),
+            if (snapped) const Text('An Kante eingerastet'),
             Text(
               widget.photo
                   ? 'Die Ecken für den Bildausschnitt ziehen.'
                   : 'Die vier Ecken an die Dokumentränder ziehen.',
             ),
             TextButton.icon(
-              onPressed: busy ? null : () => render(crop: true),
+              onPressed: busy || detecting ? null : () => render(crop: true),
               icon: const Icon(Icons.check),
               label: const Text('Zuschnitt anwenden'),
             ),
@@ -205,29 +337,64 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               label: const Text('Letzte Schwärzung zurück'),
             ),
           ],
-          if (mode == 'filter') ...[
+          LayoutBuilder(
+            builder: (ctx, constraints) {
+              final aspect = currentWidth / currentHeight;
+              final height = (constraints.maxWidth / aspect).clamp(
+                1.0,
+                MediaQuery.sizeOf(ctx).height *
+                    (mode == 'filter' || mode == 'preview' ? .28 : .48),
+              );
+              return Center(
+                child: SizedBox(
+                  width: height * aspect,
+                  height: height,
+                  child: _imageOverlay(
+                    Image.memory(
+                      mode == 'filter' || mode == 'preview'
+                          ? preview ?? current
+                          : current,
+                      key: const ValueKey('scan-live-preview'),
+                      gaplessPlayback: true,
+                      fit: BoxFit.fill,
+                    ),
+                    height * aspect,
+                  ),
+                ),
+              );
+            },
+          ),
+          if (previewBusy)
+            const Text('Vorschau …', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          if (mode == 'filter' || mode == 'preview') ...[
+            const Text(
+              'Filtervorschau',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             Wrap(
               spacing: 6,
+              runSpacing: 6,
               children: [
-                for (final f
-                    in widget.photo
-                        ? [
-                            ('color', 'Original'),
-                            ('warm', 'Warm'),
-                            ('cool', 'Kühl'),
-                            ('gray', 'Schwarzweiß'),
-                          ]
-                        : [
-                            ('color', 'Farbe'),
-                            ('gray', 'Graustufen'),
-                            ('bw', 'Schwarzweiß'),
-                          ])
+                for (final f in scanFilters.entries)
                   ChoiceChip(
-                    label: Text(f.$2),
-                    selected: filter == f.$1,
+                    avatar: thumbnails[f.key] == null
+                        ? null
+                        : Image.memory(
+                            thumbnails[f.key]!,
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.cover,
+                            excludeFromSemantics: true,
+                          ),
+                    label: Text(f.value),
+                    selected: filter == f.key,
                     onSelected: busy
                         ? null
-                        : (_) => setState(() => filter = f.$1),
+                        : (_) {
+                            setState(() => filter = f.key);
+                            schedulePreview();
+                          },
                   ),
               ],
             ),
@@ -241,7 +408,10 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                     max: 1.5,
                     onChanged: busy
                         ? null
-                        : (v) => setState(() => brightness = v),
+                        : (v) {
+                            setState(() => brightness = v);
+                            schedulePreview();
+                          },
                   ),
                 ),
               ],
@@ -256,7 +426,10 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                     max: 1.8,
                     onChanged: busy
                         ? null
-                        : (v) => setState(() => contrast = v),
+                        : (v) {
+                            setState(() => contrast = v);
+                            schedulePreview();
+                          },
                   ),
                 ),
               ],
@@ -272,7 +445,10 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                       max: 2,
                       onChanged: busy
                           ? null
-                          : (v) => setState(() => saturation = v),
+                          : (v) {
+                              setState(() => saturation = v);
+                              schedulePreview();
+                            },
                     ),
                   ),
                 ],
@@ -284,25 +460,17 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             ),
           ],
           const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (ctx, constraints) {
-              final aspect = currentWidth / currentHeight;
-              final height = (constraints.maxWidth / aspect).clamp(
-                1.0,
-                MediaQuery.sizeOf(ctx).height * .55,
-              );
-              return Center(
-                child: SizedBox(
-                  width: height * aspect,
-                  height: height,
-                  child: _imageOverlay(
-                    Image.memory(current, fit: BoxFit.fill),
-                    height * aspect,
-                  ),
-                ),
-              );
-            },
-          ),
+          if (mode == 'crop' && preview != null) ...[
+            const Text('Zuschnittvorschau'),
+            SizedBox(
+              height: 140,
+              child: Image.memory(
+                preview!,
+                gaplessPlayback: true,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           const Text(
             'Schwärzungen werden beim Übernehmen fest in die Seite eingerechnet.',
@@ -315,7 +483,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
           child: const Text('Abbrechen'),
         ),
         FilledButton(
-          onPressed: busy
+          onPressed: busy || detecting
               ? null
               : () => render(crop: mode == 'crop', finish: true),
           child: const Text('Übernehmen'),
@@ -360,6 +528,18 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                       ? null
                       : (d) => setState(() {
                           end = point(d.localPosition);
+                          snapped = false;
+                          if (mode == 'crop' && snapping) {
+                            final p = snapScanPoint(
+                              [end!.dx, end!.dy],
+                              detected.map((p) => [p.dx, p.dy]).toList(),
+                              edges.map((p) => [p.dx, p.dy]).toList(),
+                              box.maxWidth,
+                              box.maxHeight,
+                            );
+                            snapped = p[0] != end!.dx || p[1] != end!.dy;
+                            end = Offset(p[0], p[1]);
+                          }
                           if (mode == 'crop' && dragging != null) {
                             corners = [...corners];
                             if (widget.photo) {
@@ -380,6 +560,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                               corners[dragging!] = end!;
                             }
                           }
+                          if (mode == 'crop') schedulePreview();
                         }),
                   onPanEnd: busy || !{'crop', 'redact'}.contains(mode)
                       ? null

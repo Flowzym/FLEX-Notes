@@ -59,7 +59,7 @@ class PupilCard extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(minHeight: 56),
               padding: EdgeInsets.symmetric(
-                vertical: appearance?.compact == true ? 4 : 8,
+                vertical: appearance?.compact == true ? 3 : 5,
                 horizontal: 2,
               ),
               child: Column(
@@ -67,11 +67,12 @@ class PupilCard extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 64,
-                    height: 48,
+                    height: 42,
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Center(
+                        Align(
+                          alignment: Alignment.bottomCenter,
                           child: FlexIcon(symbol, size: 32, color: foreground),
                         ),
                         if (count > 0)
@@ -118,7 +119,7 @@ class PupilCard extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 2),
                   Text(
                     label,
                     textAlign: TextAlign.center,
@@ -201,7 +202,7 @@ class PupilCard extends StatelessWidget {
                     child: Text('Archiviert'),
                   ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+                  padding: const EdgeInsets.fromLTRB(18, 6, 18, 8),
                   child: Column(
                     children: [
                       Row(

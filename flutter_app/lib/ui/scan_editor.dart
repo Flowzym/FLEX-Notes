@@ -359,29 +359,46 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     Uint8List bytes, {
     bool photo = false,
     String? captureToken,
+    String? replaceKey,
   }) async {
-    if (pages.length >= scanPageLimit) {
+    final replacement = replaceKey == null
+        ? -1
+        : pages.indexWhere((p) => p.key == replaceKey);
+    if (replaceKey != null && replacement < 0) {
+      throw const DomainError(
+        'Die zu ersetzende Seite ist nicht mehr vorhanden.',
+      );
+    }
+    if (replacement < 0 && pages.length >= scanPageLimit) {
       throw const DomainError('Pro PDF sind bis zu 25 Seiten möglich.');
     }
     final image = await compute(normalizeScan, bytes);
     final key = newId();
     await widget.files.write(key, image['bytes'] as Uint8List);
     knownKeys.add(key);
+    final page = ScanPage(
+      key,
+      image['width'] as int,
+      image['height'] as int,
+      photo: photo,
+      captureToken: captureToken,
+    );
+    final next = pages;
+    if (replacement < 0) {
+      next.add(page);
+    } else {
+      next[replacement] = page;
+    }
     change({
-      'pages': [
-        ...pages.map((p) => p.toJson()),
-        ScanPage(
-          key,
-          image['width'] as int,
-          image['height'] as int,
-          photo: photo,
-          captureToken: captureToken,
-        ).toJson(),
-      ],
+      'pages': next.map((p) => p.toJson()).toList(),
+      if (replaceKey != null) 'captureReplaceKey': null,
     });
     // A failed metadata write must retain both the buffered page and its bytes:
     // the next flush can safely retry without creating a dangling file reference.
     await buffer.flush();
+    if (replaceKey != null) {
+      await removeUnusedScanFiles(c.repository, widget.files, [replaceKey]);
+    }
   }
 
   Future<void> cleanupPages() async {
@@ -405,7 +422,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> pick() => action(() async {
+  Future<void> pick({String? replaceKey}) => action(() async {
     final files =
         await (widget.pickFiles?.call() ??
             openFiles(
@@ -422,6 +439,14 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                 ),
               ],
             ));
+    if (replaceKey != null &&
+        files.isNotEmpty &&
+        (files.length != 1 ||
+            files.single.name.toLowerCase().endsWith('.pdf'))) {
+      throw const DomainError(
+        'Zum Ersetzen bitte genau ein Bild auswählen. PDFs über „Bilder / PDF hinzufügen“ ergänzen.',
+      );
+    }
     for (final file in files) {
       if (await file.length() > 20000000) {
         throw const DomainError('Bitte Dateien bis zu 20 MB auswählen.');
@@ -437,7 +462,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       if (file.name.toLowerCase().endsWith('.pdf')) {
         await addPdf(content);
       } else {
-        await addImage(content, photo: true);
+        await addImage(content, photo: photoOutput, replaceKey: replaceKey);
       }
     }
   });
@@ -460,7 +485,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       if (mounted) {
         setState(
           () => cameraNotice =
-              'Automatische Dokumenterkennung nicht verfügbar. Aufnahme mit der normalen Kamera; Zuschnitt und Filter kannst du danach einstellen.',
+              'Aufnahme mit der normalen Kamera. Dokumentränder, Zuschnitt und Filter sind unter „Bearbeiten“ verfügbar.',
         );
       }
       await captureStill(document: true);
@@ -479,6 +504,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           result['bytes'] as Uint8List,
           photo: data['captureAsDocument'] != true,
           captureToken: token,
+          replaceKey: data['captureReplaceKey'] as String?,
         );
       }
       await buffer.flush();
@@ -487,7 +513,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'token': token,
       });
     }
-    change({'capturePending': false});
+    change({'capturePending': false, 'captureReplaceKey': null});
     await buffer.flush();
   }
 
@@ -499,17 +525,25 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await acceptPhoto(result);
   }
 
-  Future<void> takePhoto() => action(() => captureStill(document: false));
-  Future<void> captureStill({required bool document}) async {
+  Future<void> takePhoto() => action(() async {
+    await captureStill(document: false);
+  });
+  Future<bool> captureStill({
+    required bool document,
+    String? replaceKey,
+  }) async {
+    final previousKeys = pages.map((p) => p.key).join(',');
     if (data['capturePending'] == true && nativeCamera) {
       await recoverPhoto();
-      return;
+      return previousKeys != pages.map((p) => p.key).join(',');
     }
     if (pages.isEmpty && !document) change({'outputFormat': 'jpg'});
     if (widget.capturePhoto != null) {
       final bytes = await widget.capturePhoto!();
-      if (bytes != null) await addImage(bytes, photo: !document);
-      return;
+      if (bytes != null) {
+        await addImage(bytes, photo: !document, replaceKey: replaceKey);
+      }
+      return bytes != null;
     }
     final owner = await FlexDevice.channel.invokeMethod<String>(
       'pendingPhotoOwner',
@@ -520,14 +554,97 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'draftId': owner,
       });
     }
-    change({'capturePending': true, 'captureAsDocument': document});
+    change({
+      'capturePending': true,
+      'captureAsDocument': document,
+      'captureReplaceKey': replaceKey,
+    });
     await buffer.flush();
     final result = await FlexDevice.channel.invokeMapMethod<String, dynamic>(
       'capturePhoto',
       {'draftId': buffer.draft.id},
     );
     await acceptPhoto(result);
+    return result != null;
   }
+
+  Future<void> replacePage(int index) async {
+    final page = pages[index];
+    final source = await showDialog<String>(
+      context: context,
+      builder: (ctx) => FlexModal(
+        title: Text('${page.photo ? 'Foto' : 'Seite'} ${index + 1} ersetzen'),
+        onClose: () => Navigator.pop(ctx),
+        content: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (nativeCamera || widget.capturePhoto != null)
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(ctx, 'camera'),
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: const Text('Neu aufnehmen'),
+              ),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(ctx, 'file'),
+              icon: const Icon(Icons.image_outlined),
+              label: const Text('Bild auswählen'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || source == null) return;
+    if (source == 'file') {
+      await pick(replaceKey: page.key);
+    } else {
+      await action(() async {
+        await captureStill(document: !page.photo, replaceKey: page.key);
+      });
+    }
+  }
+
+  Future<void> captureSeries() => action(() async {
+    final document = !photoOutput;
+    while (mounted && pages.length < scanPageLimit) {
+      if (!await captureStill(document: document) ||
+          !mounted ||
+          pages.length >= scanPageLimit) {
+        break;
+      }
+      final bytes = await widget.files.read(pages.last.key);
+      if (!mounted) return;
+      final again = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => FlexModal(
+          title: Text('${pages.length} Aufnahmen'),
+          onClose: () => Navigator.pop(ctx, false),
+          content: SizedBox(
+            height: 200,
+            child: Image.memory(bytes, fit: BoxFit.contain),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Fertig'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(ctx, true),
+              icon: const Icon(Icons.add_a_photo_outlined),
+              label: const Text('Nächste Aufnahme'),
+            ),
+          ],
+        ),
+      );
+      if (again != true) break;
+    }
+  });
 
   Future<void> editPage(int index) => action(() async {
     final page = pages[index],
@@ -571,6 +688,12 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   Future<void> movePage(int index, int step) => action(() async {
     final next = pages, item = next.removeAt(index);
     next.insert(index + step, item);
+    change({'pages': next.map((p) => p.toJson()).toList()});
+    await buffer.flush();
+  });
+  Future<void> reorderPage(int from, int to) => action(() async {
+    final next = pages, item = next.removeAt(from);
+    next.insert(to, item);
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
   });
@@ -651,6 +774,15 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                       : capture,
                   icon: const Icon(Icons.document_scanner_outlined),
                   label: const Text('Scannen'),
+                ),
+              if (widget.capturePhoto != null || nativeCamera)
+                OutlinedButton.icon(
+                  key: const ValueKey('scanner-batch'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : captureSeries,
+                  icon: const Icon(Icons.burst_mode_outlined),
+                  label: const Text('Mehrfachaufnahme'),
                 ),
               if (widget.capturePhoto != null || nativeCamera)
                 OutlinedButton.icon(
@@ -802,80 +934,111 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text('Seiten scannen oder Bilder/PDF hinzufügen.'),
             ),
-          for (final item in pages.indexed)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          ReorderableListView(
+            key: const ValueKey('scan-page-order'),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorderItem: busy ? (_, _) {} : reorderPage,
+            children: [
+              for (final item in pages.indexed)
+                Card(
+                  key: ValueKey('scan-row-${item.$2.key}'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
                       children: [
-                        SizedBox(
-                          width: 72,
-                          height: 100,
-                          child: FutureBuilder<Uint8List>(
-                            future: widget.files.read(item.$2.key),
-                            builder: (ctx, s) => s.hasError
-                                ? const Icon(Icons.broken_image_outlined)
-                                : s.hasData
-                                ? Image.memory(s.data!, fit: BoxFit.contain)
-                                : const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 72,
+                              height: 100,
+                              child: FutureBuilder<Uint8List>(
+                                future: widget.files.read(item.$2.key),
+                                builder: (ctx, s) => s.hasError
+                                    ? const Icon(Icons.broken_image_outlined)
+                                    : s.hasData
+                                    ? Image.memory(s.data!, fit: BoxFit.contain)
+                                    : const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
                               ),
-                              Wrap(
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  IconButton(
-                                    tooltip: 'Seite nach vorne',
-                                    onPressed: busy || item.$1 == 0
-                                        ? null
-                                        : () => movePage(item.$1, -1),
-                                    icon: const Icon(Icons.arrow_upward),
+                                  Text(
+                                    '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
                                   ),
-                                  IconButton(
-                                    tooltip: 'Seite nach hinten',
-                                    onPressed:
-                                        busy || item.$1 == pages.length - 1
-                                        ? null
-                                        : () => movePage(item.$1, 1),
-                                    icon: const Icon(Icons.arrow_downward),
+                                  Wrap(
+                                    children: [
+                                      ReorderableDragStartListener(
+                                        index: item.$1,
+                                        enabled: !busy,
+                                        child: const Tooltip(
+                                          message: 'Zum Umsortieren ziehen',
+                                          child: Padding(
+                                            padding: EdgeInsets.all(12),
+                                            child: Icon(Icons.drag_handle),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Seite nach vorne',
+                                        onPressed: busy || item.$1 == 0
+                                            ? null
+                                            : () => movePage(item.$1, -1),
+                                        icon: const Icon(Icons.arrow_upward),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Seite nach hinten',
+                                        onPressed:
+                                            busy || item.$1 == pages.length - 1
+                                            ? null
+                                            : () => movePage(item.$1, 1),
+                                        icon: const Icon(Icons.arrow_downward),
+                                      ),
+                                      IconButton(
+                                        key: ValueKey(
+                                          'scan-replace-page-${item.$1}',
+                                        ),
+                                        tooltip: 'Bild ersetzen',
+                                        onPressed: busy
+                                            ? null
+                                            : () => replacePage(item.$1),
+                                        icon: const Icon(Icons.find_replace),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Seite entfernen',
+                                        onPressed: busy
+                                            ? null
+                                            : () => deletePage(item.$1),
+                                        icon: const Icon(Icons.delete_outline),
+                                      ),
+                                    ],
                                   ),
-                                  IconButton(
-                                    tooltip: 'Seite entfernen',
+                                  OutlinedButton.icon(
+                                    key: ValueKey('scan-edit-page-${item.$1}'),
                                     onPressed: busy
                                         ? null
-                                        : () => deletePage(item.$1),
-                                    icon: const Icon(Icons.delete_outline),
+                                        : () => editPage(item.$1),
+                                    icon: const Icon(Icons.edit_outlined),
+                                    label: const Text('Bearbeiten'),
                                   ),
                                 ],
                               ),
-                              OutlinedButton.icon(
-                                key: ValueKey('scan-edit-page-${item.$1}'),
-                                onPressed: busy
-                                    ? null
-                                    : () => editPage(item.$1),
-                                icon: const Icon(Icons.edit_outlined),
-                                label: const Text('Bearbeiten'),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+            ],
+          ),
           if (data['sourceId'] != null)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,

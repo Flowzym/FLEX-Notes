@@ -22,7 +22,7 @@ void main() {
       await controller.initialize();
       await tester.pumpWidget(FlexApp(controller: controller));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Klassen-Orga anlegen'));
+      await tester.tap(find.byTooltip('Klassen-Orga anlegen'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('orga-note')),
@@ -73,7 +73,7 @@ void main() {
       await controller.initialize();
       await tester.pumpWidget(FlexApp(controller: controller));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Klassen-Orga anlegen'));
+      await tester.tap(find.byTooltip('Klassen-Orga anlegen'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('orga-note')),

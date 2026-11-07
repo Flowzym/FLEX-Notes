@@ -1,4 +1,5 @@
 import 'symbol_button.dart';
+import 'scanner_library.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 import '../services/material_storage.dart';
@@ -411,6 +412,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     2: 'Papierkorb',
     3: 'Daten',
     4: 'Einstellungen',
+    5: 'Scanner',
   };
   static const _materialPages = {
     0: 'Dateien',
@@ -441,6 +443,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
     padding: const EdgeInsets.all(16),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
+        (
+          'Scans & Fotos',
+          Icons.document_scanner_outlined,
+          () => _changeView(() => _moreView = 5),
+        ),
         (
           'Entwürfe (${c.draftCount})',
           Icons.edit_note,
@@ -514,6 +521,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ],
   );
   Widget _moreBody() => switch (_moreView) {
+    5 => ScannerLibrary(
+      key: const ValueKey('scanner-library-page'),
+      controller: c,
+    ),
     1 => _pupils(archived: true),
     2 => Column(
       children: [
@@ -576,7 +587,25 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 ],
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'FLEX.',
+                  key: const ValueKey('app-wordmark'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    letterSpacing: 1.8,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: .55),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
               child: FlexPagePills(
                 keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
                 selected: switch (_destination) {
@@ -781,134 +810,118 @@ class _NotebookScreenState extends State<NotebookScreen> {
         32,
       ),
       children: [
-        Text(
-          'Überblick',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSerif'),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                'Überblick',
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSerif'),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Klassen-Orga anlegen',
+              style: IconButton.styleFrom(backgroundColor: Colors.transparent),
+              onPressed: () => _editor(OrgaEntry.empty()),
+              icon: const Icon(Icons.post_add),
+            ),
+            IconButton(
+              key: const ValueKey('overview-add-appointment'),
+              tooltip: 'Termin anlegen',
+              style: IconButton.styleFrom(backgroundColor: Colors.transparent),
+              onPressed: () =>
+                  _editor(OrgaEntry.empty().copyWith(appointmentDate: today)),
+              icon: const Icon(Icons.event_available_outlined),
+            ),
+            IconButton(
+              tooltip: 'Rückläufe',
+              style: IconButton.styleFrom(backgroundColor: Colors.transparent),
+              onPressed: () => showReturnLists(context, c),
+              icon: const Icon(Icons.fact_check_outlined),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
-        Text(
-          displayDate(dateOnly(DateTime.now())),
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(displayDate(today), style: Theme.of(context).textTheme.bodySmall),
         if (prepared.isNotEmpty ||
             suggestedMaterials(c.classroom, today).isNotEmpty)
           PreparedMaterialsTile(controller: c, date: today),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns =
-                constraints.maxWidth < 500 &&
-                    MediaQuery.textScalerOf(context).scale(12) > 18
-                ? 2
-                : 3;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final section in const [
-                  ('pending', 'Anstehend', Icons.schedule_outlined),
-                  ('complete', 'Ergänzen', Icons.edit_note_outlined),
-                  ('recent', 'Zuletzt', Icons.history),
-                ])
-                  SizedBox(
-                    width: (constraints.maxWidth - 8 * (columns - 1)) / columns,
-                    child: Material(
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final section in const [
+              ('pending', 'Anstehend', Icons.schedule_outlined),
+              ('complete', 'Ergänzen', Icons.edit_note_outlined),
+              ('recent', 'Zuletzt', Icons.history),
+            ])
+              Semantics(
+                selected: selected == section.$1,
+                button: true,
+                child: Material(
+                  color: selected == section.$1
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: .15)
+                      : Colors.transparent,
+                  shape: StadiumBorder(
+                    side: BorderSide(
                       color: selected == section.$1
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: .15)
-                          : Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: .04),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: selected == section.$1
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.outlineVariant,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: InkWell(
+                    key: ValueKey('overview-section-${section.$1}'),
+                    customBorder: const StadiumBorder(),
+                    onTap: () => setState(() => _overviewSection = section.$1),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
                         ),
-                      ),
-                      child: Semantics(
-                        selected: selected == section.$1,
-                        button: true,
-                        child: InkWell(
-                          key: ValueKey('overview-section-${section.$1}'),
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () =>
-                              setState(() => _overviewSection = section.$1),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 12,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              section.$2,
+                              style: const TextStyle(fontSize: 13),
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(section.$3, size: 20),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${counts[section.$1]}',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  section.$2,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
+                            const SizedBox(width: 6),
+                            Text(
+                              '${counts[section.$1]}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            TextButton.icon(
-              onPressed: () => _editor(OrgaEntry.empty()),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Klassen-Orga anlegen'),
-            ),
-            TextButton.icon(
-              key: const ValueKey('overview-add-appointment'),
-              onPressed: () => _editor(
-                OrgaEntry.empty().copyWith(
-                  appointmentDate: dateOnly(DateTime.now()),
-                ),
-              ),
-              icon: const Icon(Icons.event_outlined, size: 18),
-              label: const Text('Termin'),
-            ),
-            TextButton.icon(
-              onPressed: () => showReturnLists(context, c),
-              icon: const Icon(Icons.fact_check_outlined),
-              label: const Text('Rückläufe'),
-            ),
-            if (c.draftCount > 0)
-              TextButton.icon(
-                key: const ValueKey('overview-drafts'),
-                onPressed: () => _auxDialog('drafts'),
-                icon: const Icon(Icons.edit_note, size: 18),
-                label: Text(
-                  '${c.draftCount} ${c.draftCount == 1 ? 'Entwurf' : 'Entwürfe'}',
                 ),
               ),
           ],
         ),
+        if (c.draftCount > 0)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              key: const ValueKey('overview-drafts'),
+              onPressed: () => _auxDialog('drafts'),
+              icon: const Icon(Icons.edit_note, size: 18),
+              label: Text(
+                '${c.draftCount} ${c.draftCount == 1 ? 'Entwurf' : 'Entwürfe'}',
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
         if (selected == 'pending')
           _combinedSection(
             'Anstehend',

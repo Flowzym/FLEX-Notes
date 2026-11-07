@@ -294,6 +294,7 @@ class ClassroomDocument {
         'sourcePath',
         'links',
         'scan',
+        'scanner',
         'pageCount',
       },
       ClassroomKind.materialSet => {
@@ -440,6 +441,7 @@ class ClassroomDocument {
       if (links.length > 100 ||
           links.map((l) => l.identity).toSet().length != links.length ||
           _json.containsKey('scan') && _json['scan'] is! bool ||
+          _json.containsKey('scanner') && _json['scanner'] is! bool ||
           _json.containsKey('pageCount') &&
               (_json['pageCount'] is! int ||
                   number('pageCount') < 1 ||
