@@ -27,7 +27,10 @@ Der Kalender kann bei geringer Höhe zusätzlich als Ganzes gescrollt werden.
 
 Der bestehende Scanner hat eine separate Aktion **Foto aufnehmen** für Android.
 Sie verwendet die installierte Kamera ohne Dokumenterkennung und benötigt keine
-Google-Play-Dienste. Der Dokumentenscan verwendet weiterhin ML Kit. Im Browser können
+Google-Play-Dienste. Der Dokumentenscan versucht ML Kit und wechselt bei nicht verfügbarer Dokumenterkennung
+automatisch zur normalen Kamera. Dabei bleibt die Ausgabe auf PDF und die Aufnahme
+erhält die Dokumentwerkzeuge. Native Kamerafehler werden verständlich angezeigt,
+statt pauschal einen Speicher- oder Berechtigungsfehler zu behaupten. Im Browser können
 Bilder und PDFs über die Dateiauswahl hinzugefügt werden.
 
 Fotos haben rechteckigen Zuschnitt, Drehen, Spiegeln, Original/Warm/Kühl/Schwarzweiß,

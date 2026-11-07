@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:typed_data' show BytesBuilder;
 import '../domain/school.dart';
@@ -186,6 +187,25 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   bool busy = false, canPop = false, committed = false, replace = false;
   String? error;
   String progress = '';
+  String? cameraNotice;
+  String scanError(Object e) {
+    if (e is PlatformException &&
+        {
+          'scanner_unavailable',
+          'scanner_busy',
+          'photo_busy',
+          'photo_unavailable',
+          'photo_read',
+          'photo_closed',
+          'material_storage',
+        }.contains(e.code) &&
+        e.message?.isNotEmpty == true)
+      return e.message!;
+    if (e is MissingPluginException)
+      return 'Die Kamerafunktion fehlt in dieser App-Version. Bitte die aktuelle FLEX-Testapp installieren oder ein Bild aus Dateien hinzufügen.';
+    return friendlyError(e);
+  }
+
   final knownKeys = <String>{};
   List<ScanPage> get pages => (data['pages'] as List)
       .map((p) => ScanPage.fromJson(Json.from(p as Map)))
@@ -262,7 +282,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed && !committed) {
       unawaited(
         buffer.flush().catchError((Object e) {
-          if (mounted) setState(() => error = friendlyError(e));
+          if (mounted) setState(() => error = scanError(e));
         }),
       );
     }
@@ -292,7 +312,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     try {
       await callback();
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      if (mounted) setState(() => error = scanError(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -408,12 +428,24 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (remaining < 1) {
       throw const DomainError('Pro PDF sind bis zu 25 Seiten möglich.');
     }
-    final values = widget.capturePages != null
-        ? await widget.capturePages!(remaining)
-        : (await FlexDevice.channel.invokeListMethod<Uint8List>(
-            'scanDocument',
-            {'limit': remaining},
-          ));
+    List<Uint8List>? values;
+    try {
+      values = widget.capturePages != null
+          ? await widget.capturePages!(remaining)
+          : await FlexDevice.channel.invokeListMethod<Uint8List>(
+              'scanDocument',
+              {'limit': remaining},
+            );
+    } on PlatformException catch (e) {
+      if (e.code != 'scanner_unavailable' || !nativeCamera) rethrow;
+      if (mounted)
+        setState(
+          () => cameraNotice =
+              'Automatische Dokumenterkennung nicht verfügbar. Aufnahme mit der normalen Kamera; Zuschnitt und Filter kannst du danach einstellen.',
+        );
+      await captureStill(document: true);
+      return;
+    }
     if (values == null) return;
     for (final bytes in values) {
       await addImage(bytes);
@@ -425,7 +457,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       if (!pages.any((p) => p.captureToken == token)) {
         await addImage(
           result['bytes'] as Uint8List,
-          photo: true,
+          photo: data['captureAsDocument'] != true,
           captureToken: token,
         );
       }
@@ -447,15 +479,16 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await acceptPhoto(result);
   }
 
-  Future<void> takePhoto() => action(() async {
+  Future<void> takePhoto() => action(() => captureStill(document: false));
+  Future<void> captureStill({required bool document}) async {
     if (data['capturePending'] == true && nativeCamera) {
       await recoverPhoto();
       return;
     }
-    if (pages.isEmpty) change({'outputFormat': 'jpg'});
+    if (pages.isEmpty && !document) change({'outputFormat': 'jpg'});
     if (widget.capturePhoto != null) {
       final bytes = await widget.capturePhoto!();
-      if (bytes != null) await addImage(bytes, photo: true);
+      if (bytes != null) await addImage(bytes, photo: !document);
       return;
     }
     final owner = await FlexDevice.channel.invokeMethod<String>(
@@ -467,14 +500,15 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'draftId': owner,
       });
     }
-    change({'capturePending': true});
+    change({'capturePending': true, 'captureAsDocument': document});
     await buffer.flush();
     final result = await FlexDevice.channel.invokeMapMethod<String, dynamic>(
       'capturePhoto',
       {'draftId': buffer.draft.id},
     );
     await acceptPhoto(result);
-  });
+  }
+
   Future<void> editPage(int index) => action(() async {
     final page = pages[index],
         bytes = await widget.files.read(pages[index].key);
@@ -571,6 +605,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         children: [
           if (busy && !pageEditorOpen) const LinearProgressIndicator(),
           if (progress.isNotEmpty) Text(progress),
+          if (cameraNotice != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(cameraNotice!),
+            ),
           if (error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

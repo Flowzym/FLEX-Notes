@@ -200,6 +200,7 @@ class FlexBottomNavigation extends StatelessWidget {
                     selected: selected == e.$1,
                     button: true,
                     child: Tooltip(
+                      excludeFromSemantics: e.$1 != 4,
                       message: e.$1 == 4 ? 'Weitere Bereiche' : e.$2,
                       child: InkWell(
                         key: ValueKey('bottom-${e.$1}'),

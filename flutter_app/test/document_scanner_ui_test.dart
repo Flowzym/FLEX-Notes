@@ -158,6 +158,78 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  for (final cameraFails in [false, true]) {
+    testWidgets(
+      'document scanner falls back without Play Services; camera fails=$cameraFails',
+      (t) async {
+        final c = await controller(), files = MemoryMaterialFiles();
+        final calls = <String>[];
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(FlexDevice.channel, (call) async {
+              calls.add(call.method);
+              if (call.method == 'scanDocument')
+                throw PlatformException(
+                  code: 'scanner_unavailable',
+                  message: 'Google Play-Dienste nicht verfügbar.',
+                );
+              if (call.method == 'capturePhoto') {
+                if (cameraFails)
+                  throw PlatformException(
+                    code: 'photo_unavailable',
+                    message:
+                        'Die Kamera konnte nicht geöffnet werden. Alternativ ein Bild aus Dateien hinzufügen.',
+                  );
+                return {'token': 'fallback-photo', 'bytes': scannerImage()};
+              }
+              return null;
+            });
+        addTearDown(
+          () => TestDefaultBinaryMessengerBinding
+              .instance
+              .defaultBinaryMessenger
+              .setMockMethodCallHandler(FlexDevice.channel, null),
+        );
+        await host(t, (_) => ScanEditor(controller: c, files: files));
+        await tap(t, find.byKey(const ValueKey('scanner-camera')));
+        if (cameraFails) {
+          await t.pumpAndSettle();
+          expect(
+            find.textContaining('Die Kamera konnte nicht geöffnet werden.'),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining('Speichern oder Laden fehlgeschlagen'),
+            findsNothing,
+          );
+        } else {
+          await settleWork(
+            t,
+            () =>
+                calls.contains('finishPhoto') &&
+                find.byType(LinearProgressIndicator).evaluate().isEmpty,
+          );
+          final data = c.dialogDrafts.single.data;
+          expect(data['outputFormat'], 'pdf');
+          expect(
+            ScanPage.fromJson(
+              Json.from((data['pages'] as List).single as Map),
+            ).photo,
+            false,
+          );
+          expect(data['capturePending'], false);
+        }
+        expect(calls, containsAllInOrder(['scanDocument', 'capturePhoto']));
+        expect(
+          find.textContaining('Automatische Dokumenterkennung nicht verfügbar'),
+          findsOneWidget,
+        );
+        await t.pumpWidget(const SizedBox());
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
+  }
   testWidgets(
     'interrupted native photo is recovered once and acknowledged only after durable draft',
     (t) async {

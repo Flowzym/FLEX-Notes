@@ -10,6 +10,8 @@ import android.os.Looper
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.ConnectionResult
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
@@ -28,6 +30,11 @@ class DocumentScanner(private val context: Context) {
             result.error("scanner_busy", "Der Scanner ist gerade nicht verfügbar.", null); return
         }
         pending = result
+        val availability = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
+        if (availability != ConnectionResult.SUCCESS) {
+            fail("Die automatische Dokumenterkennung ist nicht verfügbar (Google Play-Dienste: $availability). Bitte die normale Kamera verwenden."); return
+        }
+        try {
         val options = GmsDocumentScannerOptions.Builder()
             .setGalleryImportAllowed(true)
             .setPageLimit(limit.coerceIn(1, 25))
@@ -42,8 +49,11 @@ class DocumentScanner(private val context: Context) {
                 } catch (_: Exception) { fail("Der Scanner konnte nicht gestartet werden. Bilder können über Dateien hinzugefügt werden.") }
             }
             .addOnFailureListener {
-                if (pending === result) fail("Der Kamera-Scanner benötigt verfügbare Google Play-Dienste. Beim ersten Start kann ein Download nötig sein. Alternativ Bilder über Dateien hinzufügen.")
+                if (pending === result) fail("Die automatische Dokumenterkennung konnte nicht gestartet werden. Bitte die normale Kamera verwenden. Google Play-Dienste können ein Update oder einen Moduldownload benötigen.")
             }
+        } catch (_: Exception) {
+            fail("Die automatische Dokumenterkennung konnte nicht geöffnet werden. Bitte die normale Kamera verwenden.")
+        }
     }
     private fun fail(message: String) {
         val result = pending; pending = null
