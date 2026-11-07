@@ -77,7 +77,8 @@ class PupilCard extends StatelessWidget {
                         ),
                         if (count > 0)
                           Positioned(
-                            right: 5,
+                            // Keep wider counts outside the icon as they grow.
+                            left: 48,
                             top: 0,
                             child: Tooltip(
                               message:
