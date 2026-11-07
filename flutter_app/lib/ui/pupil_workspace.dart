@@ -320,51 +320,22 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           children: [
             navigation(),
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: () => showPupilMaterials(context, c, p),
-                icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('Dokumente & Materialien'),
-              ),
-            ),
-            const SizedBox(height: 8),
             CollapsibleSearch(
               fieldKey: const ValueKey('pupil-entry-search'),
               buttonKey: const ValueKey('pupil-search-button'),
               controller: search,
               label: 'Einträge durchsuchen',
-              onChanged: (v) => setState(() => query = v),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: const ValueKey('pupil-entry-filter'),
-                    initialValue: filter,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Anzeige',
-                      isDense: true,
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'all',
-                        child: Text('Alle Einträge'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'open',
-                        child: Text('Noch offen'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'closed',
-                        child: Text('Abgeschlossen'),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => filter = v!),
-                  ),
+              iconOnly: true,
+              leading: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () => showPupilMaterials(context, c, p),
+                  icon: const Icon(Icons.folder_open_outlined),
+                  label: const Text('Dokumente'),
                 ),
+              ),
+              onChanged: (v) => setState(() => query = v),
+              actions: [
                 if (!p.archived && area == FlexSymbol.orga)
                   IconButton(
                     tooltip: 'Termin anlegen',
@@ -399,6 +370,24 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                       ],
                     ),
                 ],
+              ],
+            ),
+            Wrap(
+              key: const ValueKey('pupil-entry-filter'),
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final option in const {
+                  'all': 'Alle',
+                  'open': 'Noch offen',
+                  'closed': 'Abgeschlossen',
+                }.entries)
+                  ChoiceChip(
+                    key: ValueKey('pupil-filter-${option.key}'),
+                    label: Text(option.value),
+                    selected: filter == option.key,
+                    onSelected: (_) => setState(() => filter = option.key),
+                  ),
               ],
             ),
             const SizedBox(height: 12),

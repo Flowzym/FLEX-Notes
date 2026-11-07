@@ -1,6 +1,5 @@
 import 'material_thumbnail.dart';
 import 'general_orga_page.dart';
-import 'symbol_button.dart';
 import 'scanner_library.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
@@ -1519,50 +1518,72 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final busy = _busyIds.contains(e.id);
     return FlexCard(
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  e.isAppointment
-                      ? Icons.event_outlined
-                      : e.isTask
-                      ? (e.done
-                            ? Icons.task_alt
-                            : Icons.check_box_outline_blank)
-                      : Icons.notes,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        e.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        '${c.owner(e)} · ${e.isAppointment
-                            ? 'Termin'
-                            : e.isTask
-                            ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
-                            : 'Notiz'}',
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
+            LayoutBuilder(
+              builder: (ctx, constraints) {
+                final leading = e.isTask
+                    ? IconButton(
+                        tooltip: e.done ? 'Wieder öffnen' : 'Erledigen',
+                        onPressed: busy
+                            ? null
+                            : () => _mutate(e.done ? e.reopen() : e.complete()),
+                        icon: Icon(
+                          e.done
+                              ? Icons.task_alt
+                              : Icons.check_box_outline_blank,
+                        ),
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : Icon(
+                        e.isAppointment ? Icons.event_outlined : Icons.notes,
+                        color: Theme.of(context).colorScheme.primary,
+                      );
+                final heading = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      '${c.owner(e)} · ${e.isAppointment
+                          ? 'Termin'
+                          : e.isTask
+                          ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
+                          : 'Notiz'}',
+                    ),
+                  ],
+                );
+                final edit = IconButton(
                   tooltip: 'Bearbeiten',
                   onPressed: () => _editor(e),
                   icon: const Icon(Icons.edit),
-                ),
-              ],
+                );
+                if (constraints.maxWidth < 300 ||
+                    MediaQuery.textScalerOf(ctx).scale(14) > 21) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [leading, const Spacer(), edit]),
+                      heading,
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    leading,
+                    const SizedBox(width: 8),
+                    Expanded(child: heading),
+                    edit,
+                  ],
+                );
+              },
             ),
-            if (e.body.isNotEmpty)
+            if (e.body.trim().isNotEmpty && e.body.trim() != e.title.trim())
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
@@ -1603,7 +1624,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
-                  'Aufgabentermin: ${displayDate(e.dueDate)}${!e.done && e.dueDate!.compareTo(dateOnly(DateTime.now())) < 0 ? ' · überfällig' : ''}',
+                  'Fällig: ${displayDate(e.dueDate)}${!e.done && e.dueDate!.compareTo(dateOnly(DateTime.now())) < 0 ? ' · überfällig' : ''}',
                 ),
               ),
             if (e.reminderAtUtc != null)
@@ -1624,18 +1645,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
               controller: c,
               scope: orgaScanContext(c, e),
               readOnly: e.deleted,
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (e.isTask)
-                  FlexSymbolButton(
-                    onPressed: busy
-                        ? null
-                        : () => _mutate(e.done ? e.reopen() : e.complete()),
-                    icon: e.done ? Icons.undo : Icons.check_circle_outline,
-                    label: e.done ? 'Wieder öffnen' : 'Erledigen',
-                  ),
+              compact: true,
+              actions: [
                 if ((e.isTask || e.isAppointment) && !e.done)
                   IconButton(
                     tooltip: 'Wiederholung',
@@ -1658,11 +1669,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     icon: const Icon(Icons.snooze),
                   ),
                 if (e.reminderState == ReminderState.planned)
-                  TextButton(
+                  IconButton(
+                    tooltip: 'Erinnerung quittieren',
                     onPressed: busy ? null : () => _mutate(e.acknowledge()),
-                    child: const Text('Erinnerung quittieren'),
+                    icon: const Icon(Icons.notifications_off_outlined),
                   ),
-                TextButton.icon(
+                IconButton(
+                  tooltip: 'Papierkorb',
                   onPressed: busy
                       ? null
                       : () async {
@@ -1683,12 +1696,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             );
                           }
                         },
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Papierkorb'),
+                  icon: const Icon(Icons.delete_outline),
                 ),
-                TextButton(
+                IconButton(
+                  tooltip: 'Änderungen',
                   onPressed: () => _history(e),
-                  child: const Text('Änderungen'),
+                  icon: const Icon(Icons.history),
                 ),
               ],
             ),

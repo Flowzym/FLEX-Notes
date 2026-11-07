@@ -175,47 +175,38 @@ class _BackupDialogState extends State<BackupDialog> {
     canPop: !busy,
     child: FlexModal(
       maxWidth: 430,
-      title: const Text('Datensicherung'),
+      title: Text(
+        widget.export ? 'Sicherung exportieren' : 'Sicherung importieren',
+      ),
       onClose: busy ? null : () => Navigator.pop(context),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CompactSwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Sicherung mit Passwort verschlüsseln'),
-            value: encrypt,
-            onChanged: busy ? null : (v) => setState(() => encrypt = v),
-          ),
-          CompactSwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Darstellung und Hintergrundbild mitsichern'),
-            value: appearance,
-            onChanged: busy ? null : (v) => setState(() => appearance = v),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton(
-                onPressed: busy ? null : () => action(exportFile),
-                child: const Text('Exportieren'),
-              ),
-              OutlinedButton(
-                onPressed: busy ? null : () => action(importFile),
-                child: const Text('Importieren'),
-              ),
-            ],
-          ),
-          CompactSwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Auswahllisten aus der Sicherung übernehmen'),
-            value: catalogs,
-            onChanged: busy ? null : (v) => setState(() => catalogs = v),
-          ),
-          const Text(
-            'Die Sicherung enthält Unterrichtsdaten und Entwürfe einschließlich Papierkorb und früherer Fassungen. Bewahre sie geschützt auf.',
-          ),
+          if (widget.export) ...[
+            CompactSwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Sicherung mit Passwort verschlüsseln'),
+              value: encrypt,
+              onChanged: busy ? null : (v) => setState(() => encrypt = v),
+            ),
+            CompactSwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Darstellung und Hintergrundbild mitsichern'),
+              value: appearance,
+              onChanged: busy ? null : (v) => setState(() => appearance = v),
+            ),
+          ] else
+            CompactSwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Auswahllisten aus der Sicherung übernehmen'),
+              value: catalogs,
+              onChanged: busy ? null : (v) => setState(() => catalogs = v),
+            ),
+          if (widget.export)
+            const Text(
+              'Die Sicherung enthält Unterrichtsdaten und Entwürfe einschließlich Papierkorb und früherer Fassungen. Bewahre sie geschützt auf.',
+            ),
           if (message != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -224,6 +215,15 @@ class _BackupDialogState extends State<BackupDialog> {
           if (busy) const LinearProgressIndicator(),
         ],
       ),
+      actions: [
+        FilledButton.icon(
+          onPressed: busy
+              ? null
+              : () => action(widget.export ? exportFile : importFile),
+          icon: Icon(widget.export ? Icons.download : Icons.upload_file),
+          label: Text(widget.export ? 'Exportieren' : 'Datei auswählen'),
+        ),
+      ],
     ),
   );
 }
@@ -278,7 +278,8 @@ Future<void> showImportReview(
       c.trashedEntries.isNotEmpty ||
       c.records.isNotEmpty ||
       c.draftCount > 0 ||
-      c.stagedLegacyCount > 0) {
+      c.stagedLegacyCount > 0 ||
+      c.classroom.isNotEmpty) {
     if (context.mounted) {
       await showMergeReview(context, c, text, catalogs: catalogs);
     }

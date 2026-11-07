@@ -1116,18 +1116,22 @@ class SqliteNotebook
         if (rows is! List || rows.length > 100000) {
           throw const DomainError('Ungültige Tabellendaten.');
         }
-        for (final value in rows) {
-          final row = Map<String, dynamic>.from(value as Map);
-          if (row.length != columns.length ||
-              row.keys.toSet().difference(columns).isNotEmpty) {
-            throw const DomainError('Unbekannte oder fehlende Datenfelder.');
+        // One worker round-trip per table, rather than one per history row.
+        // The surrounding transaction still rolls back every table on failure.
+        await db.batch((batch) {
+          for (final value in rows) {
+            final row = Map<String, dynamic>.from(value as Map);
+            if (row.length != columns.length ||
+                row.keys.toSet().difference(columns).isNotEmpty) {
+              throw const DomainError('Unbekannte oder fehlende Datenfelder.');
+            }
+            final names = row.keys.toList();
+            batch.customStatement(
+              'INSERT INTO $table(${names.join(',')}) VALUES (${List.filled(names.length, '?').join(',')})${table == 'devices' ? ' ON CONFLICT(id) DO NOTHING' : ''}',
+              names.map((n) => row[n]).toList(),
+            );
           }
-          final names = row.keys.toList();
-          await db.customStatement(
-            'INSERT INTO $table(${names.join(',')}) VALUES (${List.filled(names.length, '?').join(',')})${table == 'devices' ? ' ON CONFLICT(id) DO NOTHING' : ''}',
-            names.map((n) => row[n]).toList(),
-          );
-        }
+        });
       }
       for (final p in await pupils()) {
         p.validate();

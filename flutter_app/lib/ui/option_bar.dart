@@ -53,9 +53,25 @@ class OptionBar extends StatelessWidget {
         );
       }
 
-      final vertical =
-          constraints.maxWidth < 400 &&
-          MediaQuery.textScalerOf(context).scale(fontSize) > 24;
+      final slotWidth = (constraints.maxWidth - 4) / options.length;
+      final vertical = options.values.any((label) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: TextStyle(
+              fontFamily: 'FlexSans',
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          textScaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+          maxLines: 1,
+        )..layout();
+        final tooWide = painter.width + 16 > slotWidth;
+        painter.dispose();
+        return tooWide;
+      });
       return Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(

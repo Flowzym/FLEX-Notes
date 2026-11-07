@@ -107,12 +107,16 @@ class DocumentAttachmentSection extends StatelessWidget {
     this.compact = false,
     this.showActions = true,
     this.showFiles = true,
+    this.actions = const [],
   });
   final NotebookController controller;
   final ScanContext scope;
   final VoidCallback? onScan, onDocuments;
   final bool saveFirst, readOnly;
   final bool compact, showActions, showFiles;
+
+  /// Always-visible record actions sharing the attachment toolbar.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -127,12 +131,12 @@ class DocumentAttachmentSection extends StatelessWidget {
             : CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!readOnly && showActions)
+          if (showActions && (!readOnly || actions.isNotEmpty))
             Wrap(
-              spacing: 8,
+              spacing: compact ? 4 : 8,
               runSpacing: 4,
               children: [
-                if (compact) ...[
+                if (!readOnly && compact) ...[
                   IconButton(
                     key: const ValueKey('attachment-scan'),
                     tooltip: saveFirst
@@ -156,7 +160,7 @@ class DocumentAttachmentSection extends StatelessWidget {
                       child: const Icon(Icons.attach_file),
                     ),
                   ),
-                ] else ...[
+                ] else if (!readOnly) ...[
                   TextButton.icon(
                     key: const ValueKey('attachment-scan'),
                     onPressed:
@@ -179,6 +183,7 @@ class DocumentAttachmentSection extends StatelessWidget {
                     ),
                   ),
                 ],
+                ...actions,
               ],
             ),
           if (showFiles)

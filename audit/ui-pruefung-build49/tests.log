@@ -1,0 +1,901 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/scanner_library_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/scanner_library_test.dart: scanner management recognizes existing PDFs and legacy local photos
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/scanner_library_test.dart: library searches pupil and tags, filters formats and restores shared material
+00:02 +2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: timetable direct access, readable blocks and editor at 390.0/1.0
+00:03 +3: /workspace/FLEX-Notes/flutter_app/test/scanner_library_test.dart: grid and list share sorting, selection, additive tags and atomic trash restore
+00:04 +4: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: timetable direct access, readable blocks and editor at 320.0/2.0
+00:04 +5: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: timetable direct access, readable blocks and editor at 320.0/2.0
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: timetable direct access, readable blocks and editor at 1100.0/1.0
+00:05 +7: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: edit retains keyboard focus through autosave and updates the actual calendar
+00:07 +8: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +9: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +10: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +11: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +12: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +12: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file restart and full backup retain all appearance values and both images
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:266:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:295:33)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/settings_test.dart:301:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:08 +13: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +14: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:08 +15: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: period span, deletion, restore and general time changes persist
+00:10 +16: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 1100.0
+00:12 +17: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 1100.0
+00:13 +18: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 1100.0
+00:14 +19: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 1100.0
+00:14 +20: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: timetable day and week use dated occurrences and preserve calendar appointments
+00:14 +21: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings controls, invalid HEX, keyboard, tab state and direct rendering 320.0
+00:18 +22: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: time marker stays above ongoing blocks and passes taps through
+00:19 +23: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file selection, cancellation, failure, replacement, removal and preview keep real app in sync
+00:21 +24: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file selection, cancellation, failure, replacement, removal and preview keep real app in sync
+00:21 +25: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: file selection, cancellation, failure, replacement, removal and preview keep real app in sync
+00:22 +26: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 390.0 scale 1.0
+00:23 +27: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:24 +28: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:25 +29: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:25 +30: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: every shortcut opens a fresh editor while existing drafts remain untouched
+00:26 +31: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day and dated creation
+00:26 +32: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:27 +33: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:29 +34: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:30 +35: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: seven alpha controls reach actual widgets and shared bars update in all five editors
+00:30 +36: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: file assignment in lesson details changes only the selected occurrence
+00:31 +37: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: direct edited social and orga renderings at narrow and wide widths
+00:31 +38: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: direct edited social and orga renderings at narrow and wide widths
+00:32 +39: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:34 +40: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:35 +41: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:35 +42: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:35 +43: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:35 +44: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:37 +45: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: actual pixels change at minimum midpoint maximum for all seven surfaces
+00:38 +46: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: social bottom scanner saves new entry before assigning it
+00:38 +47: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: social bottom scanner saves new entry before assigning it
+00:38 +48: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: settings remain scrollable with double system text and keyboard
+00:39 +49: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: work bottom scanner saves new entry before assigning it
+00:39 +50: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: failed pending settings write stays visible after leaving settings
+00:40 +51: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: new group homework scanner maps selected subtask to every saved pupil
+00:41 +52: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: bulk capture saves selected subtask links for both pupils
+00:42 +53: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: task files are visible only on their own row at narrow width and large text
+00:42 +54: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: saved observation draft survives opening scanner without committing edits
+00:43 +55: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:44 +56: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:46 +57: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:46 +58: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:46 +59: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:46 +60: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:46 +61: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +62: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +63: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +64: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +65: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +66: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:47 +67: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:50 +68: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN persists hashed, locks on restart, checks old PIN for changes
+00:51 +69: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:54 +70: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:54 +71: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:56 +72: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:56 +73: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:57 +74: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:57 +75: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:58 +76: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:58 +77: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+00:59 +78: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: PIN throttles across restarts and storage errors fail closed
+01:01 +79: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+01:02 +80: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +81: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +82: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +83: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +84: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +85: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +86: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +87: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: backgrounding during successful unlock cannot expose the app
+01:02 +88: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: lock hides navigation and input without recreating entered data
+01:05 +89: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar owns timetable, shortcuts preserve date, Live has three pages
+01:08 +90: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
+01:12 +91: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
+01:13 +92: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
+01:13 +93: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
+01:14 +94: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: failed document write preserves the last successful backup
+01:18 +95: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.0
+01:18 +96: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.0
+01:18 +97: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.0
+01:19 +98: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.0
+01:19 +99: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.0
+01:23 +100: /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart: decrypts synthetic envelope generated by original HTML Web Crypto functions in Node
+01:24 +101: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 390.0/1.0/1.0
+01:27 +102: /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart: encryption roundtrip uses fresh salt and IV and preserves Unicode password spaces
+01:31 +103: /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart: encryption roundtrip uses fresh salt and IV and preserves Unicode password spaces
+01:33 +104: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/2.0/1.0
+01:34 +105: /workspace/FLEX-Notes/flutter_app/test/backup_codec_test.dart: modified ciphertext is rejected before reading plaintext
+01:35 +106: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.2
+01:35 +107: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil cards, workspace and compact tags 320.0/1.0/1.2
+01:36 +108: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: header draft list deletes school only after confirmation
+01:37 +109: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: header draft list deletes orga only after confirmation
+01:37 +110: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: header draft list deletes bulk only after confirmation
+01:37 +111: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: failed delete is retryable and double taps issue one write
+01:38 +112: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil header drafts show all areas and keep other pupils separate
+01:38 +113: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil workspace search and open filter cover school and Orga records
+01:39 +114: /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart: pupil workspace search and open filter cover school and Orga records
+01:40 +115: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+01:48 +116: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+01:49 +117: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga saved pupil entry: swipes retain text, checklist and focus across kinds
+01:49 +118: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga saved pupil entry: swipes retain text, checklist and focus across kinds
+01:52 +119: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+01:54 +120: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +121: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +122: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +123: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +124: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +125: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +126: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: social: text swipes move once and keep input, tags and keyboard focus
+01:54 +127: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: work: text swipes move once and keep input, tags and keyboard focus
+01:57 +128: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: social: empty scaffolding is not a draft, clear after resume removes only own draft
+01:59 +129: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: social: empty scaffolding is not a draft, clear after resume removes only own draft
+01:59 +130: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: social: empty scaffolding is not a draft, clear after resume removes only own draft
+02:00 +131: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: social: empty scaffolding is not a draft, clear after resume removes only own draft
+02:04 +132: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: colors, larger pill and compact switches 390.0/1.0/dark
+02:04 +133: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: work: empty scaffolding is not a draft, clear after resume removes only own draft
+02:07 +134: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: colors, larger pill and compact switches 320.0/2.0/light
+02:07 +135: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: goal: empty scaffolding is not a draft, clear after resume removes only own draft
+02:08 +136: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: homework: empty scaffolding is not a draft, clear after resume removes only own draft
+02:10 +136: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointments retain local date/time through database, drafts, backup and legacy payload
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:225:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:254:13)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:266:11)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+02:10 +137: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: homework: empty scaffolding is not a draft, clear after resume removes only own draft
+02:10 +138: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: homework: empty scaffolding is not a draft, clear after resume removes only own draft
+02:10 +139: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+02:12 +140: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+02:13 +141: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+02:14 +142: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+02:16 +143: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+02:17 +144: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: homework stable numbered rows and Enter, nesting, deletion preserve remaining input
+02:19 +145: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+02:19 +146: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+02:19 +147: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+02:19 +148: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+02:19 +149: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+02:20 +150: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: catalog validation, tabs, blank group tasks and optional reminder leave no drafts
+02:20 +151: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: catalog validation, tabs, blank group tasks and optional reminder leave no drafts
+02:21 +152: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+02:21 +153: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+02:21 +153: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: baseline survives SQLite close, reopen and complete backup restore for all draft stores
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:732:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:737:18)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:732:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:769:14)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:732:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart:775:24)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+02:21 +154: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+02:22 +155: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+02:23 +156: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+02:23 +157: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: large text calendar keeps complete month and year readable above keyboard
+02:24 +158: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: class Orga offers compact search and a direct appointment action
+02:24 +159: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: class Orga offers compact search and a direct appointment action
+02:25 +160: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: compact social filled rendering 320.0 scale 1.0 keyboard 0.0
+02:25 +161: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: delete in the editor discards only the draft and never recreates it
+02:26 +162: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: delete in the editor discards only the draft and never recreates it
+02:26 +163: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: compact social filled rendering 390.0 scale 1.0 keyboard 0.0
+02:26 +164: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: delete in the editor discards only the draft and never recreates it
+02:27 +165: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: delete in the editor discards only the draft and never recreates it
+02:27 +166: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: compact social filled rendering 1100.0 scale 1.0 keyboard 0.0
+02:28 +167: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: goal: delete in the editor discards only the draft and never recreates it
+02:28 +168: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: goal: delete in the editor discards only the draft and never recreates it
+02:28 +169: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: compact social filled rendering 390.0 scale 2.0 keyboard 260.0
+02:29 +170: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: homework: delete in the editor discards only the draft and never recreates it
+02:30 +171: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: orga: delete in the editor discards only the draft and never recreates it
+02:31 +172: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: pupil: delete in the editor discards only the draft and never recreates it
+02:31 +173: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: bulk: delete in the editor discards only the draft and never recreates it
+02:32 +174: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+02:33 +175: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+02:35 +176: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+02:36 +177: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+02:37 +178: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 1200.0/1.0
+02:38 +179: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 1200.0/1.0
+02:39 +180: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment values survive closing, backup restore and database restart
+02:40 +181: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment values survive closing, backup restore and database restart
+02:41 +182: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment round trip without edits removes its draft
+02:42 +183: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +184: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +185: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +186: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +187: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +188: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +189: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +190: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +191: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:43 +192: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:44 +193: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:44 +194: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:44 +195: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+02:44 +196: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task due date/completion survives swipe away and back
+02:45 +197: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task values survive closing, backup restore and database restart
+02:46 +198: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task round trip without edits removes its draft
+02:47 +199: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: conflict comparison shows dates/times and resolves other
+02:47 +200: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: conflict comparison shows dates/times and resolves current
+02:48 +201: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: all user-facing Orga fields can be compared, including all-day appointments
+02:48 +202: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: legacy drafts remain readable and invalid cached dates roll back restoration
+02:48 +203: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: returning to a completed task does not leave a newly planned reminder active
+02:48 +204: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: publishing cannot remove a draft changed by another editor
+02:48 +205: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: controller snapshot holds one SQLite transaction across all reads
+02:48 +206: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: appearance preserves old preferences and validates new surface settings
+02:48 +207: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: surface colors and separate images survive database and backup round trip
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      fresh (file:///workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart:17:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart:145:40)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+02:48 +208: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: Orga trash cancels reminders, preserves checklist and restore does not reactivate
+02:48 +209: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: original version 1 backup gets default schema 7 fields without changing data
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      fresh (file:///workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart:17:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart:216:38)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+02:48 +210: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: all five background modes and readable colors are mapped explicitly
+02:48 +211: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: shared modal uses chosen bar hue with independently stored alpha
+02:50 +212: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: preparing files preserves order, deduplicates and isolates dates
+02:51 +213: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: unlinking package/day/pupil never deletes its files; trash restore retains references
+02:51 +214: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: plan links, metadata, day order and revisions survive backup and mapped merge
+02:51 +215: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: invalid references and stale batch roll back the whole selection
+02:51 +216: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: plan and package drafts survive restore and save atomically
+02:51 +217: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: suggestions use actual moved lessons, plans and week but exclude prepared/trash
+02:51 +218: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: dated plans apply only inside their period and only to linked lesson details
+02:51 +219: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: metadata validation and multiword pupil-aware search
+02:51 +220: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: folder scan is recursive, stable on rename, preserves edits/trash/cache timestamp
+02:51 +221: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: folder scan cancellation, limits and network failures never save partial index
+02:51 +222: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: stale offline refresh removes only newly staged bytes and preserves old copy
+02:51 +223: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: day documents reject an inconsistent identity instead of becoming unreachable
+02:51 +224: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: DOCX preview extracts unicode headings, lists, breaks and tables; no deleted text
+02:51 +225: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: DOCX rejects malformed XML, entity declarations and oversized content
+02:52 +226: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: (setUpAll)
+02:53 +226: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: automatic surfaces use neutral role colors and migrate only unchanged old defaults
+02:53 +227: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: list styling replaces and toggles prefixes across selected lines; Enter renumbers following items
+02:53 +228: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:56 +229: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:56 +230: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:56 +231: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:56 +232: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:56 +233: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:57 +234: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:57 +235: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+02:59 +236: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+03:02 +237: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference navigation, 3+2 pupil cards and search focus replace the old page layout
+03:03 +238: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+03:05 +239: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+03:07 +240: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+03:07 +241: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga header filters pupil and class drafts and preserves current note
+03:09 +242: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+03:10 +243: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+03:11 +244: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 320.0 font 1.0
+03:12 +245: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: homework direct choices reject duplicates and preserve persisted state on a failed save
+03:12 +246: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: homework direct choices reject duplicates and preserve persisted state on a failed save
+03:12 +247: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 320.0 font 1.0
+03:13 +248: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: render reference-derived pupil pages, framed homework and focused comment using synthetic data
+03:14 +249: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: render reference-derived pupil pages, framed homework and focused comment using synthetic data
+03:14 +250: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 390.0 font 1.0
+03:15 +251: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: save failure retains input and cancel preserves both pupil drafts
+03:15 +252: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 390.0 font 1.0
+03:15 +253: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+03:17 +254: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+03:17 +255: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+03:18 +256: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+03:18 +257: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+03:19 +258: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 320.0 font 2.0
+03:19 +259: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 320.0 font 2.0
+03:19 +260: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 320.0 font 2.0
+03:20 +261: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: (tearDownAll)
+03:21 +261: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: new workspace contains no seeded pupils or entries
+03:21 +262: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: create, edit, reload, complete; one revision and outbox per commit
+03:21 +263: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: notes and class Orga have independent reminders and completion
+03:21 +264: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: reopening never rearms a reminder or changes checklist points
+03:21 +265: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: stale editor is rejected and its draft remains available
+03:21 +266: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: publishing removes only its own draft
+03:21 +267: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: audit/outbox write failure rolls back entry and keeps draft
+03:21 +268: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: archive preserves open obligations and original pupil assignment
+03:21 +269: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: backup round trip preserves revisions, drafts, IDs, settings and staged legacy
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:167:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:21 +270: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: invalid backup foreign keys roll back all inserted rows
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:196:7)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:21 +271: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: disk database survives close and reopening with original IDs
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:216:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:222:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:21 +272: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: invalid dates, duplicate point IDs and note deadlines are rejected
+03:21 +273: loading /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart
+03:22 +273: /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart: detects perspective document despite text and uneven light, rotated=false
+03:23 +274: /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart: detects perspective document despite text and uneven light, rotated=true
+03:23 +275: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: legacy records/settings remain readable and new neutral-only records validate
+03:23 +276: /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart: blank and random noise never propose a document
+03:23 +276: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: neutral records, drafts, favorites and default survive database restart and complete restore
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart:213:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart:218:18)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart:220:9)
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart:213:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart:254:16)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:23 +277: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: neutral records, drafts, favorites and default survive database restart and complete restore
+03:23 +278: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: neutral records, drafts, favorites and default survive database restart and complete restore
+03:23 +279: /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart: preview thumbnails cover every preset and preserve full export resolution
+03:23 +280: /workspace/FLEX-Notes/flutter_app/test/scan_edges_test.dart: preview thumbnails cover every preset and preserve full export resolution
+03:24 +281: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: old catalog draft can select and save neutral without losing customized options
+03:25 +282: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: social: neutral default, three-way swipe, bounded ends and mixed tags survive save
+03:26 +283: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: social: neutral default, three-way swipe, bounded ends and mixed tags survive save
+03:28 +284: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+03:30 +285: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+03:30 +286: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+03:30 +287: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: default choice persists and display reset preserves it
+03:32 +288: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: scale and text sliders are independent; design controls persist and full reset keeps shortcut order
+03:33 +289: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: Orga null: visible kind buttons adapt fields and preserve text across types
+03:33 +290: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+03:34 +291: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: Orga a: visible kind buttons adapt fields and preserve text across types
+03:34 +292: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+03:34 +293: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+03:35 +294: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: switching reminder off removes scheduled reminder and survives reopening
+03:35 +295: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+03:35 +296: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted
+03:36 +297: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 320.0/1.0/dark/1.0
+03:38 +298: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 320.0/1.0/dark/1.0
+03:40 +299: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 font 1.0 zoom 1.0
+03:41 +300: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 390.0/1.0/light/1.0
+03:42 +301: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 1200.0 font 1.0 zoom 1.2
+03:44 +302: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 1200.0/1.0/dark/1.0
+03:46 +303: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 1200.0/1.0/dark/1.0
+03:48 +304: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 font 1.0 zoom 1.2
+03:48 +305: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 320.0/2.0/light/1.2
+03:50 +306: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: audit render and reachable controls 320.0/2.0/light/1.2
+03:50 +307: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: (tearDownAll)
+03:51 +307: loading /workspace/FLEX-Notes/flutter_app/test/school_test.dart
+03:52 +307: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: fresh schema is version 7 with 19 domain tables
+03:52 +308: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: homework status changes are independent from comments and delivery
+03:52 +309: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: chronological feedback ignores insertion order and reverts on deletion
+03:52 +310: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: invalid tasks, times, feedback and goal reviews are rejected
+03:52 +311: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: all four domains persist and journal atomically
+03:52 +312: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: optimistic revision prevents lost update and keeps draft
+03:52 +313: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: draft editors cannot overwrite each other
+03:52 +314: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: group saves have separate task ids and idempotent request ids
+03:52 +315: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: group transaction rolls back when any recipient is invalid
+03:52 +316: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: group undo restores draft and is idempotent
+03:52 +317: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: group undo refuses to erase changed homework
+03:52 +318: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: participants receive no personal assessment
+03:52 +319: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: goal references cannot cross pupil ownership
+03:52 +320: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: complete rebuild backup round trip includes records, drafts and history
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      memoryRepo (file:///workspace/FLEX-Notes/flutter_app/test/school_test.dart:12:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/school_test.dart:284:22)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:52 +321: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: foreign payload format is rejected without partial restore
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      memoryRepo (file:///workspace/FLEX-Notes/flutter_app/test/school_test.dart:12:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/school_test.dart:303:20)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:52 +322: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: real version 1 file migrates to schema 7 without losing pupil
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/school_test.dart:327:7)
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+03:52 +323: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+03:55 +324: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+03:55 +325: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+03:56 +326: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+03:56 +327: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+03:56 +328: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared day removes reference only; next day has a separate selection
+03:57 +329: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: package picker expands file references and clearing does not lose other choices
+03:57 +330: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil unlink keeps shared material and package accessible elsewhere
+03:57 +331: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: plan editor saves minimal name and keeps text focus through autosave
+03:57 +332: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: photo export keeps tags and links and round trips encrypted material backup
+03:58 +333: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: photo export keeps tags and links and round trips encrypted material backup
+03:58 +334: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: photo export keeps tags and links and round trips encrypted material backup
+03:58 +335: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: photo export keeps tags and links and round trips encrypted material backup
+03:59 +336: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: photo export keeps tags and links and round trips encrypted material backup
+04:00 +337: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:00 +338: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:01 +339: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:01 +340: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:01 +341: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:01 +342: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+04:01 +343: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: one PDF is attached to a pupil, Orga and school entry; draft pixels cleaned only after commit
+04:02 +344: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: one PDF is attached to a pupil, Orga and school entry; draft pixels cleaned only after commit
+04:04 +345: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: one PDF is attached to a pupil, Orga and school entry; draft pixels cleaned only after commit
+04:04 +346: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+04:04 +347: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+04:04 +348: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+04:04 +349: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+04:04 +350: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+04:04 +351: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: emptying trash detaches deleted entry and keeps the pupil PDF accessible
+04:04 +352: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 2.0
+04:05 +352: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: PDF import and redaction discard hidden text, metadata and original objects
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+04:05 +353: /workspace/FLEX-Notes/flutter_app/test/document_scanner_test.dart: PDF import and redaction discard hidden text, metadata and original objects
+04:08 +354: /workspace/FLEX-Notes/flutter_app/test/android_export_test.dart: Android PDF export preserves binary bytes and MIME type
+04:08 +355: /workspace/FLEX-Notes/flutter_app/test/android_export_test.dart: Android export passes filename, MIME and UTF-8 to document picker
+04:08 +356: /workspace/FLEX-Notes/flutter_app/test/android_export_test.dart: Cancelling Android document picker is not a successful export
+04:08 +357: /workspace/FLEX-Notes/flutter_app/test/android_export_test.dart: Android write errors reach caller and a later export can retry
+04:09 +358: loading /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart
+04:10 +358: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: (setUpAll)
+04:11 +358: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:12 +359: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:13 +360: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:13 +361: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:13 +362: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:13 +363: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:16 +364: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:18 +365: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: selected suggestions move into the input; stars, timing and hidden support preserve independent data
+04:19 +366: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: social: type through keyboard resize and autosave, then save
+04:21 +367: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: observation forms omit recent assignments while preserving own tags and free text
+04:22 +368: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: work: type through keyboard resize and autosave, then save
+04:23 +369: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: cancel keeps an unpublished draft for the same pupil
+04:24 +370: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: goal: type through keyboard resize and autosave, then save
+04:24 +371: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: comment conflict rebase preserves newer task status and other feedback
+04:24 +372: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: homework: type through keyboard resize and autosave, then save
+04:24 +373: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: homework: type through keyboard resize and autosave, then save
+04:24 +374: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: homework: type through keyboard resize and autosave, then save
+04:25 +375: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: homework: type through keyboard resize and autosave, then save
+04:25 +375: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: date-only reminders, task metadata and pupil drafts survive a real SQLite reopen
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:489:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:494:18)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.connect (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:489:9)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:531:14)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:554:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+04:25 +376: /workspace/FLEX-Notes/flutter_app/test/keyboard_focus_test.dart: homework: type through keyboard resize and autosave, then save
+04:25 +377: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: pupil fields resume together and validation leaves the editor open
+04:26 +378: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: bulk Orga and homework commit atomically and undo restores a distinct draft
+04:26 +379: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: calendar keyboard navigation crosses months and cancel is atomic
+04:28 +380: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: catalog pending text saves both tones and rejects duplicates atomically
+04:29 +381: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:29 +381: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: backup review preserves local catalogs when their import is disabled
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:775:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+#7      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+04:30 +382: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:31 +383: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:31 +384: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:31 +385: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:32 +386: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:32 +386: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: failed draft close offers recovery and retry keeps the entered pupil data
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart:976:9)
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+#7      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+04:33 +387: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:58 +388: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+04:59 +389: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: direct Flutter dialog matrix narrow
+05:12 +390: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 320.0/1.8/light
+05:14 +391: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: direct Flutter dialog matrix large-keyboard
+05:24 +392: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:28 +393: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +394: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +395: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +396: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +397: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +398: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +399: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +400: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +401: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +402: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:29 +403: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +404: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +405: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +406: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +407: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +408: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +409: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +410: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +411: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+05:30 +412: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS reports unsupported rules instead of scheduling an incorrect one-off event
+05:30 +413: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:30 +414: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:35 +415: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:38 +416: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:40 +417: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:42 +418: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:44 +419: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:45 +420: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:46 +421: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:47 +422: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:48 +423: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+05:54 +424: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch camera saves each page, cancellation retains batch and drag order persists
+05:54 +425: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch camera saves each page, cancellation retains batch and drag order persists
+05:55 +426: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch camera saves each page, cancellation retains batch and drag order persists
+05:55 +427: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch camera saves each page, cancellation retains batch and drag order persists
+05:55 +428: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: large option labels stay on one line instead of breaking words
+05:55 +429: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: replacement stays at same position; prior bytes survive failed commit=false
+05:56 +430: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: replacement stays at same position; prior bytes survive failed commit=true
+05:58 +430: /workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart: catalog edits and concurrent favorites survive a full backup and invalid restoration rolls back
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      fresh (file:///workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart:10:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart:19:40)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      fresh (file:///workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart:10:3)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart:19:59)
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:25)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+05:58 +431: /workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart: catalog edits and concurrent favorites survive a full backup and invalid restoration rolls back
+05:58 +432: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch filter keeps page order and safely retries failed draft write=false
+06:00 +433: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch filter keeps page order and safely retries failed draft write=true
+06:01 +434: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: cancelled replacement leaves the original untouched
+06:02 +435: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+06:05 +436: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: automatic crop survives switching to filters before saving
+06:08 +437: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: photo capture uses photo editor, tags survive draft resume and JPG save
+06:10 +438: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: document scanner falls back without Play Services; camera fails=false
+06:10 +439: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: document scanner falls back without Play Services; camera fails=true
+06:11 +440: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: interrupted native photo is recovered once and acknowledged only after durable draft
+06:11 +441: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: import, naming, focus, resume, reorder and PDF save preserve pupil context
+06:13 +442: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: metadata failure keeps page bytes and a close retry persists the draft
+06:13 +443: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: camera cancellation retains content and deleting an open draft removes its pages
+06:14 +444: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redaction matches image coordinates on 320px screen: Size(180.0, 240.0)
+06:14 +445: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redaction matches image coordinates on 320px screen: Size(240.0, 180.0)
+06:16 +446: All tests passed!

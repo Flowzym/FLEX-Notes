@@ -1,3 +1,4 @@
+import 'action_heading.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
@@ -277,14 +278,12 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                 key: const PageStorageKey('scanner-library'),
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Scans & Fotos',
-                          style: Theme.of(ctx).textTheme.headlineSmall,
-                        ),
-                      ),
+                  ActionHeading(
+                    leading: Text(
+                      'Scans & Fotos',
+                      style: Theme.of(ctx).textTheme.headlineSmall,
+                    ),
+                    actions: [
                       if (!draftsOnly)
                         IconButton(
                           tooltip: selecting
@@ -365,7 +364,9 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                       spacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('${documents.length} Dateien'),
+                        Text(
+                          '${documents.length} ${documents.length == 1 ? 'Datei' : 'Dateien'}',
+                        ),
                         PopupMenuButton<String>(
                           tooltip: 'Sortieren',
                           initialValue: sort,

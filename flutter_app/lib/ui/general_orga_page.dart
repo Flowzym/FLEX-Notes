@@ -115,8 +115,8 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
           return b.updatedAtUtc.compareTo(a.updatedAtUtc);
         });
         final title = switch (widget.kind) {
-          'task' => 'Allgemeine Aufgaben',
-          'note' => 'Allgemeine Notizen',
+          'task' => 'Aufgaben',
+          'note' => 'Notizen',
           _ => 'Organisation',
         };
         final drafts = c.drafts.where((d) => matches(d.entry)).length;
@@ -124,14 +124,18 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
           key: PageStorageKey('general-${widget.kind}'),
           padding: const EdgeInsets.all(16),
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(ctx).textTheme.headlineSmall,
-                  ),
-                ),
+            CollapsibleSearch(
+              controller: search,
+              fieldKey: ValueKey('general-search-${widget.kind}'),
+              buttonKey: ValueKey('general-search-button-${widget.kind}'),
+              label: 'Einträge durchsuchen',
+              iconOnly: true,
+              onChanged: (v) => setState(() => query = v),
+              leading: Text(
+                title,
+                style: Theme.of(ctx).textTheme.headlineSmall,
+              ),
+              actions: [
                 if (drafts > 0)
                   IconButton(
                     tooltip: 'Entwürfe · $drafts',
@@ -154,14 +158,6 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   icon: const Icon(Icons.add),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            CollapsibleSearch(
-              controller: search,
-              fieldKey: ValueKey('general-search-${widget.kind}'),
-              buttonKey: ValueKey('general-search-button-${widget.kind}'),
-              label: 'Einträge durchsuchen',
-              onChanged: (v) => setState(() => query = v),
             ),
             if (widget.kind != 'note')
               Wrap(

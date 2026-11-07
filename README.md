@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.28+48** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.29+49** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 48 herunterladen**](releases/android/build-48/README.md)
+[**Android-Testapp Build 49 herunterladen**](releases/android/build-49/README.md)
+
+[UI-Prüfung und überarbeitete Bedienung](audit/UI_PRUEFUNG_BUILD_49.md).
 
 [Dokumentvorschauen, Kalender und Scannerverwaltung](audit/DOKUMENTE_KALENDER_BUILD_48.md).
 

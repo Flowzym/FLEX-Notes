@@ -664,12 +664,10 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               controller: c,
               scope: schoolScanContext(c, [r], includeTasks: false),
               readOnly: r.deleted,
-            ),
-            const Divider(),
-            Wrap(
-              spacing: 8,
-              children: [
-                TextButton.icon(
+              compact: true,
+              actions: [
+                IconButton(
+                  tooltip: r.deleted ? 'Wiederherstellen' : 'Papierkorb',
                   onPressed: busy
                       ? null
                       : () async {
@@ -683,12 +681,12 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                             await mutate(r.patch({'deleted': !r.deleted}));
                           }
                         },
-                  icon: Icon(r.deleted ? Icons.restore : Icons.delete),
-                  label: Text(r.deleted ? 'Wiederherstellen' : 'Papierkorb'),
+                  icon: Icon(r.deleted ? Icons.restore : Icons.delete_outline),
                 ),
-                TextButton(
+                IconButton(
+                  tooltip: 'Änderungen',
                   onPressed: () => showJournal(context, c, r.id),
-                  child: const Text('Änderungen'),
+                  icon: const Icon(Icons.history),
                 ),
               ],
             ),

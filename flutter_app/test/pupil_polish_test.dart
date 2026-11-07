@@ -413,8 +413,7 @@ void main() {
       expect(find.text('Material mitbringen'), findsNothing);
       await t.enterText(find.byKey(const ValueKey('pupil-entry-search')), '');
       await t.pumpAndSettle();
-      await tap(t, find.byKey(const ValueKey('pupil-entry-filter')));
-      await tap(t, find.text('Noch offen').last);
+      await tap(t, find.byKey(const ValueKey('pupil-filter-open')));
       expect(find.text('Hilft bei der Gruppenarbeit'), findsNothing);
       expect(find.text('Material mitbringen'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('pupil-area-work')));

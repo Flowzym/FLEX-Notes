@@ -1,4 +1,5 @@
 import 'material_thumbnail.dart';
+import 'action_heading.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -1028,46 +1029,14 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                 key: const PageStorageKey('materials-library'),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
-                  Text(
-                    'Materialien & Planungen',
-                    style: Theme.of(ctx).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 6,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: busy
-                            ? null
-                            : () => scanAndShow(ctx, c, const ScanContext()),
-                        icon: const Icon(Icons.document_scanner_outlined),
-                        label: const Text('Scannen'),
-                      ),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        onPressed: busy || !materialDeviceAvailable
-                            ? null
-                            : () => action(importFile),
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Datei'),
-                      ),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        onPressed: busy
-                            ? null
-                            : () => showClassroomEditor(
-                                ctx,
-                                c,
-                                ClassroomKind.material,
-                              ),
-                        icon: const Icon(Icons.link),
-                        label: const Text('Link'),
-                      ),
+                  ActionHeading(
+                    leading: Text(switch (view) {
+                      'prepared' => 'Bereitgelegt',
+                      'packages' => 'Pakete',
+                      'plans' => 'Planungen',
+                      _ => 'Materialien',
+                    }, style: Theme.of(ctx).textTheme.headlineSmall),
+                    actions: [
                       IconButton(
                         tooltip: drive.connected
                             ? 'OneDrive-Ordner öffnen'
@@ -1102,8 +1071,56 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                             if (!selecting) selection.clear();
                           }),
                         ),
+                      if (view == 'packages' || view == 'plans')
+                        IconButton(
+                          tooltip: view == 'plans'
+                              ? 'Planung anlegen'
+                              : 'Paket anlegen',
+                          onPressed: busy
+                              ? null
+                              : () => showClassroomEditor(ctx, c, kind),
+                          icon: const Icon(Icons.add),
+                        ),
                     ],
                   ),
+                  if (view == 'files')
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: busy
+                              ? null
+                              : () => scanAndShow(ctx, c, const ScanContext()),
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          label: const Text('Scannen'),
+                        ),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onPressed: busy || !materialDeviceAvailable
+                              ? null
+                              : () => action(importFile),
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Datei'),
+                        ),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onPressed: busy
+                              ? null
+                              : () => showClassroomEditor(
+                                  ctx,
+                                  c,
+                                  ClassroomKind.material,
+                                ),
+                          icon: const Icon(Icons.link),
+                          label: const Text('Link'),
+                        ),
+                      ],
+                    ),
                   if (searching || query.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -1287,15 +1304,6 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                       Wrap(
                         spacing: 8,
                         children: [
-                          FilledButton.icon(
-                            onPressed: () => showClassroomEditor(ctx, c, kind),
-                            icon: const Icon(Icons.add),
-                            label: Text(
-                              view == 'plans'
-                                  ? 'Planung anlegen'
-                                  : 'Paket anlegen',
-                            ),
-                          ),
                           FilterChip(
                             label: const Text('Papierkorb'),
                             selected: trash,

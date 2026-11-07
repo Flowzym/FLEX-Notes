@@ -16,6 +16,7 @@ import 'material_library.dart';
 import 'reminder_actions.dart';
 import 'school_workspace.dart';
 import 'surfaces.dart';
+import 'collapsible_search.dart';
 
 Future<void> showReturnLists(BuildContext context, NotebookController c) =>
     showDialog<void>(
@@ -41,6 +42,13 @@ class ReturnLists extends StatefulWidget {
 
 class _ReturnListsState extends State<ReturnLists> {
   String filter = 'open', query = '';
+  final search = TextEditingController();
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: widget.controller,
@@ -67,22 +75,24 @@ class _ReturnListsState extends State<ReturnLists> {
       return ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: () =>
-                  showClassroomEditor(ctx, c, ClassroomKind.returnList),
-              icon: const Icon(Icons.add),
-              label: const Text('Rücklauf anlegen'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              labelText: 'Rückläufe durchsuchen',
+          CollapsibleSearch(
+            controller: search,
+            fieldKey: const ValueKey('return-search'),
+            label: 'Rückläufe durchsuchen',
+            iconOnly: true,
+            leading: Text(
+              'Rückläufe',
+              style: Theme.of(ctx).textTheme.headlineSmall,
             ),
             onChanged: (v) => setState(() => query = v),
+            actions: [
+              IconButton(
+                tooltip: 'Rücklauf anlegen',
+                onPressed: () =>
+                    showClassroomEditor(ctx, c, ClassroomKind.returnList),
+                icon: const Icon(Icons.add),
+              ),
+            ],
           ),
           Wrap(
             spacing: 6,

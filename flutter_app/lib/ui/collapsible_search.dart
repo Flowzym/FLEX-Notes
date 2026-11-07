@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'action_heading.dart';
 
 /// Keeps the query when focus leaves; the compact button still shows the filter.
 class CollapsibleSearch extends StatefulWidget {
@@ -73,12 +74,9 @@ class _CollapsibleSearchState extends State<CollapsibleSearch> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              if (widget.leading != null)
-                Expanded(child: widget.leading!)
-              else
-                const Spacer(),
+          ActionHeading(
+            leading: widget.leading ?? const SizedBox(),
+            actions: [
               if (!expanded && widget.controller.text.isNotEmpty)
                 IconButton(
                   tooltip: 'Suchtext leeren',

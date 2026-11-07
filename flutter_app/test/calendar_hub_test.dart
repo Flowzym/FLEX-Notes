@@ -136,7 +136,7 @@ void main() {
       expect(find.text('Orga').hitTestable(), findsOneWidget);
       expect(find.text('Kopien vorbereiten'), findsWidgets);
       await tap(t, find.byKey(const ValueKey('context-2-1')));
-      expect(find.text('Rücklauf anlegen'), findsOneWidget);
+      expect(find.byTooltip('Rücklauf anlegen'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

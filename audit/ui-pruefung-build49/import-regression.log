@@ -1,0 +1,142 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: new workspace contains no seeded pupils or entries
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +7: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +8: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +8: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: backup round trip preserves revisions, drafts, IDs, settings and staged legacy
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:167:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +9: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +9: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: invalid backup foreign keys roll back all inserted rows
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:196:7)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +10: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +10: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: disk database survives close and reopening with original IDs
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:216:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/notebook_test.dart:222:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +11: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +12: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +13: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: field selections merge appointment date while preserving local body and audit
+00:00 +14: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: incompatible task fields roll back every change atomically
+00:01 +15: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: stale preview and malformed source cannot change local records
+00:01 +16: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: same names require explicit mapping; owner links are rewritten
+00:01 +17: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: divergent drafts survive twice without multiplying on repeat imports
+00:01 +18: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: mapped pupil and shared context drafts retain valid ownership on repeat import
+00:01 +19: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: excluding catalogs preserves full original archive and local choices
+00:02 +20: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: archived pupils pause future generation and restoring them resumes it
+00:03 +21: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: maintenance retains series tombstones and completed sources can stop their series
+00:03 +22: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS rejects detached overrides and unsupported month-end semantics explicitly
+00:04 +23: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: weekly A/B dates, DST date arithmetic, monthly short months and exclusions
+00:04 +24: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: moved and cancelled lessons keep stable identity and respect holidays
+00:04 +25: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: validates return status, dates, amounts and safe material identifiers
+00:04 +26: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: classroom revisions, draft publication and rollback are atomic
+00:04 +27: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: batch links resolve atomically and a broken reference leaves no writes
+00:04 +28: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: older backup remains readable; new documents and histories round trip
+00:04 +29: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: merge includes classroom links and maps pupil IDs even without catalog import
+00:04 +30: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: invalid imported classroom reference rolls back instead of leaving partial data
+00:04 +31: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: recurring tasks are independent and opening repeatedly creates no duplicates
+00:04 +32: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: series changes never revive an individually deleted occurrence
+00:04 +33: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: adding and removing holidays updates only untouched generated tasks
+00:04 +34: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: calendar combines existing records, lessons and returns but excludes archived pupils
+00:04 +35: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: postponing a reminder leaves deadline unchanged and completion cancels it
+00:04 +36: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: closed and answered returns do not schedule reminders, lessons respect cancellation
+00:04 +37: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: development retains empty weeks and does not invent tone for untagged free text
+00:04 +38: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS round trip escapes multiline unicode and import identity is stable
+00:04 +39: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS reports unsupported rules instead of scheduling an incorrect one-off event
+00:04 +40: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS preserves supported weekly recurrence and excluded dates
+00:15 +41: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:15 +42: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:19 +43: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:20 +44: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:22 +45: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:23 +46: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:25 +47: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:25 +48: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task due date/completion survives swipe away and back
+00:25 +49: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task due date/completion survives swipe away and back
+00:25 +50: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:27 +51: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +52: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +53: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +54: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +55: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +56: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:28 +57: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:30 +58: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +59: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +60: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +61: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +62: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +63: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:30 +64: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:54 +65: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 320.0/1.8/light
+01:05 +66: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+01:18 +67: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+01:30 +68: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: import into a fresh app with its timetable merges and preserves the timetable
+01:30 +69: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: a task shows its text once and keeps completion, scanning, attachments, history and trash reachable
+01:31 +70: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: backup screens show options for the chosen action
+01:31 +71: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: large option labels stay on one line instead of breaking words
+01:31 +72: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: (tearDownAll)
+01:31 +72: All tests passed!
