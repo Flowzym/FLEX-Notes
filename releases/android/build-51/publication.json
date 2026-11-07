@@ -1,0 +1,19 @@
+{
+  "source_commit": "745e438dcf0d23552382c8763b2115d8b3c16be3",
+  "site_source_commit": "91df7707d2682b9b5a5e25327a1c8d8457a96502",
+  "deployment": {
+    "id": "appgdep_6aefa4d16b8c8191808156e1c53f86b7",
+    "project_id": "appgprj_6aeefd223a6081919aa744b912822c38",
+    "title": "FLEX – Webvorschau",
+    "version_id": "appgprj_6aeefd223a6081919aa744b912822c38~appgver_d2b165a6f0ac8191873092a576b373b3",
+    "type": "publish",
+    "status": "succeeded",
+    "url": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site",
+    "has_mcp": false,
+    "screenshot_asset_pointer": null,
+    "provider_deployment_id": "site---6aeefd223a6081919aa744b912822c38",
+    "failure_message": null,
+    "env_set_revision": 0,
+    "updated_at": "2026-11-07T22:23:27.422301+00:00"
+  }
+}

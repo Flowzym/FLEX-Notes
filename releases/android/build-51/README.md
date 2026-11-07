@@ -11,6 +11,8 @@ Version **0.16.0-rebuild.31+51** · Quellstand `745e438dcf0d23552382c8763b2115d8
 
 Über die bestehende **FLEX Test** installieren; App-ID und Signatur bleiben gleich. Nicht vorher deinstallieren, damit lokale Daten erhalten bleiben.
 
+[In deinem OneDrive öffnen](https://onedrive.live.com?cid=00B0037104A6A978&id=B0037104A6A978!s5f1f6564ed414908a100d6e33a439dfe). Dateigröße und QuickXor-Hash stimmen mit der lokalen APK überein.
+
 SHA-256: `e8f976da8581f7bd9651fd9dfa4322f37c50754179847859c17098dba9310143`. Größe: 102802046 Bytes.
 
 [GitHub-Prüfung des finalen Quellstands](https://github.com/Flowzym/FLEX-Notes/actions/runs/42420095677) · [Browser-Ergebnisse](result.json) · [Materialien](material-grid-final.png) · [Desktop](material-desktop.png).
