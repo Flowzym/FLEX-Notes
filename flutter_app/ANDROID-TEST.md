@@ -51,7 +51,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 44 auf GitHub herunterladen](../releases/android/build-44/README.md).
+[APK Build 45 auf GitHub herunterladen](../releases/android/build-45/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

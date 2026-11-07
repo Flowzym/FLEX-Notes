@@ -1,0 +1,9 @@
+FLEX Test Build 45
+
+Über die bestehende FLEX Test installieren, nicht deinstallieren.
+App-ID und Signatur sind unverändert.
+
+Scannen: automatische Dokumentkamera; bei Startfehler normale Kamera als Ausweichweg.
+Foto aufnehmen: normale Kamera ohne Dokumenterkennung.
+Fotos/Scans bearbeiten, taggen und als PDF oder JPG speichern.
+Dateien über die verschlüsselte Materialsicherung sichern.
