@@ -1,0 +1,113 @@
+PUPIL - dialog:
+  - button "Schließen und Eingaben sichern"
+  - group:
+    - textbox "Name"
+    - text: Noch 80 Zeichen Farbe
+    - 'button "#53747E Farbe #53747E"'
+    - 'button "#756582 Farbe #756582"'
+    - 'button "#49765A Farbe #49765A"'
+    - 'button "#B87943 Farbe #B87943"'
+    - 'button "#AC5D72 Farbe #AC5D72"'
+    - 'button "#487F85 Farbe #487F85"'
+    - 'button "#8A7845 Farbe #8A7845"'
+    - 'button "#6478A6 Farbe #6478A6"'
+    - 'button "#8C6553 Farbe #8C6553"'
+    - 'button "#73834C Farbe #73834C"'
+    - button "Eigene Farbe wählen"
+  - button "Hinzufügen"
+HOMEWORK - dialog:
+  - button "Zurück und Eingaben sichern"
+  - button "Speichern und Dokumente öffnen"
+  - button "Verlauf"
+  - button "Entwürfe (0)"
+  - button "Aufgegebene Hausübungen (0)"
+  - button "Schließen und Eingaben sichern"
+  - group:
+    - text: Aufgaben 1.
+    - textbox "Aufgabe Aufgabe …"
+    - button "Speichern & scannen"
+    - button "Speichern & Dokumente"
+    - button "Weitere Aufgabenzeile"
+    - button "Teilaufgabe hinzufügen"
+    - button "Aufgabe entfernen"
+    - button "Aufgabe hinzufügen"
+    - textbox "Fach · optional"
+    - 'button "Fällig am: Ohne Termin"'
+    - text: Für welche Schüler?
+    - checkbox "Scanner Testkind" [checked]
+    - button "Speichern & scannen"
+    - button "Speichern & Dokumente"
+  - button "07.11.2026"
+  - checkbox "Später ergänzen"
+  - button "Abbrechen"
+  - button "Hausübung aufgeben"
+SCANNER - dialog:
+  - button "Schließen und Eingaben sichern"
+  - group:
+    - button "Bilder / PDF hinzufügen"
+    - textbox "Dateiname"
+    - text: Noch 143 Zeichen .pdf
+    - checkbox "PDF" [checked]
+    - checkbox "Fotos (JPG)"
+    - textbox "Tags (mit Komma trennen)"
+    - button "Kategorie Schülerarbeit"
+    - button "1 Schüler"
+    - button "Einträge · 1"
+    - text: Scanner Testkind Scanner Testkind · Teilaufgabe · Lösung Teil A 0 Seiten Seiten scannen oder Bilder/PDF hinzufügen.
+  - button "Später fortsetzen"
+  - button "PDF speichern" [disabled]
+AFTER_SAVE - button "Aktuell"
+- button "Aufzeichnung"
+- button "Ablauf"
+- button "Stundenplan"
+- group:
+  - group "1 Schüler":
+    - button "Schüler suchen"
+    - button "Neuer Schüler"
+    - button "Datensicherung herunterladen"
+  - button "Scanner Testkind"
+  - button "Ziele für Scanner Testkind öffnen, 0 offen, 0 Entwürfe Ziele"
+  - button "Sozial für Scanner Testkind öffnen, 0 offen, 0 Entwürfe Sozial"
+  - button "Arbeit für Scanner Testkind öffnen, 0 offen, 0 Entwürfe Arbeit"
+  - button "1 offene Einträge · 0 Entwürfe HÜ für Scanner Testkind öffnen, 1 offen, 0 Entwürfe 1 HÜ"
+  - button "Orga für Scanner Testkind öffnen, 0 offen, 0 Entwürfe Orga"
+- button "Übersicht"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr"
+- link:
+  - /url: blob:http://127.0.0.1:8084/8085e10e-d286-4474-a5ec-a35dd9e9e042
+REOPEN - dialog:
+  - button "Schließen und Eingaben sichern"
+  - group:
+    - group "1 offen":
+      - button "+ Hausübung"
+    - textbox "Einträge durchsuchen"
+    - checkbox "Nur offen"
+    - 'group "Hausübung Scanner Testkind · 07.11.2026 0 von 2 vollständig Übungsblatt Stand: Offen Lösung Teil A Stand: Offen Abgabe: Nicht überprüft"':
+      - button "Hausübung einklappen"
+      - button "Eintrag bearbeiten"
+      - button "Kommentar zu Übungsblatt"
+      - button "Offen"
+      - button "Vollständig"
+      - button "Teilweise"
+      - button "Nicht erledigt"
+      - button "Scannen / Foto"
+      - button "Dokumente · 0"
+      - button "Kommentar zu Lösung Teil A"
+      - button "Offen"
+      - button "Vollständig"
+      - button "Teilweise"
+      - button "Nicht erledigt"
+      - button "Scannen / Foto"
+      - button "Dokumente · 1 1"
+      - button "2026-11-07 · Scanner Testkind · Hausübung · Lösung Teil A"
+      - button "Notiz & Verlauf"
+      - button "Erinnerung verschieben"
+      - button "Scannen / Foto"
+      - button "Dokumente"
+      - button "Papierkorb"
+      - button "Änderungen"
+- link:
+  - /url: blob:http://127.0.0.1:8084/8085e10e-d286-4474-a5ec-a35dd9e9e042

@@ -36,4 +36,25 @@ Keine SQL-Schemaänderung. App-ID und Testsignatur bleiben unverändert.
 Die echte Kamera und Installation als Update müssen weiterhin am Android-Gerät
 abgenommen werden. Die Webvorschau unterstützt Bild-/PDF-Import.
 
+## Prüfung des veröffentlichten Quellstands
+
+Quellcommit: `8192066de424fd62cc01c918d0b39c48c18c476f`.
+410 Flutter-Tests mit Coverage erfolgreich, darunter 13 neue Tests für stabile
+Aufgabenbezüge, Sicherung/Wiederherstellung, Löschung, Gruppenerfassung, Editorzugänge
+und schmale Layouts. Strenge Analyse und Formatprüfung ohne Befunde; 11 SQLite-
+und drei HTTP-Tests erfolgreich. Der vorhandene Test für kompakte HÜ-Zeilen bleibt
+unverändert erfolgreich. Orga entfernt nach korrigierten Eingaben den alten Fehler,
+damit das Speichern auch über der geöffneten Tastatur erreichbar bleibt.
+
+Android- und Web-Release gebaut. APK-Kennung, Version, Manifest, bisherige Signatur,
+ZIP-Ausrichtung und native Bibliotheken geprüft. OneDrive-Größe und QuickXorHash
+stimmen mit dem lokalen APK überein. GitHub liefert die APK mit HTTP 200 und
+korrekter Dateigröße/ZIP-Signatur.
+
+Browserprüfung mit ausschließlich synthetischen Schüler- und Dokumentdaten bei
+390 × 844: Haupt- und Teilaufgabe erfassen, direkt aus der Teilaufgabe den Scanner
+öffnen, automatische Schüler-/Aufgabenzuordnung prüfen, Bild importieren, PDF
+speichern/exportieren und direkt an der Teilaufgabe wieder öffnen.
+
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104).
 Automatisierte Prüfungen und Artefaktnachweise: `scanner-zugaenge-build46/`.
