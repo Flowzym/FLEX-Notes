@@ -10,8 +10,9 @@ ein Tippen öffnet sie. Der Dokumentenzugang erlaubt auch bestehende Dateien
 zuzuordnen und Scanentwürfe fortzusetzen. Dieselben direkten Zugänge gibt es bei
 Schülerunterlagen, Kalendereinträgen, Rückläufen und weiteren Dokumentbereichen.
 
-Jede HÜ-Aufgabe und Teilaufgabe hat eigene Zugänge und eine eigene Dateiliste,
-sowohl im Editor als auch beim Abhaken. Allgemeine HÜ-Dateien stehen unten beim
+Jede HÜ-Aufgabe und Teilaufgabe hat eigene Scanner-/Anhangsymbole und eine eigene Dateiliste,
+sowohl im Editor als auch beim Abhaken. Im Editor stehen die Symbole in der vorhandenen
+Werkzeugzeile, damit leere Aufgabenzeilen kompakt bleiben. Allgemeine HÜ-Dateien stehen unten beim
 Eintrag. Der Dokumentenknopf im Eintragskopf sammelt auch Dateien der Teilaufgaben.
 Auch bei Erfassung für mehrere Schüler werden die neuen Aufgaben-IDs korrekt
 zugeordnet; die Datei wird gemeinsam verknüpft und nicht je Schüler kopiert.
