@@ -1,0 +1,58 @@
+{
+  "version": "0.16.0-rebuild.28+48",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "750743ceedb33c6a24e94a0db07266f327485c994e80bf4952e4088ef25786d1",
+  "bytes": 102687210,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "elf_alignment_scope": "64-bit libraries: 16KB; legacy 32-bit ARM: 4KB (PDFium)",
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libpdfium.so",
+      "lib/arm64-v8a/libpdfrx_pdfium_gate.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libpdfium.so",
+      "lib/armeabi-v7a/libpdfrx_pdfium_gate.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libpdfium.so",
+      "lib/x86_64/libpdfrx_pdfium_gate.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 438,
+  "flutter_test_scope": [
+    "full Flutter test suite",
+    "thumbnail rendering and stale-preview invalidation, calendar ownership and general tasks/notes, scanner selection/tagging, responsive layouts and batch filter retries",
+    "scanner fallback without Play Services, native photo errors and recovery, tagged JPEG/PDF drafts, atomic multi-photo saving, redaction, backup, context navigation, per-task document references, task deletion, grouped captures, and large-text layouts"
+  ],
+  "android_device_tested": false,
+  "browser_tests": true,
+  "android_manifest_verified": true,
+  "native_backup_bridge_verified": true,
+  "source_commit": "023d35ecd0563e143e0ea75d8f40289bcf70f677"
+}

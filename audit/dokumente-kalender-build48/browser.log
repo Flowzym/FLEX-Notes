@@ -1,0 +1,138 @@
+INITIAL - text: FLEX.
+- button "Aktuell"
+- button "Notizen"
+- button "Ablauf"
+- group:
+  - group "Überblick":
+    - button "Klassen-Orga anlegen"
+    - button "Termin anlegen"
+    - button "Rückläufe"
+  - text: 07.11.2026
+  - button "Anstehend 0"
+  - button "Ergänzen 0"
+  - button "Zuletzt 0"
+  - text: Zuletzt dokumentiert 0 Noch keine weiteren Einträge.
+- button "Kalender"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr"
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Kalender"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Stundenplan"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Aufgaben"s]'>
+TASKS - text: FLEX.
+- button "Aufgaben"
+- button "Kalender"
+- button "Stundenplan"
+- button "Notizen"
+- group:
+  - group "Allgemeine Aufgaben":
+    - button "Aufgabe anlegen"
+  - button "Einträge durchsuchen"
+  - checkbox "Alle" [checked]
+  - checkbox "Offen"
+  - checkbox "Erledigt"
+  - text: Keine passenden allgemeinen Aufgaben.
+- button "Kalender"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr"
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Aufgabe anlegen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=textbox >> nth=0'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Speichern"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Notizen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Notiz anlegen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=textbox >> nth=0'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Speichern"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Weitere Bereiche Mehr"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Scanner"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Scannen / Foto"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Import"s]'>
+PAGES - dialog:
+  - button "Scanentwurf löschen" [disabled]
+  - group:
+    - textbox "Dateiname" [disabled]
+    - text: Noch 183 Zeichen .pdf
+    - checkbox "PDF" [checked] [disabled]
+    - checkbox "Fotos (JPG)" [disabled]
+    - text: 2 Seiten
+    - button "Seiten als Liste"
+    - button "Filter für alle Seiten" [disabled]
+    - 'img "Vorschau: Seite 1 Seite 1 · Bearbeiten"'
+    - button "Seite nach vorne" [disabled]
+    - button "Seite nach hinten" [disabled]
+    - button "Bild ersetzen" [disabled]
+    - button "Seite entfernen" [disabled]
+    - 'img "Vorschau: Seite 2 Seite 2 · Bearbeiten"'
+    - button "Seite nach vorne" [disabled]
+    - button "Seite nach hinten" [disabled]
+    - button "Bild ersetzen" [disabled]
+    - button "Seite entfernen" [disabled]
+    - text: Zuordnung & Tags
+    - textbox "Tags (mit Komma trennen)" [disabled]
+    - button "Kategorie Sonstiges"
+    - button "FLEX-Klasse" [disabled]
+    - button "Einträge · 0" [disabled]
+    - text: Entwurf wird gesichert …
+  - button "Import" [disabled]
+  - button "Später fortsetzen" [disabled]
+  - button "PDF speichern" [disabled]
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=group[name=/Vorschau: Seite 1/] >> nth=-1'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Zuschneiden"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Filter"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Graustufen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Übernehmen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Filter für alle Seiten"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Graustufen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Auf alle anwenden"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Bild ersetzen"s] >> nth=1'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Bild auswählen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Seite nach vorne"s] >> nth=1'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=textbox[name=/Dateiname/]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="PDF speichern"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Teilen / Exportieren"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Schließen und Eingaben sichern"s] >> nth=-1'>
+LIBRARY - text: FLEX.
+- button "Weitere"
+- button "Archiv"
+- button "Papierkorb"
+- button "Daten"
+- button "Einstellungen"
+- button "Scanner"
+- group:
+  - group "Scans & Fotos":
+    - button "Mehrere auswählen"
+    - button "Scannen / Foto"
+  - textbox "Name, Tag oder Schüler suchen"
+  - checkbox "Alle" [checked]
+  - checkbox "PDF"
+  - checkbox "Fotos"
+  - checkbox "Entwürfe · 0"
+  - checkbox "Papierkorb"
+  - group "Sortieren 1 Dateien Zuletzt geändert":
+    - button "Listenansicht"
+  - 'group "Vorschau: Arbeitsprobe Arbeitsprobe PDF · 2 S."':
+    - button "Datei bearbeiten"
+    - button "In den Papierkorb"
+- button "Kalender"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr"
+- link:
+  - /url: blob:http://127.0.0.1:8084/6b4be0e9-129b-45fc-984d-c8fd0cfae78b
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Listenansicht"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Rasteransicht"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Mehrere auswählen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Alle auswählen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Tags"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=dialog >> internal:role=textbox >> nth=0'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Hinzufügen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Mehrere auswählen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Alle auswählen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Papierkorb"s] >> nth=-1'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="In den Papierkorb"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=checkbox[name="Papierkorb"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=button[name="Wiederherstellen"s]'>
+CLICK <Locator frame=<Frame name= url='http://127.0.0.1:8084/'> selector='internal:role=checkbox[name="Papierkorb"s]'>

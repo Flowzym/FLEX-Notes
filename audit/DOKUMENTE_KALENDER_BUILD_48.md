@@ -55,3 +55,32 @@ Die bestehende Kantenerkennung, einrastende Zuschnittpunkte, Live-Bildanpassung,
 Foto-Wiederherstellung nach Prozessunterbrechung und PDF-/JPG-Ausgabe bleiben erhalten.
 Es handelt sich nicht um vollständige CamScanner-Funktionsgleichheit; OCR und durchsuchbare
 PDFs sind nicht Bestandteil dieser Änderung.
+
+## Verifikation
+
+- 438 Flutter-Tests mit Coverage bestanden, darunter 15 neue Prüfungen für Vorschauen,
+  Dateiersetzung, allgemeinen Aufgaben-/Notizbereich, Filterzustand, Entwürfe,
+  Mehrfachverwaltung und fehlgeschlagene Stapelfilter-Speicherung.
+- Formatprüfung und strenge Analyse ohne Befunde; 11 SQLite- und drei HTTP-Tests bestanden.
+- [GitHub CI](https://github.com/Flowzym/FLEX-Notes/actions/runs/42410041538):
+  Analyse/Tests, Android, Web und Abschlussjob erfolgreich für
+  `023d35ecd0563e143e0ea75d8f40289bcf70f677`.
+- APK-App-ID, Signatur, Manifest und native Bibliotheken geprüft. Update mit derselben
+  Testsignatur; 64-Bit-ELF- und ZIP-Ausrichtung für 16 KB geprüft. ARMv7-PDFium: 4 KB.
+- APK-Download auf GitHub mit HTTP 200, korrekter Länge und ZIP-Kopf geprüft;
+  persönliche OneDrive-Kopie nach Upload über Größe und QuickXorHash abgeglichen.
+- Bestehende private Web-App aktualisiert, Eigentümerzugriff unverändert.
+- Browserdurchlauf bei 390 × 844 und 1280 × 900: Kalenderwechsel, allgemeine
+  Aufgaben/Notizen, Bildimport, Zuschnitt, Live-/Stapelfilter, Ersetzung, Reihenfolge,
+  PDF-Ausgabe, PDF-Miniaturen, Raster/Liste, Mehrfach-Tags, Papierkorb und Wiederherstellung.
+  Keine JavaScript-Seitenfehler; exportierte PDF mit zwei Seiten separat geöffnet.
+- Kein physischer Android-Kameratest und keine echte Microsoft-App-Anmeldung.
+
+[Android-App](../releases/android/build-48/README.md) ·
+[Web-App](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site) ·
+[Prüfbelege](dokumente-kalender-build48/)
+
+Browserprüfung reproduzieren: Web-Release bauen, `python3 tool/serve_preview.py --port 8084`
+im Flutter-Projekt starten und `python3 audit/dokumente-kalender-build48/browser_check.py`
+vom Repository aus ausführen. Benötigt Python Playwright, Pillow und Chromium unter
+`/usr/bin/chromium`. Der Test verwendet ausschließlich synthetische Dokumente.

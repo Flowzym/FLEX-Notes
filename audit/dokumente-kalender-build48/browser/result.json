@@ -1,0 +1,22 @@
+{
+  "mobile": [
+    390,
+    844
+  ],
+  "desktop": [
+    1280,
+    900
+  ],
+  "calendar_hub": true,
+  "general_task_and_note": true,
+  "local_edge_detection": true,
+  "live_filters": true,
+  "batch_filter": true,
+  "image_replacement": true,
+  "page_reorder": true,
+  "pdf_export": true,
+  "pdf_thumbnail": true,
+  "grid_list_selection_tags": true,
+  "trash_restore": true,
+  "page_errors": []
+}
