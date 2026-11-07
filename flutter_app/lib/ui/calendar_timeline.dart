@@ -134,11 +134,15 @@ class CalendarTimeline extends StatelessWidget {
                           children: [
                             Text(
                               calendarWeekday(days[dayIndex], short: true),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(ctx).textTheme.labelLarge,
                             ),
                             if (showDates)
                               Text(
                                 '${days[dayIndex].day}.${days[dayIndex].month}.',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(ctx).textTheme.bodySmall,
                               ),
                           ],

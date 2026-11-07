@@ -139,31 +139,36 @@ class DocumentAttachmentSection extends StatelessWidget {
               runSpacing: 4,
               children: [
                 ...leadingActions,
-                if (!readOnly && compact) ...[
-                  IconButton(
-                    key: const ValueKey('attachment-scan'),
-                    tooltip: saveFirst
-                        ? 'Speichern & scannen'
-                        : 'Scannen / Foto',
-                    onPressed:
-                        onScan ?? () => scanAndShow(ctx, controller, scope),
-                    icon: const Icon(Icons.document_scanner_outlined),
-                  ),
-                  IconButton(
-                    key: const ValueKey('attachment-documents'),
-                    tooltip: saveFirst
-                        ? 'Speichern & Dokumente'
-                        : 'Dokumente · ${docs.length}${drafts == 0 ? '' : ' · $drafts Entwürfe'}',
-                    onPressed:
-                        onDocuments ??
-                        () => showContextDocuments(ctx, controller, scope),
-                    icon: Badge(
-                      isLabelVisible: docs.isNotEmpty || drafts > 0,
-                      label: Text('${docs.length + drafts}'),
-                      child: const Icon(Icons.attach_file),
-                    ),
-                  ),
-                ] else if (!readOnly) ...[
+                if (!readOnly && compact)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('attachment-scan'),
+                        tooltip: saveFirst
+                            ? 'Speichern & scannen'
+                            : 'Scannen / Foto',
+                        onPressed:
+                            onScan ?? () => scanAndShow(ctx, controller, scope),
+                        icon: const Icon(Icons.document_scanner_outlined),
+                      ),
+                      IconButton(
+                        key: const ValueKey('attachment-documents'),
+                        tooltip: saveFirst
+                            ? 'Speichern & Dokumente'
+                            : 'Dokumente · ${docs.length}${drafts == 0 ? '' : ' · $drafts Entwürfe'}',
+                        onPressed:
+                            onDocuments ??
+                            () => showContextDocuments(ctx, controller, scope),
+                        icon: Badge(
+                          isLabelVisible: docs.isNotEmpty || drafts > 0,
+                          label: Text('${docs.length + drafts}'),
+                          child: const Icon(Icons.attach_file),
+                        ),
+                      ),
+                    ],
+                  )
+                else if (!readOnly) ...[
                   TextButton.icon(
                     key: const ValueKey('attachment-scan'),
                     onPressed:

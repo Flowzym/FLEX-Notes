@@ -492,6 +492,14 @@ void main() {
         isNotNull,
       );
       expect(t.takeException(), isNull);
+      expect(
+        t.getTopLeft(action('task-attachments-child', 'attachment-scan')).dy,
+        t
+            .getTopLeft(
+              action('task-attachments-child', 'attachment-documents'),
+            )
+            .dy,
+      );
       await tap(t, action('task-attachments-child', 'attachment-scan'));
       expect(
         t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.taskId,
