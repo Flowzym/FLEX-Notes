@@ -1,0 +1,28 @@
+{
+  "source_commit": "ef9d740f26f485a5a200175f36d44b90799efb23",
+  "site_source_commit": "96c2d16d568dfc4130b725c82fa0adb33bd8e740",
+  "deployment": {
+    "id": "appgdep_6aef963562d0819194d92b0857fef3cd",
+    "project_id": "appgprj_6aeefd223a6081919aa744b912822c38",
+    "title": "FLEX – Webvorschau",
+    "version_id": "appgprj_6aeefd223a6081919aa744b912822c38~appgver_0cd791a796248191a52425ee49717967",
+    "type": "publish",
+    "status": "succeeded",
+    "url": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site",
+    "has_mcp": false,
+    "screenshot_asset_pointer": null,
+    "provider_deployment_id": "site---6aeefd223a6081919aa744b912822c38",
+    "failure_message": null,
+    "env_set_revision": 0,
+    "updated_at": "2026-11-07T21:21:08.136145+00:00"
+  },
+  "onedrive": {
+    "item_id": "B0037104A6A978!s124e2b3502634ddba6e9773d8501f42c",
+    "name": "FLEX-Test-0.16.0-rebuild.29+49-ef9d740f26f4-universal.apk",
+    "url": "https://onedrive.live.com?cid=00B0037104A6A978&id=B0037104A6A978!s124e2b3502634ddba6e9773d8501f42c",
+    "bytes": 102687314,
+    "quick_xor_hash": "MmIpezAjEKRpbR0sIsmmKBvded0=",
+    "local_quick_xor_hash": "MmIpezAjEKRpbR0sIsmmKBvded0=",
+    "verified": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "source": "ef9d740f26f485a5a200175f36d44b90799efb23",
+  "mobile": [
+    390,
+    844
+  ],
+  "desktop": [
+    1280,
+    900
+  ],
+  "synthetic_pupils": 12,
+  "synthetic_entries": 69,
+  "pupil_visible_filters": true,
+  "school_edit_save": true,
+  "orga_create_change_type_complete_reopen": true,
+  "calendar_timetable_tasks_notes": true,
+  "materials_packages_plans": true,
+  "scanner_import_filters_reorder_tags_pdf_export": true,
+  "thumbnail_grid_and_list": true,
+  "settings_data": true,
+  "page_errors": []
+}

@@ -66,4 +66,28 @@ Umgebung nicht am physischen Gerät geprüft. Ebenso fehlt weiterhin die eigene
 Microsoft-Client-ID für eine echte OneDrive-Anmeldung. Automatisierte Tests und
 Browserbedienung ersetzen diese Geräteprüfung nicht.
 
-Release- und Browsernachweise werden nach Fertigstellung separat ergänzt.
+## Browserprüfung und Testversion
+
+Die finale Webausgabe wurde zusätzlich in Chromium mit 390 × 844 und
+1280 × 900 Pixeln bedient. Der separate Testarbeitsbereich enthielt zwölf
+synthetische Schüler und 69 Einträge. Geprüft wurden Schülerfilter,
+Bearbeiten und Speichern einer Beobachtung, Anlegen einer Orga-Notiz,
+Wechsel zur Aufgabe, Erledigen und Wiederöffnen sowie die Navigation zu
+Rückläufen, Kalender, Stundenplan, Aufgaben, Notizen und Materialien.
+
+Im Scanner wurden zwei Bilder importiert, eine Graustufen-Vorschau angewendet,
+Seiten umgeordnet, Name und Tags vergeben und das Ergebnis als PDF gespeichert
+und heruntergeladen. Die heruntergeladene PDF enthält zwei Seiten mit je einem
+eingebetteten Bild. Raster, Liste und Vorschauen wurden anschließend geprüft.
+Die Browserprüfung meldete keine JavaScript-Seitenfehler.
+
+- [Browser-Ergebnisse](ui-pruefung-build49/browser/result.json) und [Bedienabläufe](ui-pruefung-build49/browser/README.md).
+- [Schülerdialog](ui-pruefung-build49/browser/pupil-dialog-final.png), [Orga](ui-pruefung-build49/browser/orga-final.png), [Scannerverwaltung](ui-pruefung-build49/browser/scanner-library-final.png).
+- [GitHub-Prüfung des finalen Quellstands](https://github.com/Flowzym/FLEX-Notes/actions/runs/42414851554).
+- [Android-Testversion Build 49 und Installationshinweise](../releases/android/build-49/README.md).
+- [Aktualisierte private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site).
+
+APK und Webvorschau stammen aus Quellstand
+`ef9d740f26f485a5a200175f36d44b90799efb23`. App-ID und APK-Signatur sind
+unverändert. Der OneDrive-Upload wurde anhand von Dateigröße und QuickXor-Hash
+gegen die lokale APK geprüft; [Veröffentlichungsnachweis](../releases/android/build-49/publication.json).
