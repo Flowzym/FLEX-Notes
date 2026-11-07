@@ -68,3 +68,12 @@ Papierkorb/Wiederherstellung. Exportierte PDF: zwei Rasterseiten in erwarteter R
 Screenshots und synthetische Testdateien sowie Testergebnisse liegen unter
 `scanner-ausbau-build47/`. APK-Signatur, Manifest, Version, ZIP- und Bibliotheksausrichtung geprüft.
 [GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42406429418).
+
+Die OneDrive-Kopie ist nach Dateigröße und QuickXorHash identisch mit der lokalen APK.
+Der GitHub-Download antwortet mit HTTP 200, erwarteter Dateigröße und ZIP-Signatur.
+Die bestehende private Sites-Vorschau wurde unter derselben Adresse aktualisiert;
+der Zugriff bleibt auf den Eigentümer beschränkt. Details: `publication.json`.
+
+GitHub CI: Alle vier Jobs erfolgreich für den oben genannten Quellcommit.
+Nachfolgende Commits ergänzen ausschließlich Nachweise und Veröffentlichungsdateien;
+Flutter- und CI-Quellen sind unverändert.
