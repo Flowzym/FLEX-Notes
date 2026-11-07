@@ -57,7 +57,7 @@
   "quick_xor_hash": "ctvZ197YiqIggmv6F0lJpIHtO3A=",
   "github_actions_run_id": 42366241167,
   "github_actions_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42366241167",
-  "github_actions_conclusion": null,
+  "github_actions_conclusion": "success",
   "local_checks": {
     "full_flutter_tests": 368,
     "final_targeted_tests": 39,
@@ -69,5 +69,7 @@
     "android_release": "passed",
     "web_release": "passed"
   },
-  "onedrive_upload_verified": true
+  "onedrive_upload_verified": true,
+  "github_download_verified": true,
+  "private_web_preview_updated": true
 }

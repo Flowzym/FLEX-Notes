@@ -64,3 +64,9 @@ HTTP-Serverprüfungen sind ebenfalls erfolgreich.
 [Wochenraster](stundenplan-build-41/timetable-1100-1.png) ·
 [Große Schrift](stundenplan-build-41/timetable-320-2.png) ·
 [Block bearbeiten](stundenplan-build-41/timetable-editor-390-1.png)
+
+Auch die [GitHub-Pipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42366241167) ist vollständig erfolgreich:
+**370 Flutter-Tests**, Analyse, Android-/Web-Releasebuild und Abschlussprüfung.
+Die private Webvorschau wurde unter derselben Adresse aktualisiert. Die Test-APK
+steht auf GitHub und im verifizierten persönlichen OneDrive bereit; Dateigröße,
+Signatur, SHA-256, 16-KB-Ausrichtung und OneDrive-Prüfsumme wurden geprüft.

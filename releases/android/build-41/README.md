@@ -18,7 +18,8 @@ Strenge Analyse, Formatprüfung, 11 SQLite-Tests und drei HTTP-Tests ebenfalls e
 APK-Signatur, App-ID, Manifest, ZIP- und ELF-Ausrichtung für 16-KB-Seiten geprüft.
 Kein physischer Android-Gerätelauf und kein Browserlauf.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42366241167).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42366241167): **alle Prüfungen erfolgreich**, einschließlich
+370 Flutter-Tests, Android- und Web-Releasebuild und Abschlussprüfung.
 
 APK: 79691112 Bytes. SHA-256:
 `a326cc5531c184e61d4303485b41a3f0400df179ffac58be5564ff2dfbd26843`.
