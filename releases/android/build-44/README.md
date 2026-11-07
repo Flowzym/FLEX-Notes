@@ -21,7 +21,8 @@ APK-Manifest, Signatur, ZIP-Ausrichtung und 16-KB-ELF-Ausrichtung der 64-Bit-Bib
 geprüft. Die ältere 32-Bit-ARM-PDFium-Bibliothek verwendet 4-KB-Ausrichtung.
 
 [GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42394089421)
-läuft zusätzlich für den Quellcommit.
+ist vollständig erfolgreich: Analyse und 390 Tests, Web- und Android-Releasebuild
+sowie abschließender Gesamtcheck.
 
 APK: 101734858 Bytes. SHA-256:
 `5297bd3102af76ce90d331c760c408d5da45cef0134e89642aab4cc0e897203c`.

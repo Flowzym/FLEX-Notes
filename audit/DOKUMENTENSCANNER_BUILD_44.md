@@ -113,3 +113,6 @@ APK-Kennung), Signatur, SHA-256 und OneDrive-Prüfsumme sind geprüft.
 Quellcommit: `f4f82d8fe99b7d41112ca14be321f059a0dfa3bf`.
 
 [GitHub-Testpipeline für diesen Quellstand](https://github.com/Flowzym/FLEX-Notes/actions/runs/42394089421).
+Alle vier Jobs sind erfolgreich: Analyse und 390 Tests, Webbuild mit HTTP-Prüfungen,
+Android-Releasebuild und abschließender Gesamtcheck.
+[CI-Nachweis](dokumentenscanner-build-44/github-ci.json).
