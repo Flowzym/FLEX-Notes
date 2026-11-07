@@ -1,0 +1,9 @@
+FLEX Test Build 44
+
+APK über die bestehende FLEX Test installieren; nicht deinstallieren.
+App-ID und Testsignatur sind unverändert.
+
+Scanner: bei Schüler/Eintrag Dokumente öffnen → Scannen / PDF erstellen.
+Google Play-Dienste sind für die Kamera erforderlich. Dateiimport ist alternativ möglich.
+PDFs über die separate verschlüsselte Materialsicherung sichern.
+Automatischer OneDrive-Upload und OCR sind nicht enthalten.
