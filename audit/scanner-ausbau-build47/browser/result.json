@@ -1,0 +1,19 @@
+{
+  "mobile": [
+    390,
+    844
+  ],
+  "desktop": [
+    1280,
+    900
+  ],
+  "notizen_navigation": true,
+  "local_edge_detection": true,
+  "live_filter_preview": true,
+  "crop_retained_on_filter_switch": true,
+  "image_replacement": true,
+  "batch_reorder": true,
+  "pdf_export": true,
+  "scanner_library_trash_restore": true,
+  "page_errors": []
+}

@@ -1,0 +1,57 @@
+{
+  "version": "0.16.0-rebuild.27+47",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "9f08dca5712d2ab2a1bf58a9be2b37538889c9ceaa379227d194c28025857962",
+  "bytes": 102326678,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "elf_alignment_scope": "64-bit libraries: 16KB; legacy 32-bit ARM: 4KB (PDFium)",
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libpdfium.so",
+      "lib/arm64-v8a/libpdfrx_pdfium_gate.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libpdfium.so",
+      "lib/armeabi-v7a/libpdfrx_pdfium_gate.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libpdfium.so",
+      "lib/x86_64/libpdfrx_pdfium_gate.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 423,
+  "flutter_test_scope": [
+    "423 tests: full suite",
+    "13 new tests: perspective/rotated edge detection, noise rejection, snapping, preset previews, batch cancellation/order, replacement durability, filter/export, crop tool switching, scanner library search and trash restore"
+  ],
+  "android_device_tested": false,
+  "browser_tests": true,
+  "android_manifest_verified": true,
+  "native_backup_bridge_verified": true,
+  "source_commit": "4120125fe0c639e44e74c0e09650672a7acce910"
+}

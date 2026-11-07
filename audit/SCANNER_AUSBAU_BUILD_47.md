@@ -57,5 +57,14 @@ Die neuen Tests decken Perspektive, Drehung, ungleichmäßiges Licht, Bildrausch
 Snapping-Abstände, Filtervorschau und volle Exportauflösung, Werkzeugwechsel,
 Mehrfachaufnahmen, Abbruch, dauerhafte Seitenreihenfolge, Bildersetzung mit
 Speicherfehler sowie Suche, Filter und Wiederherstellung der Scannerverwaltung ab.
-Die vollständigen Testergebnisse und Veröffentlichungsnachweise werden nach
-Abschluss unter `scanner-ausbau-build47/` abgelegt.
+Quellcommit: `4120125fe0c639e44e74c0e09650672a7acce910`.
+423 Flutter-Tests mit Coverage, strenge Analyse und Formatprüfung bestanden;
+11 SQLite- und drei HTTP-Tests erfolgreich. Die bestehende Prüfung für überlappungsfreie
+Schüler-Zähler bei 320 Pixeln und großer Schrift besteht unverändert.
+
+Web und Android als Release gebaut. Browserprüfung bei 390 × 844 und 1280 × 900:
+Dokumentränder, Filter, Bildersetzung, Reihung, PDF-Export und Scannerverwaltung mit
+Papierkorb/Wiederherstellung. Exportierte PDF: zwei Rasterseiten in erwarteter Reihenfolge.
+Screenshots und synthetische Testdateien sowie Testergebnisse liegen unter
+`scanner-ausbau-build47/`. APK-Signatur, Manifest, Version, ZIP- und Bibliotheksausrichtung geprüft.
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42406429418).
