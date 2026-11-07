@@ -185,7 +185,11 @@ void main() {
         ),
         scale: 2,
       );
+      final shell = t.getRect(find.byKey(const ValueKey('page-pill-shell')));
       for (final i in [0, 1, 2, 3]) {
+        final button = t.getRect(find.byKey(ValueKey('page-$i')));
+        expect(shell.contains(button.topLeft), isTrue);
+        expect(shell.contains(button.bottomRight), isTrue);
         await tap(t, find.byKey(ValueKey('page-$i')));
         expect(selected, i);
       }

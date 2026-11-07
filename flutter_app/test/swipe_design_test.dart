@@ -511,7 +511,18 @@ void main() {
                 .first,
           );
         }
-        await tap(t, summary);
+        await t.ensureVisible(summary);
+        await t.pumpAndSettle();
+        // At 200% text plus UI zoom the card can exceed the viewport. Tap
+        // its visible portion, just as a user would, rather than its center.
+        final visibleCard = t
+            .getRect(summary)
+            .intersect(
+              Offset.zero & (t.view.physicalSize / t.view.devicePixelRatio),
+            );
+        expect(visibleCard.isEmpty, isFalse);
+        await t.tapAt(visibleCard.center);
+        await t.pumpAndSettle();
         await tap(t, find.byKey(const ValueKey('status-given-partial')));
         expect(
           t.getRect(find.byKey(const ValueKey('status-given-open'))).top,

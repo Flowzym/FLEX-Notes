@@ -13,6 +13,7 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/calendar_page.dart';
+import 'package:flex_notizbuch/ui/calendar_timeline.dart';
 import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'classroom_test.dart' show classroomMemory, lesson;
 import 'material_workspace_test.dart' show material;
@@ -181,6 +182,132 @@ void main() {
       image.dispose();
     });
   }
+
+  testWidgets('time marker stays above ongoing blocks and passes taps through', (
+    t,
+  ) async {
+    final c = await controller();
+    var opened = false;
+    final boundary = await host(
+      t,
+      c,
+      builder: (_) => SingleChildScrollView(
+        child: CalendarTimeline(
+          days: [DateTime(2026, 11, 2)],
+          items: const [
+            CalendarItem(
+              id: 'long',
+              date: '2026-11-02',
+              title: 'Flexk',
+              category: 'lesson',
+              time: '07:45',
+              end: '11:30',
+            ),
+          ],
+          now: DateTime(2026, 11, 2, 8, 20),
+          selectedDate: '2026-11-02',
+          onOpen: (_) => opened = true,
+          onDay: (_) {},
+        ),
+      ),
+    );
+    final line = find.byKey(const ValueKey('calendar-now-line'));
+    final rect = t.getRect(line);
+    expect(rect.width, greaterThan(300));
+    expect(rect.height, 3);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('calendar-now-label')),
+        matching: find.text('08:20'),
+      ),
+      findsOneWidget,
+    );
+    // Check actual paint output at the block center: the lesson used to cover it.
+    await t.runAsync(() async {
+      final image =
+          await (boundary.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary)
+              .toImage();
+      final rgba = (await image.toByteData())!;
+      final pixel =
+          ((rect.top + 1).floor() * image.width + rect.center.dx.floor()) * 4;
+      final color = Color.fromARGB(
+        rgba.getUint8(pixel + 3),
+        rgba.getUint8(pixel),
+        rgba.getUint8(pixel + 1),
+        rgba.getUint8(pixel + 2),
+      );
+      expect(color, Theme.of(t.element(line)).colorScheme.error);
+      image.dispose();
+    });
+    await t.tapAt(rect.center);
+    await t.pumpAndSettle();
+    expect(opened, isTrue);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'both day subpages update current time and omit it on other dates',
+    (t) async {
+      final c = await controller(seed: true);
+      var now = DateTime(2026, 11, 9, 8, 20);
+      await host(
+        t,
+        c,
+        builder: (_) => CalendarPage(controller: c, clock: () => now),
+      );
+      final line = find.byKey(const ValueKey('calendar-now-line'));
+      final label = find.byKey(const ValueKey('calendar-now-label'));
+      for (final section in ['calendar', 'timetable']) {
+        await tap(t, find.byKey(ValueKey('calendar-section-$section')));
+        await tap(t, find.byKey(ValueKey('$section-mode-day')));
+        final oldY = t.getTopLeft(line).dy;
+        now = now.add(const Duration(minutes: 1));
+        await t.pump(const Duration(minutes: 1));
+        expect(t.getTopLeft(line).dy - oldY, closeTo(1.65, .01));
+        expect(
+          find.descendant(of: label, matching: find.text('08:${now.minute}')),
+          findsOneWidget,
+        );
+        await tap(t, find.byTooltip('Nächster Zeitraum'));
+        expect(line, findsNothing);
+        await tap(t, find.byTooltip('Vorheriger Zeitraum'));
+        expect(line, findsOneWidget);
+      }
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('today includes current time before and after teaching hours', (
+    t,
+  ) async {
+    final c = await controller();
+    for (final hour in [0, 6, 23]) {
+      await host(
+        t,
+        c,
+        builder: (_) => SingleChildScrollView(
+          child: CalendarTimeline(
+            days: [DateTime(2026, 11, 2)],
+            items: const [],
+            now: DateTime(2026, 11, 2, hour, 59),
+            selectedDate: '2026-11-02',
+            onOpen: (_) {},
+            onDay: (_) {},
+          ),
+        ),
+      );
+      final line = find.byKey(const ValueKey('calendar-now-line'));
+      expect(line, findsOneWidget);
+      await t.ensureVisible(line);
+      await t.pumpAndSettle();
+      expect(t.getRect(line).top, inInclusiveRange(0, 844));
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    }
+  });
 
   for (final setting in [(390.0, 1.0), (320.0, 2.0), (1100.0, 1.0)]) {
     testWidgets(

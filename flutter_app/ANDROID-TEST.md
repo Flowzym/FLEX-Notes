@@ -1,8 +1,14 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.22+42**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.23+43**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
+
+Build 43 fasst die Hauptnavigation auch am Handy in einer gemeinsamen Pille zusammen.
+Ausgewählte Beobachtungen im Textfeld sind dunkelgrün, dunkelblau oder dunkelrot.
+Kalender und Stundenplan zeigen am heutigen Tag eine waagrechte Linie mit Uhrzeit,
+die auch über laufenden Blöcken sichtbar bleibt und sich minütlich aktualisiert.
+[Bedienung und Prüfungen](../audit/NAVIGATION_FARBEN_ZEIT_BUILD_43.md).
 
 Build 42 zeigt **Kalender** und **Stundenplan** als eigene Unterseiten. Der Stundenplan
 hat dieselbe Tages- und Wochen-Zeitachse wie der Kalender. Datum, Ansicht und
@@ -36,7 +42,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 42 auf GitHub herunterladen](../releases/android/build-42/README.md).
+[APK Build 43 auf GitHub herunterladen](../releases/android/build-43/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

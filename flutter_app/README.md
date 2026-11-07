@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.22+42** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.23+43** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -8,7 +8,8 @@ Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
 Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
-Aktueller Prüfstand: [Kalender-Unterseiten](../audit/KALENDER_UNTERSEITEN_BUILD_42.md),
+Aktueller Prüfstand: [Navigation, Farben und Zeitlinie](../audit/NAVIGATION_FARBEN_ZEIT_BUILD_43.md),
+[Kalender-Unterseiten](../audit/KALENDER_UNTERSEITEN_BUILD_42.md),
 [Bearbeitbarer Stundenplan](../audit/STUNDENPLAN_BUILD_41.md),
 [Kalender](../audit/KALENDER_BUILD_40.md) und [Materialien](../audit/MATERIALIEN_BUILD_39.md).
 Android-Testapp: [Installation und Bau](ANDROID-TEST.md).

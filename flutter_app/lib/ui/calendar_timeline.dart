@@ -45,7 +45,21 @@ class CalendarTimeline extends StatelessWidget {
       final scale = MediaQuery.textScalerOf(ctx).scale(1).clamp(1.0, 2.5);
       final pixels = week ? 1.35 * scale : 1.65 * scale;
       final minMinutes = week ? 36 : 38;
-      final hours = calendarHours(items, minimumMinutes: minMinutes);
+      final baseHours = calendarHours(items, minimumMinutes: minMinutes);
+      final todayIndex = highlightNow
+          ? days.indexWhere((day) => dateOnly(day) == dateOnly(now))
+          : -1;
+      final nowMinutes = now.hour * 60 + now.minute;
+      // Today's time must also be representable before/after teaching hours.
+      final hours = (!week && todayIndex >= 0)
+          ? (
+              start: math.min(baseHours.start, (nowMinutes ~/ 60) * 60),
+              end: math.max(
+                baseHours.end,
+                math.min(24 * 60, ((nowMinutes ~/ 60) + 1) * 60),
+              ),
+            )
+          : baseHours;
       final height = (hours.end - hours.start) * pixels;
       final axis = scale > 1.5 ? 66.0 : 46.0;
       final colWidth = week
@@ -137,24 +151,6 @@ class CalendarTimeline extends StatelessWidget {
                 left: axis + dayIndex * colWidth,
                 child: VerticalDivider(width: 1, color: scheme.outlineVariant),
               ),
-              if (highlightNow &&
-                  dateOnly(days[dayIndex]) == dateOnly(now) &&
-                  now.hour * 60 + now.minute >= hours.start &&
-                  now.hour * 60 + now.minute < hours.end)
-                Positioned(
-                  key: const ValueKey('calendar-now-line'),
-                  top:
-                      headHeight +
-                      (now.hour * 60 + now.minute - hours.start) * pixels,
-                  left: axis + dayIndex * colWidth,
-                  right: width - (axis + (dayIndex + 1) * colWidth),
-                  child: IgnorePointer(
-                    child: Semantics(
-                      label: 'Jetzt ${minuteClock(now.hour * 60 + now.minute)}',
-                      child: Container(height: 2, color: scheme.error),
-                    ),
-                  ),
-                ),
               for (final cluster in calendarClusters(
                 items.where((i) => i.date == dateOnly(days[dayIndex])),
                 minimumMinutes: minMinutes,
@@ -245,6 +241,82 @@ class CalendarTimeline extends StatelessWidget {
                         onTap: () => onOpen(placement.item),
                       ),
                     ),
+            ],
+            // Paint last: an ongoing lesson must never cover the time marker.
+            if (todayIndex >= 0 &&
+                nowMinutes >= hours.start &&
+                nowMinutes < hours.end) ...[
+              Positioned(
+                key: const ValueKey('calendar-now-line'),
+                top: headHeight + (nowMinutes - hours.start) * pixels,
+                left: axis + todayIndex * colWidth,
+                width: colWidth,
+                height: 3,
+                child: IgnorePointer(
+                  child: Semantics(
+                    label: 'Jetzt ${minuteClock(nowMinutes)}',
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: scheme.error,
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.surface,
+                            blurRadius: 2,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: headHeight + (nowMinutes - hours.start) * pixels - 3,
+                left: axis + todayIndex * colWidth - 4,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: scheme.error,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+              if (!week)
+                Positioned(
+                  key: const ValueKey('calendar-now-label'),
+                  top: math.max(
+                    0,
+                    headHeight +
+                        (nowMinutes - hours.start) * pixels -
+                        9 * scale,
+                  ),
+                  left: 0,
+                  width: axis - 6,
+                  child: IgnorePointer(
+                    child: ExcludeSemantics(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        decoration: BoxDecoration(
+                          color: scheme.error,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          minuteClock(nowMinutes),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onError,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ],
         ),

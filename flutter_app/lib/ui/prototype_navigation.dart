@@ -28,48 +28,57 @@ class FlexPagePills extends StatelessWidget {
     if ((classroomPages || MediaQuery.textScalerOf(context).scale(1) > 1.5) &&
         MediaQuery.sizeOf(context).width < 600) {
       return Center(
-        child: Wrap(
-          key: const ValueKey('page-pills'),
-          spacing: 6,
-          runSpacing: 6,
-          alignment: WrapAlignment.center,
-          children: [
-            for (final item in pages.entries)
-              TextButton(
-                key: ValueKey('page-${item.key}'),
-                onPressed: () => onSelected(item.key),
-                style: TextButton.styleFrom(
-                  backgroundColor: selected == item.key
-                      ? colors.primary
-                      : palette?.workspace ?? colors.surfaceContainerHigh,
-                  foregroundColor: selected == item.key
-                      ? colors.onPrimary
-                      : palette?.workspaceInk ?? colors.onSurface,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                child: Text(item.value, textAlign: TextAlign.center),
-              ),
-            Material(
-              color: selected == pages.length
-                  ? colors.primary
-                  : palette?.workspace ?? colors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(999),
-              child: SizedBox(
-                width: 64,
-                child: DefaultTextStyle.merge(
-                  style: TextStyle(
-                    color: selected == pages.length
+        child: Container(
+          key: const ValueKey('page-pill-shell'),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: palette?.workspace ?? colors.surfaceContainerHigh,
+            border: Border.all(color: colors.outlineVariant),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Wrap(
+            key: const ValueKey('page-pills'),
+            spacing: 6,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: [
+              for (final item in pages.entries)
+                TextButton(
+                  key: ValueKey('page-${item.key}'),
+                  onPressed: () => onSelected(item.key),
+                  style: TextButton.styleFrom(
+                    backgroundColor: selected == item.key
+                        ? colors.primary
+                        : Colors.transparent,
+                    foregroundColor: selected == item.key
                         ? colors.onPrimary
-                        : colors.onSurface,
+                        : palette?.workspaceInk ?? colors.onSurface,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
-                  child: more,
+                  child: Text(item.value, textAlign: TextAlign.center),
+                ),
+              Material(
+                color: selected == pages.length
+                    ? colors.primary
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  width: 64,
+                  child: DefaultTextStyle.merge(
+                    style: TextStyle(
+                      color: selected == pages.length
+                          ? colors.onPrimary
+                          : palette?.workspaceInk ?? colors.onSurface,
+                    ),
+                    child: more,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -107,6 +116,7 @@ class FlexPagePills extends StatelessWidget {
           height: 64,
           child: Center(
             child: Container(
+              key: const ValueKey('page-pill-shell'),
               height: 42,
               padding: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(

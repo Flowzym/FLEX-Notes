@@ -1231,6 +1231,11 @@ class _SchoolEditorState extends State<SchoolEditor>
           fieldKey: const ValueKey('record-body'),
           value: r.body,
           hint: 'Beobachtung …',
+          tagColors: {
+            for (final tone in observationTones.keys)
+              for (final text in r.observations(tone))
+                '$tone-$text': observationToneColors[tone]!,
+          },
           tags: [
             for (final tone in observationTones.keys)
               for (final text in r.observations(tone))
@@ -1434,6 +1439,11 @@ class _SchoolEditorState extends State<SchoolEditor>
           fieldKey: const ValueKey('record-body'),
           value: r.body,
           hint: 'Beobachtung …',
+          tagColors: {
+            for (final tone in observationTones.keys)
+              for (final text in r.observations(tone))
+                '$tone-$text': observationToneColors[tone]!,
+          },
           tags: [
             for (final tone in observationTones.keys)
               for (final text in r.observations(tone))

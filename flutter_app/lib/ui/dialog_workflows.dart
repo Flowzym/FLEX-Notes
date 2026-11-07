@@ -2,6 +2,7 @@ import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
+import 'observation_tone_colors.dart';
 import 'homework_task_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -699,6 +700,13 @@ Future<void> showBulk(
                             value: individual['body'] as String? ?? '',
                             hint: 'Beobachtung …',
                             maxLength: 3000,
+                            tagColors: {
+                              for (final tone in observationTones.keys)
+                                for (final value in List<String>.from(
+                                  individual[tone] as List? ?? [],
+                                ))
+                                  '$tone-$value': observationToneColors[tone]!,
+                            },
                             tags: [
                               for (final tone in observationTones.keys)
                                 for (final value in List<String>.from(

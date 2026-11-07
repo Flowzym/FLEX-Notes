@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.22+42** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.23+43** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 42 herunterladen**](releases/android/build-42/README.md)
+[**Android-Testapp Build 43 herunterladen**](releases/android/build-43/README.md)
+
+[Navigation, Beobachtungsfarben und aktuelle Zeit](audit/NAVIGATION_FARBEN_ZEIT_BUILD_43.md).
 
 [Kalender und Stundenplan als Unterseiten mit Tag/Woche](audit/KALENDER_UNTERSEITEN_BUILD_42.md).
 

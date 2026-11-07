@@ -1,4 +1,5 @@
 import 'package:flex_notizbuch/ui/compact_switch.dart';
+import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -396,6 +397,22 @@ void main() {
         await tap(t, find.byKey(const ValueKey('tone-positive')));
         final positive = observationDefaults['${kind.name}-positive']!.first;
         await tap(t, find.byKey(ValueKey('observation-$positive')));
+        // A mixed selection keeps each tag's own tone, even after tab changes.
+        for (final active in ['negative', 'neutral', 'positive']) {
+          await tap(t, find.byKey(ValueKey('tone-$active')));
+          for (final tag in [
+            ('positive', positive),
+            ('neutral', neutral),
+            ('negative', negative),
+          ]) {
+            final chip = t.widget<InputChip>(
+              find.byKey(ValueKey('selected-${tag.$1}-${tag.$2}')),
+            );
+            expect(chip.color?.resolve({}), observationToneColors[tag.$1]);
+            expect((chip.label as Text).style?.color, Colors.white);
+            expect(chip.deleteIconColor, Colors.white);
+          }
+        }
         final body = find.byKey(const ValueKey('record-body'));
         await t.ensureVisible(body);
         await t.enterText(body, 'Sachlicher Freitext');

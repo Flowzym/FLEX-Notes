@@ -15,10 +15,12 @@ class TagTextField extends StatefulWidget {
     this.minLines = 3,
     this.maxLength = 12000,
     this.semanticLabel,
+    this.tagColors = const {},
   });
   final Key fieldKey;
   final String value, hint;
   final String? semanticLabel;
+  final Map<String, Color> tagColors;
   final List<({String id, String label, VoidCallback remove})> tags;
   final ValueChanged<String> onChanged;
   final int minLines, maxLength;
@@ -91,6 +93,17 @@ class _TagTextFieldState extends State<TagTextField> {
                         transparentChip(
                           InputChip(
                             key: ValueKey('selected-${tag.id}'),
+                            color: widget.tagColors[tag.id] == null
+                                ? null
+                                : WidgetStatePropertyAll(
+                                    widget.tagColors[tag.id]!,
+                                  ),
+                            deleteIconColor: widget.tagColors[tag.id] == null
+                                ? null
+                                : legibleOn(widget.tagColors[tag.id]!),
+                            side: widget.tagColors[tag.id] == null
+                                ? null
+                                : BorderSide(color: widget.tagColors[tag.id]!),
                             focusNode: tagFocus.putIfAbsent(
                               tag.id,
                               () => FocusNode(),
@@ -109,7 +122,10 @@ class _TagTextFieldState extends State<TagTextField> {
                             label: Text(
                               tag.label,
                               softWrap: true,
-                              style: const TextStyle(
+                              style: TextStyle(
+                                color: widget.tagColors[tag.id] == null
+                                    ? null
+                                    : legibleOn(widget.tagColors[tag.id]!),
                                 fontSize: 12,
                                 height: 1.15,
                               ),
