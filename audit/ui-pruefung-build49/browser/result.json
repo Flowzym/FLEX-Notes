@@ -18,5 +18,15 @@
   "scanner_import_filters_reorder_tags_pdf_export": true,
   "thumbnail_grid_and_list": true,
   "settings_data": true,
-  "page_errors": []
+  "page_errors": [],
+  "fresh_browser_import": {
+    "file_bytes": 291220,
+    "new_entities": 92,
+    "review_seconds": 23.830457402997126,
+    "merge_seconds": 148.1466679100049,
+    "pupils_restored": true,
+    "default_timetable_preserved": true,
+    "page_errors": [],
+    "environment": "headless Chromium with software rendering; not an Android performance measurement"
+  }
 }

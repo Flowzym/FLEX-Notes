@@ -10,6 +10,7 @@ Chromium gegen den lokal gebauten Release-Webstand `ef9d740f26f485a5a200175f36d4
 4. Material: Dateien, Pakete und Planungen öffnen; Kontextaktionen und gefüllte Listen ansehen.
 5. Mehr → Scanner: zwei Testbilder importieren, Seite öffnen, Graustufen-Filter mit Vorschau anwenden, Reihenfolge ändern, Name und zwei Tags vergeben, PDF speichern und herunterladen. PDF mit PyMuPDF geprüft: zwei Seiten, je ein eingebettetes Bild. Raster und Liste zeigen Vorschauen.
 6. Einstellungen, Bedienung und Daten auf Desktopbreite öffnen. Import und Export zusätzlich durch die Widget-Suite einschließlich großer Schrift geprüft.
+7. In einem neuen Browserprofil dieselbe synthetische Sicherung importieren, alle 92 neuen Objekte zusammenführen und Schüler sowie den erhaltenen Standardstundenplan anzeigen. Ergebnis erfolgreich, keine JavaScript-Seitenfehler; rund 24 Sekunden Vorschau und 148 Sekunden Zusammenführen. Diese Laufzeit bleibt ein offener Performancepunkt und ist nicht als Messung auf einem Android-Gerät zu verstehen.
 
 Die Ergebnisdatei und Screenshots dokumentieren diese Abläufe. Die renderbasierte Flutter-Suite prüft darüber hinaus alle 19 Unterseiten und sieben Editorvarianten in vier Layouts einschließlich 180 % Schriftgröße und simulierter Bildschirmtastatur. Die vollständige bestehende Suite ergänzt Fehler-, Wiederaufnahme-, Scanner- und Datenfälle.
 

@@ -54,5 +54,10 @@
   "android_device_tested": false,
   "browser_tests": true,
   "android_manifest_verified": true,
-  "native_backup_bridge_verified": true
+  "native_backup_bridge_verified": true,
+  "github_ci": {
+    "run_id": 42414851554,
+    "all_jobs_passed": true,
+    "source_commit": "ef9d740f26f485a5a200175f36d44b90799efb23"
+  }
 }

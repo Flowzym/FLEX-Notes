@@ -60,6 +60,15 @@ aller Einstellungen. „Ablauf“ bleibt der ausdrücklich vorgesehene Platzhalt
 Die umfangreichen Gestaltungseinstellungen und Scannerwerkzeuge benötigen
 weiterhin Scrollen, insbesondere bei großer Schrift.
 
+**Offener Performancepunkt:** Der zusätzliche Import in ein frisches
+Chromium-Profil war erfolgreich, benötigte in dieser Umgebung aber rund
+24 Sekunden für die Vorschau und 148 Sekunden für das Zusammenführen von
+92 neuen Objekten (291.220-Byte-Sicherung, zwölf Schüler, 69 Einträge und
+Material-/Organisationsdaten). Der vorhandene Stundenplan blieb erhalten.
+Die gemessene Dauer ist aus Nutzersicht zu lang; Fortschrittsanzeige und
+weitere Beschleunigung bleiben sinnvoll. Diese Messung stammt aus einem
+Headless-Browser mit Softwaredarstellung und ist keine Android-Messung.
+
 Eine echte Android-Kamera, native Dateiauswahl, Hersteller-Tastaturen,
 Benachrichtigungen bei gesperrtem Gerät und Fingerabdruck wurden in dieser
 Umgebung nicht am physischen Gerät geprüft. Ebenso fehlt weiterhin die eigene
@@ -91,3 +100,7 @@ APK und Webvorschau stammen aus Quellstand
 `ef9d740f26f485a5a200175f36d44b90799efb23`. App-ID und APK-Signatur sind
 unverändert. Der OneDrive-Upload wurde anhand von Dateigröße und QuickXor-Hash
 gegen die lokale APK geprüft; [Veröffentlichungsnachweis](../releases/android/build-49/publication.json).
+
+Alle vier GitHub-Jobs sind erfolgreich: Analyse und vollständige Testsuite,
+Web-Build mit Serverprüfung, Android-Release-Build sowie die abschließende
+CI-Prüfung. [Gespeicherter Status](ui-pruefung-build49/github-ci.json).
