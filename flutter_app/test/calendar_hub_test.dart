@@ -43,7 +43,7 @@ void main() {
   }
 
   testWidgets(
-    'calendar owns timetable, shortcuts preserve date, Live has three pages',
+    'calendar owns timetable without duplicate shortcuts, section callbacks preserve date',
     (t) async {
       final c = await controller();
       await host(t, c);
@@ -63,10 +63,13 @@ void main() {
             .shortcutDate,
         date,
       );
-      await tap(
-        t,
-        find.byKey(const ValueKey('calendar-shortcut')).hitTestable(),
-      );
+      expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
+      expect(find.text('Zum Kalender'), findsNothing);
+      t
+          .widget<CalendarPage>(find.byKey(const ValueKey('main-timetable')))
+          .onSwitchSection!(false, date);
+      await t.pumpAndSettle();
+      expect(find.text('Zum Stundenplan'), findsNothing);
       expect(
         t
             .widget<CalendarPage>(find.byKey(const ValueKey('main-calendar')))

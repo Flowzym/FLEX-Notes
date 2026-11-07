@@ -1089,23 +1089,7 @@ class _CalendarPageState extends State<CalendarPage>
         final content = Column(
           key: ValueKey(timetableView ? 'timetable-view' : 'calendar-view'),
           children: [
-            if (widget.onSwitchSection != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  key: const ValueKey('calendar-shortcut'),
-                  onPressed: () => selectSection(!timetableView),
-                  icon: Icon(
-                    timetableView
-                        ? Icons.calendar_month_outlined
-                        : Icons.view_week_outlined,
-                  ),
-                  label: Text(
-                    timetableView ? 'Zum Kalender' : 'Zum Stundenplan',
-                  ),
-                ),
-              )
-            else
+            if (widget.onSwitchSection == null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
                 child: Material(

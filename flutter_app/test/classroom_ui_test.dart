@@ -165,7 +165,8 @@ void main() {
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('context-0-1')));
       expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
-      await tap(t, find.byKey(const ValueKey('calendar-shortcut')));
+      expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('context-0-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
       await capture(t, key, 'calendar-phone');
       await tap(t, find.byKey(const ValueKey('bottom-3')));

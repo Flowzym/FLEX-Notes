@@ -10,6 +10,7 @@ import 'package:flex_notizbuch/domain/material_workspace.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/material_library.dart';
+import 'package:flex_notizbuch/ui/material_thumbnail.dart';
 import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'classroom_test.dart' show classroomMemory;
 import 'material_workspace_test.dart' show material;
@@ -177,6 +178,140 @@ void main() {
     },
   );
 
+  testWidgets('material format, sort, layout and reset work together', (
+    t,
+  ) async {
+    final c = await controller();
+    final pdf = material('Alpha Arbeitsblatt');
+    final docx = material('Beta Vorlage', fields: {'extension': 'docx'});
+    await c.repository.saveClassroomDocuments([docx, pdf]);
+    await c.reload();
+    await host(
+      t,
+      (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
+    );
+    await tap(t, find.byKey(const ValueKey('material-sort')));
+    await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Name A–Z'));
+    final a = t.getTopLeft(find.byKey(ValueKey(pdf.id)));
+    final b = t.getTopLeft(find.byKey(ValueKey(docx.id)));
+    expect(a.dy < b.dy || a.dy == b.dy && a.dx < b.dx, isTrue);
+    await tap(t, find.byTooltip('Listenansicht'));
+    expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
+    await tap(t, find.widgetWithText(TextButton, 'Filter'));
+    await tap(t, find.byKey(const ValueKey('material-format-docx')));
+    expect(find.byKey(ValueKey(pdf.id)), findsNothing);
+    expect(find.byKey(ValueKey(docx.id)), findsOneWidget);
+    await tap(t, find.byTooltip('Materialien suchen'));
+    await t.enterText(find.byType(TextField), 'Kein Treffer');
+    await t.pumpAndSettle();
+    await tap(t, find.text('Suche und Filter zurücksetzen'));
+    expect(find.byKey(ValueKey(pdf.id)), findsOneWidget);
+    expect(find.byKey(ValueKey(docx.id)), findsOneWidget);
+    expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets(
+    'today shortcut preserves other prepared files and favorite is independent',
+    (t) async {
+      final c = await controller();
+      final a = material('Arbeitsblatt'), b = material('Vorlage');
+      final today = dateOnly(DateTime.now());
+      await c.repository.saveClassroomDocuments([
+        a,
+        b,
+        prepareMaterials([], today, [b.id]),
+      ]);
+      await c.reload();
+      await host(
+        t,
+        (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
+      );
+      Finder action(String tooltip) => find.descendant(
+        of: find.byKey(ValueKey(a.id)),
+        matching: find.byTooltip(tooltip),
+      );
+      await tap(t, action('Für heute bereitlegen'));
+      expect(preparationFor(c.classroom, today).strings('materialIds'), [
+        b.id,
+        a.id,
+      ]);
+      await tap(t, action('Als Favorit merken'));
+      expect(
+        c.classroom.singleWhere((d) => d.id == a.id).flag('favorite'),
+        isTrue,
+      );
+      await tap(t, action('Von heute entfernen'));
+      expect(preparationFor(c.classroom, today).strings('materialIds'), [b.id]);
+      expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
+      await tap(t, find.widgetWithText(FilterChip, 'Favoriten'));
+      expect(find.byKey(ValueKey(a.id)), findsOneWidget);
+      expect(find.byKey(ValueKey(b.id)), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'material trash can restore a file without exposing preparation actions',
+    (t) async {
+      final c = await controller();
+      final a = material('Gelöschtes Material').patch({'deleted': true});
+      await c.saveClassroom(a);
+      await host(
+        t,
+        (_) => MaterialLibraryPage(
+          controller: c,
+          externalView: 'files',
+          initialTrash: true,
+        ),
+      );
+      expect(find.byTooltip('Für heute bereitlegen'), findsNothing);
+      await tap(t, find.byTooltip('Wiederherstellen'));
+      expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
+      expect(find.byKey(ValueKey(a.id)), findsNothing);
+      await tap(t, find.widgetWithText(FilterChip, 'Papierkorb'));
+      expect(find.byKey(ValueKey(a.id)), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'large libraries build previews near the viewport and remain scrollable',
+    (t) async {
+      final c = await controller();
+      final docs = [
+        for (var i = 0; i < 100; i++)
+          material('Material ${i.toString().padLeft(3, '0')}'),
+      ];
+      await c.repository.saveClassroomDocuments(docs);
+      await c.reload();
+      await host(
+        t,
+        (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
+      );
+      await tap(t, find.byKey(const ValueKey('material-sort')));
+      await tap(
+        t,
+        find.widgetWithText(CheckedPopupMenuItem<String>, 'Name A–Z'),
+      );
+      expect(find.byType(MaterialThumbnail).evaluate().length, lessThan(20));
+      await t.scrollUntilVisible(
+        find.byKey(ValueKey(docs.last.id)),
+        600,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const PageStorageKey('materials-library')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(ValueKey(docs.last.id)), findsOneWidget);
+      expect(find.byType(MaterialThumbnail).evaluate().length, lessThan(20));
+      expect(t.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'prepared day removes reference only; next day has a separate selection',
     (t) async {
@@ -336,46 +471,75 @@ void main() {
     expect(find.text('Bereitgelegt'), findsNothing);
   });
 
-  testWidgets('actual app material screen and prepared day screenshots', (
-    t,
-  ) async {
-    final c = await controller();
-    for (final (name, subject, type) in [
-      ('Brüche – Übungsblatt', 'Mathematik', 'worksheet'),
-      ('Past tense – Wochenplan', 'Englisch', 'weekPlan'),
-      ('Elterninformation Wandertag', '', 'parentInfo'),
-    ]) {
-      await c.saveClassroom(
-        material(name, fields: {'subject': subject, 'documentType': type}),
-      );
-    }
-    final docs = c.classroom;
-    await c.saveClassroom(
-      prepareMaterials(
-        docs,
-        dateOnly(DateTime.now()),
-        docs.take(2).map((d) => d.id),
-      ),
+  for (final (width, scale) in [(390.0, 1.0), (320.0, 2.0), (1200.0, 1.0)]) {
+    testWidgets(
+      'actual app material screen and prepared day screenshots $width/$scale',
+      (t) async {
+        final c = await controller();
+        for (final (name, subject, type) in [
+          ('Brüche – Übungsblatt', 'Mathematik', 'worksheet'),
+          ('Past tense – Wochenplan', 'Englisch', 'weekPlan'),
+          ('Elterninformation Wandertag', '', 'parentInfo'),
+        ]) {
+          await c.saveClassroom(
+            material(name, fields: {'subject': subject, 'documentType': type}),
+          );
+        }
+        final docs = c.classroom;
+        await c.saveClassroom(
+          prepareMaterials(
+            docs,
+            dateOnly(DateTime.now()),
+            docs.take(2).map((d) => d.id),
+          ),
+        );
+        t.view.physicalSize = Size(width, 844);
+        t.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+        t.view.devicePixelRatio = 1;
+        addTearDown(t.view.resetPhysicalSize);
+        addTearDown(t.view.resetDevicePixelRatio);
+        final key = GlobalKey();
+        await t.pumpWidget(
+          RepaintBoundary(
+            key: key,
+            child: FlexApp(controller: c),
+          ),
+        );
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const ValueKey('bottom-3')));
+        await t.pumpAndSettle();
+        await capture(t, key, 'materialien-${width.toInt()}-${scale.toInt()}');
+        await tap(t, find.byTooltip('Listenansicht'));
+        await capture(
+          t,
+          key,
+          'materialien-liste-${width.toInt()}-${scale.toInt()}',
+        );
+        await t.drag(
+          find.byKey(const PageStorageKey('materials-library')),
+          const Offset(0, 1600),
+        );
+        await t.pumpAndSettle();
+        await tap(t, find.widgetWithText(TextButton, 'Filter'));
+        await t.scrollUntilVisible(
+          find.byKey(const ValueKey('material-sort')),
+          160,
+          scrollable: find
+              .descendant(
+                of: find.byKey(const PageStorageKey('materials-library')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+        await tap(t, find.byKey(const ValueKey('material-sort')));
+        await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Fach'));
+        expect(t.takeException(), isNull);
+        await tap(t, find.byKey(const ValueKey('context-3-1')));
+        await tap(t, find.text('2 Unterlagen bereitgelegt'));
+        await capture(t, key, 'bereitgelegt-${width.toInt()}-${scale.toInt()}');
+        expect(t.takeException(), isNull);
+      },
     );
-    t.view.physicalSize = const Size(390, 844);
-    t.view.devicePixelRatio = 1;
-    addTearDown(t.view.resetPhysicalSize);
-    addTearDown(t.view.resetDevicePixelRatio);
-    final key = GlobalKey();
-    await t.pumpWidget(
-      RepaintBoundary(
-        key: key,
-        child: FlexApp(controller: c),
-      ),
-    );
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('bottom-3')));
-    await t.pumpAndSettle();
-    await capture(t, key, 'materialien');
-    expect(t.takeException(), isNull);
-    await tap(t, find.byKey(const ValueKey('context-3-1')));
-    await tap(t, find.text('2 Unterlagen bereitgelegt'));
-    await capture(t, key, 'bereitgelegt');
-    expect(t.takeException(), isNull);
-  });
+  }
 }
