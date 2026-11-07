@@ -1,0 +1,24 @@
+{
+  "source_commit": "745e438dcf0d23552382c8763b2115d8b3c16be3",
+  "viewports": [
+    [
+      390,
+      844
+    ],
+    [
+      1280,
+      900
+    ]
+  ],
+  "synthetic_data_only": true,
+  "pdf_preview": true,
+  "docx_import_and_preview": true,
+  "grid_list_switch": true,
+  "format_filter": true,
+  "sort_by_name": true,
+  "prepare_today": true,
+  "calendar_shortcuts_removed": true,
+  "final_source_reload": true,
+  "page_errors": [],
+  "failed_requests": []
+}
