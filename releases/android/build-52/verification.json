@@ -44,10 +44,11 @@
       "lib/x86_64/libsqlite3.so"
     ]
   },
-  "flutter_tests_passed": 102,
+  "flutter_tests_passed": 457,
   "flutter_test_scope": [
     "94 focused tests covering homework, comments, attachments, calendar, timetable and dialogs; failed calendar overlap regression corrected and rerun successfully",
-    "8 complete UI journey tests including 19 pages, large fonts and narrow layouts; no physical Android device test"
+    "8 complete UI journey tests including 19 pages, large fonts and narrow layouts; no physical Android device test",
+    "Full GitHub CI test job 128554977068 passed all 457 Flutter tests at final source cf0a834127cf90e79b017c0d0c435403e9b175f8"
   ],
   "android_device_tested": false,
   "browser_tests": true,

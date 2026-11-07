@@ -1,0 +1,14 @@
+{
+  "source_commit": "cf0a834127cf90e79b017c0d0c435403e9b175f8",
+  "run_id": 42422908910,
+  "url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42422908910",
+  "test_job_id": 128554977068,
+  "test_job_conclusion": "success",
+  "flutter_tests_passed": 457,
+  "log_evidence": [
+    "2026-11-07T22:57:20.9371088Z No issues found! (ran in 22.5s)",
+    "2026-11-07T22:57:21.0561608Z Ran 11 tests in 0.034s",
+    "2026-11-07T23:02:23.7702453Z 04:33 +457: All tests passed!"
+  ],
+  "web_and_android_ci_builds": "Still running when this proof was recorded; both release configurations built successfully locally"
+}
