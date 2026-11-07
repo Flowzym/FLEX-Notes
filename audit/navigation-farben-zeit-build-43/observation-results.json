@@ -1,0 +1,16 @@
+[
+  {
+    "viewport": "phone",
+    "mixed_observation_tags": true,
+    "text_focus_during_autosave": true,
+    "save_and_reload": true,
+    "page_errors": []
+  },
+  {
+    "viewport": "desktop",
+    "mixed_observation_tags": true,
+    "text_focus_during_autosave": true,
+    "save_and_reload": true,
+    "page_errors": []
+  }
+]

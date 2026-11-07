@@ -18,7 +18,8 @@ Der fertige Webbuild wurde im lokalen Chromium bei 390 × 844 und 1280 × 900 Pi
 geprüft. Kein physischer Android-Gerätelauf. APK-Signatur, App-ID, Manifest, ZIP- und
 ELF-Ausrichtung für 16-KB-Seiten sind geprüft.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42385043662).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42385043662):
+**alle Prüfungen erfolgreich**, einschließlich 375 Tests, Analyse und beider Releasebuilds.
 
 APK: 79691112 Bytes. SHA-256:
 `4680305e10f3d5731d1b613500ee00a63d13964cb09dd77f09593769faa40fbb`.

@@ -1,0 +1,16 @@
+[
+  {
+    "viewport": "phone",
+    "current_time_both_day_views": true,
+    "other_day_without_marker": true,
+    "pupil_added": true,
+    "page_errors": []
+  },
+  {
+    "viewport": "desktop",
+    "current_time_both_day_views": true,
+    "other_day_without_marker": true,
+    "pupil_added": true,
+    "page_errors": []
+  }
+]

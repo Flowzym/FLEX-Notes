@@ -1,0 +1,12 @@
+{
+  "run_id": 42385043662,
+  "source_commit": "bbef5e872c9f244c113ef15e9a84d29b82727182",
+  "flutter_tests_passed": 375,
+  "jobs": {
+    "Analysis and tests": "success",
+    "Android release build": "success",
+    "Web build and preview server": "success",
+    "CI passed": "success"
+  },
+  "url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42385043662"
+}
