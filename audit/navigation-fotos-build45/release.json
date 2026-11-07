@@ -1,0 +1,21 @@
+{
+  "version": "0.16.0-rebuild.25+45",
+  "source_commit": "daf10dc3c2f20494259c53e8252b72660f799ec5",
+  "release_commit": "03fda0c983991348008599ed05cd5b294a6ba836",
+  "onedrive_item_id": "B0037104A6A978!s9f18717749b44c92a14e04d0867d26f2",
+  "bytes": 101998386,
+  "quick_xor_verified": "OjA0X6ZT9w49cQcm6XUjNTCk0Nk=",
+  "github_download_http": 200,
+  "github_run": 42398342688,
+  "device_tested": false,
+  "web_url": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site",
+  "web_deployment": "appgdep_6aef66b0efa08191bb279101ec9fe1cc",
+  "web_source_commit": "f14e5b12af2676b7b8ec23024ea7d45304c3bcac",
+  "web_deployment_status": "succeeded",
+  "browser_verified": true,
+  "browser_photo_export_size": [
+    600,
+    800
+  ],
+  "browser_photo_metadata_empty": true
+}

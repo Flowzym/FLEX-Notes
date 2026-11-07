@@ -63,3 +63,22 @@ Die echte Kameraübergabe muss zusätzlich auf einem physischen Android-Gerät g
 werden; in dieser Umgebung steht keines zur Verfügung. Automatisierte Tests prüfen
 unter anderem Wiederaufnahme, Speicherausfälle, JPG/PDF, Tags, Zuordnungen,
 Materialsicherung und die Navigation bei schmalen Ansichten und großer Schrift.
+
+## Durchgeführte Prüfungen
+
+- 397 Flutter-Tests mit Coverage, darunter Kamera-Ausweichweg, konkrete native Fehler,
+  Aufnahme-Wiederherstellung, Tags, JPG-Sicherung, atomare Speicherung und große Schrift.
+- Strenge Analyse und Formatprüfung ohne Befund; 11 SQLite- und drei HTTP-Tests.
+- Chromium bei 390 × 844: Bereichsnavigation und Kalender-/Stundenplan-Wechsel,
+  Fotoimport, Benennung, Tags, warmer Filter mit echter Zeigerbedienung, Entwurf schließen,
+  Seitenneuladen, Wiederaufnahme, JPG speichern, herunterladen und öffnen.
+  Export mit Pillow geprüft: JPEG 600 × 800, keine EXIF-Metadaten, Farbfilter sichtbar.
+- APK-Manifest, Update-Signatur, ZIP-Ausrichtung und 64-Bit-ELF-Ausrichtung geprüft.
+  Download auf GitHub: HTTP 200, vollständige Dateigröße und APK-Kennung.
+  OneDrive: Dateigröße und QuickXor-Prüfsumme identisch.
+- Private Webvorschau auf derselben Adresse erfolgreich aktualisiert; weiterhin
+  nur Eigentümerzugriff. Keine Nutzerinhalte in den ausgelieferten Dateien.
+
+[Prüfdateien und synthetische Bildschirmaufnahmen](navigation-fotos-build45/) ·
+[Android-Download](../releases/android/build-45/README.md) ·
+[GitHub-Pipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42398342688).

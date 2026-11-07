@@ -14,7 +14,7 @@ Lokal bestanden: **397 Flutter-Tests mit Coverage**, strenge Analyse und Formatp
 64-Bit-Bibliotheken unterstützen 16-KB-Seiten; ARMv7-PDFium verwendet 4 KB.
 Kein physischer Android-Gerätetest.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42397772436)
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42398342688)
 
 APK: 101998386 Bytes. SHA-256:
 `38cd9aa2b04f36389f2cc6320b1f73029c6cf6319a933f5fb5cd038586f52b82`.

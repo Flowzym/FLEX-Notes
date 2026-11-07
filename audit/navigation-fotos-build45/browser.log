@@ -1,0 +1,85 @@
+- button "Aktuell"
+- button "Aufzeichnung"
+- button "Ablauf"
+- button "Stundenplan"
+- group:
+  - text: Überblick 07.11.2026
+  - button "0 Anstehend"
+  - button "0 Ergänzen"
+  - button "0 Zuletzt"
+  - button "Klassen-Orga anlegen"
+  - button "Termin"
+  - button "Rückläufe"
+  - text: Zuletzt dokumentiert 0 Noch keine weiteren Einträge.
+- button "Übersicht"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr"
+ACTION Übersicht
+ACTION Live
+ACTION Aufzeichnung
+ACTION Ablauf
+ACTION Stundenplan
+ACTION Zum Kalender
+ACTION Zum Stundenplan
+ACTION Zum Stundenplan
+ACTION Zum Kalender
+ACTION Material
+ACTION Scannen
+ACTION Bilder / PDF hinzufügen
+- dialog:
+  - button "Scanentwurf löschen"
+  - button "Schließen und Eingaben sichern"
+  - group:
+    - button "Bilder / PDF hinzufügen"
+    - textbox "Dateiname": Foto Browserprüfung
+    - text: Noch 181 Zeichen .pdf
+    - checkbox "PDF" [checked]
+    - checkbox "Fotos (JPG)"
+    - textbox "Tags (mit Komma trennen)": Mathe, Arbeitsprobe
+    - button "Kategorie Sonstiges"
+    - button "FLEX-Klasse"
+    - button "Einträge · 0"
+    - text: 1 Seite
+    - img "Foto 1"
+    - button "Seite nach vorne" [disabled]
+    - button "Seite nach hinten" [disabled]
+    - button "Seite entfernen"
+    - button "Bearbeiten"
+    - text: Entwurf wird gesichert …
+  - button "Später fortsetzen"
+  - button "PDF speichern"
+ACTION Bearbeiten
+ACTION Spiegeln
+ACTION Filter
+ACTION Filter anwenden
+ACTION Übernehmen
+ACTION Übernehmen
+ACTION Später fortsetzen
+ACTION Weitere Bereiche Mehr
+- text: Weitere Bereiche
+- button "Weitere"
+- button "Archiv"
+- button "Papierkorb"
+- button "Daten"
+- button "Einstellungen"
+- group:
+  - button "Entwürfe (1)"
+  - button "Klassen-Orga"
+  - button "Rückläufe"
+  - button "Für mehrere erfassen"
+  - button "Gruppenerfassungen"
+  - button "Änderungskonflikte"
+  - button "Material-Papierkorb"
+- button "Übersicht"
+- button "Live"
+- button "Organisation"
+- button "Material"
+- button "Weitere Bereiche Mehr Weitere Bereiche"
+ACTION Entwürfe (1)
+ACTION Fortsetzen
+ACTION Fotos speichern
+ACTION Foto bearbeiten
+ACTION Teilen / Exportieren
+ACTION Öffnen
