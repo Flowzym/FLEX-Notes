@@ -1,0 +1,24 @@
+[
+  {
+    "viewport": "desktop",
+    "width": 1280,
+    "height": 900,
+    "day_week_navigation": true,
+    "subpage_state": true,
+    "block_edit": true,
+    "focus_during_autosave": true,
+    "reload_persistence": true,
+    "page_errors": []
+  },
+  {
+    "viewport": "phone",
+    "width": 390,
+    "height": 844,
+    "day_week_navigation": true,
+    "subpage_state": true,
+    "block_edit": true,
+    "focus_during_autosave": true,
+    "reload_persistence": true,
+    "page_errors": []
+  }
+]

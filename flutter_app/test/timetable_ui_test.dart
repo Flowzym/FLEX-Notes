@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/domain/classroom.dart';
+import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/timetable.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/calendar_page.dart';
@@ -78,6 +79,7 @@ void main() {
           child: RepaintBoundary(key: key, child: child!),
         ),
         home: Scaffold(
+          backgroundColor: theme.colorScheme.surface,
           body: CalendarPage(
             controller: c,
             clock: () => DateTime(2026, 11, 9, 8),
@@ -124,22 +126,25 @@ void main() {
             key = await host(t, c, width: setting.$1, scale: setting.$2);
         expect(find.text('Stundenplan').hitTestable(), findsOneWidget);
         await tap(t, find.text('Stundenplan'));
-        expect(find.text('Stundenplan · FLEX-Klasse'), findsOneWidget);
+        expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+        expect(find.byType(Dialog), findsNothing);
         expect(t.takeException(), isNull);
         await screenshot(
           t,
           key,
           'timetable-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
-        if (setting.$1 > 720) await tap(t, find.text('Tagesliste'));
-        expect(
-          find.textContaining('07:45–11:30 · 1.–4. Stunde'),
-          findsOneWidget,
+        await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
+        await screenshot(
+          t,
+          key,
+          'timetable-day-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
+        expect(find.text('07:45–11:30'), findsOneWidget);
         await tap(
           t,
           find.descendant(
-            of: find.byType(TimetableDialog),
+            of: find.byKey(const ValueKey('timetable-view')),
             matching: find.text('Flexk'),
           ),
         );
@@ -163,10 +168,11 @@ void main() {
       final c = await controller();
       await host(t, c);
       await tap(t, find.text('Stundenplan'));
+      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       await tap(
         t,
         find.descendant(
-          of: find.byType(TimetableDialog),
+          of: find.byKey(const ValueKey('timetable-view')),
           matching: find.text('Flexk'),
         ),
       );
@@ -210,21 +216,22 @@ void main() {
       final c = await controller();
       await host(t, c);
       await tap(t, find.text('Stundenplan'));
+      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       await tap(
         t,
         find.descendant(
-          of: find.byType(TimetableDialog),
+          of: find.byKey(const ValueKey('timetable-view')),
           matching: find.text('Flexk'),
         ),
       );
       await tap(t, find.byKey(const ValueKey('timetable-last-p4')));
       await tap(t, find.text('5. · 12:25').last);
       await tap(t, find.text('Speichern'));
-      expect(find.textContaining('07:45–12:25 · 1.–5. Stunde'), findsOneWidget);
+      expect(find.text('07:45–12:25'), findsOneWidget);
       await tap(
         t,
         find.descendant(
-          of: find.byType(TimetableDialog),
+          of: find.byKey(const ValueKey('timetable-view')),
           matching: find.text('Flexk'),
         ),
       );
@@ -238,7 +245,9 @@ void main() {
         ).where((l) => l.title == 'Flexk'),
         isEmpty,
       );
+      await tap(t, find.text('Verwalten'));
       await tap(t, find.byTooltip('Block wiederherstellen'));
+      await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
       expect(
         lessonOccurrences(
           c.classroom,
@@ -269,17 +278,18 @@ void main() {
       final c = await controller();
       await host(t, c);
       await tap(t, find.text('Stundenplan'));
+      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       await tap(
         t,
         find.descendant(
-          of: find.byType(TimetableDialog),
+          of: find.byKey(const ValueKey('timetable-view')),
           matching: find.text('Flexk'),
         ),
       );
       await enter(t, find.byKey(const ValueKey('timetable-title')), 'Entwurf');
       await tap(t, find.text('Abbrechen'));
       expect(c.dialogDrafts, hasLength(1));
-      final ctx = t.element(find.text('Stundenplan · FLEX-Klasse'));
+      final ctx = t.element(find.byKey(const ValueKey('timetable-view')));
       resumeTimetableDraft(ctx, c, c.dialogDrafts.single);
       await t.pumpAndSettle();
       expect(
@@ -305,6 +315,7 @@ void main() {
       final c = await controller();
       await host(t, c);
       await tap(t, find.text('Stundenplan'));
+      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       await tap(t, find.text('Block hinzufügen'));
       await enter(t, find.byKey(const ValueKey('timetable-title')), 'Lernzeit');
       await enter(
@@ -327,6 +338,92 @@ void main() {
         '16:10',
       );
       expect(blocks.where((d) => d.title == 'Flexk'), hasLength(5));
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('subpages retain independent dates, modes and scroll positions', (
+    t,
+  ) async {
+    final c = await controller();
+    await host(t, c);
+    await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+    await tap(t, find.byTooltip('Nächster Zeitraum'));
+    expect(find.text('Dezember 2026'), findsOneWidget);
+    await tap(t, find.byKey(const ValueKey('calendar-section-timetable')));
+    expect(
+      find.byKey(const ValueKey('calendar-time-grid-week')),
+      findsOneWidget,
+    );
+    expect(find.text('Monat'), findsNothing);
+    await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
+    await tap(t, find.byTooltip('Nächster Zeitraum'));
+    expect(find.text('02.12.2026'), findsOneWidget);
+    final scroll = find.byKey(const PageStorageKey('timetable-page'));
+    await t.drag(scroll, const Offset(0, -250));
+    await t.pumpAndSettle();
+    final offset = t
+        .state<ScrollableState>(
+          find.descendant(of: scroll, matching: find.byType(Scrollable)).first,
+        )
+        .position
+        .pixels;
+    expect(offset, greaterThan(0));
+    await tap(t, find.byKey(const ValueKey('calendar-section-calendar')));
+    expect(find.text('Dezember 2026'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-month-2026-12-01')),
+      findsOneWidget,
+    );
+    await tap(t, find.byKey(const ValueKey('calendar-section-timetable')));
+    expect(find.text('02.12.2026'), findsOneWidget);
+    expect(
+      t
+          .state<ScrollableState>(
+            find
+                .descendant(of: scroll, matching: find.byType(Scrollable))
+                .first,
+          )
+          .position
+          .pixels,
+      offset,
+    );
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'timetable day and week use dated occurrences and preserve calendar appointments',
+    (t) async {
+      final c = await controller();
+      await c.repository.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Gespräch',
+          appointmentDate: '2026-11-09',
+          appointmentTime: '09:00',
+        ),
+      );
+      final block = c.classroom.singleWhere(
+        (d) => d.title == 'Flexk' && d.text('date') == '2026-11-09',
+      );
+      await c.saveClassroom(
+        patchLessonOccurrence(block, '2026-11-09', {
+          'movedTo': '2026-11-10',
+          'start': '08:00',
+          'end': '11:00',
+        }),
+      );
+      await host(t, c);
+      await tap(t, find.text('Stundenplan'));
+      expect(find.text('Gespräch'), findsNothing);
+      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
+      expect(find.text('Flexk'), findsNothing);
+      await tap(t, find.byTooltip('Nächster Zeitraum'));
+      expect(find.text('10.11.2026'), findsOneWidget);
+      expect(find.text('Flexk'), findsNWidgets(2));
+      expect(find.text('08:00–11:00'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-section-calendar')));
+      expect(find.text('Gespräch'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

@@ -1,10 +1,15 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.21+41**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.22+42**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Build 41 ergänzt den bearbeitbaren PDF-Stundenplan ab 9. November 2026. Flexk-Blöcke
+Build 42 zeigt **Kalender** und **Stundenplan** als eigene Unterseiten. Der Stundenplan
+hat dieselbe Tages- und Wochen-Zeitachse wie der Kalender. Datum, Ansicht und
+Scrollposition bleiben pro Unterseite erhalten.
+[Bedienung und Prüfungen](../audit/KALENDER_UNTERSEITEN_BUILD_42.md).
+
+Build 41 ergänzte den bearbeitbaren PDF-Stundenplan ab 9. November 2026. Flexk-Blöcke
 bleiben zusammen; Fach, Wochentag, Stundenumfang, individuelle Uhrzeiten, Lehrkraft und
 Raum lassen sich ändern. Zugang: **Kalender → Stundenplan**.
 [Bedienung und Prüfungen](../audit/STUNDENPLAN_BUILD_41.md).
@@ -31,7 +36,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 41 auf GitHub herunterladen](../releases/android/build-41/README.md).
+[APK Build 42 auf GitHub herunterladen](../releases/android/build-42/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten
