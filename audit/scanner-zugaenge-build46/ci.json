@@ -1,0 +1,29 @@
+{
+  "run_id": 42402531104,
+  "url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104",
+  "source_commit": "8192066de424fd62cc01c918d0b39c48c18c476f",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Analysis and tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Web build and preview server",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Android release build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CI passed",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

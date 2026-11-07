@@ -56,5 +56,7 @@ Browserprüfung mit ausschließlich synthetischen Schüler- und Dokumentdaten be
 öffnen, automatische Schüler-/Aufgabenzuordnung prüfen, Bild importieren, PDF
 speichern/exportieren und direkt an der Teilaufgabe wieder öffnen.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104):
+Alle vier Jobs erfolgreich. Nach dem geprüften Quellcommit wurden nur Nachweise und
+Veröffentlichungsdateien ergänzt; Flutter- und CI-Quellen blieben identisch.
 Automatisierte Prüfungen und Artefaktnachweise: `scanner-zugaenge-build46/`.

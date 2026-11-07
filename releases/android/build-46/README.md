@@ -16,7 +16,8 @@ APK-Signatur, Manifest, 16-KB-ZIP-Ausrichtung und native Bibliotheken geprüft.
 64-Bit-Bibliotheken unterstützen 16-KB-Seiten; ARMv7-PDFium verwendet 4 KB.
 Kein physischer Android-Gerätetest.
 
-[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104).
+[GitHub-Testpipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42402531104):
+Alle vier Jobs erfolgreich (Analyse/Tests, Web, Android, Gesamtcheck).
 
 APK: 102080374 Bytes. SHA-256:
 `01183ceb902ebb3845eb98dd702490563a9ec60be394d80cfa95f4a2e96fdaca`.
