@@ -85,6 +85,7 @@ Future<void> showCalendarItem(
                   child: Text(current.note),
                 ),
               DocumentAttachmentsButton(
+                showPreviews: false,
                 controller: c,
                 scope: ScanContext(
                   links: [DocumentLink('lesson', doc.id, date: lesson.date)],
@@ -119,7 +120,11 @@ Future<void> showCalendarItem(
               }))
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.description_outlined),
+                  leading: MaterialThumbnail(
+                    material: material,
+                    width: 48,
+                    height: 56,
+                  ),
                   title: Text(material.title),
                   trailing: const Icon(Icons.open_in_new),
                   onTap: () =>

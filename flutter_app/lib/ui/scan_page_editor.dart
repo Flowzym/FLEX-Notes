@@ -8,6 +8,7 @@ import '../services/scan_images.dart';
 import '../services/scan_edges.dart';
 import 'common.dart';
 import 'flex_modal.dart';
+import 'scan_tools.dart';
 
 /// All changes remain reversible until Apply. Applying replaces the page pixels
 /// in the draft, so subsequent filters can never reveal a committed redaction.
@@ -206,91 +207,6 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final tool in [
-                ('crop', 'Zuschneiden', Icons.crop),
-                ('filter', 'Filter', Icons.tune),
-                ('redact', 'Schwärzen', Icons.format_color_fill),
-              ])
-                OutlinedButton.icon(
-                  onPressed: busy || detecting
-                      ? null
-                      : () async {
-                          if (mode == 'crop' ||
-                              redactions.isNotEmpty ||
-                              filter != 'color' ||
-                              brightness != 1 ||
-                              contrast != 1 ||
-                              saturation != 1) {
-                            await render(crop: mode == 'crop');
-                          }
-                          if (mounted) {
-                            setState(() {
-                              mode = tool.$1;
-                              start = null;
-                              end = null;
-                            });
-                            if (mode == 'crop' &&
-                                !widget.photo &&
-                                edges.isEmpty) {
-                              await detectEdges();
-                            }
-                            schedulePreview();
-                          }
-                        },
-                  icon: Icon(tool.$3),
-                  label: Text(tool.$2),
-                ),
-              OutlinedButton.icon(
-                onPressed: busy || detecting
-                    ? null
-                    : () => render(turns: 1, crop: mode == 'crop'),
-                icon: const Icon(Icons.rotate_right),
-                label: const Text('Drehen'),
-              ),
-              if (widget.photo)
-                OutlinedButton.icon(
-                  onPressed: busy || detecting
-                      ? null
-                      : () => render(flip: true, crop: mode == 'crop'),
-                  icon: const Icon(Icons.flip),
-                  label: const Text('Spiegeln'),
-                ),
-              TextButton.icon(
-                onPressed: busy
-                    ? null
-                    : () => setState(() {
-                        current = widget.bytes;
-                        currentWidth = widget.width;
-                        currentHeight = widget.height;
-                        redactions.clear();
-                        filter = 'color';
-                        brightness = 1;
-                        contrast = 1;
-                        saturation = 1;
-                        corners = const [
-                          Offset.zero,
-                          Offset(1, 0),
-                          Offset(1, 1),
-                          Offset(0, 1),
-                        ];
-                        mode = 'preview';
-                        preview = null;
-                        previewSource = null;
-                        previewRevision++;
-                        previewTimer?.cancel();
-                        detected = [];
-                        edges = [];
-                        preparePreview();
-                      }),
-                icon: const Icon(Icons.undo),
-                label: const Text('Zurücksetzen'),
-              ),
-            ],
-          ),
           if (error != null)
             Text(
               error!,
@@ -343,7 +259,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               final height = (constraints.maxWidth / aspect).clamp(
                 1.0,
                 MediaQuery.sizeOf(ctx).height *
-                    (mode == 'filter' || mode == 'preview' ? .28 : .48),
+                    (mode == 'filter' || mode == 'preview' ? .42 : .52),
               );
               return Center(
                 child: SizedBox(
@@ -372,31 +288,15 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               'Filtervorschau',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final f in scanFilters.entries)
-                  ChoiceChip(
-                    avatar: thumbnails[f.key] == null
-                        ? null
-                        : Image.memory(
-                            thumbnails[f.key]!,
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.cover,
-                            excludeFromSemantics: true,
-                          ),
-                    label: Text(f.value),
-                    selected: filter == f.key,
-                    onSelected: busy
-                        ? null
-                        : (_) {
-                            setState(() => filter = f.key);
-                            schedulePreview();
-                          },
-                  ),
-              ],
+            ScanFilterStrip(
+              thumbnails: thumbnails,
+              selected: filter,
+              onSelected: busy
+                  ? null
+                  : (value) {
+                      setState(() => filter = value);
+                      schedulePreview();
+                    },
             ),
             Row(
               children: [
@@ -472,23 +372,122 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             ),
           ],
           const SizedBox(height: 8),
-          const Text(
-            'Schwärzungen werden beim Übernehmen fest in die Seite eingerechnet.',
+          if (mode == 'redact')
+            const Text(
+              'Schwärzungen werden beim Übernehmen fest in die Seite eingerechnet.',
+            ),
+        ],
+      ),
+      footerContent: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 2,
+            runSpacing: 2,
+            children: [
+              for (final tool in [
+                ('crop', 'Zuschneiden', Icons.crop),
+                ('filter', 'Filter', Icons.tune),
+                ('redact', 'Schwärzen', Icons.format_color_fill),
+              ])
+                ScanTool(
+                  onPressed: busy || detecting
+                      ? null
+                      : () async {
+                          if (mode == 'crop' ||
+                              redactions.isNotEmpty ||
+                              filter != 'color' ||
+                              brightness != 1 ||
+                              contrast != 1 ||
+                              saturation != 1) {
+                            await render(crop: mode == 'crop');
+                          }
+                          if (mounted) {
+                            setState(() {
+                              mode = tool.$1;
+                              start = null;
+                              end = null;
+                            });
+                            if (mode == 'crop' &&
+                                !widget.photo &&
+                                edges.isEmpty) {
+                              await detectEdges();
+                            }
+                            schedulePreview();
+                          }
+                        },
+                  icon: tool.$3,
+                  selected:
+                      mode == tool.$1 ||
+                      mode == 'preview' && tool.$1 == 'filter',
+                  label: tool.$2,
+                ),
+              ScanTool(
+                onPressed: busy || detecting
+                    ? null
+                    : () => render(turns: 1, crop: mode == 'crop'),
+                icon: Icons.rotate_right,
+                label: 'Drehen',
+              ),
+              if (widget.photo)
+                ScanTool(
+                  onPressed: busy || detecting
+                      ? null
+                      : () => render(flip: true, crop: mode == 'crop'),
+                  icon: Icons.flip,
+                  label: 'Spiegeln',
+                ),
+              ScanTool(
+                onPressed: busy
+                    ? null
+                    : () => setState(() {
+                        current = widget.bytes;
+                        currentWidth = widget.width;
+                        currentHeight = widget.height;
+                        redactions.clear();
+                        filter = 'color';
+                        brightness = 1;
+                        contrast = 1;
+                        saturation = 1;
+                        corners = const [
+                          Offset.zero,
+                          Offset(1, 0),
+                          Offset(1, 1),
+                          Offset(0, 1),
+                        ];
+                        mode = 'preview';
+                        preview = null;
+                        previewSource = null;
+                        previewRevision++;
+                        previewTimer?.cancel();
+                        detected = [];
+                        edges = [];
+                        preparePreview();
+                      }),
+                icon: Icons.undo,
+                label: 'Zurücksetzen',
+              ),
+            ],
+          ),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            children: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(context),
+                child: const Text('Abbrechen'),
+              ),
+              FilledButton(
+                onPressed: busy || detecting
+                    ? null
+                    : () => render(crop: mode == 'crop', finish: true),
+                child: const Text('Übernehmen'),
+              ),
+            ],
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: busy ? null : () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
-        ),
-        FilledButton(
-          onPressed: busy || detecting
-              ? null
-              : () => render(crop: mode == 'crop', finish: true),
-          child: const Text('Übernehmen'),
-        ),
-      ],
     ),
   );
   Widget _imageOverlay(Widget image, double width) => LayoutBuilder(

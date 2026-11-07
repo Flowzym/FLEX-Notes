@@ -21,6 +21,8 @@ import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'scan_page_editor.dart';
+import 'scan_tools.dart';
+import 'material_thumbnail.dart';
 
 Future<ClassroomDocument?> showDocumentScanner(
   BuildContext context,
@@ -197,7 +199,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   late Json data;
   late DraftBuffer buffer;
   late TextEditingController title, tags;
-  bool pageEditorOpen = false;
+  bool pageEditorOpen = false, pageGrid = true;
   bool get photoOutput => data['outputFormat'] == 'jpg';
   bool get nativeCamera =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -697,6 +699,184 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
   });
+  Future<void> filterPages() => action(() async {
+    final originals = pages;
+    if (originals.isEmpty) return;
+    final first = await widget.files.read(originals.first.key);
+    final bundle = await compute(scanPreviewBundle, first);
+    if (!mounted) return;
+    var selected = 'document';
+    final filter = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, update) => FlexModal(
+          title: Text('Filter für ${originals.length} Seiten'),
+          onClose: () => Navigator.pop(ctx),
+          content: ScanFilterStrip(
+            thumbnails: Map<String, Uint8List>.from(
+              bundle['thumbnails'] as Map,
+            ),
+            selected: selected,
+            onSelected: (v) => update(() => selected = v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, selected),
+              child: const Text('Auf alle anwenden'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (filter == null || !mounted) return;
+    // Stage all new pixels before switching the ordered draft references. A
+    // failure retains the old pages; failed metadata writes remain retryable.
+    final next = <ScanPage>[];
+    for (final page in originals) {
+      setState(
+        () => progress = 'Seite ${next.length + 1} von ${originals.length} …',
+      );
+      final result = await compute(editScanPixels, {
+        'bytes': await widget.files.read(page.key),
+        'filter': filter,
+      });
+      final key = newId();
+      await widget.files.write(key, result['bytes'] as Uint8List);
+      knownKeys.add(key);
+      next.add(
+        ScanPage(
+          key,
+          result['width'] as int,
+          result['height'] as int,
+          photo: page.photo,
+          captureToken: page.captureToken,
+        ),
+      );
+    }
+    change({'pages': next.map((p) => p.toJson()).toList()});
+    await buffer.flush();
+    await removeUnusedScanFiles(
+      c.repository,
+      widget.files,
+      originals.map((p) => p.key),
+    );
+  });
+
+  Widget pageTiles() => LayoutBuilder(
+    builder: (_, box) {
+      final columns =
+          (box.maxWidth /
+                  (MediaQuery.textScalerOf(context).scale(1) > 1.5 ? 220 : 145))
+              .floor()
+              .clamp(1, 4);
+      final width = (box.maxWidth - 10 * (columns - 1)) / columns;
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          for (final item in pages.indexed)
+            DragTarget<int>(
+              onWillAcceptWithDetails: (d) => !busy && d.data != item.$1,
+              onAcceptWithDetails: (d) => reorderPage(d.data, item.$1),
+              builder: (ctx, candidates, _) => LongPressDraggable<int>(
+                data: item.$1,
+                maxSimultaneousDrags: busy ? 0 : 1,
+                feedback: Material(
+                  elevation: 8,
+                  child: SizedBox(
+                    width: 100,
+                    height: 130,
+                    child: pagePreview(item.$2, item.$1, 100, 130),
+                  ),
+                ),
+                child: SizedBox(
+                  width: width,
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    clipBehavior: Clip.antiAlias,
+                    color: candidates.isEmpty
+                        ? null
+                        : Theme.of(ctx).colorScheme.primaryContainer,
+                    child: Column(
+                      children: [
+                        InkWell(
+                          key: ValueKey('scan-edit-page-${item.$1}'),
+                          onTap: busy ? null : () => editPage(item.$1),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              children: [
+                                pagePreview(item.$2, item.$1, width - 16, 160),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1} · Bearbeiten',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          children: [
+                            IconButton(
+                              tooltip: 'Seite nach vorne',
+                              onPressed: busy || item.$1 == 0
+                                  ? null
+                                  : () => movePage(item.$1, -1),
+                              icon: const Icon(Icons.arrow_back, size: 20),
+                            ),
+                            IconButton(
+                              tooltip: 'Seite nach hinten',
+                              onPressed: busy || item.$1 == pages.length - 1
+                                  ? null
+                                  : () => movePage(item.$1, 1),
+                              icon: const Icon(Icons.arrow_forward, size: 20),
+                            ),
+                            IconButton(
+                              key: ValueKey('scan-replace-page-${item.$1}'),
+                              tooltip: 'Bild ersetzen',
+                              onPressed: busy
+                                  ? null
+                                  : () => replacePage(item.$1),
+                              icon: const Icon(Icons.find_replace, size: 20),
+                            ),
+                            IconButton(
+                              tooltip: 'Seite entfernen',
+                              onPressed: busy
+                                  ? null
+                                  : () => deletePage(item.$1),
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
+
+  Widget pagePreview(ScanPage page, int index, double width, double height) =>
+      DocumentThumbnailView(
+        identity: 'draft-page:${page.key}',
+        title: '${page.photo ? 'Foto' : 'Seite'} ${index + 1}',
+        fileKey: page.key,
+        extension: 'jpg',
+        files: widget.files,
+        width: width,
+        height: height,
+      );
+
   Future<void> save() => action(() async {
     if (nativeCamera && data['capturePending'] == true) await recoverPhoto();
     await buffer.flush();
@@ -761,50 +941,6 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (widget.capturePages != null ||
-                  !kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-                FilledButton.icon(
-                  key: const ValueKey('scanner-camera'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : capture,
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scannen'),
-                ),
-              if (widget.capturePhoto != null || nativeCamera)
-                OutlinedButton.icon(
-                  key: const ValueKey('scanner-batch'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : captureSeries,
-                  icon: const Icon(Icons.burst_mode_outlined),
-                  label: const Text('Mehrfachaufnahme'),
-                ),
-              if (widget.capturePhoto != null || nativeCamera)
-                OutlinedButton.icon(
-                  key: const ValueKey('scanner-photo'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : takePhoto,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: Text(
-                    data['capturePending'] == true
-                        ? 'Foto fortsetzen'
-                        : 'Foto aufnehmen',
-                  ),
-                ),
-              OutlinedButton.icon(
-                key: const ValueKey('scanner-import'),
-                onPressed: busy || pages.length >= scanPageLimit ? null : pick,
-                icon: const Icon(Icons.add_photo_alternate_outlined),
-                label: const Text('Bilder / PDF hinzufügen'),
-              ),
-            ],
-          ),
           const SizedBox(height: 14),
           TextField(
             key: const ValueKey('scan-title'),
@@ -833,6 +969,144 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                       : (_) => change({'outputFormat': format.$1}),
                 ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${pages.length} ${pages.length == 1 ? 'Seite' : 'Seiten'}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              IconButton(
+                tooltip: pageGrid ? 'Seiten als Liste' : 'Seiten als Raster',
+                onPressed: () => setState(() => pageGrid = !pageGrid),
+                icon: Icon(
+                  pageGrid ? Icons.view_list_outlined : Icons.grid_view,
+                ),
+              ),
+            ],
+          ),
+          if (pages.length > 1)
+            TextButton.icon(
+              key: const ValueKey('scan-batch-filter'),
+              onPressed: busy ? null : filterPages,
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('Filter für alle Seiten'),
+            ),
+          if (pages.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text('Seiten scannen oder Bilder/PDF hinzufügen.'),
+            ),
+          if (pageGrid)
+            pageTiles()
+          else
+            ReorderableListView(
+              key: const ValueKey('scan-page-order'),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              onReorderItem: busy ? (_, _) {} : reorderPage,
+              children: [
+                for (final item in pages.indexed)
+                  Card(
+                    key: ValueKey('scan-row-${item.$2.key}'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              pagePreview(item.$2, item.$1, 88, 120),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
+                                    ),
+                                    Wrap(
+                                      children: [
+                                        ReorderableDragStartListener(
+                                          index: item.$1,
+                                          enabled: !busy,
+                                          child: const Tooltip(
+                                            message: 'Zum Umsortieren ziehen',
+                                            child: Padding(
+                                              padding: EdgeInsets.all(12),
+                                              child: Icon(Icons.drag_handle),
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'Seite nach vorne',
+                                          onPressed: busy || item.$1 == 0
+                                              ? null
+                                              : () => movePage(item.$1, -1),
+                                          icon: const Icon(Icons.arrow_upward),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'Seite nach hinten',
+                                          onPressed:
+                                              busy ||
+                                                  item.$1 == pages.length - 1
+                                              ? null
+                                              : () => movePage(item.$1, 1),
+                                          icon: const Icon(
+                                            Icons.arrow_downward,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          key: ValueKey(
+                                            'scan-replace-page-${item.$1}',
+                                          ),
+                                          tooltip: 'Bild ersetzen',
+                                          onPressed: busy
+                                              ? null
+                                              : () => replacePage(item.$1),
+                                          icon: const Icon(Icons.find_replace),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'Seite entfernen',
+                                          onPressed: busy
+                                              ? null
+                                              : () => deletePage(item.$1),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    OutlinedButton.icon(
+                                      key: ValueKey(
+                                        'scan-edit-page-${item.$1}',
+                                      ),
+                                      onPressed: busy
+                                          ? null
+                                          : () => editPage(item.$1),
+                                      icon: const Icon(Icons.edit_outlined),
+                                      label: const Text('Bearbeiten'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const Text(
+            'Zuordnung & Tags',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -925,120 +1199,6 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           const SizedBox(height: 16),
-          Text(
-            '${pages.length} ${pages.length == 1 ? 'Seite' : 'Seiten'}',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          if (pages.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Seiten scannen oder Bilder/PDF hinzufügen.'),
-            ),
-          ReorderableListView(
-            key: const ValueKey('scan-page-order'),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorderItem: busy ? (_, _) {} : reorderPage,
-            children: [
-              for (final item in pages.indexed)
-                Card(
-                  key: ValueKey('scan-row-${item.$2.key}'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 72,
-                              height: 100,
-                              child: FutureBuilder<Uint8List>(
-                                future: widget.files.read(item.$2.key),
-                                builder: (ctx, s) => s.hasError
-                                    ? const Icon(Icons.broken_image_outlined)
-                                    : s.hasData
-                                    ? Image.memory(s.data!, fit: BoxFit.contain)
-                                    : const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
-                                  ),
-                                  Wrap(
-                                    children: [
-                                      ReorderableDragStartListener(
-                                        index: item.$1,
-                                        enabled: !busy,
-                                        child: const Tooltip(
-                                          message: 'Zum Umsortieren ziehen',
-                                          child: Padding(
-                                            padding: EdgeInsets.all(12),
-                                            child: Icon(Icons.drag_handle),
-                                          ),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Seite nach vorne',
-                                        onPressed: busy || item.$1 == 0
-                                            ? null
-                                            : () => movePage(item.$1, -1),
-                                        icon: const Icon(Icons.arrow_upward),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Seite nach hinten',
-                                        onPressed:
-                                            busy || item.$1 == pages.length - 1
-                                            ? null
-                                            : () => movePage(item.$1, 1),
-                                        icon: const Icon(Icons.arrow_downward),
-                                      ),
-                                      IconButton(
-                                        key: ValueKey(
-                                          'scan-replace-page-${item.$1}',
-                                        ),
-                                        tooltip: 'Bild ersetzen',
-                                        onPressed: busy
-                                            ? null
-                                            : () => replacePage(item.$1),
-                                        icon: const Icon(Icons.find_replace),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Seite entfernen',
-                                        onPressed: busy
-                                            ? null
-                                            : () => deletePage(item.$1),
-                                        icon: const Icon(Icons.delete_outline),
-                                      ),
-                                    ],
-                                  ),
-                                  OutlinedButton.icon(
-                                    key: ValueKey('scan-edit-page-${item.$1}'),
-                                    onPressed: busy
-                                        ? null
-                                        : () => editPage(item.$1),
-                                    icon: const Icon(Icons.edit_outlined),
-                                    label: const Text('Bearbeiten'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
           if (data['sourceId'] != null)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -1056,22 +1216,73 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           DraftStatus(buffer: buffer),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: busy ? null : close,
-          child: const Text('Später fortsetzen'),
-        ),
-        FilledButton.icon(
-          key: const ValueKey('save-scan'),
-          onPressed: busy || pages.isEmpty ? null : save,
-          icon: Icon(photoOutput ? Icons.photo : Icons.picture_as_pdf),
-          label: Text(
-            photoOutput
-                ? (replace ? 'Foto ersetzen' : 'Fotos speichern')
-                : (replace ? 'PDF ersetzen' : 'PDF speichern'),
+      footerContent: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (widget.capturePages != null ||
+                  !kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+                ScanTool(
+                  key: const ValueKey('scanner-camera'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : capture,
+                  icon: Icons.document_scanner_outlined,
+                  label: 'Scannen',
+                ),
+              if (widget.capturePhoto != null || nativeCamera)
+                ScanTool(
+                  key: const ValueKey('scanner-batch'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : captureSeries,
+                  icon: Icons.burst_mode_outlined,
+                  label: 'Serie',
+                ),
+              if (widget.capturePhoto != null || nativeCamera)
+                ScanTool(
+                  key: const ValueKey('scanner-photo'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : takePhoto,
+                  icon: Icons.photo_camera_outlined,
+                  label: data['capturePending'] == true ? 'Fortsetzen' : 'Foto',
+                ),
+              ScanTool(
+                key: const ValueKey('scanner-import'),
+                onPressed: busy || pages.length >= scanPageLimit ? null : pick,
+                icon: Icons.add_photo_alternate_outlined,
+                label: 'Import',
+              ),
+            ],
           ),
-        ),
-      ],
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              TextButton(
+                onPressed: busy ? null : close,
+                child: const Text('Später fortsetzen'),
+              ),
+              FilledButton.icon(
+                key: const ValueKey('save-scan'),
+                onPressed: busy || pages.isEmpty ? null : save,
+                icon: Icon(photoOutput ? Icons.photo : Icons.picture_as_pdf),
+                label: Text(
+                  photoOutput
+                      ? (replace ? 'Foto ersetzen' : 'Fotos speichern')
+                      : (replace ? 'PDF ersetzen' : 'PDF speichern'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }

@@ -1,8 +1,13 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.27+47**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.28+48**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
+
+Build 48 ergänzt Vorschaubilder bei Anhängen und eine neue Scannerverwaltung mit
+Raster-/Listenansicht, Mehrfachauswahl und Stapelfiltern. Der Kalender bündelt
+Stundenplan, allgemeine Aufgaben und Notizen.
+[Bedienung und Prüfung](../audit/DOKUMENTE_KALENDER_BUILD_48.md).
 
 Build 47 ergänzt lokale Kantenerkennung, einrastende Zuschnittpunkte, Livefilter
 mit Vorschaubildern, Mehrfachaufnahmen, Bildersetzung und Drag-and-drop-Reihung.
@@ -60,7 +65,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 47 auf GitHub herunterladen](../releases/android/build-47/README.md).
+[APK Build 48 auf GitHub herunterladen](../releases/android/build-48/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten

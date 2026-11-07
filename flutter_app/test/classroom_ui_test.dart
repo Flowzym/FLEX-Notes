@@ -162,8 +162,8 @@ void main() {
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
       expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
-      await t.drag(find.byType(PageView), const Offset(-320, 0));
-      await t.pumpAndSettle();
+      await tap(t, find.byKey(const ValueKey('bottom-0')));
+      await tap(t, find.byKey(const ValueKey('context-0-1')));
       expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('calendar-shortcut')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
@@ -176,12 +176,16 @@ void main() {
     },
   );
   testWidgets(
-    'four page buttons remain visible and usable at large text on phone',
+    'four calendar page buttons remain visible and usable at large text on phone',
     (t) async {
       var selected = -1;
       await host(
         t,
-        (_) => FlexPagePills(selected: 0, onSelected: (v) => selected = v),
+        (_) => FlexPagePills(
+          selected: 0,
+          pages: calendarPages,
+          onSelected: (v) => selected = v,
+        ),
         scale: 2,
       );
       final shell = t.getRect(find.byKey(const ValueKey('page-pills')));

@@ -98,4 +98,118 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'grid and list share sorting, selection, additive tags and atomic trash restore',
+    (t) async {
+      final c = NotebookController(classroomMemory());
+      await c.initialize();
+      addTearDown(() async {
+        c.dispose();
+        await c.repository.close();
+      });
+      for (final name in ['Zebra', 'Alpha']) {
+        await c.saveClassroom(
+          material(
+            name,
+            fields: {
+              'scanner': true,
+              'tags': ['Bestehend'],
+            },
+          ),
+        );
+      }
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ScannerLibrary(controller: c)),
+        ),
+      );
+      await t.pumpAndSettle();
+      Future<void> tap(Finder finder) async {
+        await t.ensureVisible(finder);
+        await t.tap(finder);
+        await t.pumpAndSettle();
+      }
+
+      await tap(find.byTooltip('Sortieren'));
+      await tap(find.text('Name A–Z'));
+      expect(
+        t.getTopLeft(find.text('Alpha')).dx,
+        lessThan(t.getTopLeft(find.text('Zebra')).dx),
+      );
+      await tap(find.byTooltip('Listenansicht'));
+      expect(
+        t.getTopLeft(find.text('Alpha')).dy,
+        lessThan(t.getTopLeft(find.text('Zebra')).dy),
+      );
+      await tap(find.byTooltip('Mehrere auswählen'));
+      await tap(find.text('Alle auswählen'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(find.text('Tags'));
+      await t.enterText(
+        find.widgetWithText(TextField, 'Tags hinzufügen'),
+        'Neu, Bestehend',
+      );
+      await tap(find.text('Hinzufügen'));
+      expect(
+        c.classroom.every(
+          (d) => d.strings('tags').toSet().containsAll(['Bestehend', 'Neu']),
+        ),
+        true,
+      );
+      expect(c.classroom.every((d) => d.strings('tags').length == 2), true);
+      await tap(find.byTooltip('Mehrere auswählen'));
+      await tap(find.text('Alle auswählen'));
+      await tap(find.widgetWithText(TextButton, 'Papierkorb'));
+      await tap(find.widgetWithText(FilledButton, 'In den Papierkorb'));
+      expect(c.classroom.every((d) => d.deleted), true);
+      await tap(find.widgetWithText(FilterChip, 'Papierkorb'));
+      await tap(find.byTooltip('Mehrere auswählen'));
+      await tap(find.text('Alle auswählen'));
+      await tap(find.widgetWithText(TextButton, 'Wiederherstellen'));
+      expect(c.classroom.every((d) => !d.deleted), true);
+      expect(c.classroom.every((d) => d.strings('tags').contains('Neu')), true);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('management remains usable at 320 pixels with doubled text', (
+    t,
+  ) async {
+    final c = NotebookController(classroomMemory());
+    await c.initialize();
+    addTearDown(() async {
+      c.dispose();
+      await c.repository.close();
+    });
+    t.view.physicalSize = const Size(320, 900);
+    t.view.devicePixelRatio = 1;
+    t.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(t.view.reset);
+    addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+    await c.saveClassroom(
+      material(
+        'Lange Dokumentbezeichnung für Schülerarbeiten',
+        fields: {
+          'scanner': true,
+          'tags': ['Mathematik'],
+        },
+      ),
+    );
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ScannerLibrary(controller: c)),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byTooltip('Listenansicht'));
+    await t.tap(find.byTooltip('Listenansicht'));
+    await t.pumpAndSettle();
+    await t.ensureVisible(
+      find.text('Lange Dokumentbezeichnung für Schülerarbeiten'),
+    );
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
 }

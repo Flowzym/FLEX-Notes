@@ -184,7 +184,8 @@ void main() {
         find.byKey(const ValueKey('page-pills')),
       );
       expect(navigation.width, lessThanOrEqualTo(760));
-      expect(find.text('Stundenplan'), findsOneWidget);
+      expect(find.text('Stundenplan'), findsNothing);
+      expect(find.text('Kalender'), findsOneWidget);
       expect(find.text('Material'), findsOneWidget);
       expect(find.text('Organisation'), findsOneWidget);
       expect(navigation.center.dx, 550);

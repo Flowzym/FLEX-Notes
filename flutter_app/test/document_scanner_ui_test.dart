@@ -12,6 +12,7 @@ import 'package:flex_notizbuch/domain/document_scanner.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/scan_editor.dart';
 import 'package:flex_notizbuch/ui/scan_page_editor.dart';
+import 'package:flex_notizbuch/ui/scan_tools.dart';
 import 'scan_edges_test.dart' show perspectivePage;
 import 'classroom_test.dart' show classroomMemory;
 import 'document_scanner_test.dart' show scannerImage;
@@ -127,6 +128,8 @@ void main() {
         ),
       );
       expect(original.map((v) => v['width']), [200, 220]);
+      await tap(t, find.byTooltip('Seiten als Liste'));
+      await t.pumpAndSettle();
       final list = t.widget<ReorderableListView>(
         find.byKey(const ValueKey('scan-page-order')),
       );
@@ -202,6 +205,66 @@ void main() {
     );
   }
 
+  for (final failMetadata in [false, true]) {
+    testWidgets(
+      'batch filter keeps page order and safely retries failed draft write=$failMetadata',
+      (t) async {
+        final c = await controller(), files = MemoryMaterialFiles();
+        await host(
+          t,
+          (_) => ScanEditor(
+            controller: c,
+            files: files,
+            initialImages: [scannerImage(width: 180), scannerImage(width: 240)],
+          ),
+        );
+        await settleWork(
+          t,
+          () =>
+              c.dialogDrafts.isNotEmpty &&
+              (c.dialogDrafts.single.data['pages'] as List).length == 2,
+        );
+        final before = (c.dialogDrafts.single.data['pages'] as List)
+            .map((p) => p['key'] as String)
+            .toList();
+        await tap(t, find.byKey(const ValueKey('scan-batch-filter')));
+        await settleWork(
+          t,
+          () => find.text('Auf alle anwenden').evaluate().isNotEmpty,
+        );
+        await tap(t, find.byKey(const ValueKey('scan-filter-gray')));
+        (c.repository as InterruptedScanRepository).failWrite = failMetadata;
+        await tap(t, find.text('Auf alle anwenden'));
+        await settleWork(
+          t,
+          () =>
+              files.values.length >= (failMetadata ? 4 : 2) &&
+              find.byType(LinearProgressIndicator).evaluate().isEmpty &&
+              find.text('Auf alle anwenden').evaluate().isEmpty,
+        );
+        if (failMetadata) {
+          expect(
+            (c.dialogDrafts.single.data['pages'] as List).map((p) => p['key']),
+            before,
+          );
+          expect(before.every(files.values.containsKey), true);
+        }
+        await tap(t, find.text('Später fortsetzen'));
+        await t.pumpAndSettle();
+        final after = c.dialogDrafts.single.data['pages'] as List;
+        expect(after.map((p) => p['width']), [180, 240]);
+        expect(after.map((p) => p['key']).toList(), isNot(before));
+        expect(files.values.length, 2);
+        for (final p in after) {
+          final image = img.decodeJpg(files.values[p['key']]!)!;
+          final pixel = image.getPixel(image.width ~/ 2, image.height ~/ 2);
+          expect((pixel.r - pixel.g).abs(), lessThan(3));
+        }
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('cancelled replacement leaves the original untouched', (t) async {
     final c = await controller(), files = MemoryMaterialFiles();
     await host(
@@ -254,10 +317,12 @@ void main() {
               .bytes;
       await settleWork(
         t,
-        () => find
-            .byType(ChoiceChip)
-            .evaluate()
-            .every((e) => (e.widget as ChoiceChip).avatar != null),
+        () =>
+            t
+                .widget<ScanFilterStrip>(find.byType(ScanFilterStrip))
+                .thumbnails
+                .length ==
+            6,
       );
       await tap(t, find.text('Warm'));
       await tap(t, find.text('Graustufen'));

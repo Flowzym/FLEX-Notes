@@ -2,7 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'surfaces.dart';
 
-const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf', 3: 'Stundenplan'};
+const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
+const calendarPages = {
+  0: 'Kalender',
+  1: 'Stundenplan',
+  2: 'Aufgaben',
+  3: 'Notizen',
+};
 
 /// Compact tracks with a raised selection. All destinations wrap at large text.
 class FlexPagePills extends StatelessWidget {
@@ -185,9 +191,9 @@ class FlexBottomNavigation extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final e in const [
-                (0, 'Übersicht', Icons.dashboard_outlined),
+                (0, 'Kalender', Icons.calendar_month_outlined),
                 (1, 'Live', Icons.bolt_outlined),
-                (2, 'Organisation', Icons.calendar_month_outlined),
+                (2, 'Organisation', Icons.assignment_outlined),
                 (3, 'Material', Icons.folder_outlined),
                 (4, 'Mehr', Icons.more_horiz),
               ])

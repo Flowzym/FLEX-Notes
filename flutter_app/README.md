@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.27+47** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.28+48** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -8,7 +8,8 @@ Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
 Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
-Aktueller Prüfstand: [Scannerausbau und kompakte Oberfläche](../audit/SCANNER_AUSBAU_BUILD_47.md),
+Aktueller Prüfstand: [Dokumentvorschauen, Kalender und Scannerverwaltung](../audit/DOKUMENTE_KALENDER_BUILD_48.md),
+[Scannerausbau und kompakte Oberfläche](../audit/SCANNER_AUSBAU_BUILD_47.md),
  [Scannerzugänge und HÜ-Anhänge](../audit/SCANNER_ZUGAENGE_BUILD_46.md),
 [Bereichsnavigation, Fotos und Tags](../audit/NAVIGATION_FOTOS_BUILD_45.md),
 [Dokumentenscanner](../audit/DOKUMENTENSCANNER_BUILD_44.md),

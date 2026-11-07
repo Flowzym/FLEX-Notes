@@ -1,3 +1,4 @@
+import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
@@ -7,6 +8,7 @@ import 'common.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 import 'repeat_editor.dart';
+import 'material_library.dart';
 
 Json classroomInitial(
   ClassroomKind kind,
@@ -151,6 +153,11 @@ Future<List<String>?> chooseMaterials(
                   materialMatches(d, query, pupils: c.pupils),
             ))
               CheckboxListTile(
+                secondary: MaterialThumbnail(
+                  material: m,
+                  width: 48,
+                  height: 56,
+                ),
                 title: Text(m.title),
                 subtitle: Text(
                   [
@@ -691,10 +698,18 @@ Future<void> showClassroomEditor(
                 },
               ),
               for (final id in materialIds)
-                Text(
-                  c.classroom.where((d) => d.id == id).firstOrNull?.title ??
-                      'Material nicht verfügbar',
-                ),
+                if (c.classroom.any((d) => d.id == id && !d.deleted))
+                  MaterialRow(
+                    material: c.classroom.firstWhere((d) => d.id == id),
+                    onOpen: () => guarded(
+                      ctx,
+                      () => openMaterial(
+                        ctx,
+                        c,
+                        c.classroom.firstWhere((d) => d.id == id),
+                      ),
+                    ),
+                  ),
             ],
           ],
         );

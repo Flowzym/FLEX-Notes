@@ -1,3 +1,4 @@
+import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
 
 import '../application/notebook_controller.dart';
@@ -19,28 +20,73 @@ class DocumentAttachmentsButton extends StatelessWidget {
     super.key,
     required this.controller,
     required this.scope,
+    this.showPreviews = true,
   });
   final NotebookController controller;
   final ScanContext scope;
+  final bool showPreviews;
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
     builder: (ctx, _) {
-      final count = controller.classroom.where(scope.matchesMaterial).length;
-      return Wrap(
-        spacing: 8,
-        runSpacing: 4,
+      final docs = controller.classroom.where(scope.matchesMaterial).toList();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          TextButton.icon(
-            onPressed: () => scanAndShow(ctx, controller, scope),
-            icon: const Icon(Icons.document_scanner_outlined),
-            label: const Text('Scannen / Foto'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              TextButton.icon(
+                onPressed: () => scanAndShow(ctx, controller, scope),
+                icon: const Icon(Icons.document_scanner_outlined),
+                label: const Text('Scannen / Foto'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => showContextDocuments(ctx, controller, scope),
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(
+                  docs.isEmpty ? 'Dokumente' : 'Dokumente · ${docs.length}',
+                ),
+              ),
+            ],
           ),
-          OutlinedButton.icon(
-            onPressed: () => showContextDocuments(ctx, controller, scope),
-            icon: const Icon(Icons.folder_open_outlined),
-            label: Text(count == 0 ? 'Dokumente' : 'Dokumente · $count'),
-          ),
+          if (showPreviews && docs.isNotEmpty)
+            SizedBox(
+              height: 84 + MediaQuery.textScalerOf(ctx).scale(11) * 3,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: docs.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => SizedBox(
+                  width: 90,
+                  child: InkWell(
+                    onTap: () => guarded(
+                      ctx,
+                      () => openMaterial(ctx, controller, docs[i]),
+                    ),
+                    child: Column(
+                      children: [
+                        MaterialThumbnail(
+                          material: docs[i],
+                          width: 72,
+                          height: 72,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          docs[i].title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       );
     },
@@ -141,11 +187,7 @@ class DocumentAttachmentSection extends StatelessWidget {
                 key: ValueKey('attachment-file-${d.id}'),
                 contentPadding: EdgeInsets.zero,
                 dense: true,
-                leading: Icon(switch (d.text('extension')) {
-                  'pdf' => Icons.picture_as_pdf_outlined,
-                  'jpg' || 'jpeg' || 'png' || 'webp' => Icons.image_outlined,
-                  _ => Icons.insert_drive_file_outlined,
-                }),
+                leading: MaterialThumbnail(material: d, width: 48, height: 56),
                 title: Text(
                   d.title,
                   maxLines: 2,
@@ -253,7 +295,7 @@ Future<void> showContextDocuments(
               ),
               for (final draft in drafts)
                 ListTile(
-                  leading: const Icon(Icons.edit_note),
+                  leading: ScanDraftThumbnail(draft: draft),
                   title: Text(draft.data['title'] as String),
                   subtitle: Text(
                     '${(draft.data['pages'] as List).length} Seiten',

@@ -1,3 +1,4 @@
+import 'material_thumbnail.dart';
 import 'dart:async';
 import 'dart:typed_data';
 

@@ -439,8 +439,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
             ),
             for (final key in d.strings('materialIds'))
               if (c.classroom.any((m) => m.id == key && !m.deleted))
-                TextButton.icon(
-                  onPressed: () => guarded(
+                MaterialRow(
+                  material: c.classroom.firstWhere((m) => m.id == key),
+                  onOpen: () => guarded(
                     ctx,
                     () => openMaterial(
                       ctx,
@@ -448,8 +449,6 @@ class _ReturnDetailState extends State<ReturnDetail> {
                       c.classroom.firstWhere((m) => m.id == key),
                     ),
                   ),
-                  icon: const Icon(Icons.attach_file),
-                  label: Text(c.classroom.firstWhere((m) => m.id == key).title),
                 ),
             const Divider(),
             TextField(

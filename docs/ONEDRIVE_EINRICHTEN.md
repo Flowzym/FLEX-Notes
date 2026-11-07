@@ -1,9 +1,25 @@
 # OneDrive für FLEX registrieren
 
-Build 39 enthält die Verbindung, aber **keine Microsoft-Client-ID**. Eine direkte
-Anmeldung ist deshalb in diesem Build nicht aktiv. OneDrive-Links und der Android-
+FLEX enthält die Verbindung, aber weiterhin **keine Microsoft-Client-ID**. Eine direkte
+Anmeldung ist deshalb ohne eigene Registrierung nicht aktiv. OneDrive-Links und der Android-
 Dateiauswahldialog funktionieren unabhängig davon; der Systemdialog kann auch
 Dateien eines installierten OneDrive-Dokumentanbieters anbieten.
+
+## Azure-Testangebot und Appregistrierung
+
+Das Azure-Angebot mit 200 USD Guthaben für 30 Tage ist ein zeitlich begrenztes
+Cloud-Testangebot. FLEX selbst benötigt kein Azure-Hosting und kann ohne direkte
+OneDrive-Anmeldung verwendet werden.
+
+Für die Appregistrierung nennt Microsoft ein aktives Azure-Konto und ein Entra-
+Verzeichnis mit passenden Rechten als Voraussetzung. Der separate Abrechnungseintrag
+„Microsoft Entra ID Free“ verursacht laut Microsoft keine Produktgebühren; andere
+gebuchte Azure-Dienste oder Lizenzen können dagegen kostenpflichtig sein. Das ist
+keine Zusage, dass jede Konto-Einrichtung ohne Zahlungsdaten möglich ist.
+
+Quellen (geprüft am 7. November 2026):
+[Appregistrierung](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app),
+[Entra ID Free](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/microsoft-entra-id-free).
 
 ## Einmalige Registrierung
 

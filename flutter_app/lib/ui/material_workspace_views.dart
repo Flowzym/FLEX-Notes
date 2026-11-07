@@ -91,16 +91,7 @@ class _MaterialRowState extends State<MaterialRow> {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        d.text('extension') == 'pdf'
-                            ? Icons.picture_as_pdf_outlined
-                            : d.text('extension') == 'jpg'
-                            ? Icons.photo_outlined
-                            : d.text('extension') == 'docx'
-                            ? Icons.description_outlined
-                            : Icons.link,
-                        size: 25,
-                      ),
+                      MaterialThumbnail(material: d, files: widget.files),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -182,6 +173,13 @@ Future<void> showMaterialDetails(
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: MaterialThumbnail(material: d, width: 96, height: 120),
+                ),
+              ),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
@@ -648,6 +646,7 @@ Future<void> showMaterialCollection(
               runSpacing: 4,
               children: [
                 DocumentAttachmentsButton(
+                  showPreviews: false,
                   controller: c,
                   scope: ScanContext(
                     links: [DocumentLink('classroom', d.id)],
@@ -771,6 +770,7 @@ Future<void> showPupilMaterials(
                   label: const Text('Scannen'),
                 ),
                 DocumentAttachmentsButton(
+                  showPreviews: false,
                   controller: c,
                   scope: ScanContext(
                     pupilIds: [pupil.id],

@@ -279,6 +279,18 @@ class OneDriveClient extends ChangeNotifier {
   String itemPath(String drive, String id) =>
       '/drives/${Uri.encodeComponent(drive)}/items/${Uri.encodeComponent(id)}';
   Future<Json> item(String drive, String id) => graph(itemPath(drive, id));
+  Future<Uint8List?> thumbnail(String drive, String id) async {
+    final data = await graph('${itemPath(drive, id)}/thumbnails');
+    final sets = data['value'] as List? ?? [];
+    if (sets.isEmpty) return null;
+    final first = sets.first as Map;
+    final image = (first['medium'] ?? first['small']) as Map?;
+    if (image?['url'] is! String) return null;
+    return download({
+      '@microsoft.graph.downloadUrl': image!['url'],
+    }, maxBytes: 2000000);
+  }
+
   Future<List<Json>> children({String? drive, String? folder}) async {
     var path = drive == null
         ? '/me/drive/root/children'

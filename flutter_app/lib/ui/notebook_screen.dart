@@ -1,3 +1,5 @@
+import 'material_thumbnail.dart';
+import 'general_orga_page.dart';
 import 'symbol_button.dart';
 import 'scanner_library.dart';
 import 'document_attachments.dart';
@@ -50,6 +52,8 @@ class NotebookScreen extends StatefulWidget {
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 0, _destination = 1, _materialView = 0, _moreView = 0;
+  int _calendarView = 0, _orgaView = 0;
+  final _calendarPages = PageController();
   final _visited = <int>{1};
   final _dataLayout = SettingsLayoutState()..tab = 2;
   DateTime? _calendarShortcutDate, _timetableShortcutDate;
@@ -149,6 +153,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     c.services?.reminders.removeListener(_notification);
     c.services?.lock.removeListener(_notification);
     _pages.dispose();
+    _calendarPages.dispose();
     _pupilSearch.dispose();
     _entrySearch.dispose();
     super.dispose();
@@ -177,23 +182,54 @@ class _NotebookScreenState extends State<NotebookScreen> {
     });
   }
 
+  void _calendarTo(int index) {
+    _sectionTo(0);
+    _changeView(() => _calendarView = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _calendarPages.hasClients) {
+        _calendarPages.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
   void _calendarShortcut(bool timetable, DateTime date) {
     if (timetable) {
       _timetableShortcutDate = date;
       _timetableShortcutRevision++;
-      _main(3);
     } else {
       _calendarShortcutDate = date;
       _calendarShortcutRevision++;
-      _sectionTo(2);
     }
+    _calendarTo(timetable ? 1 : 0);
   }
 
-  Future<void> _editor(OrgaEntry entry, {String? draftId}) async {
+  Widget _generalOrga(String kind) => GeneralOrgaPage(
+    key: ValueKey('general-$kind-page'),
+    controller: c,
+    kind: kind,
+    onEdit: (entry) => _editor(entry, defaultToClassTask: false),
+    entryBuilder: _entryCard,
+    onEditDraft: (draft) => _editor(draft.entry, draftId: draft.id),
+  );
+
+  Future<void> _editor(
+    OrgaEntry entry, {
+    String? draftId,
+    bool defaultToClassTask = true,
+  }) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => OrgaEditor(controller: c, entry: entry, draftId: draftId),
+      builder: (_) => OrgaEditor(
+        controller: c,
+        entry: entry,
+        draftId: draftId,
+        defaultToClassTask: defaultToClassTask,
+      ),
     );
     if (mounted) await guarded(context, c.reload);
   }
@@ -609,20 +645,26 @@ class _NotebookScreenState extends State<NotebookScreen> {
               child: FlexPagePills(
                 keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
                 selected: switch (_destination) {
+                  0 => _calendarView,
                   1 => _primary,
+                  2 => _orgaView,
                   3 => _materialView,
                   4 => _moreView,
                   _ => 0,
                 },
                 pages: switch (_destination) {
-                  0 => const {0: 'Übersicht'},
+                  0 => calendarPages,
                   1 => livePages,
-                  2 => const {0: 'Kalender'},
+                  2 => const {0: 'Orga', 1: 'Rückläufe'},
                   3 => _materialPages,
                   _ => _morePages,
                 },
                 onSelected: (index) {
-                  if (_destination == 1) {
+                  if (_destination == 0) {
+                    _calendarTo(index);
+                  } else if (_destination == 2) {
+                    _changeView(() => _orgaView = index);
+                  } else if (_destination == 1) {
                     _main(index);
                   } else if (_destination == 3) {
                     _changeView(() => _materialView = index);
@@ -640,7 +682,34 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   child: IndexedStack(
                     index: _destination,
                     children: [
-                      _placeholder('Übersicht', Icons.dashboard_outlined),
+                      if (_visited.contains(0))
+                        PageView(
+                          key: const ValueKey('calendar-pages'),
+                          controller: _calendarPages,
+                          onPageChanged: (index) =>
+                              _changeView(() => _calendarView = index),
+                          children: [
+                            CalendarPage(
+                              key: const ValueKey('main-calendar'),
+                              controller: c,
+                              shortcutDate: _calendarShortcutDate,
+                              shortcutRevision: _calendarShortcutRevision,
+                              onSwitchSection: _calendarShortcut,
+                            ),
+                            CalendarPage(
+                              key: const ValueKey('main-timetable'),
+                              controller: c,
+                              initialTimetable: true,
+                              shortcutDate: _timetableShortcutDate,
+                              shortcutRevision: _timetableShortcutRevision,
+                              onSwitchSection: _calendarShortcut,
+                            ),
+                            _generalOrga('task'),
+                            _generalOrga('note'),
+                          ],
+                        )
+                      else
+                        const SizedBox(),
                       PageView(
                         key: const ValueKey('main-pages'),
                         controller: _pages,
@@ -652,23 +721,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
                           _overview(),
                           _pupils(),
                           _placeholder('Ablauf', Icons.route_outlined),
-                          CalendarPage(
-                            key: const ValueKey('live-timetable'),
-                            controller: c,
-                            initialTimetable: true,
-                            shortcutDate: _timetableShortcutDate,
-                            shortcutRevision: _timetableShortcutRevision,
-                            onSwitchSection: _calendarShortcut,
-                          ),
                         ],
                       ),
                       if (_visited.contains(2))
-                        CalendarPage(
-                          key: const ValueKey('organisation-calendar'),
-                          controller: c,
-                          shortcutDate: _calendarShortcutDate,
-                          shortcutRevision: _calendarShortcutRevision,
-                          onSwitchSection: _calendarShortcut,
+                        IndexedStack(
+                          index: _orgaView,
+                          children: [
+                            _generalOrga('all'),
+                            ReturnLists(controller: c),
+                          ],
                         )
                       else
                         const SizedBox(),
@@ -1785,9 +1846,22 @@ class _NotebookScreenState extends State<NotebookScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    row.title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      if (row.id.startsWith('dialog-'))
+                        for (final draft in c.dialogDrafts.where(
+                          (d) => 'dialog-${d.id}' == row.id && d.type == 'scan',
+                        )) ...[
+                          ScanDraftThumbnail(draft: draft),
+                          const SizedBox(width: 12),
+                        ],
+                      Expanded(
+                        child: Text(
+                          row.title,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                   ),
                   if (row.preview.isNotEmpty)
                     Text(

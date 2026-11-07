@@ -26,10 +26,12 @@ class OrgaEditor extends StatefulWidget {
     required this.controller,
     required this.entry,
     this.draftId,
+    this.defaultToClassTask = true,
   });
   final NotebookController controller;
   final OrgaEntry entry;
   final String? draftId;
+  final bool defaultToClassTask;
   @override
   State<OrgaEditor> createState() => _OrgaEditorState();
 }
@@ -103,6 +105,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     entry = widget.entry;
     if (entry.revision == 0 &&
+        widget.defaultToClassTask &&
         widget.draftId == null &&
         isClass &&
         !entry.isAppointment) {
