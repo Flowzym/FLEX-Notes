@@ -1,0 +1,30 @@
+Resolving dependencies...
+Downloading packages...
+  code_assets 2.1.0 (2.2.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  jni 1.1.1 (1.1.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  objective_c 9.6.2 (9.6.3 available)
+  path_provider 2.1.5 (2.1.6 available)
+  qr 3.0.3 (4.0.1 available)
+  sqlite3 3.8.0 (3.9.0 available)
+  test_api 0.7.12 (0.7.15 available)
+  uuid 4.5.1 (4.6.0 available)
+Got dependencies!
+10 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/pupil_polish_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: pupil cards, workspace and compact tags 320.0/1.0/1.0
+00:04 +1: pupil cards, workspace and compact tags 390.0/1.0/1.0
+00:06 +2: pupil cards, workspace and compact tags 1200.0/1.0/1.0
+00:09 +3: pupil cards, workspace and compact tags 320.0/2.0/1.0
+00:11 +4: pupil cards, workspace and compact tags 320.0/1.0/1.2
+00:12 +5: header draft list deletes school only after confirmation
+00:13 +6: header draft list deletes orga only after confirmation
+00:13 +7: header draft list deletes bulk only after confirmation
+00:13 +8: failed delete is retryable and double taps issue one write
+00:13 +9: pupil header drafts show all areas and keep other pupils separate
+00:13 +10: pupil workspace search and open filter cover school and Orga records
+00:14 +11: (tearDownAll)
+00:14 +11: All tests passed!
