@@ -199,10 +199,12 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           'photo_closed',
           'material_storage',
         }.contains(e.code) &&
-        e.message?.isNotEmpty == true)
+        e.message?.isNotEmpty == true) {
       return e.message!;
-    if (e is MissingPluginException)
+    }
+    if (e is MissingPluginException) {
       return 'Die Kamerafunktion fehlt in dieser App-Version. Bitte die aktuelle FLEX-Testapp installieren oder ein Bild aus Dateien hinzufügen.';
+    }
     return friendlyError(e);
   }
 
@@ -438,11 +440,12 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             );
     } on PlatformException catch (e) {
       if (e.code != 'scanner_unavailable' || !nativeCamera) rethrow;
-      if (mounted)
+      if (mounted) {
         setState(
           () => cameraNotice =
               'Automatische Dokumenterkennung nicht verfügbar. Aufnahme mit der normalen Kamera; Zuschnitt und Filter kannst du danach einstellen.',
         );
+      }
       await captureStill(document: true);
       return;
     }

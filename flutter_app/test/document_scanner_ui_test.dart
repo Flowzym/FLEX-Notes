@@ -169,18 +169,20 @@ void main() {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(FlexDevice.channel, (call) async {
               calls.add(call.method);
-              if (call.method == 'scanDocument')
+              if (call.method == 'scanDocument') {
                 throw PlatformException(
                   code: 'scanner_unavailable',
                   message: 'Google Play-Dienste nicht verfügbar.',
                 );
+              }
               if (call.method == 'capturePhoto') {
-                if (cameraFails)
+                if (cameraFails) {
                   throw PlatformException(
                     code: 'photo_unavailable',
                     message:
                         'Die Kamera konnte nicht geöffnet werden. Alternativ ein Bild aus Dateien hinzufügen.',
                   );
+                }
                 return {'token': 'fallback-photo', 'bytes': scannerImage()};
               }
               return null;
