@@ -1,0 +1,6 @@
+FLEX Test Build 41
+
+APK herunterladen und über die vorhandene FLEX Test installieren.
+Nicht deinstallieren: Das normale Update behält den lokalen Datenbestand.
+Kalender > Stundenplan öffnet den bearbeitbaren Wochenplan.
+Details und Prüfungen stehen in README.md.
