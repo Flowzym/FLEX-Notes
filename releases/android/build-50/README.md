@@ -12,4 +12,6 @@ Version **0.16.0-rebuild.30+50** · Quellstand `af5270a205b658420bf2bbbcfa485d96
 
 [Automatische GitHub-Prüfung dieses Quellstands](https://github.com/Flowzym/FLEX-Notes/actions/runs/42416118415).
 
+[APK in deinem OneDrive öffnen](https://onedrive.live.com?cid=00B0037104A6A978&id=B0037104A6A978!s3f39bc18bfba4fd6a863f3598d4a0997). Upload anhand der Größe und des QuickXor-Hashes geprüft.
+
 SHA-256: `c61f8779e39dfb0b8ffd0ce239f03de03ecd9ddcca74c159b0a9b99995129492`. Größe: 102687314 Bytes.
