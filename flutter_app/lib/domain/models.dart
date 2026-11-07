@@ -1,4 +1,7 @@
 import 'dart:convert';
+
+import 'document_scanner.dart' show validateScanData;
+
 import 'package:uuid/uuid.dart';
 
 typedef Json = Map<String, dynamic>;
@@ -456,6 +459,7 @@ class DialogDraft {
           'bulk',
           'catalog',
           'classroom',
+          'scan',
         ].contains(j['type']) ||
         j['data'] is! Map ||
         j['revision'] is! int ||
@@ -467,7 +471,9 @@ class DialogDraft {
       throw const DomainError('Ungültiger Dialogentwurf.');
     }
     final data = Json.from(j['data'] as Map);
-    if (j['type'] == 'pupil') {
+    if (j['type'] == 'scan') {
+      validateScanData(data);
+    } else if (j['type'] == 'pupil') {
       final pupil = Pupil.fromJson(data);
       if (pupil.id != j['ownerId'] ||
           pupil.color < 0 ||

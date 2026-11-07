@@ -1,6 +1,9 @@
 import 'dart:convert';
+
 import 'package:uuid/uuid.dart';
+
 import 'models.dart';
+import 'document_scanner.dart' show DocumentLink;
 
 enum ClassroomKind {
   timetable,
@@ -18,6 +21,9 @@ enum ClassroomKind {
 
 const materialTypes = {
   'other': 'Dokument',
+  'pupilWork': 'Schülerarbeit',
+  'form': 'Formular',
+  'receipt': 'Beleg',
   'worksheet': 'Arbeitsblatt',
   'solution': 'Lösung',
   'weekPlan': 'Wochenplan',
@@ -286,6 +292,9 @@ class ClassroomDocument {
         'tags',
         'favorite',
         'sourcePath',
+        'links',
+        'scan',
+        'pageCount',
       },
       ClassroomKind.materialSet => {
         'materialIds',
@@ -425,6 +434,18 @@ class ClassroomDocument {
                     text('endDate').compareTo(text('date')) < 0) ||
             text('followUp').length > 20000)) {
       throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
+    }
+    if (kind == ClassroomKind.material) {
+      final links = rows('links').map(DocumentLink.fromJson).toList();
+      if (links.length > 100 ||
+          links.map((l) => l.identity).toSet().length != links.length ||
+          _json.containsKey('scan') && _json['scan'] is! bool ||
+          _json.containsKey('pageCount') &&
+              (_json['pageCount'] is! int ||
+                  number('pageCount') < 1 ||
+                  number('pageCount') > 25)) {
+        throw const DomainError('Ungültige Scandaten.');
+      }
     }
     if (kind == ClassroomKind.material &&
         (!materialTypes.containsKey(text('documentType', 'other')) ||

@@ -1,5 +1,9 @@
+import 'document_attachments.dart';
+import '../domain/document_scanner.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
 import '../domain/models.dart';
@@ -366,6 +370,14 @@ class _ReturnDetailState extends State<ReturnDetail> {
               spacing: 6,
               runSpacing: 6,
               children: [
+                DocumentAttachmentsButton(
+                  controller: c,
+                  scope: ScanContext(
+                    links: [DocumentLink('classroom', d.id)],
+                    title: d.title,
+                    category: 'form',
+                  ),
+                ),
                 TextButton.icon(
                   onPressed: busy
                       ? null
@@ -489,6 +501,15 @@ class _ReturnDetailState extends State<ReturnDetail> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    DocumentAttachmentsButton(
+                      controller: c,
+                      scope: ScanContext(
+                        pupilIds: [row['pupilId'] as String],
+                        links: [DocumentLink('classroom', d.id)],
+                        title: '${row['name']} · ${d.title}',
+                        category: 'form',
+                      ),
+                    ),
                     Row(
                       children: [
                         Checkbox(

@@ -1,0 +1,149 @@
+import 'classroom.dart';
+import 'models.dart';
+
+const scanPageLimit = 25;
+const scanTypes = {
+  'pupilWork': 'Schülerarbeit',
+  'worksheet': 'Arbeitsblatt',
+  'form': 'Formular',
+  'protocol': 'Gesprächsunterlage',
+  'planning': 'Planung',
+  'receipt': 'Beleg',
+  'other': 'Sonstiges',
+};
+
+/// Stable references, independent of filenames. A date narrows a lesson link
+/// to an occurrence; other classroom links refer to the entire source document.
+class DocumentLink {
+  const DocumentLink(this.kind, this.id, {this.date = ''});
+  final String kind, id, date;
+  Json toJson() => {'kind': kind, 'id': id, if (date.isNotEmpty) 'date': date};
+  factory DocumentLink.fromJson(Json j) {
+    final link = DocumentLink(
+      j['kind'] as String? ?? '',
+      j['id'] as String? ?? '',
+      date: j['date'] as String? ?? '',
+    );
+    if (!{'orga', 'school', 'classroom', 'lesson'}.contains(link.kind) ||
+        link.id.isEmpty ||
+        link.id.length > 250 ||
+        (link.kind == 'lesson'
+            ? !validDate(link.date)
+            : link.date.isNotEmpty) ||
+        j.keys.any((k) => !{'kind', 'id', 'date'}.contains(k))) {
+      throw const DomainError('Ungültige Dokumentzuordnung.');
+    }
+    return link;
+  }
+  String get identity => '$kind:$id:$date';
+}
+
+class ScanContext {
+  const ScanContext({
+    this.pupilIds = const [],
+    this.links = const [],
+    this.title = '',
+    this.category = 'other',
+    this.subject = '',
+  });
+  final List<String> pupilIds;
+  final List<DocumentLink> links;
+  final String title, category, subject;
+  Json initial({DateTime? now}) => {
+    'title':
+        '${dateOnly(now ?? DateTime.now())} · ${title.isEmpty ? 'Scan' : title.substring(0, title.length.clamp(0, 180))}',
+    'documentType': category,
+    'subject': subject,
+    'pupilIds': pupilIds,
+    'links': links.map((v) => v.toJson()).toList(),
+    'pages': <Json>[],
+  };
+  bool matchesMaterial(ClassroomDocument d) =>
+      d.kind == ClassroomKind.material &&
+      !d.deleted &&
+      (pupilIds.isEmpty || pupilIds.every(d.strings('pupilIds').contains)) &&
+      (links.isEmpty ||
+          links.every(
+            (link) => d
+                .rows('links')
+                .any((r) => DocumentLink.fromJson(r).identity == link.identity),
+          ));
+  bool matchesDraft(DialogDraft d) =>
+      d.type == 'scan' &&
+      (pupilIds.isEmpty ||
+          pupilIds.every(
+            List<String>.from(d.data['pupilIds'] as List).contains,
+          )) &&
+      (links.isEmpty ||
+          links.every(
+            (link) => (d.data['links'] as List).any(
+              (r) =>
+                  DocumentLink.fromJson(Json.from(r as Map)).identity ==
+                  link.identity,
+            ),
+          ));
+}
+
+class ScanPage {
+  const ScanPage(this.key, this.width, this.height);
+  final String key;
+  final int width, height;
+  Json toJson() => {'key': key, 'width': width, 'height': height};
+  factory ScanPage.fromJson(Json j) {
+    final p = ScanPage(
+      j['key'] as String? ?? '',
+      j['width'] as int? ?? 0,
+      j['height'] as int? ?? 0,
+    );
+    if (!RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(p.key) ||
+        p.width < 1 ||
+        p.height < 1 ||
+        p.width > 2400 ||
+        p.height > 2400) {
+      throw const DomainError('Ungültige Scanseite.');
+    }
+    return p;
+  }
+}
+
+void validateScanData(Json j) {
+  if (j['title'] is! String ||
+      (j['title'] as String).length > 200 ||
+      !scanTypes.containsKey(j['documentType']) ||
+      j['subject'] is! String ||
+      (j['subject'] as String).length > 200 ||
+      j['pupilIds'] is! List ||
+      j['links'] is! List ||
+      j['pages'] is! List ||
+      (j['pages'] as List).length > scanPageLimit ||
+      (j['links'] as List).length > 100 ||
+      (j['pupilIds'] as List).length > 500 ||
+      !(j['pupilIds'] as List).every(
+        (id) => id is String && id.isNotEmpty && id.length <= 250,
+      )) {
+    throw const DomainError('Ungültiger Scanentwurf.');
+  }
+  final pages = (j['pages'] as List)
+      .map((p) => ScanPage.fromJson(Json.from(p as Map)))
+      .toList();
+  final links = (j['links'] as List)
+      .map((p) => DocumentLink.fromJson(Json.from(p as Map)))
+      .toList();
+  if (pages.map((p) => p.key).toSet().length != pages.length ||
+      links.map((l) => l.identity).toSet().length != links.length ||
+      (j['pupilIds'] as List).toSet().length !=
+          (j['pupilIds'] as List).length ||
+      j['sourceId'] != null &&
+          (j['sourceId'] is! String ||
+              j['sourceRevision'] is! int ||
+              j['sourceRevision'] < 1)) {
+    throw const DomainError('Ungültiger Scanentwurf.');
+  }
+}
+
+String scanFilename(String title) {
+  var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');
+  name = name.replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
+  if (name.isEmpty) name = 'Scan';
+  return '${name.substring(0, name.length.clamp(0, 160))}.pdf';
+}

@@ -1,3 +1,5 @@
+import 'document_attachments.dart';
+import '../domain/document_scanner.dart';
 import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
 import 'symbol_button.dart';
@@ -900,6 +902,14 @@ Future<void> showBrief(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              DocumentAttachmentsButton(
+                controller: c,
+                scope: ScanContext(
+                  pupilIds: [pupil.id],
+                  title: '${pupil.name} · Gespräch',
+                  category: 'protocol',
+                ),
+              ),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,

@@ -25,6 +25,7 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     private val lockTokens = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     @Volatile private var detached = false
     private lateinit var context: Context
+    private lateinit var scanner: DocumentScanner
     private lateinit var channel: MethodChannel
     private val writer = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -38,10 +39,14 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         detached = false
         context = binding.applicationContext
+        scanner = DocumentScanner(context)
         channel = MethodChannel(binding.binaryMessenger, "at.flowzym.flex_notizbuch/device")
         channel.setMethodCallHandler(this)
     }
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "scanDocument") {
+            scanner.start(activity, call.argument<Int>("limit") ?: 25, result); return
+        }
         if (call.method in MaterialStorage.methods) {
             writer.execute {
                 try {
@@ -153,6 +158,7 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         return result.sortedByDescending { it["name"] as String }
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (scanner.activityResult(requestCode, resultCode, data)) return true
         if (requestCode != 46022) return false
         val result = pending ?: return true
         pending = null
@@ -172,6 +178,6 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     override fun onAttachedToActivity(binding: ActivityPluginBinding) { this.binding = binding; activity = binding.activity; if (screenProtected) activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE); binding.addActivityResultListener(this) }
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
     override fun onDetachedFromActivityForConfigChanges() { binding?.removeActivityResultListener(this); binding = null; activity = null }
-    override fun onDetachedFromActivity() { onDetachedFromActivityForConfigChanges(); pending?.error("activity_closed", "Ordnerauswahl geschlossen.", null); pending = null }
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.shutdown() }
+    override fun onDetachedFromActivity() { scanner.close(); onDetachedFromActivityForConfigChanges(); pending?.error("activity_closed", "Ordnerauswahl geschlossen.", null); pending = null }
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; scanner.dispose(); channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.shutdown() }
 }

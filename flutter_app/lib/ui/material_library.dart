@@ -1,16 +1,22 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flex_device/flex_device.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import '../services/material_files.dart';
+import '../services/material_storage.dart';
+import '../domain/document_scanner.dart';
+import 'scan_editor.dart';
+import 'document_attachments.dart';
 import '../services/onedrive.dart';
 import 'backup_dialog.dart';
 import 'classroom_editor.dart';
@@ -25,7 +31,7 @@ part 'material_workspace_views.dart';
 part 'material_index_review.dart';
 
 bool get materialDeviceAvailable =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    kIsWeb || defaultTargetPlatform == TargetPlatform.android;
 Future<Uint8List> _packMaterials(Map<String, dynamic> args) =>
     MaterialBundle.encode(
       (args['documents'] as List)
@@ -362,7 +368,12 @@ Future<void> removeUnusedMaterialFile(
   final docs = await c.repository.classroomDocuments();
   final drafts = await c.repository.dialogDrafts();
   if (docs.any((d) => d.text('localKey') == key) ||
-      drafts.any((d) => d.data['localKey'] == key)) {
+      drafts.any(
+        (d) =>
+            d.data['localKey'] == key ||
+            d.type == 'scan' &&
+                (d.data['pages'] as List).any((p) => p['key'] == key),
+      )) {
     return;
   }
   await files.remove(key);
@@ -417,7 +428,7 @@ Future<void> openMaterial(
   NotebookController c,
   ClassroomDocument material, {
   OneDriveClient? drive,
-  MaterialFiles files = const DeviceMaterialFiles(),
+  MaterialFiles files = const LocalMaterialFiles(),
 }) async {
   var current = material;
   if (current.text('extension') == 'link' && current.text('url').isNotEmpty) {
@@ -469,6 +480,7 @@ Future<void> openMaterial(
         builder: (_) => MaterialPdf(
           fileKey: current.text('localKey'),
           title: current.title,
+          files: files,
         ),
       );
     } else {
@@ -479,11 +491,18 @@ Future<void> openMaterial(
         builder: (_) => MaterialDocx(
           title: current.title,
           bytes: bytes,
-          openOriginal: () => FlexDevice.channel.invokeMethod('openMaterial', {
-            'key': current.text('localKey'),
-            'extension': current.text('extension'),
-            'name': current.text('name', '${current.title}.docx'),
-          }),
+          openOriginal: () => kIsWeb
+              ? saveBytesFile(
+                  current.text('name', '${current.title}.docx'),
+                  bytes,
+                  mime:
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ).then((_) {})
+              : FlexDevice.channel.invokeMethod('openMaterial', {
+                  'key': current.text('localKey'),
+                  'extension': current.text('extension'),
+                  'name': current.text('name', '${current.title}.docx'),
+                }),
         ),
       );
     }
@@ -503,7 +522,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     with AutomaticKeepAliveClientMixin {
   NotebookController get c => widget.controller;
   final drive = OneDriveClient();
-  final files = const DeviceMaterialFiles();
+  final files = const LocalMaterialFiles();
   String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
   final search = TextEditingController();
   final selection = <String>{};
@@ -978,6 +997,13 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                     spacing: 4,
                     runSpacing: 6,
                     children: [
+                      FilledButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => scanAndShow(ctx, c, const ScanContext()),
+                        icon: const Icon(Icons.document_scanner_outlined),
+                        label: const Text('Scannen'),
+                      ),
                       FilledButton.icon(
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 12),

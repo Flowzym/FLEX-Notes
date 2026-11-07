@@ -1,3 +1,4 @@
+import 'document_attachments.dart';
 import 'observation_tone_colors.dart';
 import 'compact_switch.dart';
 import 'option_bar.dart';
@@ -5,9 +6,12 @@ import 'draft_actions.dart';
 import 'option_swipe.dart';
 import 'pupil_history.dart';
 import 'entry_navigation.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/drafts.dart';
@@ -378,7 +382,7 @@ class _SchoolEditorState extends State<SchoolEditor>
     }
   }
 
-  Future<void> save() async {
+  Future<void> save({bool documents = false}) async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -455,8 +459,9 @@ class _SchoolEditorState extends State<SchoolEditor>
         });
       }
       r.validate();
+      var documentRecords = <SchoolRecord>[r];
       if (r.revision == 0 && r.kind == SchoolKind.homework) {
-        await c.repository.saveSchoolGroup(
+        documentRecords = await c.repository.saveSchoolGroup(
           r,
           recipients.toList(),
           draftId,
@@ -466,7 +471,17 @@ class _SchoolEditorState extends State<SchoolEditor>
       } else {
         await c.saveRecord(r, draftId: draftId, draftRevision: draftRevision);
       }
-      if (mounted) await pop();
+      if (mounted) {
+        final host = Navigator.of(context).context;
+        await pop();
+        if (documents && host.mounted) {
+          await showContextDocuments(
+            host,
+            c,
+            schoolScanContext(c, documentRecords),
+          );
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -1682,119 +1697,160 @@ class _SchoolEditorState extends State<SchoolEditor>
 
   Widget observationHeader() {
     final pupil = c.pupils.firstWhere((p) => p.id == r.pupilId);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              iconSize: 20,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: const EdgeInsets.all(6),
-              tooltip: 'Zurück und Eingaben sichern',
-              onPressed: busy ? null : close,
-              icon: const Icon(Icons.arrow_back),
-            ),
-            Expanded(
-              child: Text(
-                pupil.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-            IconButton(
-              iconSize: 20,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: const EdgeInsets.all(6),
-              tooltip: 'Verlauf',
-              onPressed: busy ? null : observationHistory,
-              icon: const Icon(Icons.history),
-            ),
-            AnimatedBuilder(
-              animation: c,
-              builder: (_, _) => EntryHeaderButton(
-                key: const ValueKey('entry-drafts'),
-                label: 'Entwürfe',
-                icon: Icons.edit_note,
-                count: entryDraftCount(
-                  c,
-                  pupilId: r.pupilId,
-                  kind: r.kind,
-                  exclude: draftId,
-                ),
-                onPressed: busy
-                    ? null
-                    : () => navigateEntry(
-                        () => showEntryDrafts(
-                          context,
-                          c,
-                          pupilId: r.pupilId,
-                          kind: r.kind,
-                          exclude: draftId,
-                        ),
+    final actions = <Widget>[
+      IconButton(
+        iconSize: 20,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        padding: const EdgeInsets.all(6),
+        tooltip: r.revision == 0
+            ? 'Speichern und Dokumente öffnen'
+            : 'Dokumente',
+        icon: const Icon(Icons.folder_open_outlined),
+        onPressed: busy
+            ? null
+            : () => r.revision == 0
+                  ? save(documents: true)
+                  : navigateEntry(
+                      () => showContextDocuments(
+                        context,
+                        c,
+                        schoolScanContext(c, [
+                          c.records.where((v) => v.id == r.id).firstOrNull ?? r,
+                        ]),
                       ),
-              ),
-            ),
-            if (r.kind == SchoolKind.homework)
-              AnimatedBuilder(
-                animation: c,
-                builder: (_, _) => EntryHeaderButton(
-                  key: const ValueKey('assigned-homework'),
-                  label: 'Aufgegebene Hausübungen',
-                  icon: Icons.home_work_outlined,
-                  count: c.records
-                      .where(
-                        (v) =>
-                            !v.deleted &&
-                            v.pupilId == r.pupilId &&
-                            v.kind == SchoolKind.homework,
-                      )
-                      .length,
-                  onPressed: busy
-                      ? null
-                      : () => navigateEntry(
-                          () => showAssignedHomework(context, c, r.pupilId),
-                        ),
-                ),
-              ),
-            IconButton(
-              iconSize: 20,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: const EdgeInsets.all(6),
-              tooltip: 'Schließen und Eingaben sichern',
-              onPressed: busy ? null : close,
-              icon: const Icon(Icons.close),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 6, bottom: 2),
-                child: Text(
-                  r.revision > 0
-                      ? (r.kind == SchoolKind.homework
-                            ? 'Hausübung bearbeiten'
-                            : r.kind == SchoolKind.goal
-                            ? 'Ziel bearbeiten'
-                            : 'Eintrag bearbeiten')
-                      : r.kind.label,
-                  style: const TextStyle(
-                    fontFamily: 'FlexSerif',
-                    fontSize: 22,
-                    height: 1.15,
+                    ),
+      ),
+      IconButton(
+        iconSize: 20,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        padding: const EdgeInsets.all(6),
+        tooltip: 'Verlauf',
+        onPressed: busy ? null : observationHistory,
+        icon: const Icon(Icons.history),
+      ),
+      AnimatedBuilder(
+        animation: c,
+        builder: (_, _) => EntryHeaderButton(
+          key: const ValueKey('entry-drafts'),
+          label: 'Entwürfe',
+          icon: Icons.edit_note,
+          count: entryDraftCount(
+            c,
+            pupilId: r.pupilId,
+            kind: r.kind,
+            exclude: draftId,
+          ),
+          onPressed: busy
+              ? null
+              : () => navigateEntry(
+                  () => showEntryDrafts(
+                    context,
+                    c,
+                    pupilId: r.pupilId,
+                    kind: r.kind,
+                    exclude: draftId,
                   ),
                 ),
-              ),
-            ),
-            if (dirty || draftRevision > 0)
-              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
-          ],
         ),
-      ],
+      ),
+      if (r.kind == SchoolKind.homework)
+        AnimatedBuilder(
+          animation: c,
+          builder: (_, _) => EntryHeaderButton(
+            key: const ValueKey('assigned-homework'),
+            label: 'Aufgegebene Hausübungen',
+            icon: Icons.home_work_outlined,
+            count: c.records
+                .where(
+                  (v) =>
+                      !v.deleted &&
+                      v.pupilId == r.pupilId &&
+                      v.kind == SchoolKind.homework,
+                )
+                .length,
+            onPressed: busy
+                ? null
+                : () => navigateEntry(
+                    () => showAssignedHomework(context, c, r.pupilId),
+                  ),
+          ),
+        ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 330;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  iconSize: 20,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  tooltip: 'Zurück und Eingaben sichern',
+                  onPressed: busy ? null : close,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                Expanded(
+                  child: Text(
+                    pupil.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                if (!compact) ...actions,
+                IconButton(
+                  iconSize: 20,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  tooltip: 'Schließen und Eingaben sichern',
+                  onPressed: busy ? null : close,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            if (compact)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(children: actions),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 6, bottom: 2),
+                    child: Text(
+                      r.revision > 0
+                          ? (r.kind == SchoolKind.homework
+                                ? 'Hausübung bearbeiten'
+                                : r.kind == SchoolKind.goal
+                                ? 'Ziel bearbeiten'
+                                : 'Eintrag bearbeiten')
+                          : r.kind.label,
+                      style: const TextStyle(
+                        fontFamily: 'FlexSerif',
+                        fontSize: 22,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                ),
+                if (dirty || draftRevision > 0)
+                  EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 

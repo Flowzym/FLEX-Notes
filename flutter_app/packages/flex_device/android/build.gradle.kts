@@ -27,6 +27,7 @@ plugins {
 
 dependencies {
     implementation("androidx.core:core:1.17.0")
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
 }
 
 android {

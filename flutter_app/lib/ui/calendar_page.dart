@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/backup_merge.dart';
 import '../domain/calendar.dart';
@@ -25,6 +27,8 @@ import 'reminder_actions.dart';
 import 'return_lists.dart';
 import 'school_workspace.dart';
 import 'calendar_timeline.dart';
+import 'document_attachments.dart';
+import '../domain/document_scanner.dart';
 import 'timetable.dart';
 
 part 'calendar_detail.dart';

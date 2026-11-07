@@ -332,7 +332,9 @@ mixin SchoolStore {
       final j = Json.from(
         jsonDecode(existing.single['payload'] as String) as Map,
       );
-      if (j['editRevision'] != draft.editRevision) throw const StaleRevision();
+      if (j['editRevision'] != draft.editRevision) {
+        throw const StaleRevision();
+      }
     } else if (draft.editRevision != 0) {
       throw const StaleRevision();
     }

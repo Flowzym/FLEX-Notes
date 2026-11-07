@@ -1,13 +1,18 @@
 import 'dart:convert';
+
 import 'package:cryptography/cryptography.dart';
+
 import '../domain/backup_merge.dart';
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+
 import '../domain/models.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import '../domain/classroom.dart';
+import '../domain/document_scanner.dart';
 import 'database.dart';
 part 'school_store.dart';
 part 'backup_merge_store.dart';
@@ -164,6 +169,14 @@ class SqliteNotebook
           .where((e) => e.deleted && !seriesIds.contains(e.id))
           .map((e) => e.id),
     };
+    final scanDrafts = (await dialogDrafts()).where((d) => d.type == 'scan');
+    if (scanDrafts.any(
+      (d) => (d.data['links'] as List).any((l) => deleted.contains(l['id'])),
+    )) {
+      throw const DomainError(
+        'Zu gelöschten Einträgen sind noch Scanentwürfe vorhanden. Bitte diese zuerst bearbeiten oder verwerfen.',
+      );
+    }
     if ((await schoolDrafts()).any((d) => deleted.contains(d.record.id)) ||
         (await drafts()).any((d) => deleted.contains(d.entry.id))) {
       throw const DomainError(
@@ -174,6 +187,18 @@ class SqliteNotebook
       (r) => !r.deleted && deleted.contains(r.goalId),
     )) {
       await saveSchoolRecord(record.patch({'goalId': null}));
+    }
+    // Keep the PDF and student assignment when its source entry is permanently
+    // removed; detach only those now-invalid entry links in the same transaction.
+    for (final document in await classroomDocuments()) {
+      final links = document.rows('links');
+      if (links.any((l) => deleted.contains(l['id']))) {
+        await _writeClassroom(
+          document.patch({
+            'links': links.where((l) => !deleted.contains(l['id'])).toList(),
+          }),
+        );
+      }
     }
     for (final id in deleted) {
       await db.customStatement(

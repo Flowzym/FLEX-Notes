@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'classroom.dart';
 import 'models.dart';
+import 'document_scanner.dart';
 
 String preparationId(String date) =>
     const Uuid().v5(Namespace.url.value, 'flex-preparation:$date');
@@ -72,11 +73,20 @@ List<ClassroomDocument> suggestedMaterials(
   final ids = <String>{
     for (final l in lessons) ...l.materialIds,
     for (final l in lessons)
+      ...linkedMaterials(docs, l.document.id, date: l.date).map((d) => d.id),
+    for (final l in lessons)
       for (final p in lessonPlans(docs, l)) ...p.strings('materialIds'),
+    for (final l in lessons)
+      for (final p in lessonPlans(docs, l))
+        ...linkedMaterials(docs, p.id).map((d) => d.id),
     for (final p in docs.where(
       (p) => p.strings('lessonIds').isEmpty && planOnDay(p, date),
     ))
       ...p.strings('materialIds'),
+    for (final p in docs.where(
+      (p) => p.strings('lessonIds').isEmpty && planOnDay(p, date),
+    ))
+      ...linkedMaterials(docs, p.id).map((d) => d.id),
     for (final m in docs.where(
       (m) =>
           m.kind == ClassroomKind.material &&
@@ -157,3 +167,23 @@ Json suggestMaterialMetadata(String name) {
         : 'all',
   };
 }
+
+List<ClassroomDocument> linkedMaterials(
+  Iterable<ClassroomDocument> docs,
+  String id, {
+  String? date,
+}) => [
+  for (final d in docs)
+    if (!d.deleted &&
+        d.kind == ClassroomKind.material &&
+        d
+            .rows('links')
+            .map(DocumentLink.fromJson)
+            .any(
+              (link) =>
+                  link.id == id &&
+                  (link.kind == 'classroom' ||
+                      link.kind == 'lesson' && link.date == date),
+            ))
+      d,
+];

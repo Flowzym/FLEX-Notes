@@ -31,7 +31,7 @@ class MaterialRow extends StatefulWidget {
     this.selected,
     this.onSelect,
     this.trailing,
-    this.files = const DeviceMaterialFiles(),
+    this.files = const LocalMaterialFiles(),
   });
   final ClassroomDocument material;
   final VoidCallback onOpen;
@@ -193,6 +193,53 @@ Future<void> showMaterialDetails(
                     label: const Text('Öffnen'),
                   ),
                   OutlinedButton.icon(
+                    onPressed: () => guarded(ctx, () async {
+                      final links = await chooseDocumentLinks(
+                        ctx,
+                        c,
+                        d.rows('links').map(DocumentLink.fromJson).toList(),
+                      );
+                      if (links != null) {
+                        await c.saveClassroom(
+                          d.patch({
+                            'links': links.map((l) => l.toJson()).toList(),
+                            'pupilIds': {
+                              ...d.strings('pupilIds'),
+                              ...documentLinkPupils(c, links),
+                            }.toList(),
+                          }),
+                        );
+                      }
+                    }),
+                    icon: const Icon(Icons.link),
+                    label: const Text('Einträge zuordnen'),
+                  ),
+                  if (d.text('extension') == 'pdf' &&
+                      d.text('localKey').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          scanAndShow(ctx, c, const ScanContext(), source: d),
+                      icon: const Icon(Icons.document_scanner_outlined),
+                      label: const Text('PDF bearbeiten'),
+                    ),
+                  if (d.text('localKey').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => guarded(ctx, () async {
+                        final bytes = await const LocalMaterialFiles().read(
+                          d.text('localKey'),
+                        );
+                        await saveBytesFile(
+                          d.text('name', '${d.title}.${d.text('extension')}'),
+                          bytes,
+                          mime: d.text('extension') == 'pdf'
+                              ? 'application/pdf'
+                              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        );
+                      }),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Teilen / Exportieren'),
+                    ),
+                  OutlinedButton.icon(
                     onPressed: () => showClassroomEditor(
                       ctx,
                       c,
@@ -219,6 +266,9 @@ Future<void> showMaterialDetails(
                   d.text('topic'),
                 ].where((s) => s.isNotEmpty).join(' · '),
               ),
+              for (final link in d.rows('links').map(DocumentLink.fromJson))
+                Text(documentLinkLabel(c, link)),
+              if (d.flag('scan')) Text('${d.number('pageCount')} Seiten · PDF'),
               if (d.strings('pupilIds').isNotEmpty)
                 Text(
                   c.pupils
@@ -248,7 +298,7 @@ Future<void> showMaterialDetails(
                         c,
                         d,
                         client,
-                        const DeviceMaterialFiles(),
+                        const LocalMaterialFiles(),
                       );
                     } finally {
                       if (drive == null) client.dispose();
@@ -265,7 +315,7 @@ Future<void> showMaterialDetails(
                     await c.saveClassroom(d.patch({'localKey': ''}));
                     await removeUnusedMaterialFile(
                       c,
-                      const DeviceMaterialFiles(),
+                      const LocalMaterialFiles(),
                       d.text('localKey'),
                     );
                   }),
@@ -285,7 +335,8 @@ Future<void> showMaterialDetails(
                       : 'Material in Papierkorb',
                 ),
               ),
-              const Text('Die Originaldatei in OneDrive bleibt erhalten.'),
+              if (d.text('itemId').isNotEmpty || d.text('url').isNotEmpty)
+                const Text('Die Originaldatei in OneDrive bleibt erhalten.'),
             ],
           ),
         );
@@ -515,8 +566,8 @@ Future<void> cacheMaterials(
     for (final m in materials) {
       try {
         if (m.text('itemId').isNotEmpty) {
-          await cacheMaterial(c, m, client, const DeviceMaterialFiles());
-        } else if (!await const DeviceMaterialFiles().exists(
+          await cacheMaterial(c, m, client, const LocalMaterialFiles());
+        } else if (!await const LocalMaterialFiles().exists(
           m.text('localKey'),
         )) {
           throw const DomainError('Nur als Link verfügbar');
@@ -555,7 +606,10 @@ Future<void> showMaterialCollection(
     builder: (ctx, _) {
       final d =
           c.classroom.where((m) => m.id == document.id).firstOrNull ?? document;
-      final materials = resolveMaterials(c.classroom, d.strings('materialIds'));
+      final materials = resolveMaterials(c.classroom, {
+        ...d.strings('materialIds'),
+        ...linkedMaterials(c.classroom, d.id).map((m) => m.id),
+      });
       return FlexModal(
         title: Text(d.title),
         onClose: () => Navigator.pop(ctx),
@@ -585,6 +639,16 @@ Future<void> showMaterialCollection(
               spacing: 8,
               runSpacing: 4,
               children: [
+                DocumentAttachmentsButton(
+                  controller: c,
+                  scope: ScanContext(
+                    links: [DocumentLink('classroom', d.id)],
+                    pupilIds: d.strings('pupilIds'),
+                    title: d.title,
+                    category: 'planning',
+                    subject: d.text('subject'),
+                  ),
+                ),
                 FilledButton.icon(
                   onPressed: materials.isEmpty
                       ? null
@@ -685,6 +749,27 @@ Future<void> showPupilMaterials(
             Wrap(
               spacing: 8,
               children: [
+                FilledButton.icon(
+                  onPressed: () => scanAndShow(
+                    ctx,
+                    c,
+                    ScanContext(
+                      pupilIds: [pupil.id],
+                      title: pupil.name,
+                      category: 'pupilWork',
+                    ),
+                  ),
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Scannen'),
+                ),
+                DocumentAttachmentsButton(
+                  controller: c,
+                  scope: ScanContext(
+                    pupilIds: [pupil.id],
+                    title: pupil.name,
+                    category: 'pupilWork',
+                  ),
+                ),
                 FilledButton.icon(
                   onPressed: () => guarded(ctx, () async {
                     final baseline = c.classroom

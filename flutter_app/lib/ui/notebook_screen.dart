@@ -1,4 +1,8 @@
 import 'symbol_button.dart';
+import 'document_attachments.dart';
+import '../domain/document_scanner.dart';
+import '../services/material_storage.dart';
+import '../services/scan_store.dart';
 import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'pupil_workspace.dart';
@@ -11,7 +15,9 @@ import 'overview_entry.dart';
 import 'prototype_navigation.dart';
 import 'pupil_card.dart';
 import 'backup_dialog.dart';
+
 import 'package:flutter/material.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import 'common.dart';
@@ -1131,6 +1137,18 @@ class _NotebookScreenState extends State<NotebookScreen> {
       children: [
         if (pupil == null)
           Text('Klassen-Orga', style: Theme.of(context).textTheme.titleLarge),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () => scanAndShow(
+              context,
+              c,
+              const ScanContext(title: 'Klassen-Orga', category: 'form'),
+            ),
+            icon: const Icon(Icons.document_scanner_outlined),
+            label: const Text('Scannen'),
+          ),
+        ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -1461,6 +1479,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
             for (final d in c.dialogDrafts.where(
               (d) =>
                   pupilId == null ||
+                  (d.type == 'scan' &&
+                      (d.data['pupilIds'] as List).contains(pupilId)) ||
                   (d.type == 'pupil' &&
                       symbol == null &&
                       d.ownerId == pupilId) ||
@@ -1470,7 +1490,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
             ))
               (
                 id: 'dialog-${d.id}',
-                title: d.type == 'pupil'
+                title: d.type == 'scan'
+                    ? 'Scan · ${d.data['title']}'
+                    : d.type == 'pupil'
                     ? 'Schüler · ${d.data['name']}'
                     : d.type == 'classroom'
                     ? 'FLEX-Klasse · ${d.data['title'] ?? 'Entwurf'}'
@@ -1483,7 +1505,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     '${d.data['text'] ?? d.data['context'] ?? d.data['body'] ?? ''}',
                 time: d.updatedAtUtc,
                 open: () {
-                  if (d.type == 'classroom' &&
+                  if (d.type == 'scan') {
+                    scanAndShow(context, c, const ScanContext(), draft: d);
+                  } else if (d.type == 'classroom' &&
                       (d.data['kind'] == 'timetable' ||
                           d.data['_timetableEditor'] == true)) {
                     guarded(context, () => resumeTimetableDraft(context, c, d));
@@ -1504,8 +1528,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     showBulk(context, c, draft: d);
                   }
                 },
-                discard: () =>
-                    c.repository.discardDialogDraft(d.id, d.revision),
+                discard: () => d.type == 'scan'
+                    ? discardScan(c.repository, const LocalMaterialFiles(), d)
+                    : c.repository.discardDialogDraft(d.id, d.revision),
               ),
             for (final d in c.schoolDrafts.where(
               (d) =>

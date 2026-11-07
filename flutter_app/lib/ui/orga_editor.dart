@@ -1,12 +1,16 @@
 import 'compact_switch.dart';
+import 'document_attachments.dart';
 import 'option_bar.dart';
 import 'option_swipe.dart';
 import 'draft_actions.dart';
 import 'symbol_button.dart';
 import 'surfaces.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/drafts.dart';
@@ -324,7 +328,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  Future<void> save() async {
+  Future<void> save({bool documents = false}) async {
     if (busy) return;
     debounce?.cancel();
     setState(() {
@@ -351,7 +355,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       );
       saved.validate();
       await c.saveEntry(saved, draftId: draftId, draftRevision: draftRevision);
+      if (!mounted) return;
+      final host = Navigator.of(context).context;
       await pop();
+      if (documents && host.mounted) {
+        await showContextDocuments(host, c, orgaScanContext(c, saved));
+      }
     } catch (e) {
       if (mounted) {
         setState(() => error = friendlyError(e));
@@ -536,6 +545,29 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               ? null
               : Color(c.pupils.firstWhere((p) => p.id == entry.pupilId).color),
           headerActions: [
+            IconButton(
+              tooltip: entry.revision == 0
+                  ? 'Speichern und Dokumente öffnen'
+                  : 'Dokumente',
+              icon: const Icon(Icons.folder_open_outlined),
+              onPressed: busy
+                  ? null
+                  : () => entry.revision == 0
+                        ? save(documents: true)
+                        : navigateEntry(
+                            () => showContextDocuments(
+                              context,
+                              c,
+                              orgaScanContext(
+                                c,
+                                c.entries
+                                        .where((e) => e.id == entry.id)
+                                        .firstOrNull ??
+                                    entry,
+                              ),
+                            ),
+                          ),
+            ),
             if (dirty || draftRevision > 0)
               EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
             AnimatedBuilder(

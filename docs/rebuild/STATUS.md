@@ -1,4 +1,13 @@
-# Aktueller Stand: 0.16.0-rebuild.17+37
+# Aktueller Stand: 0.16.0-rebuild.24+44
+
+Kontextbezogener Dokumentenscanner mit lokaler PDF-Ablage, Bearbeitung, Schwärzung
+und fortsetzbaren Entwürfen. [Umfang, Sicherung und Prüfungen](../../audit/DOKUMENTENSCANNER_BUILD_44.md).
+Keine SQL-Schemaänderung; App-ID und Testsignatur bleiben gleich.
+Die Kameraabnahme auf einem physischen Android-Gerät steht weiterhin aus.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.17+37
 
 Umgesetzt sind die gewünschten Ergänzungen 1, 2, 3, 5 und 6: automatische verschlüsselte
 Sicherungen, Android-Erinnerungen, Import-Zusammenführung mit feldweisen Entscheidungen,

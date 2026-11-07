@@ -14,7 +14,8 @@ beendet einen noch laufenden älteren Prüflauf desselben Branches/PRs.
 1. **Analysis and tests:** unveränderte Paketauflösung aus `pubspec.lock`, Dart-Formatierung,
    statische Analyse mit Fehlerstatus auch für Hinweise/Warnungen, SQLite-Vertragstests
    sowie sämtliche Flutter-Tests mit Testabdeckung. Dazu gehören Repository-,
-   Sicherungs-, Konflikt-, Eingabe-, Swipe-, Dialog- und Layoutprüfungen.
+   Sicherungs-, Konflikt-, Eingabe-, Swipe-, Dialog- und Layoutprüfungen. Seit Build 44 werden zusätzlich echte PDF-Rasterung,
+   Schwärzung, Scanentwürfe und Bildbearbeitung geprüft.
 2. **Android release build:** nach erfolgreichen Tests mit Java 21, Android SDK 36,
    Build Tools 36.0.0 und NDK 28.2.13676358. Die Android-Kommandozeilenwerkzeuge
    werden ausdrücklich eingerichtet und müssen nicht im Runner vorinstalliert sein.
@@ -77,6 +78,10 @@ dart compile js -O2 tool/drift_worker.dart -o web/drift_worker.js
 flutter build web --release --no-pub --no-web-resources-cdn
 python3 -m unittest discover -s tool -p test_preview_server.py -v
 ```
+
+Die PDFium-Testbibliothek benötigt unter Linux `clang` (auf dem Ubuntu-24.04-Runner vorhanden).
+Sie wird durch den gepinnten Paket-Buildhook bereitgestellt; die Tests verwenden die
+tatsächliche native Bibliothek und keine PDF-Attrappe.
 
 Android benötigt die genannten Java-/Android-Werkzeuge; die Vorschau-Servertests
 benötigen Go (CI: **1.27.3**). `FLEX_TEST_ARTIFACT_DIR` ist optional und bestimmt,

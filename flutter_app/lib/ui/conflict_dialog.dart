@@ -70,6 +70,9 @@ const conflictFieldLabels = <String, String>{
   'lessonIds': 'Unterrichtszuordnungen',
   'planIds': 'Planungen dieser Stunde',
   'documentType': 'Dokumentart',
+  'links': 'Dokumentzuordnungen',
+  'scan': 'Als Scan erstellt',
+  'pageCount': 'Seitenzahl',
   'audience': 'Für wen',
   'favorite': 'Favorit',
   'tags': 'Schlagwörter',
@@ -115,6 +118,16 @@ const conflictFieldLabels = <String, String>{
   'icsStamp': 'Kalenderstand',
 };
 String conflictText(String key, Object? value, NotebookController c) {
+  if (key == 'links' && value is Map) {
+    final id = value['id'];
+    final title = switch (value['kind']) {
+      'orga' => c.entries.where((e) => e.id == id).firstOrNull?.title,
+      'school' => c.records.where((r) => r.id == id).firstOrNull?.title,
+      _ => c.classroom.where((d) => d.id == id).firstOrNull?.title,
+    };
+    final date = value['date'];
+    return '${title ?? 'Eintrag nicht verfügbar'}${date is String && validDate(date) ? ' · ${displayDate(date)}' : ''}';
+  }
   if ((key == 'paid' || key == 'amountDue') && value is int) {
     return '${(value / 100).toStringAsFixed(2)} €';
   }

@@ -84,6 +84,15 @@ Future<void> showCalendarItem(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(current.note),
                 ),
+              DocumentAttachmentsButton(
+                controller: c,
+                scope: ScanContext(
+                  links: [DocumentLink('lesson', doc.id, date: lesson.date)],
+                  title: current.title,
+                  category: 'worksheet',
+                  subject: doc.text('subject'),
+                ),
+              ),
               const SizedBox(height: 12),
               Text(
                 'Planung & Dateien',
@@ -100,6 +109,11 @@ Future<void> showCalendarItem(
                 ),
               for (final material in resolveMaterials(c.classroom, {
                 ...current.materialIds,
+                ...linkedMaterials(
+                  c.classroom,
+                  doc.id,
+                  date: current.date,
+                ).map((d) => d.id),
                 for (final p in lessonPlans(c.classroom, current))
                   ...p.strings('materialIds'),
               }))

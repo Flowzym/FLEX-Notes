@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
@@ -324,7 +325,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               child: OutlinedButton.icon(
                 onPressed: () => showPupilMaterials(context, c, p),
                 icon: const Icon(Icons.folder_open_outlined),
-                label: const Text('Unterlagen'),
+                label: const Text('Dokumente & Materialien'),
               ),
             ),
             const SizedBox(height: 8),

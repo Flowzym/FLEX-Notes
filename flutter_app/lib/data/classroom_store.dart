@@ -65,7 +65,13 @@ mixin ClassroomStore on SchoolStore {
     DialogDraft? draft,
   }) => db.transaction(() async {
     if (draft != null) {
-      if (draft.type != 'classroom' || draft.ownerId != value.id) {
+      final scan =
+          draft.type == 'scan' &&
+          value.kind == ClassroomKind.material &&
+          (draft.ownerId == value.id ||
+              draft.data['sourceId'] == value.id &&
+                  draft.data['sourceRevision'] == value.revision);
+      if (!scan && (draft.type != 'classroom' || draft.ownerId != value.id)) {
         throw const DomainError('Ungültiger Klassenentwurf.');
       }
       await discardDialogDraft(draft.id, draft.revision);
@@ -108,7 +114,23 @@ mixin ClassroomStore on SchoolStore {
         .where((d) => d.kind == ClassroomKind.plan)
         .map((d) => d.id)
         .toSet();
+    final school = (await schoolRecords()).map((r) => r.id).toSet();
+    final documentIds = docs.map((d) => d.id).toSet();
     for (final d in docs) {
+      for (final value in d.rows('links')) {
+        final link = DocumentLink.fromJson(value);
+        final valid = switch (link.kind) {
+          'orga' => orga.contains(link.id),
+          'school' => school.contains(link.id),
+          'lesson' => lessons.contains(link.id),
+          _ => documentIds.contains(link.id),
+        };
+        if (!valid) {
+          throw const DomainError(
+            'Eine Dokumentzuordnung fehlt. Bitte zuerst die zugehörigen Einträge wiederherstellen oder die Zuordnung ändern.',
+          );
+        }
+      }
       if (d.text('timetableId').isNotEmpty) {
         final timetable = docs
             .where(
