@@ -382,7 +382,11 @@ class _SchoolEditorState extends State<SchoolEditor>
     }
   }
 
-  Future<void> save({bool documents = false}) async {
+  Future<void> save({
+    bool documents = false,
+    bool scan = false,
+    String? documentTaskId,
+  }) async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -459,6 +463,14 @@ class _SchoolEditorState extends State<SchoolEditor>
         });
       }
       r.validate();
+      final taskIndex = documentTaskId == null
+          ? -1
+          : r.tasks.indexWhere((t) => t.id == documentTaskId);
+      if (documentTaskId != null && taskIndex < 0) {
+        throw const DomainError(
+          'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
+        );
+      }
       var documentRecords = <SchoolRecord>[r];
       if (r.revision == 0 && r.kind == SchoolKind.homework) {
         documentRecords = await c.repository.saveSchoolGroup(
@@ -474,12 +486,21 @@ class _SchoolEditorState extends State<SchoolEditor>
       if (mounted) {
         final host = Navigator.of(context).context;
         await pop();
-        if (documents && host.mounted) {
-          await showContextDocuments(
-            host,
+        if ((documents || scan) && host.mounted) {
+          final scope = schoolScanContext(
             c,
-            schoolScanContext(c, documentRecords),
+            documentRecords,
+            taskIds: {
+              if (taskIndex >= 0)
+                for (final record in documentRecords)
+                  record.id: record.tasks[taskIndex].id,
+            },
           );
+          if (scan) {
+            await scanAndShow(host, c, scope);
+          } else {
+            await showContextDocuments(host, c, scope);
+          }
         }
       }
     } catch (e) {
@@ -696,11 +717,49 @@ class _SchoolEditorState extends State<SchoolEditor>
     );
   }
 
+  Widget attachments({
+    String? forTask,
+    bool showActions = true,
+    bool showFiles = true,
+  }) {
+    final current = c.records.where((v) => v.id == r.id).firstOrNull;
+    final saveFirst =
+        current == null ||
+        forTask != null && !current.tasks.any((t) => t.id == forTask);
+    final scope = schoolScanContext(
+      c,
+      [r],
+      taskIds: {r.id: ?forTask},
+      includeTasks: false,
+    );
+    return DocumentAttachmentSection(
+      key: ValueKey(
+        'editor-${showActions ? 'attachments' : 'files'}-${forTask ?? 'entry'}',
+      ),
+      controller: c,
+      scope: scope,
+      saveFirst: saveFirst,
+      compact: forTask != null,
+      showActions: showActions,
+      showFiles: showFiles,
+      onScan: () => saveFirst
+          ? save(scan: true, documentTaskId: forTask)
+          : navigateEntry(() => scanAndShow(context, c, scope)),
+      onDocuments: () => saveFirst
+          ? save(documents: true, documentTaskId: forTask)
+          : navigateEntry(() => showContextDocuments(context, c, scope)),
+    );
+  }
+
   Widget homework() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       HomeworkTaskEditor(
         tasks: r.tasks,
+        attachmentActionsBuilder: (task) =>
+            attachments(forTask: task.id, showFiles: false),
+        attachmentBuilder: (task) =>
+            attachments(forTask: task.id, showActions: false),
         onChanged: (tasks) =>
             edit({'tasks': tasks.map((t) => t.toJson()).toList()}),
       ),
@@ -2061,6 +2120,8 @@ class _SchoolEditorState extends State<SchoolEditor>
                             }),
                             child: observation(),
                           ),
+                  const SizedBox(height: 12),
+                  attachments(forTask: mode == 'comment' ? taskId : null),
                   if (stale && mode == 'comment')
                     TextButton(
                       onPressed: rebaseComment,

@@ -10,9 +10,13 @@ class HomeworkTaskEditor extends StatefulWidget {
     super.key,
     required this.tasks,
     required this.onChanged,
+    this.attachmentBuilder,
+    this.attachmentActionsBuilder,
   });
   final List<HomeworkTask> tasks;
   final ValueChanged<List<HomeworkTask>> onChanged;
+  final Widget Function(HomeworkTask)? attachmentBuilder;
+  final Widget Function(HomeworkTask)? attachmentActionsBuilder;
   @override
   State<HomeworkTaskEditor> createState() => _HomeworkTaskEditorState();
 }
@@ -159,9 +163,11 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                             ),
                           ],
                         );
-                        final actions = Row(
-                          mainAxisSize: MainAxisSize.min,
+                        final actions = Wrap(
+                          alignment: WrapAlignment.end,
                           children: [
+                            if (widget.attachmentActionsBuilder != null)
+                              widget.attachmentActionsBuilder!(task),
                             IconButton(
                               key: ValueKey('task-next-${task.id}'),
                               tooltip: 'Weitere Aufgabenzeile',
@@ -205,7 +211,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                           ),
                           child: actions,
                         );
-                        return inline
+                        final row = inline
                             ? Row(
                                 children: [
                                   Expanded(child: field),
@@ -221,6 +227,14 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                                   ),
                                 ],
                               );
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            row,
+                            if (widget.attachmentBuilder != null)
+                              widget.attachmentBuilder!(task),
+                          ],
+                        );
                       },
                     ),
                   ),

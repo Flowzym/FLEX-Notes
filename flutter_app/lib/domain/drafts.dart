@@ -24,7 +24,9 @@ Object? _content(Object? value) {
     final map = <String, Object?>{};
     final isDocumentLink =
         {'orga', 'school', 'classroom', 'lesson'}.contains(value['kind']) &&
-        value.keys.every((key) => {'kind', 'id', 'date'}.contains(key));
+        value.keys.every(
+          (key) => {'kind', 'id', 'date', 'taskId'}.contains(key),
+        );
     for (final key in value.keys.cast<String>().toList()..sort()) {
       if (key == 'id' && isDocumentLink) {
         map[key] = value[key];

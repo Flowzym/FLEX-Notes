@@ -1,0 +1,445 @@
+import 'dart:async';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flex_notizbuch/application/notebook_controller.dart';
+import 'package:flex_notizbuch/data/sqlite_notebook.dart';
+import 'package:flex_notizbuch/domain/document_scanner.dart';
+import 'package:flex_notizbuch/domain/drafts.dart';
+import 'package:flex_notizbuch/domain/models.dart';
+import 'package:flex_notizbuch/domain/school.dart';
+import 'package:flex_notizbuch/ui/dialog_workflows.dart';
+import 'package:flex_notizbuch/ui/orga_editor.dart';
+import 'package:flex_notizbuch/ui/scan_editor.dart';
+import 'package:flex_notizbuch/ui/school_editor.dart';
+import 'package:flex_notizbuch/ui/school_workspace.dart';
+import 'classroom_test.dart' show classroomMemory;
+import 'material_workspace_test.dart' show material;
+
+SchoolRecord taskRecord(String pupil) =>
+    SchoolRecord.empty(SchoolKind.homework, pupil).patch({
+      'tasks': [
+        const HomeworkTask(id: 'main', text: 'Gleicher Text').toJson(),
+        const HomeworkTask(
+          id: 'child',
+          text: 'Gleicher Text',
+          parentId: 'main',
+        ).toJson(),
+        const HomeworkTask(id: 'other', text: 'Weitere Aufgabe').toJson(),
+      ],
+    });
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  late SqliteNotebook repo;
+  late NotebookController c;
+  setUp(() async {
+    repo = classroomMemory();
+    c = NotebookController(repo);
+    await c.initialize();
+    await c.savePupil(const Pupil(id: 'p', name: 'Alex'));
+    await c.savePupil(const Pupil(id: 'q', name: 'Kim'));
+  });
+  tearDown(() async {
+    c.dispose();
+    await repo.close();
+  });
+
+  test(
+    'task links round trip, isolate siblings and keep legacy identity and signatures',
+    () {
+      const parent = DocumentLink('school', 'record');
+      const child = DocumentLink('school', 'record', taskId: 'child');
+      const sibling = DocumentLink('school', 'record', taskId: 'other');
+      expect(parent.identity, 'school:record:');
+      expect(DocumentLink.fromJson(child.toJson()).identity, child.identity);
+      expect(parent.includes(child), isTrue);
+      expect(parent.includes(child, includeTasks: false), isFalse);
+      expect(child.includes(sibling), isFalse);
+      expect(child.includes(parent), isFalse);
+      expect(
+        draftSignature(child.toJson()),
+        isNot(draftSignature(sibling.toJson())),
+      );
+      expect(
+        draftSignature(child.toJson()),
+        isNot(
+          draftSignature(
+            const DocumentLink('school', 'other', taskId: 'child').toJson(),
+          ),
+        ),
+      );
+      expect(
+        () => DocumentLink.fromJson(
+          const DocumentLink('orga', 'r', taskId: 'child').toJson(),
+        ),
+        throwsA(isA<DomainError>()),
+      );
+    },
+  );
+
+  test(
+    'task references reject absent and foreign tasks without changing documents',
+    () async {
+      final r = await repo.saveSchoolRecord(taskRecord('p'));
+      final other = await repo.saveSchoolRecord(
+        taskRecord('q').patch({
+          'tasks': [const HomeworkTask(id: 'foreign', text: 'Andere').toJson()],
+        }),
+      );
+      for (final id in ['absent', other.tasks.single.id]) {
+        await expectLater(
+          repo.saveClassroomDocument(
+            material(
+              'Ungültig',
+              fields: {
+                'links': [DocumentLink('school', r.id, taskId: id).toJson()],
+              },
+            ),
+          ),
+          throwsA(isA<DomainError>()),
+        );
+      }
+      expect(await repo.classroomDocuments(), isEmpty);
+    },
+  );
+
+  test(
+    'renaming and reordering keep a subtask file; backup preserves exact association',
+    () async {
+      var r = await repo.saveSchoolRecord(taskRecord('p'));
+      final link = DocumentLink('school', r.id, taskId: 'child');
+      final d = await repo.saveClassroomDocument(
+        material(
+          'Lösung',
+          fields: {
+            'pupilIds': ['p'],
+            'links': [link.toJson()],
+          },
+        ),
+      );
+      r = await repo.saveSchoolRecord(
+        r.patch({
+          'tasks': [
+            r.tasks.last.toJson(),
+            r.tasks.first.toJson(),
+            r.tasks[1].copyWith(text: 'Umbenannt').toJson(),
+          ],
+        }),
+      );
+      final restored = classroomMemory();
+      addTearDown(restored.close);
+      await restored.initialize();
+      await restored.restoreBackup(await repo.exportBackup());
+      final copy = (await restored.classroomDocuments()).single;
+      expect(copy.id, d.id);
+      expect(copy.rows('links').single, link.toJson());
+      expect(
+        ScanContext(pupilIds: ['p'], links: [link]).matchesMaterial(copy),
+        isTrue,
+      );
+      expect(
+        ScanContext(
+          links: [DocumentLink('school', r.id)],
+        ).matchesMaterial(copy),
+        isTrue,
+      );
+      expect(
+        ScanContext(
+          links: [DocumentLink('school', r.id, taskId: 'main')],
+        ).matchesMaterial(copy),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'removing a task retains files and scan drafts on the entry and rejects stale writes',
+    () async {
+      var r = await repo.saveSchoolRecord(taskRecord('p'));
+      final link = DocumentLink('school', r.id, taskId: 'child');
+      final doc = await repo.saveClassroomDocument(
+        material(
+          'Behalten',
+          fields: {
+            'links': [link.toJson(), DocumentLink('school', r.id).toJson()],
+          },
+        ),
+      );
+      final draft = await repo.saveDialogDraft(
+        DialogDraft(
+          id: newId(),
+          type: 'scan',
+          ownerId: newId(),
+          updatedAtUtc: utcNow(),
+          data: {
+            ...ScanContext(links: [link]).initial(),
+            'sourceId': doc.id,
+            'sourceRevision': doc.revision,
+          },
+        ),
+      );
+      r = await repo.saveSchoolRecord(
+        r.patch({
+          'tasks': r.tasks
+              .where((t) => t.id != 'child')
+              .map((t) => t.toJson())
+              .toList(),
+        }),
+      );
+      final kept = (await repo.classroomDocuments()).single;
+      final resumed = (await repo.dialogDrafts()).single;
+      expect(kept.rows('links'), [DocumentLink('school', r.id).toJson()]);
+      expect(resumed.data['links'], kept.rows('links'));
+      expect(resumed.data['sourceRevision'], kept.revision);
+      expect(resumed.revision, draft.revision + 1);
+      await expectLater(
+        repo.saveDialogDraft(draft),
+        throwsA(isA<StaleRevision>()),
+      );
+      await repo.validateClassroomReferences();
+    },
+  );
+
+  test('failed stale task removal cannot move attachments', () async {
+    final old = await repo.saveSchoolRecord(taskRecord('p'));
+    final link = DocumentLink('school', old.id, taskId: 'child');
+    await repo.saveClassroomDocument(
+      material(
+        'Bleibt',
+        fields: {
+          'links': [link.toJson()],
+        },
+      ),
+    );
+    await repo.saveSchoolRecord(old.patch({'subject': 'Deutsch'}));
+    await expectLater(
+      repo.saveSchoolRecord(
+        old.patch({
+          'tasks': [old.tasks.first.toJson()],
+        }),
+      ),
+      throwsA(isA<StaleRevision>()),
+    );
+    expect((await repo.classroomDocuments()).single.rows('links'), [
+      link.toJson(),
+    ]);
+  });
+
+  Future<void> host(
+    WidgetTester t,
+    Widget child, {
+    double width = 390,
+    double scale = 1,
+  }) async {
+    t.view.physicalSize = Size(width, 900);
+    t.view.devicePixelRatio = 1;
+    t.platformDispatcher.textScaleFactorTestValue = scale;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: SingleChildScrollView(child: child)),
+      ),
+    );
+    await t.pumpAndSettle();
+  }
+
+  Future<void> open(WidgetTester t, Widget child) async {
+    await host(t, const SizedBox());
+    unawaited(
+      showDialog<void>(
+        context: t.element(find.byType(Scaffold)),
+        builder: (_) => child,
+      ),
+    );
+    await t.pumpAndSettle();
+  }
+
+  Future<void> tap(WidgetTester t, Finder f) async {
+    await t.ensureVisible(f);
+    await t.pumpAndSettle();
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
+
+  Finder action(String section, String action) => find.descendant(
+    of: find.byKey(ValueKey(section)),
+    matching: find.byKey(ValueKey(action)),
+  );
+  Future<void> finish(WidgetTester t) async {
+    await t.pumpWidget(const SizedBox());
+    await t.pumpAndSettle();
+  }
+
+  for (final kind in [SchoolKind.goal, SchoolKind.social, SchoolKind.work]) {
+    testWidgets(
+      '${kind.name} bottom scanner saves new entry before assigning it',
+      (t) async {
+        final r = SchoolRecord.empty(kind, 'p').patch({
+          'title': 'Lesen',
+          'body': 'Übung',
+          if (kind == SchoolKind.goal) 'criterion': 'Zehn Minuten',
+        });
+        await open(t, SchoolEditor(controller: c, record: r));
+        await tap(t, action('editor-attachments-entry', 'attachment-scan'));
+        final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
+        expect(scope.pupilIds, ['p']);
+        expect(scope.links.single.id, (await repo.schoolRecords()).single.id);
+        expect(scope.links.single.taskId, isEmpty);
+        await finish(t);
+      },
+    );
+  }
+
+  testWidgets(
+    'new group homework scanner maps selected subtask to every saved pupil',
+    (t) async {
+      await open(t, SchoolEditor(controller: c, record: taskRecord('p')));
+      await tap(t, find.byKey(const ValueKey('pupil-tag-q')));
+      await tap(t, action('editor-attachments-child', 'attachment-scan'));
+      final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
+      final records = await repo.schoolRecords();
+      expect(records.length, 2);
+      expect(scope.pupilIds.toSet(), {'p', 'q'});
+      expect(scope.links.length, 2);
+      for (final r in records) {
+        expect(
+          scope.links.singleWhere((l) => l.id == r.id).taskId,
+          r.tasks[1].id,
+        );
+        expect(r.tasks[1].id, isNot('child'));
+      }
+      await finish(t);
+    },
+  );
+
+  testWidgets('bulk capture saves selected subtask links for both pupils', (
+    t,
+  ) async {
+    await host(t, const SizedBox());
+    final d = await repo.saveDialogDraft(
+      DialogDraft(
+        id: newId(),
+        type: 'bulk',
+        ownerId: 'group',
+        updatedAtUtc: utcNow(),
+        data: {
+          'kind': 'homework',
+          'recipients': ['p', 'q'],
+          'context': '',
+          'subject': 'Mathe',
+          'body': '',
+          'individual': <String, dynamic>{},
+          'observedOn': dateOnly(DateTime.now()),
+          'observedTime': '',
+          'needsCompletion': false,
+          'tasks': taskRecord('p').tasks.map((t) => t.toJson()).toList(),
+        },
+      ),
+    );
+    unawaited(showBulk(t.element(find.byType(Scaffold)), c, draft: d));
+    await t.pumpAndSettle();
+    await tap(t, action('homework-row-child', 'attachment-scan'));
+    final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
+    expect(scope.links.length, 2);
+    for (final r in await repo.schoolRecords()) {
+      expect(
+        scope.links.singleWhere((l) => l.id == r.id).taskId,
+        r.tasks[1].id,
+      );
+    }
+    await finish(t);
+  });
+
+  testWidgets(
+    'task files are visible only on their own row at narrow width and large text',
+    (t) async {
+      final r = await repo.saveSchoolRecord(taskRecord('p'));
+      final d = await repo.saveClassroomDocument(
+        material(
+          'Lösungsfoto',
+          fields: {
+            'pupilIds': ['p'],
+            'links': [DocumentLink('school', r.id, taskId: 'child').toJson()],
+          },
+        ),
+      );
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r),
+        width: 320,
+        scale: 1.8,
+      );
+      expect(find.byKey(ValueKey('attachment-file-${d.id}')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('task-attachments-child')),
+          matching: find.text('Lösungsfoto'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        t
+            .widget<ListTile>(find.byKey(ValueKey('attachment-file-${d.id}')))
+            .onTap,
+        isNotNull,
+      );
+      expect(t.takeException(), isNull);
+      await tap(t, action('task-attachments-child', 'attachment-scan'));
+      expect(
+        t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.taskId,
+        'child',
+      );
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
+
+  testWidgets(
+    'saved observation draft survives opening scanner without committing edits',
+    (t) async {
+      final r = await repo.saveSchoolRecord(
+        SchoolRecord.empty(SchoolKind.work, 'p').patch({'body': 'Original'}),
+      );
+      await c.reload();
+      await open(t, SchoolEditor(controller: c, record: r));
+      await t.enterText(
+        find.byKey(const ValueKey('record-body')),
+        'Geänderter Entwurf',
+      );
+      await tap(t, action('editor-attachments-entry', 'attachment-scan'));
+      expect((await repo.schoolRecords()).single.revision, r.revision);
+      expect((await repo.schoolRecords()).single.body, 'Original');
+      expect(
+        (await repo.schoolDrafts()).single.record.body,
+        'Geänderter Entwurf',
+      );
+      expect(
+        t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.id,
+        r.id,
+      );
+      await finish(t);
+    },
+  );
+
+  testWidgets('Orga bottom action opens scanner with saved owner', (t) async {
+    final e = await repo.saveEntry(
+      OrgaEntry.empty(
+        pupilId: 'p',
+      ).copyWith(title: 'Formular', body: 'Formular'),
+    );
+    await c.reload();
+    await open(t, OrgaEditor(controller: c, entry: e));
+    await tap(t, find.byKey(const ValueKey('attachment-scan')));
+    expect(
+      t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.id,
+      e.id,
+    );
+    expect(t.widget<ScanEditor>(find.byType(ScanEditor)).scope.pupilIds, ['p']);
+    await finish(t);
+  });
+}

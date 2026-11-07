@@ -27,10 +27,134 @@ class DocumentAttachmentsButton extends StatelessWidget {
     animation: controller,
     builder: (ctx, _) {
       final count = controller.classroom.where(scope.matchesMaterial).length;
-      return OutlinedButton.icon(
-        onPressed: () => showContextDocuments(ctx, controller, scope),
-        icon: const Icon(Icons.folder_open_outlined),
-        label: Text(count == 0 ? 'Dokumente' : 'Dokumente · $count'),
+      return Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          TextButton.icon(
+            onPressed: () => scanAndShow(ctx, controller, scope),
+            icon: const Icon(Icons.document_scanner_outlined),
+            label: const Text('Scannen / Foto'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => showContextDocuments(ctx, controller, scope),
+            icon: const Icon(Icons.folder_open_outlined),
+            label: Text(count == 0 ? 'Dokumente' : 'Dokumente · $count'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// A direct capture action and visible files at the point where they belong.
+/// Editors can persist their draft (or save a new owner) before opening capture.
+class DocumentAttachmentSection extends StatelessWidget {
+  const DocumentAttachmentSection({
+    super.key,
+    required this.controller,
+    required this.scope,
+    this.onScan,
+    this.onDocuments,
+    this.saveFirst = false,
+    this.readOnly = false,
+    this.compact = false,
+    this.showActions = true,
+    this.showFiles = true,
+  });
+  final NotebookController controller;
+  final ScanContext scope;
+  final VoidCallback? onScan, onDocuments;
+  final bool saveFirst, readOnly;
+  final bool compact, showActions, showFiles;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: controller,
+    builder: (ctx, _) {
+      final docs = controller.classroom.where(scope.matchesMaterial).toList()
+        ..sort((a, b) => a.title.compareTo(b.title));
+      final drafts = controller.dialogDrafts.where(scope.matchesDraft).length;
+      return Column(
+        crossAxisAlignment: compact && !showFiles
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!readOnly && showActions)
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (compact) ...[
+                  IconButton(
+                    key: const ValueKey('attachment-scan'),
+                    tooltip: saveFirst
+                        ? 'Speichern & scannen'
+                        : 'Scannen / Foto',
+                    onPressed:
+                        onScan ?? () => scanAndShow(ctx, controller, scope),
+                    icon: const Icon(Icons.document_scanner_outlined),
+                  ),
+                  IconButton(
+                    key: const ValueKey('attachment-documents'),
+                    tooltip: saveFirst
+                        ? 'Speichern & Dokumente'
+                        : 'Dokumente · ${docs.length}${drafts == 0 ? '' : ' · $drafts Entwürfe'}',
+                    onPressed:
+                        onDocuments ??
+                        () => showContextDocuments(ctx, controller, scope),
+                    icon: Badge(
+                      isLabelVisible: docs.isNotEmpty || drafts > 0,
+                      label: Text('${docs.length + drafts}'),
+                      child: const Icon(Icons.attach_file),
+                    ),
+                  ),
+                ] else ...[
+                  TextButton.icon(
+                    key: const ValueKey('attachment-scan'),
+                    onPressed:
+                        onScan ?? () => scanAndShow(ctx, controller, scope),
+                    icon: const Icon(Icons.document_scanner_outlined, size: 20),
+                    label: Text(
+                      saveFirst ? 'Speichern & scannen' : 'Scannen / Foto',
+                    ),
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('attachment-documents'),
+                    onPressed:
+                        onDocuments ??
+                        () => showContextDocuments(ctx, controller, scope),
+                    icon: const Icon(Icons.attach_file, size: 20),
+                    label: Text(
+                      saveFirst
+                          ? 'Speichern & Dokumente'
+                          : 'Dokumente${docs.isEmpty ? '' : ' · ${docs.length}'}${drafts == 0 ? '' : ' · $drafts Entw.'}',
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          if (showFiles)
+            for (final d in docs)
+              ListTile(
+                key: ValueKey('attachment-file-${d.id}'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: Icon(switch (d.text('extension')) {
+                  'pdf' => Icons.picture_as_pdf_outlined,
+                  'jpg' || 'jpeg' || 'png' || 'webp' => Icons.image_outlined,
+                  _ => Icons.insert_drive_file_outlined,
+                }),
+                title: Text(
+                  d.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () =>
+                    guarded(ctx, () => openMaterial(ctx, controller, d)),
+              ),
+        ],
       );
     },
   );
@@ -85,7 +209,7 @@ Future<void> showContextDocuments(
                 FilledButton.icon(
                   onPressed: () => scanAndShow(ctx, c, scope),
                   icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scannen / PDF erstellen'),
+                  label: const Text('Scannen / Foto'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => guarded(ctx, () async {
@@ -173,15 +297,25 @@ ScanContext orgaScanContext(NotebookController c, OrgaEntry e) => ScanContext(
 );
 ScanContext schoolScanContext(
   NotebookController c,
-  List<SchoolRecord> records,
-) => ScanContext(
+  List<SchoolRecord> records, {
+  Map<String, String> taskIds = const {},
+  bool includeTasks = true,
+}) => ScanContext(
   pupilIds: records.map((r) => r.pupilId).toSet().toList(),
-  links: records.map((r) => DocumentLink('school', r.id)).toList(),
-  title: records.isEmpty
-      ? 'Schülerdokument'
-      : records.length > 1
-      ? 'FLEX-Klasse · ${records.first.kind.label}'
-      : '${c.pupils.where((p) => p.id == records.first.pupilId).firstOrNull?.name ?? 'Schüler'} · ${records.first.kind.label}',
+  links: records
+      .map((r) => DocumentLink('school', r.id, taskId: taskIds[r.id] ?? ''))
+      .toList(),
+  includeTasks: includeTasks,
+  title:
+      (records.isEmpty
+          ? 'Schülerdokument'
+          : records.length > 1
+          ? 'FLEX-Klasse · ${records.first.kind.label}'
+          : '${c.pupils.where((p) => p.id == records.first.pupilId).firstOrNull?.name ?? 'Schüler'} · ${records.first.kind.label}') +
+      (taskIds.isEmpty || records.isEmpty
+          ? ''
+          : ' · ${records.first.tasks.where((t) => t.id == taskIds[records.first.id]).firstOrNull?.text ?? 'Aufgabe'}'),
+  subject: records.isEmpty ? '' : records.first.subject,
   category: records.isNotEmpty && records.first.kind == SchoolKind.homework
       ? 'pupilWork'
       : 'other',

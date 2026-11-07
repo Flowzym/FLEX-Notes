@@ -4,7 +4,7 @@ Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderte
 auf `recovery/webpreview`.
 
 Das bearbeitbare Flutter-Projekt liegt unter [flutter_app/](flutter_app/README.md).
-Version **0.16.0-rebuild.25+45** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
+Version **0.16.0-rebuild.26+46** ist eine Rekonstruktion aus den Quellen 0.1.0+1,
 dem HTML-Prototyp und der Webreferenz 0.15.3+19. Die originalen neueren
 Flutter-Quellen fehlen weiterhin. Vollständige Funktions-/Pixelgleichheit wird
 nicht behauptet; der [Prüfstand mit offenen Punkten](docs/rebuild/STATUS.md)
@@ -16,7 +16,9 @@ der aktuellen HTML-Datei (37) sowie der späteren Nutzerspezifikation korrigiert
 Das ist eine Weiterentwicklung der gefundenen Rekonstruktion, keine erneute
 Rückkehr auf die kleinen 0.1.0-Quellen.
 
-[**Android-Testapp Build 45 herunterladen**](releases/android/build-45/README.md)
+[**Android-Testapp Build 46 herunterladen**](releases/android/build-46/README.md)
+
+[Scannerzugänge und Anhänge je HÜ-Aufgabe](audit/SCANNER_ZUGAENGE_BUILD_46.md).
 
 [Neue Bereichsnavigation, Fotos und Tags](audit/NAVIGATION_FOTOS_BUILD_45.md).
 

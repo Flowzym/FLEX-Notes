@@ -159,6 +159,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   void change([OrgaEntry? next, bool rememberType = true]) {
     if (busy) return;
     setState(() {
+      error = null;
       if (next != null) {
         if (rememberType) typeDraft = typeDraft.remember(next);
         entry = next;
@@ -328,7 +329,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  Future<void> save({bool documents = false}) async {
+  Future<void> save({bool documents = false, bool scan = false}) async {
     if (busy) return;
     debounce?.cancel();
     setState(() {
@@ -358,8 +359,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       if (!mounted) return;
       final host = Navigator.of(context).context;
       await pop();
-      if (documents && host.mounted) {
-        await showContextDocuments(host, c, orgaScanContext(c, saved));
+      if ((documents || scan) && host.mounted) {
+        if (scan) {
+          await scanAndShow(host, c, orgaScanContext(c, saved));
+        } else {
+          await showContextDocuments(host, c, orgaScanContext(c, saved));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -899,6 +904,30 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                     const Text('Anzeige in der App'),
                   ],
+                  const SizedBox(height: 12),
+                  DocumentAttachmentSection(
+                    controller: c,
+                    scope: orgaScanContext(c, value),
+                    saveFirst: entry.revision == 0,
+                    onScan: () => entry.revision == 0
+                        ? save(scan: true)
+                        : navigateEntry(
+                            () => scanAndShow(
+                              context,
+                              c,
+                              orgaScanContext(c, value),
+                            ),
+                          ),
+                    onDocuments: () => entry.revision == 0
+                        ? save(documents: true)
+                        : navigateEntry(
+                            () => showContextDocuments(
+                              context,
+                              c,
+                              orgaScanContext(c, value),
+                            ),
+                          ),
+                  ),
                   if (error != null)
                     Padding(
                       key: errorAnchor,

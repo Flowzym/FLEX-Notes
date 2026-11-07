@@ -1546,6 +1546,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 padding: EdgeInsets.only(top: 8),
                 child: Text('Dokumentation noch ergänzen'),
               ),
+            DocumentAttachmentSection(
+              controller: c,
+              scope: orgaScanContext(c, e),
+              readOnly: e.deleted,
+            ),
             Wrap(
               spacing: 8,
               children: [

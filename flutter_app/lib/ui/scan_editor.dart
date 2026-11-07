@@ -36,6 +36,14 @@ Future<ClassroomDocument?> showDocumentScanner(
 );
 
 String documentLinkLabel(NotebookController c, DocumentLink link) {
+  if (link.kind == 'school' && link.taskId.isNotEmpty) {
+    final record = c.records.where((r) => r.id == link.id).firstOrNull;
+    final task = record?.tasks.where((t) => t.id == link.taskId).firstOrNull;
+    final owner =
+        c.pupils.where((p) => p.id == record?.pupilId).firstOrNull?.name ??
+        'Schüler';
+    return '$owner · ${task?.parentId == null ? 'Aufgabe' : 'Teilaufgabe'} · ${task?.text ?? 'Entfernte Aufgabe'}';
+  }
   final title = switch (link.kind) {
     'orga' =>
       c.entries.where((e) => e.id == link.id).firstOrNull?.title ??
@@ -83,6 +91,15 @@ Future<List<DocumentLink>?> chooseDocumentLinks(
       'orga:${e.id}:': DocumentLink('orga', e.id),
     for (final r in c.records.where((r) => !r.deleted))
       'school:${r.id}:': DocumentLink('school', r.id),
+    for (final r in c.records.where(
+      (r) => !r.deleted && r.kind == SchoolKind.homework,
+    ))
+      for (final task in r.tasks)
+        DocumentLink('school', r.id, taskId: task.id).identity: DocumentLink(
+          'school',
+          r.id,
+          taskId: task.id,
+        ),
     for (final d in c.classroom.where(
       (d) =>
           !d.deleted &&
@@ -698,6 +715,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: data['documentType'] as String,
             decoration: const InputDecoration(labelText: 'Kategorie'),
             items: scanTypes.entries

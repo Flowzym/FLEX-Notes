@@ -15,14 +15,20 @@ const scanTypes = {
 /// Stable references, independent of filenames. A date narrows a lesson link
 /// to an occurrence; other classroom links refer to the entire source document.
 class DocumentLink {
-  const DocumentLink(this.kind, this.id, {this.date = ''});
-  final String kind, id, date;
-  Json toJson() => {'kind': kind, 'id': id, if (date.isNotEmpty) 'date': date};
+  const DocumentLink(this.kind, this.id, {this.date = '', this.taskId = ''});
+  final String kind, id, date, taskId;
+  Json toJson() => {
+    'kind': kind,
+    'id': id,
+    if (date.isNotEmpty) 'date': date,
+    if (taskId.isNotEmpty) 'taskId': taskId,
+  };
   factory DocumentLink.fromJson(Json j) {
     final link = DocumentLink(
       j['kind'] as String? ?? '',
       j['id'] as String? ?? '',
       date: j['date'] as String? ?? '',
+      taskId: j['taskId'] as String? ?? '',
     );
     if (!{'orga', 'school', 'classroom', 'lesson'}.contains(link.kind) ||
         link.id.isEmpty ||
@@ -30,12 +36,23 @@ class DocumentLink {
         (link.kind == 'lesson'
             ? !validDate(link.date)
             : link.date.isNotEmpty) ||
-        j.keys.any((k) => !{'kind', 'id', 'date'}.contains(k))) {
+        (link.taskId.isNotEmpty && link.kind != 'school') ||
+        link.taskId.length > 250 ||
+        j.keys.any((k) => !{'kind', 'id', 'date', 'taskId'}.contains(k))) {
       throw const DomainError('Ungültige Dokumentzuordnung.');
     }
     return link;
   }
-  String get identity => '$kind:$id:$date';
+  String get identity =>
+      '$kind:$id:$date${taskId.isEmpty ? '' : ':task:$taskId'}';
+
+  bool includes(DocumentLink other, {bool includeTasks = true}) =>
+      identity == other.identity ||
+      includeTasks &&
+          kind == 'school' &&
+          taskId.isEmpty &&
+          other.kind == kind &&
+          other.id == id;
 }
 
 class ScanContext {
@@ -45,10 +62,12 @@ class ScanContext {
     this.title = '',
     this.category = 'other',
     this.subject = '',
+    this.includeTasks = true,
   });
   final List<String> pupilIds;
   final List<DocumentLink> links;
   final String title, category, subject;
+  final bool includeTasks;
   Json initial({DateTime? now}) => {
     'title':
         '${dateOnly(now ?? DateTime.now())} · ${title.isEmpty ? 'Scan' : title.substring(0, title.length.clamp(0, 180))}',
@@ -68,7 +87,12 @@ class ScanContext {
           links.every(
             (link) => d
                 .rows('links')
-                .any((r) => DocumentLink.fromJson(r).identity == link.identity),
+                .any(
+                  (r) => link.includes(
+                    DocumentLink.fromJson(r),
+                    includeTasks: includeTasks,
+                  ),
+                ),
           ));
   bool matchesDraft(DialogDraft d) =>
       d.type == 'scan' &&
@@ -79,9 +103,10 @@ class ScanContext {
       (links.isEmpty ||
           links.every(
             (link) => (d.data['links'] as List).any(
-              (r) =>
-                  DocumentLink.fromJson(Json.from(r as Map)).identity ==
-                  link.identity,
+              (r) => link.includes(
+                DocumentLink.fromJson(Json.from(r as Map)),
+                includeTasks: includeTasks,
+              ),
             ),
           ));
 }

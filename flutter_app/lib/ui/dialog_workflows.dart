@@ -1,3 +1,6 @@
+import 'dart:convert';
+import '../domain/document_scanner.dart';
+import 'document_attachments.dart';
 import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'surfaces.dart';
@@ -145,7 +148,9 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     }
   }
 
-  Future<void> save() async {
+  Future<void> save({
+    Future<void> Function(BuildContext, DialogDraft)? afterSave,
+  }) async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -155,7 +160,13 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       await buffer.flush();
       await widget.save(data, buffer.draft);
       await widget.controller.reload();
-      if (mounted) await pop();
+      if (mounted) {
+        final host = Navigator.of(context).context;
+        await pop();
+        if (afterSave != null && host.mounted) {
+          await afterSave(host, buffer.draft);
+        }
+      }
     } catch (e) {
       if (mounted) setState(() => error = friendlyError(e));
     }
@@ -457,6 +468,8 @@ Future<void> showBulk(
   String initialKind = 'social',
   String initialSubject = '',
 }) async {
+  final editorKey = GlobalKey<_ProtectedDialogState>();
+  final attachmentOwner = newId();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;
@@ -466,6 +479,7 @@ Future<void> showBulk(
     context: context,
     barrierDismissible: false,
     builder: (_) => ProtectedDialog(
+      key: editorKey,
       controller: c,
       type: 'bulk',
       maxWidth: 640,
@@ -499,6 +513,72 @@ Future<void> showBulk(
         final kind = data['kind'] as String,
             ids = List<String>.from(data['recipients'] as List);
         final individuals = Json.from(data['individual'] as Map);
+        Future<void> openDocuments(
+          HomeworkTask? task,
+          bool scan,
+        ) => guarded(ctx, () async {
+          final tasks = (data['tasks'] as List? ?? [])
+              .map((t) => HomeworkTask.fromJson(Json.from(t as Map)))
+              .where((t) => t.text.trim().isNotEmpty)
+              .toList();
+          final index = task == null
+              ? -1
+              : tasks.indexWhere((t) => t.id == task.id);
+          if (task != null && index < 0) {
+            throw const DomainError(
+              'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
+            );
+          }
+          await editorKey.currentState?.save(
+            afterSave: (host, saved) async {
+              final group = (await c.repository.schoolGroups()).firstWhere(
+                (g) => g['id'] == saved.id,
+              );
+              final request = Json.from(
+                jsonDecode(group['request'] as String) as Map,
+              );
+              final records = (request['school'] as List)
+                  .map((r) => SchoolRecord.fromJson(Json.from(r as Map)))
+                  .toList();
+              final entries = (request['orga'] as List)
+                  .map((e) => OrgaEntry.fromJson(Json.from(e as Map)))
+                  .toList();
+              final scope = records.isNotEmpty
+                  ? schoolScanContext(
+                      c,
+                      records,
+                      taskIds: {
+                        if (index >= 0)
+                          for (final r in records) r.id: r.tasks[index].id,
+                      },
+                    )
+                  : ScanContext(
+                      pupilIds: ids,
+                      links: entries
+                          .map((e) => DocumentLink('orga', e.id))
+                          .toList(),
+                      title: 'FLEX-Klasse · Orga',
+                      category: 'form',
+                    );
+              if (!host.mounted) return;
+              if (scan) {
+                await scanAndShow(host, c, scope);
+              } else {
+                await showContextDocuments(host, c, scope);
+              }
+            },
+          );
+        });
+        Widget attachments({HomeworkTask? task}) => DocumentAttachmentSection(
+          controller: c,
+          // This context is deliberately unique until the group has been saved.
+          scope: ScanContext(links: [DocumentLink('school', attachmentOwner)]),
+          saveFirst: true,
+          compact: task != null,
+          showFiles: task == null,
+          onScan: () => openDocuments(task, true),
+          onDocuments: () => openDocuments(task, false),
+        );
         Widget text(String key, String label, {int lines = 1}) => TextFormField(
           key: ValueKey('bulk-$kind-$key'),
           initialValue: data[key] as String? ?? '',
@@ -763,6 +843,7 @@ Future<void> showBulk(
             ],
             if (kind == 'homework') ...[
               HomeworkTaskEditor(
+                attachmentActionsBuilder: (task) => attachments(task: task),
                 tasks: (data['tasks'] as List)
                     .map((v) => HomeworkTask.fromJson(Json.from(v as Map)))
                     .toList(),
@@ -833,6 +914,7 @@ Future<void> showBulk(
               'Individuelle Einträge · gemeinsamer Kontext',
               style: TextStyle(fontSize: 12),
             ),
+            attachments(),
           ],
         );
       },

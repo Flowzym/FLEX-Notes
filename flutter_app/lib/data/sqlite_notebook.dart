@@ -39,6 +39,57 @@ class SqliteNotebook
   SqliteNotebook(this.db);
   @override
   final NotebookDatabase db;
+
+  // Removing a task never removes its files. Move its references to the HÜ
+  // entry atomically, including drafts, and invalidate any stale open editor.
+  Future<void> _retainRemovedTaskDocuments(
+    String recordId,
+    Set<String> removed,
+  ) async {
+    bool affected(Json l) =>
+        l['kind'] == 'school' &&
+        l['id'] == recordId &&
+        removed.contains(l['taskId']);
+    List<Json> retain(List<Json> links) => {
+      for (final row in links)
+        if (affected(row))
+          DocumentLink('school', recordId).identity: DocumentLink(
+            'school',
+            recordId,
+          ).toJson()
+        else
+          DocumentLink.fromJson(row).identity: row,
+    }.values.toList();
+    final revisions = <String, (int, int)>{};
+    for (final d in await classroomDocuments()) {
+      final links = d.rows('links');
+      if (links.any(affected)) {
+        final saved = await _writeClassroom(d.patch({'links': retain(links)}));
+        revisions[d.id] = (d.revision, saved.revision);
+      }
+    }
+    for (final d in (await dialogDrafts()).where((d) => d.type == 'scan')) {
+      final links = (d.data['links'] as List)
+          .map((l) => Json.from(l as Map))
+          .toList();
+      final source = revisions[d.data['sourceId']];
+      final updateSource =
+          source != null && d.data['sourceRevision'] == source.$1;
+      if (links.any(affected) || updateSource) {
+        await saveDialogDraft(
+          DialogDraft.fromJson({
+            ...d.toJson(),
+            'data': {
+              ...d.data,
+              'links': retain(links),
+              if (updateSource) 'sourceRevision': source.$2,
+            },
+          }),
+        );
+      }
+    }
+  }
+
   @override
   Future<void> resolveSchoolConflict(
     SchoolDraft draft, {

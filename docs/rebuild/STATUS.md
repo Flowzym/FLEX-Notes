@@ -1,4 +1,6 @@
-# Aktueller Stand: 0.16.0-rebuild.25+45
+# Aktueller Stand: 0.16.0-rebuild.26+46
+
+Build 46: [Scannerzugänge und Anhänge je HÜ-Aufgabe](../../audit/SCANNER_ZUGAENGE_BUILD_46.md).
 
 Build 45: [Bereichsnavigation, Fotos und Tags](../../audit/NAVIGATION_FOTOS_BUILD_45.md).
 

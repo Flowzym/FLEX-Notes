@@ -122,14 +122,18 @@ mixin ClassroomStore on SchoolStore {
         .where((d) => d.kind == ClassroomKind.plan)
         .map((d) => d.id)
         .toSet();
-    final school = (await schoolRecords()).map((r) => r.id).toSet();
+    final school = {for (final r in await schoolRecords()) r.id: r};
     final documentIds = docs.map((d) => d.id).toSet();
     for (final d in docs) {
       for (final value in d.rows('links')) {
         final link = DocumentLink.fromJson(value);
         final valid = switch (link.kind) {
           'orga' => orga.contains(link.id),
-          'school' => school.contains(link.id),
+          'school' =>
+            school.containsKey(link.id) &&
+                (link.taskId.isEmpty ||
+                    school[link.id]!.kind == SchoolKind.homework &&
+                        school[link.id]!.tasks.any((t) => t.id == link.taskId)),
           'lesson' => lessons.contains(link.id),
           _ => documentIds.contains(link.id),
         };

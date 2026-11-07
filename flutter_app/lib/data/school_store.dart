@@ -116,6 +116,16 @@ mixin SchoolStore {
       old?.toJson(),
       saved.toJson(),
     );
+    if (old != null && old.kind == SchoolKind.homework) {
+      final removed = old.tasks.map((t) => t.id).toSet()
+        ..removeAll(saved.tasks.map((t) => t.id));
+      if (removed.isNotEmpty) {
+        await (this as SqliteNotebook)._retainRemovedTaskDocuments(
+          saved.id,
+          removed,
+        );
+      }
+    }
     if (draftId != null) {
       await db.customStatement('DELETE FROM school_drafts WHERE id=?', [
         draftId,

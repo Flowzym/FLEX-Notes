@@ -450,6 +450,17 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                         'Stand: ${r.taskState(task).label}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      DocumentAttachmentSection(
+                        key: ValueKey('task-attachments-${task.id}'),
+                        compact: true,
+                        controller: c,
+                        scope: schoolScanContext(
+                          c,
+                          [r],
+                          taskIds: {r.id: task.id},
+                        ),
+                        readOnly: r.deleted,
+                      ),
                       if (r.liveFeedback
                           .where(
                             (f) => f.taskId == task.id && f.note.isNotEmpty,
@@ -648,6 +659,12 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 ),
             ],
             if (r.needsCompletion) const Text('Später ergänzen'),
+            DocumentAttachmentSection(
+              key: ValueKey('record-attachments-${r.id}'),
+              controller: c,
+              scope: schoolScanContext(c, [r], includeTasks: false),
+              readOnly: r.deleted,
+            ),
             const Divider(),
             Wrap(
               spacing: 8,
