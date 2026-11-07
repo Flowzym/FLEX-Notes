@@ -1,0 +1,22 @@
+{
+  "source_commit": "cf0a834127cf90e79b017c0d0c435403e9b175f8",
+  "version": "0.16.0-rebuild.32+52",
+  "origin": "http://127.0.0.1:8084",
+  "fixtures": "synthetic pupils, homework and timetable only",
+  "checks": [
+    "homework status change and persistence",
+    "collapsed homework retains progress",
+    "search retains query when collapsed and clears correctly",
+    "comment editor opens from compact toolbar",
+    "390px and 320px homework layouts inspected",
+    "populated calendar day and week inspected at phone and desktop widths",
+    "final mobile screenshots recaptured after layout corrections"
+  ],
+  "page_errors": [],
+  "screenshots": [
+    "homework-overview-final-390.png",
+    "homework-overview-final-320.png",
+    "calendar-day-final-390.png",
+    "calendar-week-final-390.png"
+  ]
+}

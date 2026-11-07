@@ -1,0 +1,17 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar owns timetable without duplicate shortcuts, section callbacks preserve date
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar owns timetable without duplicate shortcuts, section callbacks preserve date
+00:01 +2: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:02 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:02 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:03 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:03 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:04 +7: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:04 +8: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general tasks and notes are separated, saved through the existing editor and completed
+00:05 +9: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: payment status resets old amount and partial payment requests an amount
+00:05 +10: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts exclude pupil entries and are resumable at large text
+00:05 +11: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts exclude pupil entries and are resumable at large text
+00:05 +12: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: development filters reach original observations without overflow
+00:05 +13: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: development filters reach original observations without overflow
+00:05 +14: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: (tearDownAll)
+00:05 +14: All tests passed!

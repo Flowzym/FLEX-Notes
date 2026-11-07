@@ -1,0 +1,35 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:01 +6: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework search retains query when collapsed and combines with open filter
+00:01 +7: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework search retains query when collapsed and combines with open filter
+00:01 +8: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework search retains query when collapsed and combines with open filter
+00:01 +9: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: both day subpages update current time and omit it on other dates
+00:02 +10: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: both day subpages update current time and omit it on other dates
+00:02 +11: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework summary survives collapse and actions remain reachable at (320.0, 2.0)
+00:02 +12: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: today includes current time before and after teaching hours
+00:02 +13: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: goal bottom scanner saves new entry before assigning it
+00:03 +14: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 390.0 scale 1.0
+00:03 +15: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: social bottom scanner saves new entry before assigning it
+00:03 +16: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 320.0 scale 2.0
+00:04 +17: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 320.0 scale 2.0
+00:04 +18: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: new group homework scanner maps selected subtask to every saved pupil
+00:04 +19: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:04 +20: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: bulk capture saves selected subtask links for both pupils
+00:04 +21: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: bulk capture saves selected subtask links for both pupils
+00:04 +22: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day and dated creation
+00:05 +23: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day and dated creation
+00:05 +24: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: saved observation draft survives opening scanner without committing edits
+00:05 +25: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:05 +26: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: Orga bottom action opens scanner with saved owner
+00:05 +27: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:06 +28: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: lesson planning is created and linked atomically to this occurrence
+00:07 +29: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: file assignment in lesson details changes only the selected occurrence
+00:07 +30: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: splitting a series preserves occurrence files and linked planning
+00:07 +31: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (tearDownAll)
+00:07 +31: All tests passed!

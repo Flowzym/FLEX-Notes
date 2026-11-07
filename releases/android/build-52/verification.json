@@ -1,0 +1,58 @@
+{
+  "version": "0.16.0-rebuild.32+52",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "f7061209c4b2d238c84c08e4f2c603be92afc34be4afc4a0b8f43f794ad6d4cd",
+  "bytes": 102802058,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "elf_alignment_scope": "64-bit libraries: 16KB; legacy 32-bit ARM: 4KB (PDFium)",
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libpdfium.so",
+      "lib/arm64-v8a/libpdfrx_pdfium_gate.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libpdfium.so",
+      "lib/armeabi-v7a/libpdfrx_pdfium_gate.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libpdfium.so",
+      "lib/x86_64/libpdfrx_pdfium_gate.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 102,
+  "flutter_test_scope": [
+    "94 focused tests covering homework, comments, attachments, calendar, timetable and dialogs; failed calendar overlap regression corrected and rerun successfully",
+    "8 complete UI journey tests including 19 pages, large fonts and narrow layouts; no physical Android device test"
+  ],
+  "android_device_tested": false,
+  "browser_tests": true,
+  "android_manifest_verified": true,
+  "native_backup_bridge_verified": true,
+  "source_commit": "cf0a834127cf90e79b017c0d0c435403e9b175f8",
+  "quick_xor_hash": "NeViFyqA4qdOB/OLZ23jm9MltLk="
+}
