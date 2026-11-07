@@ -1,0 +1,73 @@
+{
+  "version": "0.16.0-rebuild.22+42",
+  "application_id": "at.flowzym.flex_notizbuch.test",
+  "label": "FLEX Test",
+  "min_sdk": 24,
+  "target_sdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "mode": "release",
+  "signing": "local Android test/debug certificate",
+  "certificate_sha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "apk_sha256": "f196d9b05052ce90c7b7157b52d93922650b16acf6b75c1a8bf5ae95bb0cc0a4",
+  "bytes": 79691112,
+  "signature_verified": true,
+  "zip_alignment_16kb_verified": true,
+  "elf_load_alignment_16kb_verified": true,
+  "native_libraries": {
+    "arm64-v8a": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/arm64-v8a/libdartjni.so",
+      "lib/arm64-v8a/libflutter.so",
+      "lib/arm64-v8a/libsqlite3.so"
+    ],
+    "armeabi-v7a": [
+      "lib/armeabi-v7a/libapp.so",
+      "lib/armeabi-v7a/libdartjni.so",
+      "lib/armeabi-v7a/libflutter.so",
+      "lib/armeabi-v7a/libsqlite3.so"
+    ],
+    "x86_64": [
+      "lib/x86_64/libapp.so",
+      "lib/x86_64/libdartjni.so",
+      "lib/x86_64/libflutter.so",
+      "lib/x86_64/libsqlite3.so"
+    ]
+  },
+  "flutter_tests_passed": 372,
+  "flutter_test_scope": [
+    "full Flutter test suite",
+    "updated timetable and calendar UI checks plus two subpage navigation regressions"
+  ],
+  "android_device_tested": false,
+  "browser_tests": true,
+  "android_manifest_verified": true,
+  "native_backup_bridge_verified": true,
+  "source_commit": "51f7fc21c3ba02c0abdf4a2180cea8304e22bac7",
+  "git_branch": "fix/dialog-reference-audit",
+  "flutter": "3.47.9",
+  "dart": "3.13.7",
+  "schema": 7,
+  "backup_format": 1,
+  "new_tests": 2,
+  "apk": "FLEX-Test-0.16.0-rebuild.22+42-51f7fc21c3ba-universal.apk",
+  "quick_xor_hash": "5GT/p7aovkCgPCHHX/39PRZ69QE=",
+  "github_actions_run_id": 42377770028,
+  "github_actions_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42377770028",
+  "github_actions_conclusion": null,
+  "local_checks": {
+    "full_flutter_tests": 372,
+    "sqlite_tests": 11,
+    "http_tests": 3,
+    "browser_viewports": 2,
+    "analyze": "passed",
+    "format": "passed",
+    "android_release": "passed",
+    "web_release": "passed"
+  },
+  "onedrive_upload_verified": true,
+  "private_web_preview_updated": true
+}
