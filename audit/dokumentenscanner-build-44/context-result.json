@@ -1,0 +1,13 @@
+{
+  "viewport": [
+    1280,
+    900
+  ],
+  "pupil_orga_save_then_scan": true,
+  "pupil_and_orga_assignment": true,
+  "category_form": true,
+  "redaction_draw_apply_save_export": true,
+  "page_errors": [],
+  "exported_redaction_pixel_verified": true,
+  "exported_pdf_has_no_text_layer": true
+}

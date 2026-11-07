@@ -1,0 +1,17 @@
+{
+  "build": 44,
+  "source": "f4f82d8fe99b7d41112ca14be321f059a0dfa3bf",
+  "phone_viewport": [
+    390,
+    844
+  ],
+  "jpeg_and_pdf_import": true,
+  "draft_survives_reload": true,
+  "editable_pdf_name_preserved": true,
+  "multipage_pdf_saved": true,
+  "download_and_viewer": true,
+  "exported_pages": 2,
+  "image_only_pdf_independently_verified": true,
+  "redaction_test_pdf_independently_verified": true,
+  "page_errors": []
+}

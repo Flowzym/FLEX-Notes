@@ -81,4 +81,35 @@ der Schwärzung in Hoch-/Querformat auf 320 Pixel breiten Displays.
 
 Die zusätzlichen Kopfaktionen umbrechen bei schmaler oder vergrößerter Darstellung,
 damit vorhandene Navigation, Entwürfe und HÜ-Zugänge bedienbar bleiben.
-Prüfergebnisse und Releaseverweise werden nach dem Abschluss ergänzt.
+Lokal erfolgreich: **390 Flutter-Tests mit Coverage**, strenge Analyse ohne
+Warnungen, unveränderte Formatierung, elf SQLite- und drei HTTP-Tests. Der
+Android-Releasebuild ist signiert und enthält alle drei bisher unterstützten
+Architekturen. App-ID, Manifest, ZIP-Ausrichtung und 16-KB-Ausrichtung sämtlicher
+64-Bit-Bibliotheken wurden geprüft; die ältere ARMv7-PDFium-Bibliothek nutzt 4 KB.
+
+Der fertige Webbuild wurde im lokalen Chromium bei 390 × 844 und 1280 × 900
+Pixeln mit synthetischen Daten geprüft: Bild-/PDF-Import, Name und Eingabefokus,
+Neuladen und Fortsetzen, mehrseitige PDF, Download, PDF-Vorschau, automatischer
+Orga-/Schülerbezug und Kategorie. Ein mit der Maus geschwärzter Ausschnitt wurde
+übernommen, als PDF heruntergeladen und unabhängig mit PyMuPDF auf schwarze
+Bildpixel und fehlende Textebene geprüft. Es wurden keine Browserfehler gemeldet.
+Dies ersetzt keine Leistungs- oder Kameramessung auf einem physischen Android-Gerät.
+
+[Scanner am Handy](dokumentenscanner-build-44/scanner-phone.png) ·
+[PDF-Vorschau](dokumentenscanner-build-44/pdf-phone.png) ·
+[Zuordnung beim Orga-Eintrag](dokumentenscanner-build-44/context-scanner-desktop.png) ·
+[Schwärzung](dokumentenscanner-build-44/redaction-desktop.png) ·
+[Browser-Prüfung](dokumentenscanner-build-44/result.json) ·
+[Zuordnungs-/Schwärzungsprüfung](dokumentenscanner-build-44/context-result.json).
+
+Die bestehende private [Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
+läuft am gleichen Ursprung auf Build 44. Alle generierten Dateien wurden vor
+Veröffentlichung gegen den geprüften lokalen Build verglichen. Die Zugriffsliste
+bleibt auf den Eigentümer beschränkt. [Bereitstellungsnachweis](dokumentenscanner-build-44/deployment.json).
+
+Die [Android-APK](../releases/android/build-44/README.md) liegt auf GitHub und im
+verifizierten persönlichen OneDrive. Direkter Download (HTTP 200, Größe und
+APK-Kennung), Signatur, SHA-256 und OneDrive-Prüfsumme sind geprüft.
+Quellcommit: `f4f82d8fe99b7d41112ca14be321f059a0dfa3bf`.
+
+[GitHub-Testpipeline für diesen Quellstand](https://github.com/Flowzym/FLEX-Notes/actions/runs/42394089421).
