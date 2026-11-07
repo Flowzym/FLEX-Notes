@@ -1,162 +1,256 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'surfaces.dart';
 
-/// Centered navigation from the final pill-navigation.css reference.
+const livePages = {
+  0: 'Aktuell',
+  1: 'Aufzeichnung',
+  2: 'Ablauf',
+  3: 'Stundenplan',
+};
+
+/// Compact tracks with a raised selection. All destinations wrap at large text.
 class FlexPagePills extends StatelessWidget {
   const FlexPagePills({
     super.key,
     required this.selected,
     required this.onSelected,
-    required this.more,
-    this.classroomPages = false,
+    this.pages = livePages,
+    this.keyPrefix = 'page',
   });
   final int selected;
   final ValueChanged<int> onSelected;
-  final Widget more;
-  final bool classroomPages;
-
+  final Map<int, String> pages;
+  final String keyPrefix;
   @override
-  Widget build(BuildContext context) {
-    final pages = {
-      0: 'Übersicht',
-      1: 'Schüler',
-      if (classroomPages) 2: 'Kalender',
-      if (classroomPages) 3: 'Materialien',
-    };
-    final colors = Theme.of(context).colorScheme;
-    final palette = Theme.of(context).extension<FlexSurfaces>()?.palette;
-    if ((classroomPages || MediaQuery.textScalerOf(context).scale(1) > 1.5) &&
-        MediaQuery.sizeOf(context).width < 600) {
-      return Center(
-        child: Container(
-          key: const ValueKey('page-pill-shell'),
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: palette?.workspace ?? colors.surfaceContainerHigh,
-            border: Border.all(color: colors.outlineVariant),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Wrap(
-            key: const ValueKey('page-pills'),
-            spacing: 2,
-            runSpacing: 4,
-            alignment: WrapAlignment.center,
+  Widget build(BuildContext context) => MediaQuery.withClampedTextScaling(
+    maxScaleFactor: 1.5,
+    child: Builder(builder: _content),
+  );
+  Widget _content(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scheme = Theme.of(context).colorScheme;
+          final palette = Theme.of(context).extension<FlexSurfaces>()?.palette;
+          final scale = MediaQuery.textScalerOf(context);
+          final style = const TextStyle(
+            fontFamily: 'FlexSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          );
+          final available = math.max(48.0, constraints.maxWidth - 12);
+          final rows = <List<(int, String, double)>>[[]];
+          var used = 0.0, height = 48.0;
+          for (final e in pages.entries) {
+            final text = TextPainter(
+              text: TextSpan(text: e.value, style: style),
+              textDirection: Directionality.of(context),
+              textScaler: scale,
+            )..layout(maxWidth: available - 24);
+            final width = (text.width + 24).clamp(48.0, available);
+            height = math.max(height, text.height + 22);
+            text.dispose();
+            if (used + width > available && rows.last.isNotEmpty) {
+              rows.add([]);
+              used = 0;
+            }
+            rows.last.add((e.key, e.value, width));
+            used += width;
+          }
+          return Column(
+            key: ValueKey('$keyPrefix-pills'),
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final item in pages.entries)
-                TextButton(
-                  key: ValueKey('page-${item.key}'),
-                  onPressed: () => onSelected(item.key),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                    backgroundColor: selected == item.key
-                        ? colors.primary
-                        : Colors.transparent,
-                    foregroundColor: selected == item.key
-                        ? colors.onPrimary
-                        : palette?.workspaceInk ?? colors.onSurface,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
-                    ),
-                  ),
-                  child: Text(item.value, textAlign: TextAlign.center),
-                ),
-              Material(
-                color: selected == pages.length
-                    ? colors.primary
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-                child: SizedBox(
-                  width: 40,
-                  child: DefaultTextStyle.merge(
-                    style: TextStyle(
-                      color: selected == pages.length
-                          ? colors.onPrimary
-                          : palette?.workspaceInk ?? colors.onSurface,
-                    ),
-                    child: more,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    Widget segment(int index, Widget child) => Expanded(
-      child: OverflowBox(
-        minHeight: index == selected ? 50 : 42,
-        maxHeight: index == selected ? 50 : 42,
-        child: Material(
-          color: index == selected ? colors.primary : Colors.transparent,
-          elevation: index == selected ? 4 : 0,
-          shadowColor: const Color(0x250c180c),
-          borderRadius: BorderRadius.circular(999),
-          child: DefaultTextStyle.merge(
-            style: TextStyle(
-              fontFamily: 'FlexSans',
-              fontSize: index == selected ? 17 : 14,
-              fontWeight: index == selected ? FontWeight.w700 : FontWeight.w600,
-              color: index == selected
-                  ? colors.onPrimary
-                  : Theme.of(
-                          context,
-                        ).extension<FlexSurfaces>()?.palette?.workspaceInk ??
-                        colors.onSurface,
-            ),
-            child: child,
-          ),
-        ),
-      ),
-    );
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: classroomPages ? 650 : 380),
-        child: SizedBox(
-          key: const ValueKey('page-pills'),
-          height: 64,
-          child: Center(
-            child: Container(
-              key: const ValueKey('page-pill-shell'),
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              decoration: BoxDecoration(
-                color:
-                    Theme.of(
-                      context,
-                    ).extension<FlexSurfaces>()?.palette?.workspace ??
-                    colors.surfaceContainerHigh,
-                border: Border.all(color: colors.outlineVariant),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                children: [
-                  for (final item in pages.entries)
-                    segment(
-                      item.key,
-                      Semantics(
-                        button: true,
-                        selected: selected == item.key,
-                        child: InkWell(
-                          key: ValueKey('page-${item.key}'),
-                          borderRadius: BorderRadius.circular(999),
-                          onTap: () => onSelected(item.key),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Center(
-                              child: Text(
-                                item.value,
-                                textAlign: TextAlign.center,
+              for (final row in rows)
+                Builder(
+                  builder: (ctx) {
+                    final natural = row.fold(0.0, (sum, e) => sum + e.$3);
+                    final width = math.min(
+                      available,
+                      math.max(natural, pages.length == 1 ? 160.0 : 0.0),
+                    );
+                    final extra = (width - natural) / row.length;
+                    var left = 0.0;
+                    final positions = <(int, String, double, double)>[];
+                    for (final e in row) {
+                      positions.add((e.$1, e.$2, left, e.$3 + extra));
+                      left += e.$3 + extra;
+                    }
+                    return SizedBox(
+                      width: width + 12,
+                      height: height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 6,
+                            right: 6,
+                            top: 8,
+                            bottom: 8,
+                            child: DecoratedBox(
+                              key: ValueKey('$keyPrefix-track-${row.first.$1}'),
+                              decoration: BoxDecoration(
+                                color:
+                                    palette?.workspace ??
+                                    scheme.surfaceContainerHigh,
+                                border: Border.all(
+                                  color: scheme.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(999),
                               ),
                             ),
+                          ),
+                          for (final e in [
+                            ...positions.where((e) => e.$1 != selected),
+                            ...positions.where((e) => e.$1 == selected),
+                          ])
+                            Positioned(
+                              left: e.$3 + (e.$1 == selected ? 2 : 6),
+                              top: 2,
+                              bottom: 2,
+                              width: e.$4 + (e.$1 == selected ? 8 : 0),
+                              child: Semantics(
+                                selected: selected == e.$1,
+                                inMutuallyExclusiveGroup: true,
+                                child: Material(
+                                  color: selected == e.$1
+                                      ? scheme.primary
+                                      : Colors.transparent,
+                                  elevation: selected == e.$1 ? 2 : 0,
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: InkWell(
+                                    key: ValueKey('$keyPrefix-${e.$1}'),
+                                    borderRadius: BorderRadius.circular(999),
+                                    onTap: () => onSelected(e.$1),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          e.$2,
+                                          textAlign: TextAlign.center,
+                                          style: style.copyWith(
+                                            fontSize: selected == e.$1
+                                                ? 14
+                                                : 13,
+                                            fontWeight: selected == e.$1
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                            color: selected == e.$1
+                                                ? scheme.onPrimary
+                                                : palette?.workspaceInk ??
+                                                      scheme.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    ),
+  );
+}
+
+class FlexBottomNavigation extends StatelessWidget {
+  const FlexBottomNavigation({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+  final int selected;
+  final ValueChanged<int> onSelected;
+  @override
+  Widget build(BuildContext context) => MediaQuery.withClampedTextScaling(
+    maxScaleFactor: 1.3,
+    child: Builder(builder: _content),
+  );
+  Widget _content(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainer,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final e in const [
+                (0, 'Übersicht', Icons.dashboard_outlined),
+                (1, 'Live', Icons.bolt_outlined),
+                (2, 'Organisation', Icons.calendar_month_outlined),
+                (3, 'Material', Icons.folder_outlined),
+                (4, 'Mehr', Icons.more_horiz),
+              ])
+                Expanded(
+                  child: Semantics(
+                    selected: selected == e.$1,
+                    button: true,
+                    child: Tooltip(
+                      message: e.$1 == 4 ? 'Weitere Bereiche' : e.$2,
+                      child: InkWell(
+                        key: ValueKey('bottom-${e.$1}'),
+                        onTap: () => onSelected(e.$1),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected == e.$1
+                                      ? scheme.primaryContainer
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  e.$3,
+                                  size: 23,
+                                  color: selected == e.$1
+                                      ? scheme.onPrimaryContainer
+                                      : scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                e.$2,
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.1,
+                                  fontWeight: selected == e.$1
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  segment(pages.length, more),
-                ],
-              ),
-            ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

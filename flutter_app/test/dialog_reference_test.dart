@@ -1250,6 +1250,13 @@ void main() {
         await t.pumpAndSettle();
         await t.runAsync(() => repo.snapshot());
         await t.pumpAndSettle();
+        if (scenario.key == 'menu-trash') {
+          expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
+          expect(find.text('Papierkorb endgültig leeren'), findsOneWidget);
+          expect(t.takeException(), isNull);
+          await finish(t);
+          continue;
+        }
         expect(find.byType(FlexModal), findsOneWidget, reason: scenario.key);
         final rect = t.getRect(find.byKey(const ValueKey('flex-modal-frame')));
         expect(rect.left, greaterThanOrEqualTo(9.9), reason: scenario.key);

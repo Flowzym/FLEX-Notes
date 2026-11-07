@@ -17,7 +17,9 @@ class ScanPageEditor extends StatefulWidget {
     required this.pageNumber,
     required this.width,
     required this.height,
+    this.photo = false,
   });
+  final bool photo;
   final Uint8List bytes;
   final int pageNumber, width, height;
   @override
@@ -28,7 +30,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
   late Uint8List current = widget.bytes;
   late int currentWidth = widget.width, currentHeight = widget.height;
   String mode = 'preview', filter = 'color';
-  double brightness = 1, contrast = 1;
+  double brightness = 1, contrast = 1, saturation = 1;
   bool busy = false;
   String? error;
   final redactions = <Rect>[];
@@ -46,6 +48,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     'filter': filter,
     'brightness': brightness,
     'contrast': contrast,
+    'saturation': saturation,
     if (crop) 'corners': corners.map((p) => [p.dx, p.dy]).toList(),
     'redactions': redactions
         .map((r) => [r.left, r.top, r.right, r.bottom])
@@ -55,6 +58,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     int turns = 0,
     bool crop = false,
     bool finish = false,
+    bool flip = false,
   }) async {
     if (busy) return;
     setState(() {
@@ -63,10 +67,11 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     });
     try {
       var result = await compute(editScanPixels, args(crop: crop));
-      if (turns != 0) {
+      if (turns != 0 || flip) {
         result = await compute(editScanPixels, {
           'bytes': result['bytes'],
           'turns': turns,
+          'flip': flip,
         });
       }
       if (!mounted) return;
@@ -81,6 +86,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
         filter = 'color';
         brightness = 1;
         contrast = 1;
+        saturation = 1;
         redactions.clear();
         corners = const [Offset.zero, Offset(1, 0), Offset(1, 1), Offset(0, 1)];
         mode = 'preview';
@@ -97,7 +103,9 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     canPop: !busy,
     child: FlexModal(
       maxWidth: 950,
-      title: Text('Seite ${widget.pageNumber} bearbeiten'),
+      title: Text(
+        '${widget.photo ? 'Foto' : 'Seite'} ${widget.pageNumber} bearbeiten',
+      ),
       onClose: busy ? null : () => Navigator.pop(context),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,7 +126,8 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                           if (redactions.isNotEmpty ||
                               filter != 'color' ||
                               brightness != 1 ||
-                              contrast != 1) {
+                              contrast != 1 ||
+                              saturation != 1) {
                             await render();
                           }
                           if (mounted) {
@@ -137,6 +146,12 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                 icon: const Icon(Icons.rotate_right),
                 label: const Text('Drehen'),
               ),
+              if (widget.photo)
+                OutlinedButton.icon(
+                  onPressed: busy ? null : () => render(flip: true),
+                  icon: const Icon(Icons.flip),
+                  label: const Text('Spiegeln'),
+                ),
               TextButton.icon(
                 onPressed: busy
                     ? null
@@ -148,6 +163,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                         filter = 'color';
                         brightness = 1;
                         contrast = 1;
+                        saturation = 1;
                         corners = const [
                           Offset.zero,
                           Offset(1, 0),
@@ -168,7 +184,11 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             ),
           if (busy) const LinearProgressIndicator(),
           if (mode == 'crop') ...[
-            const Text('Die vier Ecken an die Dokumentränder ziehen.'),
+            Text(
+              widget.photo
+                  ? 'Die Ecken für den Bildausschnitt ziehen.'
+                  : 'Die vier Ecken an die Dokumentränder ziehen.',
+            ),
             TextButton.icon(
               onPressed: busy ? null : () => render(crop: true),
               icon: const Icon(Icons.check),
@@ -189,11 +209,19 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             Wrap(
               spacing: 6,
               children: [
-                for (final f in [
-                  ('color', 'Farbe'),
-                  ('gray', 'Graustufen'),
-                  ('bw', 'Schwarzweiß'),
-                ])
+                for (final f
+                    in widget.photo
+                        ? [
+                            ('color', 'Original'),
+                            ('warm', 'Warm'),
+                            ('cool', 'Kühl'),
+                            ('gray', 'Schwarzweiß'),
+                          ]
+                        : [
+                            ('color', 'Farbe'),
+                            ('gray', 'Graustufen'),
+                            ('bw', 'Schwarzweiß'),
+                          ])
                   ChoiceChip(
                     label: Text(f.$2),
                     selected: filter == f.$1,
@@ -233,6 +261,22 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                 ),
               ],
             ),
+            if (widget.photo)
+              Row(
+                children: [
+                  const SizedBox(width: 95, child: Text('Sättigung')),
+                  Expanded(
+                    child: Slider(
+                      value: saturation,
+                      min: 0,
+                      max: 2,
+                      onChanged: busy
+                          ? null
+                          : (v) => setState(() => saturation = v),
+                    ),
+                  ),
+                ],
+              ),
             TextButton.icon(
               onPressed: busy ? null : () => render(),
               icon: const Icon(Icons.check),
@@ -318,7 +362,23 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                           end = point(d.localPosition);
                           if (mode == 'crop' && dragging != null) {
                             corners = [...corners];
-                            corners[dragging!] = end!;
+                            if (widget.photo) {
+                              final opposite = corners[(dragging! + 2) % 4];
+                              final rect = Rect.fromPoints(opposite, end!);
+                              corners = [
+                                rect.topLeft,
+                                rect.topRight,
+                                rect.bottomRight,
+                                rect.bottomLeft,
+                              ];
+                              dragging =
+                                  (end!.dx < opposite.dx ? 0 : 1) +
+                                  (end!.dy < opposite.dy
+                                      ? 0
+                                      : (end!.dx < opposite.dx ? 3 : 1));
+                            } else {
+                              corners[dragging!] = end!;
+                            }
                           }
                         }),
                   onPanEnd: busy || !{'crop', 'redact'}.contains(mode)

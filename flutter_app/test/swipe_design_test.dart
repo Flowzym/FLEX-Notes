@@ -166,7 +166,7 @@ void main() {
   );
 
   Future<void> settings(WidgetTester t) async {
-    await tap(t, find.byType(PopupMenuButton<String>).first);
+    await tap(t, find.byTooltip('Weitere Bereiche'));
     await tap(t, find.text('Einstellungen').last);
   }
 
@@ -278,6 +278,8 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-1')));
       expect(find.byTooltip('Schüler suchen: Anna'), findsOneWidget);
       expect(find.text('Suche: Anna'), findsNothing);
@@ -285,6 +287,8 @@ void main() {
       expect(page(t), 4);
       await slider(t, 'textScale', .65);
       expect(page(t), 4);
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-0')));
       expect(page(t), 0);
       await t.drag(
@@ -484,6 +488,8 @@ void main() {
         await settings(t);
         expect(t.takeException(), isNull);
         await capture(t, boundary, 'design-$suffix', size, view.$3, 0);
+        await t.tap(find.byKey(const ValueKey('bottom-1')));
+        await t.pumpAndSettle();
         await tap(t, find.byKey(const ValueKey('page-0')));
         final r = await repo.saveSchoolRecord(
           SchoolRecord.empty(SchoolKind.homework, 'a').patch({

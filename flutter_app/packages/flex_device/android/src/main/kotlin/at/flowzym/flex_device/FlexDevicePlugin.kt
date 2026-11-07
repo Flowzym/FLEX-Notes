@@ -26,6 +26,7 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     @Volatile private var detached = false
     private lateinit var context: Context
     private lateinit var scanner: DocumentScanner
+    private lateinit var photo: PhotoCapture
     private lateinit var channel: MethodChannel
     private val writer = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -40,10 +41,16 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         detached = false
         context = binding.applicationContext
         scanner = DocumentScanner(context)
+        photo = PhotoCapture(context)
         channel = MethodChannel(binding.binaryMessenger, "at.flowzym.flex_notizbuch/device")
         channel.setMethodCallHandler(this)
     }
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "pendingPhotoOwner") { result.success(photo.owner()); return }
+        if (call.method == "discardPhoto") { photo.discard(call.argument<String>("draftId"), result); return }
+        if (call.method == "capturePhoto") { photo.start(activity, call.argument<String>("draftId"), result); return }
+        if (call.method == "recoverPhoto") { photo.recover(call.argument<String>("draftId"), result); return }
+        if (call.method == "finishPhoto") { photo.finish(call.argument<String>("draftId"), call.argument<String>("token"), result); return }
         if (call.method == "scanDocument") {
             scanner.start(activity, call.argument<Int>("limit") ?: 25, result); return
         }
@@ -158,6 +165,7 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         return result.sortedByDescending { it["name"] as String }
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (photo.activityResult(requestCode, resultCode)) return true
         if (scanner.activityResult(requestCode, resultCode, data)) return true
         if (requestCode != 46022) return false
         val result = pending ?: return true
@@ -178,6 +186,6 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     override fun onAttachedToActivity(binding: ActivityPluginBinding) { this.binding = binding; activity = binding.activity; if (screenProtected) activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE); binding.addActivityResultListener(this) }
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
     override fun onDetachedFromActivityForConfigChanges() { binding?.removeActivityResultListener(this); binding = null; activity = null }
-    override fun onDetachedFromActivity() { scanner.close(); onDetachedFromActivityForConfigChanges(); pending?.error("activity_closed", "Ordnerauswahl geschlossen.", null); pending = null }
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; scanner.dispose(); channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.shutdown() }
+    override fun onDetachedFromActivity() { photo.close(); scanner.close(); onDetachedFromActivityForConfigChanges(); pending?.error("activity_closed", "Ordnerauswahl geschlossen.", null); pending = null }
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; photo.close(); scanner.dispose(); channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.shutdown() }
 }

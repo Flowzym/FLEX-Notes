@@ -118,7 +118,7 @@ void main() {
   }
 
   Future<void> settings(WidgetTester t) async {
-    await t.tap(find.byType(PopupMenuButton<String>).first);
+    await t.tap(find.byTooltip('Weitere Bereiche'));
     await t.pumpAndSettle();
     await t.tap(find.text('Einstellungen').last);
     await t.pumpAndSettle();
@@ -379,6 +379,8 @@ void main() {
         await click(t, find.byKey(const ValueKey('settings-tab-1')));
         await click(t, find.byKey(const ValueKey('shortcut-up-orga')));
         expect(c.appearance.shortcutOrder[3], 'orga');
+        await t.tap(find.byKey(const ValueKey('bottom-1')));
+        await t.pumpAndSettle();
         await click(t, find.byKey(const ValueKey('page-1')));
         await settings(t);
         expect(find.text('Karten-Shortcuts'), findsOneWidget);
@@ -390,6 +392,8 @@ void main() {
         await t.pump();
         await t.sendKeyEvent(LogicalKeyboardKey.end);
         await t.pumpAndSettle();
+        expect(find.text('Karten-Shortcuts'), findsOneWidget);
+        await click(t, find.byKey(const ValueKey('context-4-3')));
         expect(find.text('Sichern & wiederherstellen'), findsOneWidget);
         expect(t.takeException(), isNull);
         await finish(t);
@@ -456,6 +460,8 @@ void main() {
       );
       await c.reload();
       await app(t);
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const ValueKey('page-1')));
       await t.pumpAndSettle();
       for (final symbol in ['social', 'work', 'goal', 'homework', 'orga']) {
@@ -486,6 +492,8 @@ void main() {
     'seven alpha controls reach actual widgets and shared bars update in all five editors',
     (t) async {
       await app(t);
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const ValueKey('page-1')));
       await t.pumpAndSettle();
       for (final value in [0.0, .5, 1.0]) {
@@ -596,6 +604,8 @@ void main() {
           t.element(find.byType(FlexBackground).first),
         ),
       );
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const ValueKey('page-1')));
       await t.pumpAndSettle();
       for (final size in [const Size(1100, 900), const Size(390, 844)]) {
@@ -639,6 +649,8 @@ void main() {
           t.element(find.byType(FlexBackground).first),
         ),
       );
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const ValueKey('page-1')));
       await t.pumpAndSettle();
       Future<int> pixel(Offset point) async {
@@ -659,8 +671,8 @@ void main() {
 
       final targets = <String, Offset Function()>{
         'workspaceOpacity': () {
-          final r = t.getRect(find.byKey(const ValueKey('page-pills')));
-          return Offset(r.left + 10, r.top + 28);
+          final r = t.getRect(find.byKey(const ValueKey('page-track-0')));
+          return Offset(r.right - 8, r.center.dy);
         },
         'cardOpacity': () {
           final r = t.getRect(find.byType(PupilCard));
@@ -824,6 +836,8 @@ void main() {
       final before = c.appearance.cardColor;
       repo.fail = true;
       c.previewAppearance({'cardColor': 0xffabcdef});
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await click(t, find.byKey(const ValueKey('page-1')));
       await t.runAsync(c.flushAppearance);
       await t.pumpAndSettle();

@@ -217,7 +217,19 @@ Future<void> showCalendarManagement(
 );
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key, required this.controller, this.clock});
+  const CalendarPage({
+    super.key,
+    required this.controller,
+    this.clock,
+    this.initialTimetable = false,
+    this.shortcutDate,
+    this.shortcutRevision = 0,
+    this.onSwitchSection,
+  });
+  final bool initialTimetable;
+  final DateTime? shortcutDate;
+  final int shortcutRevision;
+  final void Function(bool, DateTime)? onSwitchSection;
   final DateTime Function()? clock;
   final NotebookController controller;
   @override
@@ -251,6 +263,10 @@ class _CalendarPageState extends State<CalendarPage>
 
   void selectSection(bool timetable) {
     if (timetable == timetableView) return;
+    if (widget.onSwitchSection != null) {
+      widget.onSwitchSection!(timetable, selected);
+      return;
+    }
     setState(() {
       if (timetable && timetableDate == null) {
         final table =
@@ -301,10 +317,32 @@ class _CalendarPageState extends State<CalendarPage>
   @override
   void initState() {
     super.initState();
+    timetableView = widget.initialTimetable;
+    if (timetableView) {
+      final table =
+          c.classroom
+              .where((d) => d.kind == ClassroomKind.timetable)
+              .firstOrNull ??
+          flexTimetableTemplate().first;
+      timetableDate = calendarDate.isBefore(schoolDay(table.text('date')))
+          ? schoolDay(table.text('date'))
+          : calendarDate;
+    }
+    if (widget.shortcutDate != null) selected = widget.shortcutDate!;
     WidgetsBinding.instance.addObserver(this);
     ticker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.shortcutDate != null &&
+        (widget.shortcutDate != oldWidget.shortcutDate ||
+            widget.shortcutRevision != oldWidget.shortcutRevision)) {
+      selected = widget.shortcutDate!;
+    }
   }
 
   @override
@@ -1047,48 +1085,65 @@ class _CalendarPageState extends State<CalendarPage>
         final largeText =
             MediaQuery.textScalerOf(ctx).scale(1) > 1.4 &&
             MediaQuery.sizeOf(ctx).width < 600;
-        return Column(
+        final content = Column(
           key: ValueKey(timetableView ? 'timetable-view' : 'calendar-view'),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
-              child: Material(
-                color: scheme.onSurface.withValues(alpha: .05),
-                borderRadius: BorderRadius.circular(12),
-                child: Row(
-                  children: [
-                    for (final tab in const [
-                      (false, 'Kalender'),
-                      (true, 'Stundenplan'),
-                    ])
-                      Expanded(
-                        child: Semantics(
-                          selected: timetableView == tab.$1,
-                          child: TextButton(
-                            key: ValueKey(
-                              'calendar-section-${tab.$1 ? 'timetable' : 'calendar'}',
-                            ),
-                            onPressed: () => selectSection(tab.$1),
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(44, 44),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
+            if (widget.onSwitchSection != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  key: const ValueKey('calendar-shortcut'),
+                  onPressed: () => selectSection(!timetableView),
+                  icon: Icon(
+                    timetableView
+                        ? Icons.calendar_month_outlined
+                        : Icons.view_week_outlined,
+                  ),
+                  label: Text(
+                    timetableView ? 'Zum Kalender' : 'Zum Stundenplan',
+                  ),
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+                child: Material(
+                  color: scheme.onSurface.withValues(alpha: .05),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    children: [
+                      for (final tab in const [
+                        (false, 'Kalender'),
+                        (true, 'Stundenplan'),
+                      ])
+                        Expanded(
+                          child: Semantics(
+                            selected: timetableView == tab.$1,
+                            child: TextButton(
+                              key: ValueKey(
+                                'calendar-section-${tab.$1 ? 'timetable' : 'calendar'}',
                               ),
-                              backgroundColor: timetableView == tab.$1
-                                  ? scheme.primary.withValues(alpha: .2)
-                                  : Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                              onPressed: () => selectSection(tab.$1),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(44, 44),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                backgroundColor: timetableView == tab.$1
+                                    ? scheme.primary.withValues(alpha: .2)
+                                    : Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
+                              child: Text(tab.$2, textAlign: TextAlign.center),
                             ),
-                            child: Text(tab.$2, textAlign: TextAlign.center),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
               child: Row(
@@ -1392,6 +1447,15 @@ class _CalendarPageState extends State<CalendarPage>
               ),
             ),
           ],
+        );
+        return LayoutBuilder(
+          builder: (_, constraints) {
+            final minimum = 420 * MediaQuery.textScalerOf(ctx).scale(1);
+            if (constraints.maxHeight >= minimum) return content;
+            return SingleChildScrollView(
+              child: SizedBox(height: minimum, child: content),
+            );
+          },
         );
       },
     );

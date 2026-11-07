@@ -547,7 +547,7 @@ class ClassroomDocument {
         throw const DomainError('Der OneDrive-Ordner fehlt.');
       }
       if (kind == ClassroomKind.material) {
-        if (!{'pdf', 'docx', 'link'}.contains(text('extension')) ||
+        if (!{'pdf', 'jpg', 'docx', 'link'}.contains(text('extension')) ||
             number('size') < 0 ||
             text('localKey').contains(RegExp(r'[/\\.]')) ||
             (text('url').isEmpty &&

@@ -734,6 +734,18 @@ void main() {
         final boundary = GlobalKey();
         final size = Size(view.$1, view.$2);
         await app(t, size: size, scale: view.$3, boundary: boundary);
+        if (find.byType(OverviewEntry).evaluate().isEmpty) {
+          await t.scrollUntilVisible(
+            find.byType(OverviewEntry).first,
+            160,
+            scrollable: find
+                .descendant(
+                  of: find.byKey(const PageStorageKey('overview')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+        }
         expect(find.byType(OverviewEntry), findsWidgets);
         for (final type in [Chip, ChoiceChip, FilterChip, Checkbox]) {
           expect(find.byType(type), findsNothing);

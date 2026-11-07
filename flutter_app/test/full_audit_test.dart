@@ -622,6 +622,8 @@ void main() {
     'pupil search is icon-only directly beside add, keeps filter after collapse',
     (t) async {
       await app(t);
+      await t.tap(find.byKey(const ValueKey('bottom-1')));
+      await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-1')));
       final search = find.byKey(const ValueKey('toggle-pupil-search'));
       final add = find.byTooltip('Neuer Schüler');
@@ -667,6 +669,8 @@ void main() {
           boundary: boundary,
         );
         await capture(t, boundary, 'overview-$suffix');
+        await t.tap(find.byKey(const ValueKey('bottom-1')));
+        await t.pumpAndSettle();
         await tap(t, find.byKey(const ValueKey('page-1')));
         await capture(t, boundary, 'pupils-$suffix');
         for (final kind in ['note', 'task', 'appointment']) {
@@ -715,7 +719,12 @@ void main() {
         await tap(t, find.byTooltip('Weitere Bereiche'));
         await tap(t, find.text('Einstellungen'));
         for (var tab = 0; tab < 3; tab++) {
-          await tap(t, find.byKey(ValueKey('settings-tab-$tab')));
+          await tap(
+            t,
+            find.byKey(
+              ValueKey(tab == 2 ? 'context-4-3' : 'settings-tab-$tab'),
+            ),
+          );
           await capture(t, boundary, 'settings-$tab-$suffix');
           if (tab == 0) {
             for (final name in [

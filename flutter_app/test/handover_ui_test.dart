@@ -183,9 +183,10 @@ void main() {
       final navigation = tester.getRect(
         find.byKey(const ValueKey('page-pills')),
       );
-      expect(navigation.width, 650);
-      expect(find.text('Kalender'), findsOneWidget);
-      expect(find.text('Materialien'), findsOneWidget);
+      expect(navigation.width, lessThanOrEqualTo(760));
+      expect(find.text('Stundenplan'), findsOneWidget);
+      expect(find.text('Material'), findsOneWidget);
+      expect(find.text('Organisation'), findsOneWidget);
       expect(navigation.center.dx, 550);
       await pupils(tester);
       expect(find.byType(PupilCard), findsNWidgets(2));

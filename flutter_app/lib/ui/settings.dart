@@ -20,9 +20,12 @@ class SettingsPage extends StatefulWidget {
     super.key,
     required this.controller,
     required this.layout,
+    this.dataOnly = false,
+    this.includeDataTab = true,
   });
   final NotebookController controller;
   final SettingsLayoutState layout;
+  final bool dataOnly, includeDataTab;
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
@@ -368,18 +371,19 @@ class _SettingsPageState extends State<SettingsPage>
         Text('${c.stagedLegacyCount} HTML-Sicherungen vorgemerkt'),
     ],
   );
+  int get tabCount => widget.includeDataTab ? 3 : 2;
   Widget tabButton(int i) => Focus(
     onKeyEvent: (_, event) {
       if (event is! KeyDownEvent) return KeyEventResult.ignored;
       final key = event.logicalKey;
       final next = key == LogicalKeyboardKey.arrowRight
-          ? (i + 1) % 3
+          ? (i + 1) % tabCount
           : key == LogicalKeyboardKey.arrowLeft
-          ? (i + 2) % 3
+          ? (i + tabCount - 1) % tabCount
           : key == LogicalKeyboardKey.home
           ? 0
           : key == LogicalKeyboardKey.end
-          ? 2
+          ? tabCount - 1
           : null;
       if (next == null) return KeyEventResult.ignored;
       tab(next, focus: true);
@@ -440,11 +444,12 @@ class _SettingsPageState extends State<SettingsPage>
                   MediaQuery.textScalerOf(context).scale(1) > 1.5
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [for (var i = 0; i < 3; i++) tabButton(i)],
+                  children: [for (var i = 0; i < tabCount; i++) tabButton(i)],
                 )
               : Row(
                   children: [
-                    for (var i = 0; i < 3; i++) Expanded(child: tabButton(i)),
+                    for (var i = 0; i < tabCount; i++)
+                      Expanded(child: tabButton(i)),
                   ],
                 ),
         ),
@@ -463,26 +468,29 @@ class _SettingsPageState extends State<SettingsPage>
         ),
         children: [
           Text(
-            'Einstellungen',
+            widget.dataOnly ? 'Daten' : 'Einstellungen',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 18),
-          tabs(),
+          if (!widget.dataOnly) tabs(),
           const SizedBox(height: 18),
-          if (widget.layout.tab == 0)
+          if (widget.dataOnly)
+            data()
+          else if (widget.layout.tab == 0)
             AppearanceSettings(controller: c, layout: widget.layout)
           else if (widget.layout.tab == 1)
             interaction()
           else
             data(),
           const Divider(height: 28),
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              c.appearanceError ??
-                  (c.appearanceSaving ? 'Wird gespeichert …' : 'Gespeichert'),
+          if (!widget.dataOnly)
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                c.appearanceError ??
+                    (c.appearanceSaving ? 'Wird gespeichert …' : 'Gespeichert'),
+              ),
             ),
-          ),
         ],
       ),
     ),

@@ -57,6 +57,8 @@ class ScanContext {
     'pupilIds': pupilIds,
     'links': links.map((v) => v.toJson()).toList(),
     'pages': <Json>[],
+    'tags': <String>[],
+    'outputFormat': 'pdf',
   };
   bool matchesMaterial(ClassroomDocument d) =>
       d.kind == ClassroomKind.material &&
@@ -85,15 +87,31 @@ class ScanContext {
 }
 
 class ScanPage {
-  const ScanPage(this.key, this.width, this.height);
+  const ScanPage(
+    this.key,
+    this.width,
+    this.height, {
+    this.photo = false,
+    this.captureToken,
+  });
+  final bool photo;
+  final String? captureToken;
   final String key;
   final int width, height;
-  Json toJson() => {'key': key, 'width': width, 'height': height};
+  Json toJson() => {
+    'key': key,
+    'width': width,
+    'height': height,
+    if (photo) 'photo': true,
+    if (captureToken != null) 'captureToken': captureToken,
+  };
   factory ScanPage.fromJson(Json j) {
     final p = ScanPage(
       j['key'] as String? ?? '',
       j['width'] as int? ?? 0,
       j['height'] as int? ?? 0,
+      photo: j['photo'] as bool? ?? false,
+      captureToken: j['captureToken'] as String?,
     );
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(p.key) ||
         p.width < 1 ||
@@ -107,7 +125,16 @@ class ScanPage {
 }
 
 void validateScanData(Json j) {
-  if (j['title'] is! String ||
+  if (j['outputFormat'] != null &&
+          !{'pdf', 'jpg'}.contains(j['outputFormat']) ||
+      j['capturePending'] != null && j['capturePending'] is! bool ||
+      j['tags'] != null &&
+          (j['tags'] is! List ||
+              (j['tags'] as List).length > 30 ||
+              !(j['tags'] as List).every(
+                (t) => t is String && t.trim().isNotEmpty && t.length <= 64,
+              )) ||
+      j['title'] is! String ||
       (j['title'] as String).length > 200 ||
       !scanTypes.containsKey(j['documentType']) ||
       j['subject'] is! String ||
@@ -141,9 +168,18 @@ void validateScanData(Json j) {
   }
 }
 
-String scanFilename(String title) {
+List<String> scanTags(String text) {
+  final values = <String, String>{};
+  for (var tag in text.split(',')) {
+    tag = tag.trim().replaceFirst(RegExp(r'^#+'), '');
+    if (tag.isNotEmpty) values.putIfAbsent(tag.toLowerCase(), () => tag);
+  }
+  return values.values.toList();
+}
+
+String scanFilename(String title, {String extension = 'pdf'}) {
   var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');
-  name = name.replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
+  name = name.replaceFirst(RegExp(r'\.(pdf|jpe?g)$', caseSensitive: false), '');
   if (name.isEmpty) name = 'Scan';
-  return '${name.substring(0, name.length.clamp(0, 160))}.pdf';
+  return '${name.substring(0, name.length.clamp(0, 160))}.$extension';
 }

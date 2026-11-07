@@ -1,4 +1,6 @@
-# Aktueller Stand: 0.16.0-rebuild.24+44
+# Aktueller Stand: 0.16.0-rebuild.25+45
+
+Build 45: [Bereichsnavigation, Fotos und Tags](../../audit/NAVIGATION_FOTOS_BUILD_45.md).
 
 Kontextbezogener Dokumentenscanner mit lokaler PDF-Ablage, Bearbeitung, Schwärzung
 und fortsetzbaren Entwürfen. [Umfang, Sicherung und Prüfungen](../../audit/DOKUMENTENSCANNER_BUILD_44.md).

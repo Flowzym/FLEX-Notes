@@ -474,7 +474,26 @@ Future<void> openMaterial(
       );
     }
     if (!context.mounted) return;
-    if (current.text('extension') == 'pdf') {
+    if (current.text('extension') == 'jpg') {
+      final bytes = await files.read(current.text('localKey'));
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => FlexModal(
+          title: Text(current.title),
+          maxWidth: 1000,
+          onClose: () => Navigator.pop(ctx),
+          scrollable: false,
+          content: SizedBox(
+            height: MediaQuery.sizeOf(ctx).height * .65,
+            child: InteractiveViewer(
+              maxScale: 5,
+              child: Center(child: Image.memory(bytes, fit: BoxFit.contain)),
+            ),
+          ),
+        ),
+      );
+    } else if (current.text('extension') == 'pdf') {
       await showDialog<void>(
         context: context,
         builder: (_) => MaterialPdf(
@@ -512,7 +531,14 @@ Future<void> openMaterial(
 }
 
 class MaterialLibraryPage extends StatefulWidget {
-  const MaterialLibraryPage({super.key, required this.controller});
+  const MaterialLibraryPage({
+    super.key,
+    required this.controller,
+    this.externalView,
+    this.initialTrash = false,
+  });
+  final String? externalView;
+  final bool initialTrash;
   final NotebookController controller;
   @override
   State<MaterialLibraryPage> createState() => _MaterialLibraryPageState();
@@ -539,9 +565,22 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   @override
   void initState() {
     super.initState();
+    view = widget.externalView ?? view;
+    trash = widget.initialTrash;
     drive.load().catchError((Object e) {
       if (mounted) setState(() => error = friendlyError(e));
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant MaterialLibraryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.externalView != null &&
+        widget.externalView != oldWidget.externalView) {
+      view = widget.externalView!;
+      selecting = false;
+      selection.clear();
+    }
   }
 
   @override
@@ -1087,33 +1126,34 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                       ),
                     ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (final item in const [
-                        ('files', 'Dateien'),
-                        ('prepared', 'Bereitgelegt'),
-                        ('packages', 'Pakete'),
-                        ('plans', 'Planungen'),
-                      ])
-                        ChoiceChip(
-                          showCheckmark: false,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
+                  if (widget.externalView == null)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        for (final item in const [
+                          ('files', 'Dateien'),
+                          ('prepared', 'Bereitgelegt'),
+                          ('packages', 'Pakete'),
+                          ('plans', 'Planungen'),
+                        ])
+                          ChoiceChip(
+                            showCheckmark: false,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            labelPadding: EdgeInsets.zero,
+                            label: Text(item.$2),
+                            selected: view == item.$1,
+                            onSelected: (_) => setState(() {
+                              view = item.$1;
+                              selecting = false;
+                              selection.clear();
+                            }),
                           ),
-                          labelPadding: EdgeInsets.zero,
-                          label: Text(item.$2),
-                          selected: view == item.$1,
-                          onSelected: (_) => setState(() {
-                            view = item.$1;
-                            selecting = false;
-                            selection.clear();
-                          }),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
                   if (busy && progress) const LinearProgressIndicator(),
                   if (error != null)
                     Padding(

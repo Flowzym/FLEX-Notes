@@ -62,6 +62,7 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
   var pixels = scanPixels(args['bytes'] as Uint8List);
   final turns = args['turns'] as int? ?? 0;
   if (turns % 4 != 0) pixels = img.copyRotate(pixels, angle: (turns % 4) * 90);
+  if (args['flip'] == true) pixels = img.flipHorizontal(pixels);
   final corners = args['corners'] as List?;
   if (corners != null) {
     if (corners.length != 4) {
@@ -120,8 +121,16 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
     pixels,
     brightness: brightness,
     contrast: contrast,
-    saturation: filter == 'color' ? 1 : 0,
+    saturation: {'gray', 'bw'}.contains(filter)
+        ? 0
+        : (args['saturation'] as num? ?? 1).clamp(0, 2),
   );
+  if (filter == 'warm' || filter == 'cool') {
+    for (final p in pixels) {
+      final shift = filter == 'warm' ? 12 : -12;
+      p.setRgb((p.r + shift).clamp(0, 255), p.g, (p.b - shift).clamp(0, 255));
+    }
+  }
   if (filter == 'bw') {
     for (final p in pixels) {
       final v = p.luminance > 160 ? 255 : 0;

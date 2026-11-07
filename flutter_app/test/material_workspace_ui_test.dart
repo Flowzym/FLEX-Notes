@@ -11,7 +11,6 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/material_library.dart';
 import 'package:flex_notizbuch/ui/classroom_editor.dart';
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
 import 'classroom_test.dart' show classroomMemory;
 import 'material_workspace_test.dart' show material;
 
@@ -370,17 +369,11 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    // Four-page navigation remains unchanged.
-    await t.tap(
-      find.descendant(
-        of: find.byType(FlexPagePills),
-        matching: find.text('Materialien'),
-      ),
-    );
+    await t.tap(find.byKey(const ValueKey('bottom-3')));
     await t.pumpAndSettle();
     await capture(t, key, 'materialien');
     expect(t.takeException(), isNull);
-    await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+    await tap(t, find.byKey(const ValueKey('context-3-1')));
     await tap(t, find.text('2 Unterlagen bereitgelegt'));
     await capture(t, key, 'bereitgelegt');
     expect(t.takeException(), isNull);

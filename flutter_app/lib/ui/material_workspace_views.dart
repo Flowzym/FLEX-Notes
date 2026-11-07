@@ -94,6 +94,8 @@ class _MaterialRowState extends State<MaterialRow> {
                       Icon(
                         d.text('extension') == 'pdf'
                             ? Icons.picture_as_pdf_outlined
+                            : d.text('extension') == 'jpg'
+                            ? Icons.photo_outlined
                             : d.text('extension') == 'docx'
                             ? Icons.description_outlined
                             : Icons.link,
@@ -214,13 +216,17 @@ Future<void> showMaterialDetails(
                     icon: const Icon(Icons.link),
                     label: const Text('Einträge zuordnen'),
                   ),
-                  if (d.text('extension') == 'pdf' &&
+                  if ({'pdf', 'jpg'}.contains(d.text('extension')) &&
                       d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
                       onPressed: () =>
                           scanAndShow(ctx, c, const ScanContext(), source: d),
                       icon: const Icon(Icons.document_scanner_outlined),
-                      label: const Text('PDF bearbeiten'),
+                      label: Text(
+                        d.text('extension') == 'jpg'
+                            ? 'Foto bearbeiten'
+                            : 'PDF bearbeiten',
+                      ),
                     ),
                   if (d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
@@ -233,6 +239,8 @@ Future<void> showMaterialDetails(
                           bytes,
                           mime: d.text('extension') == 'pdf'
                               ? 'application/pdf'
+                              : d.text('extension') == 'jpg'
+                              ? 'image/jpeg'
                               : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                         );
                       }),

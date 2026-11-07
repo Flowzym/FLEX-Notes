@@ -1,3 +1,4 @@
+import 'package:image/image.dart' as img;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -38,15 +39,24 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   if (bytes.isEmpty || bytes.length > 20000000) {
     throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
   }
+  if (extension == 'jpg') {
+    final info = img.JpegDecoder().startDecode(bytes);
+    if (info == null ||
+        info.width < 1 ||
+        info.height < 1 ||
+        info.width * info.height > 40000000) {
+      throw const DomainError('Ungültiges Foto.');
+    }
+  }
   if (extension == 'pdf' &&
           (bytes.length < 5 ||
               ascii.decode(bytes.sublist(0, 5), allowInvalid: true) !=
                   '%PDF-') ||
       extension == 'docx' &&
           (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4b) ||
-      !{'pdf', 'docx'}.contains(extension)) {
+      !{'pdf', 'jpg', 'docx'}.contains(extension)) {
     throw const DomainError(
-      'Die Datei ist kein gültiges PDF- oder DOCX-Dokument.',
+      'Die Datei ist kein gültiges PDF-, JPG- oder DOCX-Dokument.',
     );
   }
   if (extension == 'docx') {

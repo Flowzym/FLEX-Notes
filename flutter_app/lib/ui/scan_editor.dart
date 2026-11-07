@@ -159,6 +159,7 @@ class ScanEditor extends StatefulWidget {
     this.initialImages = const [],
     this.pickFiles,
     this.capturePages,
+    this.capturePhoto,
   });
   final NotebookController controller;
   final ScanContext scope;
@@ -168,6 +169,7 @@ class ScanEditor extends StatefulWidget {
   final List<Uint8List> initialImages;
   final Future<List<XFile>> Function()? pickFiles;
   final Future<List<Uint8List>?> Function(int)? capturePages;
+  final Future<Uint8List?> Function()? capturePhoto;
   @override
   State<ScanEditor> createState() => _ScanEditorState();
 }
@@ -176,7 +178,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   late Json data;
   late DraftBuffer buffer;
-  late TextEditingController title;
+  late TextEditingController title, tags;
+  bool pageEditorOpen = false;
+  bool get photoOutput => data['outputFormat'] == 'jpg';
+  bool get nativeCamera =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   bool busy = false, canPop = false, committed = false, replace = false;
   String? error;
   String progress = '';
@@ -204,10 +210,15 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'pupilIds': source.strings('pupilIds'),
         'links': source.rows('links'),
         'pages': <Json>[],
+        'tags': source.strings('tags'),
+        'outputFormat': source.text('extension') == 'jpg' ? 'jpg' : 'pdf',
         'sourceId': source.id,
         'sourceRevision': source.revision,
       };
     }
+    tags = TextEditingController(
+      text: (data['tags'] as List? ?? []).join(', '),
+    );
     title = TextEditingController(text: data['title'] as String);
     knownKeys.addAll(pages.map((p) => p.key));
     buffer = DraftBuffer(
@@ -227,12 +238,21 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         action(() async {
           if (source != null) {
             final bytes = await widget.files.read(source.text('localKey'));
-            await addPdf(bytes);
+            if (source.text('extension') == 'jpg') {
+              await addImage(bytes, photo: true);
+            } else {
+              await addPdf(bytes);
+            }
           }
           for (final image in widget.initialImages) {
             await addImage(image);
           }
         });
+      });
+    }
+    if (data['capturePending'] == true && nativeCamera) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        action(recoverPhoto);
       });
     }
   }
@@ -253,6 +273,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     buffer.dispose();
     title.dispose();
+    tags.dispose();
     super.dispose();
   }
 
@@ -295,7 +316,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await c.reload();
     await pop();
   });
-  Future<void> addImage(Uint8List bytes) async {
+  Future<void> addImage(
+    Uint8List bytes, {
+    bool photo = false,
+    String? captureToken,
+  }) async {
     if (pages.length >= scanPageLimit) {
       throw const DomainError('Pro PDF sind bis zu 25 Seiten möglich.');
     }
@@ -306,7 +331,13 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     change({
       'pages': [
         ...pages.map((p) => p.toJson()),
-        ScanPage(key, image['width'] as int, image['height'] as int).toJson(),
+        ScanPage(
+          key,
+          image['width'] as int,
+          image['height'] as int,
+          photo: photo,
+          captureToken: captureToken,
+        ).toJson(),
       ],
     });
     // A failed metadata write must retain both the buffered page and its bytes:
@@ -367,7 +398,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       if (file.name.toLowerCase().endsWith('.pdf')) {
         await addPdf(content);
       } else {
-        await addImage(content);
+        await addImage(content, photo: true);
       }
     }
   });
@@ -388,20 +419,79 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       await addImage(bytes);
     }
   });
+  Future<void> acceptPhoto(Map<dynamic, dynamic>? result) async {
+    if (result != null) {
+      final token = result['token'] as String;
+      if (!pages.any((p) => p.captureToken == token)) {
+        await addImage(
+          result['bytes'] as Uint8List,
+          photo: true,
+          captureToken: token,
+        );
+      }
+      await buffer.flush();
+      await FlexDevice.channel.invokeMethod<void>('finishPhoto', {
+        'draftId': buffer.draft.id,
+        'token': token,
+      });
+    }
+    change({'capturePending': false});
+    await buffer.flush();
+  }
+
+  Future<void> recoverPhoto() async {
+    final result = await FlexDevice.channel.invokeMapMethod<String, dynamic>(
+      'recoverPhoto',
+      {'draftId': buffer.draft.id},
+    );
+    await acceptPhoto(result);
+  }
+
+  Future<void> takePhoto() => action(() async {
+    if (data['capturePending'] == true && nativeCamera) {
+      await recoverPhoto();
+      return;
+    }
+    if (pages.isEmpty) change({'outputFormat': 'jpg'});
+    if (widget.capturePhoto != null) {
+      final bytes = await widget.capturePhoto!();
+      if (bytes != null) await addImage(bytes, photo: true);
+      return;
+    }
+    final owner = await FlexDevice.channel.invokeMethod<String>(
+      'pendingPhotoOwner',
+    );
+    if (owner != null &&
+        !(await c.repository.dialogDrafts()).any((d) => d.id == owner)) {
+      await FlexDevice.channel.invokeMethod<void>('discardPhoto', {
+        'draftId': owner,
+      });
+    }
+    change({'capturePending': true});
+    await buffer.flush();
+    final result = await FlexDevice.channel.invokeMapMethod<String, dynamic>(
+      'capturePhoto',
+      {'draftId': buffer.draft.id},
+    );
+    await acceptPhoto(result);
+  });
   Future<void> editPage(int index) => action(() async {
     final page = pages[index],
         bytes = await widget.files.read(pages[index].key);
     if (!mounted) return;
+    setState(() => pageEditorOpen = true);
     final edited = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
       builder: (_) => ScanPageEditor(
         bytes: bytes,
+        photo: page.photo,
         pageNumber: index + 1,
         width: page.width,
         height: page.height,
       ),
     );
+    if (mounted) setState(() => pageEditorOpen = false);
     if (edited == null) return;
     final key = newId();
     await widget.files.write(key, edited['bytes'] as Uint8List);
@@ -411,6 +501,8 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       key,
       edited['width'] as int,
       edited['height'] as int,
+      photo: page.photo,
+      captureToken: page.captureToken,
     );
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
@@ -429,6 +521,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await buffer.flush();
   });
   Future<void> save() => action(() async {
+    if (nativeCamera && data['capturePending'] == true) await recoverPhoto();
     await buffer.flush();
     final saved = await saveScan(
       c.repository,
@@ -462,7 +555,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     },
     child: FlexModal(
       maxWidth: 900,
-      title: const Text('Dokument scannen'),
+      title: const Text('Scan & Foto'),
       onClose: busy ? null : close,
       headerActions: [
         if (buffer.hasContent || buffer.draft.revision > 0)
@@ -476,7 +569,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (busy) const LinearProgressIndicator(),
+          if (busy && !pageEditorOpen) const LinearProgressIndicator(),
           if (progress.isNotEmpty) Text(progress),
           if (error != null)
             Padding(
@@ -500,6 +593,19 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                   icon: const Icon(Icons.document_scanner_outlined),
                   label: const Text('Scannen'),
                 ),
+              if (widget.capturePhoto != null || nativeCamera)
+                OutlinedButton.icon(
+                  key: const ValueKey('scanner-photo'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : takePhoto,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: Text(
+                    data['capturePending'] == true
+                        ? 'Foto fortsetzen'
+                        : 'Foto aufnehmen',
+                  ),
+                ),
               OutlinedButton.icon(
                 key: const ValueKey('scanner-import'),
                 onPressed: busy || pages.length >= scanPageLimit ? null : pick,
@@ -514,13 +620,41 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             controller: title,
             enabled: !busy,
             maxLength: 200,
-            decoration: const InputDecoration(
-              labelText: 'PDF-Name',
-              suffixText: '.pdf',
+            decoration: InputDecoration(
+              labelText: 'Dateiname',
+              suffixText: photoOutput ? '.jpg' : '.pdf',
             ),
             onChanged: (v) => change({'title': v}),
           ),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final format in const [
+                ('pdf', 'PDF'),
+                ('jpg', 'Fotos (JPG)'),
+              ])
+                ChoiceChip(
+                  key: ValueKey('scan-format-${format.$1}'),
+                  label: Text(format.$2),
+                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
+                  onSelected: busy
+                      ? null
+                      : (_) => change({'outputFormat': format.$1}),
+                ),
+            ],
+          ),
           const SizedBox(height: 8),
+          TextField(
+            key: const ValueKey('scan-tags'),
+            controller: tags,
+            enabled: !busy,
+            decoration: const InputDecoration(
+              labelText: 'Tags (mit Komma trennen)',
+              prefixIcon: Icon(Icons.sell_outlined),
+            ),
+            onChanged: (v) => change({'tags': scanTags(v)}),
+          ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: data['documentType'] as String,
             decoration: const InputDecoration(labelText: 'Kategorie'),
@@ -636,7 +770,9 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Seite ${item.$1 + 1}'),
+                              Text(
+                                '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
+                              ),
                               Wrap(
                                 children: [
                                   IconButton(
@@ -683,11 +819,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           if (data['sourceId'] != null)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Vorhandene PDF ersetzen'),
+              title: const Text('Vorhandene Datei ersetzen'),
               subtitle: Text(
                 replace
                     ? 'Die lokale Fassung wird ersetzt. Bereits exportierte Kopien bleiben erhalten.'
-                    : 'Es wird eine neue PDF-Kopie gespeichert.',
+                    : 'Es wird eine neue Kopie gespeichert.',
               ),
               value: replace,
               onChanged: busy
@@ -705,8 +841,12 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         FilledButton.icon(
           key: const ValueKey('save-scan'),
           onPressed: busy || pages.isEmpty ? null : save,
-          icon: const Icon(Icons.picture_as_pdf),
-          label: Text(replace ? 'PDF ersetzen' : 'PDF speichern'),
+          icon: Icon(photoOutput ? Icons.photo : Icons.picture_as_pdf),
+          label: Text(
+            photoOutput
+                ? (replace ? 'Foto ersetzen' : 'Fotos speichern')
+                : (replace ? 'PDF ersetzen' : 'PDF speichern'),
+          ),
         ),
       ],
     ),

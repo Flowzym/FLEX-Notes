@@ -1,4 +1,6 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flex_device/flex_device.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,6 +93,131 @@ void main() {
     await t.pump();
   }
 
+  testWidgets(
+    'photo capture uses photo editor, tags survive draft resume and JPG save',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      DialogDraft? resume;
+      ClassroomDocument? result;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          draft: resume,
+          scope: const ScanContext(pupilIds: ['p']),
+          capturePhoto: () async => scannerImage(),
+        ),
+        onResult: (v) => result = v as ClassroomDocument?,
+      );
+      await tap(t, find.byKey(const ValueKey('scanner-photo')));
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).isNotEmpty &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      await t.enterText(
+        find.byKey(const ValueKey('scan-tags')),
+        '#Mathe, Probe, mathe',
+      );
+      await tap(t, find.byKey(const ValueKey('scan-edit-page-0')));
+      await settleWork(
+        t,
+        () => find.text('Foto 1 bearbeiten').evaluate().isNotEmpty,
+      );
+      expect(find.text('Spiegeln'), findsOneWidget);
+      await tap(t, find.text('Filter'));
+      await t.pumpAndSettle();
+      expect(find.text('Warm'), findsOneWidget);
+      expect(find.text('Sättigung'), findsOneWidget);
+      await tap(t, find.text('Abbrechen').last);
+      await t.pumpAndSettle();
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      resume = c.dialogDrafts.single;
+      expect(resume.data['tags'], ['Mathe', 'Probe']);
+      await t.tap(find.text('Öffnen'));
+      await t.pumpAndSettle();
+      expect(
+        t
+            .widget<TextField>(find.byKey(const ValueKey('scan-tags')))
+            .controller!
+            .text,
+        'Mathe, Probe',
+      );
+      await tap(t, find.byKey(const ValueKey('save-scan')));
+      await settleWork(t, () => result != null);
+      expect(result!.text('extension'), 'jpg');
+      expect(result!.strings('tags'), ['Mathe', 'Probe']);
+      expect(result!.strings('pupilIds'), ['p']);
+      expect(c.dialogDrafts, isEmpty);
+      expect(files.values, hasLength(1));
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'interrupted native photo is recovered once and acknowledged only after durable draft',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      DialogDraft? resume;
+      var acknowledged = 0;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(FlexDevice.channel, (call) async {
+            if (call.method == 'capturePhoto') {
+              expect(c.dialogDrafts.single.data['capturePending'], true);
+              throw PlatformException(code: 'activity_closed');
+            }
+            if (call.method == 'recoverPhoto') {
+              return {'token': 'captured-photo', 'bytes': scannerImage()};
+            }
+            if (call.method == 'finishPhoto') {
+              final stored = (await c.repository.dialogDrafts()).single;
+              final page = (stored.data['pages'] as List).single;
+              expect(page['captureToken'], 'captured-photo');
+              expect(await files.exists(page['key'] as String), true);
+              acknowledged++;
+            }
+            return null;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(FlexDevice.channel, null),
+      );
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: resume),
+      );
+      await tap(t, find.byKey(const ValueKey('scanner-photo')));
+      await t.pumpAndSettle();
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      resume = c.dialogDrafts.single;
+      await t.tap(find.text('Öffnen'));
+      await t.pump();
+      await settleWork(
+        t,
+        () =>
+            acknowledged == 1 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(c.dialogDrafts.single.data['capturePending'], false);
+      expect(c.dialogDrafts.single.data['pages'] as List, hasLength(1));
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      resume = c.dialogDrafts.single;
+      await t.tap(find.text('Öffnen'));
+      await t.pumpAndSettle();
+      expect(acknowledged, 1);
+      expect(files.values, hasLength(1));
+      await t.pumpWidget(const SizedBox());
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
   testWidgets(
     'import, naming, focus, resume, reorder and PDF save preserve pupil context',
     (t) async {

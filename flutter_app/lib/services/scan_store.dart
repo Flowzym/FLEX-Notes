@@ -1,3 +1,4 @@
+import 'package:flex_device/flex_device.dart';
 import 'package:flutter/foundation.dart';
 
 import '../domain/classroom.dart';
@@ -32,6 +33,13 @@ Future<void> discardScan(
   MaterialFiles files,
   DialogDraft draft,
 ) async {
+  if (!kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      draft.data['capturePending'] == true) {
+    await FlexDevice.channel.invokeMethod<void>('discardPhoto', {
+      'draftId': draft.id,
+    });
+  }
   await repo.discardDialogDraft(draft.id, draft.revision);
   await removeUnusedScanFiles(
     repo,
@@ -52,7 +60,7 @@ Future<ClassroomDocument> saveScan(
       .map((p) => ScanPage.fromJson(Json.from(p as Map)))
       .toList();
   if ((data['title'] as String).trim().isEmpty) {
-    throw const DomainError('Bitte die PDF benennen.');
+    throw const DomainError('Bitte die Datei benennen.');
   }
   if (pages.isEmpty) {
     throw const DomainError('Bitte zuerst eine Seite scannen oder hinzufügen.');
@@ -80,38 +88,60 @@ Future<ClassroomDocument> saveScan(
     }
     inputs.add(bytes);
   }
-  final pdf = await compute(scanPdf, inputs);
-  final key = newId();
-  final fields = <String, dynamic>{
-    'title': (data['title'] as String).trim(),
-    'name': scanFilename(data['title'] as String),
-    'documentType': data['documentType'],
-    'subject': data['subject'],
-    'pupilIds': data['pupilIds'],
-    'links': data['links'],
-    'extension': 'pdf',
-    'localKey': key,
-    'size': pdf.length,
-    'scan': true,
-    'pageCount': pages.length,
-    // Editing creates a local PDF. It must never silently overwrite, refresh
-    // from, or claim to be the original remote OneDrive file.
-    'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
-  };
-  final document = source == null
-      ? ClassroomDocument.create(
-          ClassroomKind.material,
-          fields['title'] as String,
-          fields,
-          id: draft.ownerId,
-        )
-      : source.patch(fields);
-  await files.write(key, pdf);
+  final photo = data['outputFormat'] == 'jpg';
+  if (replace && photo && pages.length != 1) {
+    throw const DomainError(
+      'Zum Ersetzen eines Fotos bitte genau ein Bild behalten.',
+    );
+  }
+  final outputs = photo ? inputs : [await compute(scanPdf, inputs)];
+  final keys = <String>[];
+  final documents = <ClassroomDocument>[];
   late ClassroomDocument saved;
   try {
-    saved = await repo.saveClassroomDocument(document, draft: draft);
+    for (final item in outputs.indexed) {
+      final key = newId();
+      keys.add(key);
+      final title =
+          '${(data['title'] as String).trim()}${outputs.length > 1 ? ' · ${item.$1 + 1}' : ''}';
+      final fields = <String, dynamic>{
+        'title': title,
+        'name': scanFilename(title, extension: photo ? 'jpg' : 'pdf'),
+        'documentType': data['documentType'], 'subject': data['subject'],
+        'pupilIds': data['pupilIds'],
+        'links': data['links'],
+        'tags': data['tags'] ?? <String>[],
+        'extension': photo ? 'jpg' : 'pdf',
+        'localKey': key,
+        'size': item.$2.length,
+        'scan': !photo, 'pageCount': photo ? 1 : pages.length,
+        // Edited files are local copies, independent of remote originals.
+        'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
+      };
+      documents.add(
+        source == null
+            ? ClassroomDocument.create(
+                ClassroomKind.material,
+                title,
+                fields,
+                id: item.$1 == 0 ? draft.ownerId : newId(),
+              )
+            : source.patch(fields),
+      );
+      await files.write(key, item.$2);
+    }
+    if (documents.length == 1) {
+      saved = await repo.saveClassroomDocument(documents.single, draft: draft);
+    } else {
+      await repo.saveClassroomDocuments(documents, draft: draft);
+      saved = documents.first.patch({'revision': 1});
+    }
   } catch (_) {
-    await files.remove(key);
+    for (final key in keys) {
+      try {
+        await files.remove(key);
+      } catch (_) {}
+    }
     rethrow;
   }
   // The committed document survives a best-effort cleanup failure.

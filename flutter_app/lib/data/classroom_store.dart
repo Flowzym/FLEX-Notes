@@ -86,8 +86,16 @@ mixin ClassroomStore on SchoolStore {
     DialogDraft? draft,
   }) => db.transaction(() async {
     if (draft != null) {
-      if (draft.type != 'classroom' ||
-          !values.any((d) => d.id == draft.ownerId)) {
+      final scan =
+          draft.type == 'scan' &&
+          values.isNotEmpty &&
+          values.first.id == draft.ownerId &&
+          values.every(
+            (d) => d.kind == ClassroomKind.material && d.revision == 0,
+          );
+      if (!scan &&
+          (draft.type != 'classroom' ||
+              !values.any((d) => d.id == draft.ownerId))) {
         throw const DomainError('Ungültiger Klassenentwurf.');
       }
       await discardDialogDraft(draft.id, draft.revision);

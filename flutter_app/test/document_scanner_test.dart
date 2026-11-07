@@ -76,6 +76,108 @@ void main() {
   }
 
   test(
+    'photo export keeps tags and links and round trips encrypted material backup',
+    () async {
+      final d = await draft(
+        fields: {
+          'outputFormat': 'jpg',
+          'tags': scanTags(' #Mathe, Probe, mathe, ,'),
+        },
+      );
+      final saved = await saveScan(repo, files, d);
+      expect(saved.text('extension'), 'jpg');
+      expect(saved.strings('tags'), ['Mathe', 'Probe']);
+      expect(saved.strings('pupilIds'), ['p']);
+      final bytes = files.values[saved.text('localKey')]!;
+      validateMaterialBytes(bytes, 'jpg');
+      expect(img.decodeJpg(bytes), isNotNull);
+      final backup = await MaterialBundle.encode(
+        [saved],
+        files.values,
+        'test-photo-backup-password',
+      );
+      final restored = await MaterialBundle.decode(
+        backup,
+        'test-photo-backup-password',
+      );
+      expect(restored.documents.single.strings('tags'), ['Mathe', 'Probe']);
+      expect(restored.files[saved.text('localKey')], bytes);
+    },
+  );
+  test(
+    'multiple JPGs commit together and failed references retain all draft images',
+    () async {
+      final first = await draft();
+      final other = normalizeScan(scannerImage(width: 240, height: 180));
+      final key = newId();
+      await files.write(key, other['bytes'] as Uint8List);
+      final d = await repo.saveDialogDraft(
+        DialogDraft(
+          id: first.id,
+          type: 'scan',
+          ownerId: first.ownerId,
+          updatedAtUtc: utcNow(),
+          revision: first.revision,
+          data: {
+            ...first.data,
+            'outputFormat': 'jpg',
+            'pages': [
+              ...first.data['pages'] as List,
+              ScanPage(key, 240, 180, photo: true).toJson(),
+            ],
+            'links': [const DocumentLink('orga', 'missing').toJson()],
+          },
+        ),
+      );
+      final keys = files.values.keys.toSet();
+      await expectLater(saveScan(repo, files, d), throwsA(isA<DomainError>()));
+      expect(files.values.keys.toSet(), keys);
+      expect(await repo.classroomDocuments(), isEmpty);
+      final fixed = await repo.saveDialogDraft(
+        DialogDraft(
+          id: d.id,
+          type: 'scan',
+          ownerId: d.ownerId,
+          updatedAtUtc: utcNow(),
+          revision: d.revision,
+          data: {...d.data, 'links': <Json>[]},
+        ),
+      );
+      await saveScan(repo, files, fixed);
+      final docs = await repo.classroomDocuments();
+      expect(docs, hasLength(2));
+      expect(files.values, hasLength(2));
+      expect(docs.map((d) => d.text('extension')), everyElement('jpg'));
+      expect(docs.map((d) => d.title).toSet(), hasLength(2));
+      expect(await repo.dialogDrafts(), isEmpty);
+    },
+  );
+  test(
+    'photo filters, mirror and saturation preserve committed redactions',
+    () {
+      final redacted = editScanPixels({
+        'bytes': scannerImage(),
+        'redactions': [
+          [.1, .1, .4, .4],
+        ],
+      });
+      final edited = editScanPixels({
+        'bytes': redacted['bytes'],
+        'flip': true,
+        'filter': 'warm',
+        'saturation': 1.4,
+      });
+      final pixels = img.decodeJpg(edited['bytes'] as Uint8List)!;
+      final hidden = pixels.getPixel(140, 60);
+      expect(hidden.luminance, lessThan(10));
+      final color = pixels.getPixel(90, 140);
+      expect(color.r, greaterThan(color.b));
+      final gray = editScanPixels({'bytes': scannerImage(), 'saturation': 0});
+      final g = img.decodeJpg(gray['bytes'] as Uint8List)!.getPixel(90, 120);
+      expect((g.r - g.b).abs(), lessThan(3));
+    },
+  );
+  test(
     'scan context limits filename, validates links and never guesses students from text',
     () {
       final data = ScanContext(

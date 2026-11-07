@@ -161,10 +161,14 @@ void main() {
       await tap(t, find.byKey(const ValueKey('page-1')));
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
-      expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
-      await capture(t, key, 'calendar-phone');
+      expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
+      expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-shortcut')));
+      expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
+      await capture(t, key, 'calendar-phone');
+      await tap(t, find.byKey(const ValueKey('bottom-3')));
       expect(find.text('Wochenplan · Lesen'), findsOneWidget);
       await capture(t, key, 'materials-phone');
       expect(t.takeException(), isNull);
@@ -177,15 +181,15 @@ void main() {
       var selected = -1;
       await host(
         t,
-        (_) => FlexPagePills(
-          selected: 0,
-          onSelected: (v) => selected = v,
-          classroomPages: true,
-          more: const Icon(Icons.more_horiz),
-        ),
+        (_) => FlexPagePills(selected: 0, onSelected: (v) => selected = v),
         scale: 2,
       );
-      final shell = t.getRect(find.byKey(const ValueKey('page-pill-shell')));
+      final shell = t.getRect(find.byKey(const ValueKey('page-pills')));
+      final active = t.getRect(find.byKey(const ValueKey('page-0')));
+      final track = t.getRect(find.byKey(const ValueKey('page-track-0')));
+      expect(active.top, lessThan(track.top));
+      expect(active.bottom, greaterThan(track.bottom));
+      expect(active.left, lessThan(track.left));
       for (final i in [0, 1, 2, 3]) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);

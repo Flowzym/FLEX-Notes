@@ -1,8 +1,12 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.24+44**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.25+45**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
+
+Build 45 ergänzt die untere Bereichsnavigation, kontextabhängige obere Pillen,
+normale Kameraaufnahmen, Fotobearbeitung, JPG-Speicherung und Tags.
+[Bedienung und Prüfung](../audit/NAVIGATION_FOTOS_BUILD_45.md).
 
 Build 44 ergänzt den Dokumentenscanner mit automatischer Zuordnung, mehrseitiger PDF,
 Zuschnitt, Filtern und echter Schwärzung. Entwürfe können fortgesetzt und gelöscht werden.

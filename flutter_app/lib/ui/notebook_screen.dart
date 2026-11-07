@@ -48,11 +48,14 @@ class NotebookScreen extends StatefulWidget {
 
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
-  int _primary = 0;
+  int _primary = 0, _destination = 1, _materialView = 0, _moreView = 0;
+  final _visited = <int>{1};
+  final _dataLayout = SettingsLayoutState()..tab = 2;
+  DateTime? _calendarShortcutDate, _timetableShortcutDate;
+  int _calendarShortcutRevision = 0, _timetableShortcutRevision = 0;
   String? _overviewSection;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
-  String? _aux;
   VoidCallback? _refreshPupilDialog;
   void _changeView(VoidCallback action) {
     if (!mounted) return;
@@ -151,18 +154,19 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   final _busyIds = <String>{};
-  void _main(int index) {
-    final fromAux = _aux != null;
+  void _sectionTo(int index) {
     FocusManager.instance.primaryFocus?.unfocus();
     _changeView(() {
-      _primary = index;
-      _aux = null;
+      _destination = index;
+      _visited.add(index);
     });
+  }
+
+  void _main(int index) {
+    _sectionTo(1);
+    _changeView(() => _primary = index);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_pages.hasClients) return;
-      if (fromAux) {
-        _pages.jumpToPage(index);
-      } else {
+      if (mounted && _pages.hasClients) {
         _pages.animateToPage(
           index,
           duration: const Duration(milliseconds: 220),
@@ -170,6 +174,18 @@ class _NotebookScreenState extends State<NotebookScreen> {
         );
       }
     });
+  }
+
+  void _calendarShortcut(bool timetable, DateTime date) {
+    if (timetable) {
+      _timetableShortcutDate = date;
+      _timetableShortcutRevision++;
+      _main(3);
+    } else {
+      _calendarShortcutDate = date;
+      _calendarShortcutRevision++;
+      _sectionTo(2);
+    }
   }
 
   Future<void> _editor(OrgaEntry entry, {String? draftId}) async {
@@ -389,52 +405,161 @@ class _NotebookScreenState extends State<NotebookScreen> {
     );
   }
 
-  PopupMenuButton<String> _more() => PopupMenuButton<String>(
-    tooltip: 'Weitere Bereiche',
-    child: const SizedBox(
-      width: double.infinity,
-      height: 42,
-      child: Center(child: Text('…')),
-    ),
-    onSelected: (value) {
-      if (value == 'conflicts') {
-        showDialog<void>(
-          context: context,
-          builder: (_) => ConflictDialog(controller: c),
-        );
-      } else if (value == 'bulk') {
-        showBulk(context, c);
-      } else if (value == 'returns') {
-        showReturnLists(context, c);
-      } else if (['drafts', 'class', 'trash'].contains(value)) {
-        _auxDialog(value);
-      } else {
-        _changeView(() => _aux = value);
-      }
-    },
-    itemBuilder: (_) => [
-      const PopupMenuItem(
-        value: 'conflicts',
-        child: Text('Änderungskonflikte'),
+  static const _morePages = {
+    0: 'Weitere',
+    1: 'Archiv',
+    2: 'Papierkorb',
+    3: 'Daten',
+    4: 'Einstellungen',
+  };
+  static const _materialPages = {
+    0: 'Dateien',
+    1: 'Bereitgelegt',
+    2: 'Pakete',
+    3: 'Planungen',
+  };
+  static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
+  Widget _placeholder(String title, IconData icon) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text(
+            'Dieser Bereich wird noch gestaltet.',
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
-      const PopupMenuItem(value: 'bulk', child: Text('Für mehrere erfassen')),
-      const PopupMenuItem(value: 'class', child: Text('Klassen-Orga')),
-      const PopupMenuItem(value: 'returns', child: Text('Rückläufe')),
-      PopupMenuItem(value: 'drafts', child: Text('Entwürfe (${c.draftCount})')),
-      const PopupMenuItem(value: 'archive', child: Text('Archiv')),
-      const PopupMenuItem(value: 'trash', child: Text('Papierkorb')),
-      const PopupMenuItem(value: 'groups', child: Text('Gruppenerfassungen')),
-      const PopupMenuItem(value: 'settings', child: Text('Einstellungen')),
+    ),
+  );
+  Widget _moreHome() => ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      for (final item in <(String, IconData, VoidCallback)>[
+        (
+          'Entwürfe (${c.draftCount})',
+          Icons.edit_note,
+          () => _auxDialog('drafts'),
+        ),
+        ('Klassen-Orga', Icons.assignment_outlined, _classOrga),
+        (
+          'Rückläufe',
+          Icons.fact_check_outlined,
+          () => showReturnLists(context, c),
+        ),
+        (
+          'Für mehrere erfassen',
+          Icons.group_add_outlined,
+          () => showBulk(context, c),
+        ),
+        (
+          'Gruppenerfassungen',
+          Icons.groups_outlined,
+          () => showDialog<void>(
+            context: context,
+            builder: (ctx) => FlexModal(
+              title: const Text('Gruppenerfassungen'),
+              onClose: () => Navigator.pop(ctx),
+              scrollable: false,
+              content: SizedBox(
+                height: MediaQuery.sizeOf(ctx).height * .65,
+                child: SchoolTools(controller: c, mode: 'groups'),
+              ),
+            ),
+          ),
+        ),
+        (
+          'Änderungskonflikte',
+          Icons.compare_arrows,
+          () => showDialog<void>(
+            context: context,
+            builder: (_) => ConflictDialog(controller: c),
+          ),
+        ),
+        (
+          'Material-Papierkorb',
+          Icons.delete_sweep_outlined,
+          () => showDialog<void>(
+            context: context,
+            builder: (ctx) => FlexModal(
+              title: const Text('Material-Papierkorb'),
+              maxWidth: 1000,
+              onClose: () => Navigator.pop(ctx),
+              scrollable: false,
+              content: SizedBox(
+                height: MediaQuery.sizeOf(ctx).height * .7,
+                child: MaterialLibraryPage(
+                  controller: c,
+                  externalView: 'files',
+                  initialTrash: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ])
+        Card(
+          child: ListTile(
+            leading: Icon(item.$2),
+            title: Text(item.$1),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: item.$3,
+          ),
+        ),
     ],
   );
+  Widget _moreBody() => switch (_moreView) {
+    1 => _pupils(archived: true),
+    2 => Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  MaintenanceDialog(controller: c, emptyTrash: true),
+            ),
+            child: const Text('Papierkorb endgültig leeren'),
+          ),
+        ),
+        Expanded(
+          child: SchoolTools(controller: c, mode: 'trash'),
+        ),
+      ],
+    ),
+    3 => SettingsPage(
+      key: const ValueKey('data-page'),
+      controller: c,
+      layout: _dataLayout,
+      dataOnly: true,
+    ),
+    4 => SettingsPage(
+      key: const ValueKey('settings-page'),
+      controller: c,
+      layout: _settingsLayout,
+      includeDataTab: false,
+    ),
+    _ => _moreHome(),
+  };
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: _aux == null,
-    onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) _main(_primary);
+    canPop: _destination == 1 && _primary == 0,
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) _main(0);
     },
     child: Scaffold(
+      bottomNavigationBar: FlexBottomNavigation(
+        selected: _destination,
+        onSelected: _sectionTo,
+      ),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             if (c.appearanceError != null)
@@ -442,18 +567,40 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 content: Text(c.appearanceError!),
                 actions: [
                   TextButton(
-                    onPressed: () => _changeView(() => _aux = 'settings'),
+                    onPressed: () {
+                      _sectionTo(4);
+                      _changeView(() => _moreView = 4);
+                    },
                     child: const Text('Einstellungen'),
                   ),
                 ],
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
               child: FlexPagePills(
-                selected: _aux == null ? _primary : 4,
-                classroomPages: true,
-                onSelected: _main,
-                more: _more(),
+                keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
+                selected: switch (_destination) {
+                  1 => _primary,
+                  3 => _materialView,
+                  4 => _moreView,
+                  _ => 0,
+                },
+                pages: switch (_destination) {
+                  0 => const {0: 'Übersicht'},
+                  1 => livePages,
+                  2 => const {0: 'Kalender'},
+                  3 => _materialPages,
+                  _ => _morePages,
+                },
+                onSelected: (index) {
+                  if (_destination == 1) {
+                    _main(index);
+                  } else if (_destination == 3) {
+                    _changeView(() => _materialView = index);
+                  } else if (_destination == 4) {
+                    _changeView(() => _moreView = index);
+                  }
+                },
               ),
             ),
             Expanded(
@@ -461,7 +608,54 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1400),
-                  child: _body(),
+                  child: IndexedStack(
+                    index: _destination,
+                    children: [
+                      _placeholder('Übersicht', Icons.dashboard_outlined),
+                      PageView(
+                        key: const ValueKey('main-pages'),
+                        controller: _pages,
+                        onPageChanged: (index) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          _changeView(() => _primary = index);
+                        },
+                        children: [
+                          _overview(),
+                          _pupils(),
+                          _placeholder('Ablauf', Icons.route_outlined),
+                          CalendarPage(
+                            key: const ValueKey('live-timetable'),
+                            controller: c,
+                            initialTimetable: true,
+                            shortcutDate: _timetableShortcutDate,
+                            shortcutRevision: _timetableShortcutRevision,
+                            onSwitchSection: _calendarShortcut,
+                          ),
+                        ],
+                      ),
+                      if (_visited.contains(2))
+                        CalendarPage(
+                          key: const ValueKey('organisation-calendar'),
+                          controller: c,
+                          shortcutDate: _calendarShortcutDate,
+                          shortcutRevision: _calendarShortcutRevision,
+                          onSwitchSection: _calendarShortcut,
+                        )
+                      else
+                        const SizedBox(),
+                      if (_visited.contains(3))
+                        MaterialLibraryPage(
+                          controller: c,
+                          externalView: _materialViews[_materialView],
+                        )
+                      else
+                        const SizedBox(),
+                      if (_visited.contains(4))
+                        _moreBody()
+                      else
+                        const SizedBox(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -470,39 +664,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
       ),
     ),
   );
-
-  Widget _body() {
-    if (_aux == 'settings') {
-      return SettingsPage(controller: c, layout: _settingsLayout);
-    }
-    if (_aux == 'trash' || _aux == 'groups') {
-      return SchoolTools(controller: c, mode: _aux!);
-    }
-    if (_aux == 'drafts') return _drafts();
-    if (_aux == 'archive') return _pupils(archived: true);
-    if (_aux == 'class') {
-      return _entries(
-        c.entries.where((e) => e.pupilId == null).toList(),
-        scope: 'class',
-        orga: true,
-        pupil: null,
-      );
-    }
-    return PageView(
-      key: const ValueKey('main-pages'),
-      controller: _pages,
-      onPageChanged: (index) {
-        FocusManager.instance.primaryFocus?.unfocus();
-        _changeView(() => _primary = index);
-      },
-      children: [
-        _overview(),
-        _pupils(),
-        CalendarPage(controller: c),
-        MaterialLibraryPage(controller: c),
-      ],
-    );
-  }
 
   Future<void> _pupilDrafts(Pupil pupil) => showDialog<void>(
     context: context,
