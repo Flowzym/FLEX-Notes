@@ -82,3 +82,7 @@ Materialsicherung und die Navigation bei schmalen Ansichten und großer Schrift.
 [Prüfdateien und synthetische Bildschirmaufnahmen](navigation-fotos-build45/) ·
 [Android-Download](../releases/android/build-45/README.md) ·
 [GitHub-Pipeline](https://github.com/Flowzym/FLEX-Notes/actions/runs/42398342688).
+
+GitHub-Lauf **42398342688** ist vollständig erfolgreich: Analyse und Tests,
+Web-Build mit HTTP-Tests, Android-Releasebuild und abschließender Gesamtcheck.
+Der geprüfte Releasecommit enthält dieselben Appquellen wie der APK-Quellcommit.
