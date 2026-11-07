@@ -49,6 +49,7 @@ List<CalendarItem> calendarItems(
         category: 'lesson',
         detail: [
           l.document.text('subject'),
+          l.document.text('teacher'),
           l.document.text('room'),
         ].where((s) => s.isNotEmpty).join(' · '),
         lesson: l,

@@ -502,6 +502,7 @@ class DialogDraft {
             'holiday',
             'material',
             'materialSet',
+            'timetable',
             'plan',
             'returnList',
           ].contains(data['kind']) ||
@@ -514,6 +515,8 @@ class DialogDraft {
             'start',
             'end',
             'subject',
+            'teacher',
+            'timetableId',
             'room',
             'note',
             'url',
@@ -534,6 +537,8 @@ class DialogDraft {
             'tags',
             'participants',
             'exceptions',
+            'slots',
+            'slotIds',
           ].any((key) => data.containsKey(key) && data[key] is! List)) {
         throw const DomainError('Ungültiger Klassenentwurf.');
       }

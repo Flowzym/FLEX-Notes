@@ -74,6 +74,7 @@ Future<void> showCalendarItem(
               Text(
                 [
                   doc.text('subject'),
+                  doc.text('teacher'),
                   'FLEX-Klasse',
                   doc.text('room'),
                 ].where((v) => v.isNotEmpty).join(' · '),

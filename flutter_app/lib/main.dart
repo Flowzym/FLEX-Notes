@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'application/notebook_controller.dart';
 import 'ui/app.dart';
 import 'domain/models.dart';
+import 'domain/timetable.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,8 @@ Future<void> main() async {
         : null;
     final controller = NotebookController(repository, services: services);
     await controller.initialize();
+    await initializeFlexTimetable(repository);
+    await controller.reload();
     runApp(FlexApp(controller: controller));
   } catch (error) {
     runApp(

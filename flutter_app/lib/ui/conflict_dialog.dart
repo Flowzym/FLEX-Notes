@@ -12,6 +12,11 @@ const conflictFieldLabels = <String, String>{
   'title': 'Titel',
   'body': 'Notiz',
   'subject': 'Auftrag / Fach',
+  'teacher': 'Lehrkraft',
+  'timetableId': 'Stundenplan',
+  'slotIds': 'Unterrichtsstunden',
+  'slots': 'Stundenzeiten',
+  'label': 'Bezeichnung',
   'taskFree': 'Freier Auftrag',
   'taskTags': 'Auftrag-Tags',
   'positive': 'Positive Beobachtungen',
@@ -113,7 +118,10 @@ String conflictText(String key, Object? value, NotebookController c) {
   if ((key == 'paid' || key == 'amountDue') && value is int) {
     return '${(value / 100).toStringAsFixed(2)} €';
   }
-  if ((key == 'materialIds' || key == 'lessonIds' || key == 'planIds') &&
+  if ((key == 'materialIds' ||
+          key == 'lessonIds' ||
+          key == 'planIds' ||
+          key == 'timetableId') &&
       value is String) {
     return c.classroom.where((d) => d.id == value).firstOrNull?.title ??
         'Material nicht verfügbar';

@@ -27,12 +27,15 @@ class CalendarTimeline extends StatelessWidget {
     required this.onDay,
     required this.selectedDate,
     this.week = false,
+    this.showDates = true,
+    this.highlightNow = true,
+    this.showBlockDetails = false,
   });
   final List<DateTime> days;
   final List<CalendarItem> items;
   final DateTime now;
   final String selectedDate;
-  final bool week;
+  final bool week, showDates, highlightNow, showBlockDetails;
   final ValueChanged<CalendarItem> onOpen;
   final ValueChanged<DateTime> onDay;
 
@@ -58,8 +61,8 @@ class CalendarTimeline extends StatelessWidget {
       );
       final headHeight = week ? 64.0 * scale : 0.0;
       final scheme = Theme.of(ctx).colorScheme;
-      final current = currentCalendarItem(items, now),
-          next = nextCalendarItem(items, now);
+      final current = highlightNow ? currentCalendarItem(items, now) : null,
+          next = highlightNow ? nextCalendarItem(items, now) : null;
       final body = SizedBox(
         width: width,
         height: height + headHeight + 20,
@@ -99,9 +102,11 @@ class CalendarTimeline extends StatelessWidget {
                   child: Semantics(
                     selected: dateOnly(days[dayIndex]) == selectedDate,
                     label:
-                        '${calendarWeekday(days[dayIndex])}, ${dateOnly(days[dayIndex])}, Tagesansicht öffnen',
+                        '${calendarWeekday(days[dayIndex])}${showDates ? ', ${dateOnly(days[dayIndex])}' : ''}, Tagesansicht öffnen',
                     child: Material(
-                      color: dateOnly(days[dayIndex]) == dateOnly(now)
+                      color:
+                          highlightNow &&
+                              dateOnly(days[dayIndex]) == dateOnly(now)
                           ? scheme.primary.withValues(alpha: .14)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
@@ -115,10 +120,11 @@ class CalendarTimeline extends StatelessWidget {
                               calendarWeekday(days[dayIndex], short: true),
                               style: Theme.of(ctx).textTheme.labelLarge,
                             ),
-                            Text(
-                              '${days[dayIndex].day}.${days[dayIndex].month}.',
-                              style: Theme.of(ctx).textTheme.bodySmall,
-                            ),
+                            if (showDates)
+                              Text(
+                                '${days[dayIndex].day}.${days[dayIndex].month}.',
+                                style: Theme.of(ctx).textTheme.bodySmall,
+                              ),
                           ],
                         ),
                       ),
@@ -131,7 +137,8 @@ class CalendarTimeline extends StatelessWidget {
                 left: axis + dayIndex * colWidth,
                 child: VerticalDivider(width: 1, color: scheme.outlineVariant),
               ),
-              if (dateOnly(days[dayIndex]) == dateOnly(now) &&
+              if (highlightNow &&
+                  dateOnly(days[dayIndex]) == dateOnly(now) &&
                   now.hour * 60 + now.minute >= hours.start &&
                   now.hour * 60 + now.minute < hours.end)
                 Positioned(
@@ -232,6 +239,7 @@ class CalendarTimeline extends StatelessWidget {
                       child: _TimeBlock(
                         item: placement.item,
                         compact: week,
+                        details: showBlockDetails,
                         current: placement.item.id == current?.id,
                         next: placement.item.id == next?.id,
                         onTap: () => onOpen(placement.item),
@@ -257,12 +265,13 @@ class _TimeBlock extends StatelessWidget {
   const _TimeBlock({
     required this.item,
     required this.compact,
+    required this.details,
     required this.current,
     required this.next,
     required this.onTap,
   });
   final CalendarItem item;
-  final bool compact, current, next;
+  final bool compact, current, next, details;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
@@ -325,7 +334,7 @@ class _TimeBlock extends StatelessWidget {
                     ),
                     if (box.maxHeight > 40 * scale)
                       Text(
-                        compact ? item.time : time,
+                        compact && !details ? item.time : time,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
@@ -333,7 +342,7 @@ class _TimeBlock extends StatelessWidget {
                           height: 1.2,
                         ),
                       ),
-                    if (!compact &&
+                    if ((!compact || details) &&
                         !narrow &&
                         box.maxHeight > 65 * scale &&
                         item.detail.isNotEmpty)

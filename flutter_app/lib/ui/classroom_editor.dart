@@ -433,6 +433,7 @@ Future<void> showClassroomEditor(
               if (data['_occurrenceDate'] == null) ...[
                 text('subject', 'Fach'),
                 text('room', 'Raum · optional'),
+                text('teacher', 'Lehrkraft / Kürzel · optional'),
               ],
               day('date', 'Beginn / Datum'),
               Row(

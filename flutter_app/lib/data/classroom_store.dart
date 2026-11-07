@@ -109,6 +109,27 @@ mixin ClassroomStore on SchoolStore {
         .map((d) => d.id)
         .toSet();
     for (final d in docs) {
+      if (d.text('timetableId').isNotEmpty) {
+        final timetable = docs
+            .where(
+              (t) =>
+                  t.id == d.text('timetableId') &&
+                  t.kind == ClassroomKind.timetable,
+            )
+            .firstOrNull;
+        final slots =
+            timetable?.rows('slots').map((s) => s['id']).toList() ?? [];
+        final selected = d.strings('slotIds');
+        final first = selected.isEmpty ? -1 : slots.indexOf(selected.first);
+        if (timetable == null ||
+            first < 0 ||
+            first + selected.length > slots.length ||
+            selected.indexed.any((e) => slots[first + e.$1] != e.$2)) {
+          throw const DomainError(
+            'Die Unterrichtszeit gehört zu keinem gültigen Stundenplan.',
+          );
+        }
+      }
       if (!materials.containsAll(d.strings('materialIds')) ||
           d
               .rows('exceptions')

@@ -24,6 +24,7 @@ import 'reminder_actions.dart';
 import 'return_lists.dart';
 import 'school_workspace.dart';
 import 'calendar_timeline.dart';
+import 'timetable.dart';
 
 part 'calendar_detail.dart';
 
@@ -50,6 +51,11 @@ Future<void> showCalendarManagement(
             runSpacing: 6,
             children: [
               OutlinedButton.icon(
+                onPressed: () => showTimetable(ctx, c),
+                icon: const Icon(Icons.table_chart_outlined),
+                label: const Text('Stundenplan'),
+              ),
+              OutlinedButton.icon(
                 onPressed: () => showClassroomEditor(
                   ctx,
                   c,
@@ -57,7 +63,7 @@ Future<void> showCalendarManagement(
                   date: date,
                 ),
                 icon: const Icon(Icons.school_outlined),
-                label: const Text('Unterricht / Stundenplan'),
+                label: const Text('Unterricht'),
               ),
               OutlinedButton.icon(
                 onPressed: () => showClassroomEditor(
@@ -1086,6 +1092,12 @@ class _CalendarPageState extends State<CalendarPage>
                       for (final action in [
                         ('Anlegen', Icons.add, addEntry),
                         (
+                          'Stundenplan',
+                          Icons.table_chart_outlined,
+                          () =>
+                              showTimetable(ctx, c, weekday: selected.weekday),
+                        ),
+                        (
                           'Unterlagen',
                           Icons.folder_open_outlined,
                           () => showPreparedMaterials(
@@ -1115,7 +1127,7 @@ class _CalendarPageState extends State<CalendarPage>
                         SizedBox(
                           width:
                               (MediaQuery.sizeOf(ctx).width - 16) /
-                              (largeText ? 2 : 3),
+                              (largeText ? 2 : 4),
                           child: TextButton(
                             onPressed: busy ? null : action.$3,
                             style: TextButton.styleFrom(

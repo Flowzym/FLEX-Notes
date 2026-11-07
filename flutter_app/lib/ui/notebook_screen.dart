@@ -27,6 +27,7 @@ import '../domain/material_workspace.dart';
 import '../domain/calendar.dart';
 import 'classroom_editor.dart';
 import 'calendar_page.dart';
+import 'timetable.dart';
 import 'material_library.dart';
 import 'return_lists.dart';
 import 'repeat_editor.dart';
@@ -1482,7 +1483,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     '${d.data['text'] ?? d.data['context'] ?? d.data['body'] ?? ''}',
                 time: d.updatedAtUtc,
                 open: () {
-                  if (d.type == 'classroom') {
+                  if (d.type == 'classroom' &&
+                      (d.data['kind'] == 'timetable' ||
+                          d.data['_timetableEditor'] == true)) {
+                    guarded(context, () => resumeTimetableDraft(context, c, d));
+                  } else if (d.type == 'classroom') {
                     showClassroomEditor(
                       context,
                       c,

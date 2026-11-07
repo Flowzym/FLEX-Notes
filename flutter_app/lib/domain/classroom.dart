@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'models.dart';
 
 enum ClassroomKind {
+  timetable,
   lesson,
   holiday,
   material,
@@ -218,6 +219,7 @@ class ClassroomDocument {
       ClassroomDocument.fromJson({...toJson(), ...fields});
   RepeatRule get rule => RepeatRule.fromJson(map('repeat'));
   String get label => switch (kind) {
+    ClassroomKind.timetable => 'Stundenplan',
     ClassroomKind.lesson => 'Unterricht',
     ClassroomKind.holiday => 'Ferien / Ausfall',
     ClassroomKind.material => 'Material',
@@ -244,6 +246,7 @@ class ClassroomDocument {
       throw const DomainError('Ungültiger Klassen-Eintrag.');
     }
     final fields = switch (kind) {
+      ClassroomKind.timetable => {'date', 'endDate', 'slots'},
       ClassroomKind.lesson => {
         'date',
         'start',
@@ -258,6 +261,9 @@ class ClassroomDocument {
         'icsSource',
         'icsStamp',
         'remindMinutes',
+        'timetableId',
+        'slotIds',
+        'teacher',
       },
       ClassroomKind.holiday => {'date', 'endDate'},
       ClassroomKind.material => {
@@ -337,18 +343,69 @@ class ClassroomDocument {
     )) {
       throw const DomainError('Unbekannte Datenfelder im Klassen-Eintrag.');
     }
-    for (final key in ['note', 'subject', 'topic', 'room']) {
+    for (final key in ['note', 'subject', 'topic', 'room', 'teacher']) {
       if (text(key).length > (key == 'note' ? 20000 : 200)) {
         throw const DomainError('Der Text ist zu lang.');
       }
     }
-    for (final key in ['materialIds', 'pupilIds', 'lessonIds', 'tags']) {
+    for (final key in [
+      'materialIds',
+      'pupilIds',
+      'lessonIds',
+      'tags',
+      'slotIds',
+    ]) {
       final values = strings(key);
       if (values.length > 5000 ||
           values.toSet().length != values.length ||
           values.any((v) => v.trim().isEmpty || v.length > 250)) {
         throw const DomainError('Ungültige oder doppelte Zuordnung.');
       }
+    }
+    if (kind == ClassroomKind.timetable) {
+      final slots = rows('slots');
+      if (!validDate(text('date')) ||
+          text('endDate').isNotEmpty &&
+              (!validDate(text('endDate')) ||
+                  text('endDate').compareTo(text('date')) < 0) ||
+          slots.isEmpty ||
+          slots.length > 20) {
+        throw const DomainError('Bitte Gültigkeit und Stundenzeiten prüfen.');
+      }
+      var end = '';
+      final ids = <String>{};
+      for (final slot in slots) {
+        final id = slot['id'],
+            label = slot['label'],
+            start = slot['start'],
+            finish = slot['end'];
+        if (slot.keys.any(
+              (k) => !{'id', 'label', 'start', 'end'}.contains(k),
+            ) ||
+            id is! String ||
+            id.isEmpty ||
+            id.length > 250 ||
+            !ids.add(id) ||
+            label is! String ||
+            label.trim().isEmpty ||
+            label.length > 40 ||
+            start is! String ||
+            finish is! String ||
+            !validClock(start) ||
+            !validClock(finish) ||
+            start.compareTo(finish) >= 0 ||
+            start.compareTo(end) < 0) {
+          throw const DomainError(
+            'Stundenzeiten müssen gültig, aufsteigend und ohne Überschneidung sein.',
+          );
+        }
+        end = finish;
+      }
+    }
+    if (kind == ClassroomKind.lesson &&
+        (text('timetableId').length > 250 ||
+            text('timetableId').isEmpty != strings('slotIds').isEmpty)) {
+      throw const DomainError('Ungültige Stundenplan-Zuordnung.');
     }
     if (kind == ClassroomKind.preparation &&
         (!validDate(text('date')) ||

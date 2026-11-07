@@ -1,6 +1,6 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.17+37** ist eine neue Rekonstruktion aus den Quellen
+Version **0.16.0-rebuild.21+41** ist eine neue Rekonstruktion aus den Quellen
 0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
 nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
 
@@ -8,11 +8,12 @@ Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
 Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
 Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
 
-Aktueller Prüfstand: [Sicherungen, Erinnerungen, Zusammenführen, PDF und App-Sperre](../audit/GERAETEFUNKTIONEN_BUILD_37.md).
-Android-Testapp: [Installation und Bau](ANDROID-TEST.md), [Tastaturkorrektur](../audit/ANDROID_TASTATUR_FIX.md).
-Diese Runde liefert eine neue Android-Test-APK. Die früheren Web-Vorschaupakete
-im Repository bleiben unverändert. Prüfumfang: vollständige Flutter-Testsuite einschließlich Widgettests,
-Analyse und Android-Releasebuild. Der vorherige Web-Build ist im Prüfbericht zu Build 33 dokumentiert. Keine Browsertests und kein nativer Windows-/Android-Abnahmelauf.
+Aktueller Prüfstand: [Bearbeitbarer Stundenplan](../audit/STUNDENPLAN_BUILD_41.md),
+[Kalender](../audit/KALENDER_BUILD_40.md) und [Materialien](../audit/MATERIALIEN_BUILD_39.md).
+Android-Testapp: [Installation und Bau](ANDROID-TEST.md).
+Die private Webvorschau verwendet denselben Flutter-Code. Nutzerdaten bleiben lokal
+im jeweiligen Browser bzw. Gerät. Automatisierte Tests und Flutter-Renderings ersetzen
+keinen Browser- oder physischen Android-Gerätelauf.
 
 ## Neue Funktionen einrichten
 

@@ -1,10 +1,15 @@
 # FLEX Test für Android
 
-Installierbare Flutter-App auf Basis von **0.16.0-rebuild.20+40**. Der aktuelle
+Installierbare Flutter-App auf Basis von **0.16.0-rebuild.21+41**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.
 
-Build 40 ordnet den Kalender neu: Tagesachse, echtes Wochenraster, ruhige Monatsansicht,
+Build 41 ergänzt den bearbeitbaren PDF-Stundenplan ab 9. November 2026. Flexk-Blöcke
+bleiben zusammen; Fach, Wochentag, Stundenumfang, individuelle Uhrzeiten, Lehrkraft und
+Raum lassen sich ändern. Zugang: **Kalender → Stundenplan**.
+[Bedienung und Prüfungen](../audit/STUNDENPLAN_BUILD_41.md).
+
+Build 40 ordnete den Kalender neu: Tagesachse, echtes Wochenraster, ruhige Monatsansicht,
 separate Fälligkeiten und sichtbare Zugänge zu Anlegen, Unterlagen und Verwaltung.
 Dateien und Planungen einzelner Stunden bleiben beim Verschieben und Absagen erhalten.
 [Funktionsumfang und Prüfungen](../audit/KALENDER_BUILD_40.md).
@@ -26,7 +31,7 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 
 ## Installation
 
-[APK Build 40 auf GitHub herunterladen](../releases/android/build-40/README.md).
+[APK Build 41 auf GitHub herunterladen](../releases/android/build-41/README.md).
 
 1. Die bereitgestellte `FLEX-Test-…-universal.apk` auf das Android-Gerät laden.
 2. Die APK in Downloads öffnen. Falls Android danach fragt, für den verwendeten
@@ -36,7 +41,9 @@ App-ID und Testsignatur bleiben gleich; die neue APK kann über die vorhandene
 Android **7.0 oder neuer**; die Universal-APK enthält ARM64, ARMv7 und x86_64.
 Es sind weder Flutter noch ein lokaler Webserver auf dem Gerät nötig.
 Die Test-App hat die eigene Kennung `at.flowzym.flex_notizbuch.test` und einen
-eigenen lokalen Datenbestand. Sie startet leer und übernimmt keine Browserdaten.
+eigenen lokalen Datenbestand. Sie übernimmt keine Browserdaten. Der Stundenplan der FLEX-Klasse wird einmalig
+angelegt, sofern noch keine Unterrichtsserien existieren. Vorhandene Stundenpläne
+werden nicht überschrieben; die PDF-Vorlage lässt sich dann ausdrücklich übernehmen.
 Eigene kompatible FLEX-Sicherungen lassen sich über die Sicherungsfunktion importieren.
 
 Sicherungsexport, Textausgabe und Entwurfsrettung verwenden den Android-Dialog
