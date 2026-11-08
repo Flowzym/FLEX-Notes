@@ -90,7 +90,7 @@ void main() {
     },
   );
   testWidgets(
-    'general tasks and notes are separated, saved through the existing editor and completed',
+    'calendar tasks and organisation notes retain entries and editing',
     (t) async {
       final c = await controller();
       await c.saveEntry(
@@ -121,7 +121,17 @@ void main() {
       expect(c.entries.singleWhere((e) => e.id == task.id).done, true);
       await tap(t, find.text('Offen').hitTestable());
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
-      await tap(t, find.byKey(const ValueKey('context-0-3')));
+      expect(find.byKey(const ValueKey('context-0-3')), findsNothing);
+      expect(find.text('Notizen').hitTestable(), findsNothing);
+      final calendar = t.widget<PageView>(
+        find.byKey(const ValueKey('calendar-pages')),
+      );
+      expect(
+        (calendar.childrenDelegate as SliverChildListDelegate).children.length,
+        3,
+      );
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-2')));
       expect(find.text('Notizinhalt').hitTestable(), findsOneWidget);
       expect(find.text('Schüleraufgabe').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('general-add-note')));
@@ -133,9 +143,11 @@ void main() {
       final note = c.entries.singleWhere((e) => e.body == 'Besprechungsidee');
       expect(note.isTask, false);
       expect(note.pupilId, isNull);
+      await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('context-0-2')));
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-0')));
       expect(find.text('Orga').hitTestable(), findsOneWidget);
       expect(find.text('Kopien vorbereiten'), findsWidgets);
       await tap(t, find.byKey(const ValueKey('context-2-1')));

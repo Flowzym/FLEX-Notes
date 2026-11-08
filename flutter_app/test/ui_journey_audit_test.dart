@@ -128,7 +128,7 @@ void main() {
           scale: view.$3,
         );
         final suffix = '${view.$1.toInt()}-${view.$3}-${view.$4}';
-        for (final destination in [(1, 3), (0, 4), (2, 2), (3, 4), (4, 6)]) {
+        for (final destination in [(1, 3), (0, 3), (2, 3), (3, 4), (4, 6)]) {
           await tap(t, find.byKey(ValueKey('bottom-${destination.$1}')));
           for (var tab = 0; tab < destination.$2; tab++) {
             await tap(

@@ -11,6 +11,9 @@ import 'package:flex_notizbuch/data/database.dart';
 import 'package:flex_notizbuch/data/sqlite_notebook.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
+import 'package:flex_notizbuch/domain/document_scanner.dart';
+import 'package:flex_notizbuch/ui/school_workspace.dart';
+import 'material_workspace_test.dart' show material;
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/entry_navigation.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
@@ -399,6 +402,69 @@ void main() {
     },
   );
   testWidgets(
+    'pupil summaries preserve task files and search when updating a detail',
+    (t) async {
+      final r = await repo.saveSchoolRecord(
+        SchoolRecord.empty(SchoolKind.homework, 'a').patch({
+          'subject': 'Mathematik',
+          'tasks': [const HomeworkTask(id: 'task', text: 'Rechnen').toJson()],
+        }),
+      );
+      final file = await repo.saveClassroomDocument(
+        material(
+          'Arbeitsblatt',
+          fields: {
+            'pupilIds': ['a'],
+            'links': [DocumentLink('school', r.id, taskId: 'task').toJson()],
+          },
+        ),
+      );
+      await c.reload();
+      await app(t);
+      await hub(t);
+      expect(find.byType(SchoolRecordCard), findsNothing);
+      final navTop = t
+          .getTopLeft(find.byKey(const ValueKey('pupil-area-all')))
+          .dy;
+      expect(
+        t.getTopLeft(find.byKey(const ValueKey('pupil-area-orga'))).dy,
+        navTop,
+      );
+      expect(
+        find.byKey(ValueKey('pupil-preview-file-${file.id}')),
+        findsOneWidget,
+      );
+      await tap(t, find.byKey(const ValueKey('pupil-search-button')));
+      await t.enterText(
+        find.byKey(const ValueKey('pupil-entry-search')),
+        'Mathematik',
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.byKey(ValueKey('pupil-open-entry-${r.id}')));
+      expect(find.byType(SchoolRecordCard), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('status-task-complete')));
+      expect(
+        c.records.singleWhere((v) => v.id == r.id).taskState(r.tasks.single),
+        TaskState.complete,
+      );
+      await close(t);
+      expect(find.byType(SchoolRecordCard), findsNothing);
+      expect(find.text('1 / 1 erledigt'), findsOneWidget);
+      expect(find.textContaining('Hilft bei der Gruppenarbeit'), findsNothing);
+      expect(
+        find.byKey(ValueKey('pupil-preview-file-${file.id}')),
+        findsOneWidget,
+      );
+      expect(
+        (await repo.classroomDocuments()).single.rows('links').single['taskId'],
+        'task',
+      );
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
+
+  testWidgets(
     'pupil workspace search and open filter cover school and Orga records',
     (t) async {
       await app(t);
@@ -409,12 +475,15 @@ void main() {
         'Gruppenarbeit',
       );
       await t.pumpAndSettle();
-      expect(find.text('Hilft bei der Gruppenarbeit'), findsOneWidget);
+      expect(
+        find.textContaining('Hilft bei der Gruppenarbeit'),
+        findsOneWidget,
+      );
       expect(find.text('Material mitbringen'), findsNothing);
       await t.enterText(find.byKey(const ValueKey('pupil-entry-search')), '');
       await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('pupil-filter-open')));
-      expect(find.text('Hilft bei der Gruppenarbeit'), findsNothing);
+      expect(find.textContaining('Hilft bei der Gruppenarbeit'), findsNothing);
       expect(find.text('Material mitbringen'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('pupil-area-work')));
       expect(find.text('Keine passenden Einträge.'), findsOneWidget);

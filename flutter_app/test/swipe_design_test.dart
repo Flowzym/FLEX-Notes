@@ -1,5 +1,4 @@
 import 'package:flex_notizbuch/ui/prototype_navigation.dart';
-import 'package:flex_notizbuch/ui/symbol_button.dart';
 import 'package:flex_notizbuch/ui/settings.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -385,7 +384,10 @@ void main() {
         TaskState.open,
       ]) {
         final target = find.byKey(ValueKey('status-first-${state.name}'));
-        expect(t.widget(target), isA<FlexSymbolButton>());
+        expect(
+          find.descendant(of: target, matching: find.byType(Icon)),
+          findsOneWidget,
+        );
         expect(
           find.descendant(of: target, matching: find.byType(ChoiceChip)),
           findsNothing,
@@ -398,8 +400,18 @@ void main() {
           saved.feedback.firstWhere((f) => f.id == 'comment').note,
           'Kommentar bleibt',
         );
-        expect(t.widget<FlexSymbolButton>(target).selected, isTrue);
-        expect(find.text('Stand: ${state.label}'), findsWidgets);
+        expect(
+          t
+              .widgetList<Semantics>(
+                find.ancestor(of: target, matching: find.byType(Semantics)),
+              )
+              .any((node) => node.properties.selected == true),
+          isTrue,
+        );
+        expect(
+          find.descendant(of: target, matching: find.byTooltip(state.label)),
+          findsOneWidget,
+        );
       }
       await finish(t);
     },

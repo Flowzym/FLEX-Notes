@@ -12,6 +12,10 @@ import 'pupil_history.dart';
 import 'school_workspace.dart';
 import 'development_dialog.dart';
 import 'material_library.dart';
+import 'document_attachments.dart';
+import 'material_thumbnail.dart';
+import '../domain/document_scanner.dart';
+import 'surfaces.dart';
 
 /// One pupil's entries with persistent area navigation and a quiet action bar.
 class PupilWorkspaceDialog extends StatefulWidget {
@@ -84,18 +88,21 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
   Widget navigation() => LayoutBuilder(
     builder: (context, constraints) {
       final scheme = Theme.of(context).colorScheme;
-      final columns = constraints.maxWidth >= 620
+      final textScale = MediaQuery.textScalerOf(context).scale(11) / 11;
+      final columns = constraints.maxWidth >= 300 && textScale <= 1.4
           ? 6
-          : MediaQuery.textScalerOf(context).scale(12) > 21
+          : constraints.maxWidth >= 300
+          ? 3
+          : textScale > 1.4
           ? 2
-          : 3;
+          : 6;
       return Wrap(
-        spacing: 6,
-        runSpacing: 6,
+        spacing: 2,
+        runSpacing: 4,
         children: [
           for (final symbol in [null, ...FlexSymbol.values])
             SizedBox(
-              width: (constraints.maxWidth - (columns - 1) * 6) / columns,
+              width: (constraints.maxWidth - (columns - 1) * 2) / columns,
               child: Semantics(
                 button: true,
                 selected: area == symbol,
@@ -104,22 +111,15 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                   color: area == symbol
                       ? scheme.primary.withValues(alpha: .16)
                       : Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(
-                      color: area == symbol
-                          ? scheme.primary
-                          : scheme.outlineVariant,
-                    ),
-                  ),
+                  borderRadius: BorderRadius.circular(10),
                   child: InkWell(
                     key: ValueKey('pupil-area-${symbol?.name ?? 'all'}'),
                     borderRadius: BorderRadius.circular(14),
                     onTap: () => setState(() => area = symbol),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 4,
+                        vertical: 7,
+                        horizontal: 1,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -127,14 +127,14 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                           symbol == null
                               ? Icon(
                                   Icons.view_agenda_outlined,
-                                  size: 24,
+                                  size: 21,
                                   color: area == symbol
                                       ? scheme.primary
                                       : scheme.onSurface,
                                 )
                               : FlexIcon(
                                   symbol,
-                                  size: 24,
+                                  size: 21,
                                   color: area == symbol
                                       ? scheme.primary
                                       : scheme.onSurface,
@@ -144,7 +144,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                             areaLabel(symbol),
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               height: 1.2,
                               fontWeight: area == symbol
                                   ? FontWeight.w700
@@ -163,6 +163,144 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     },
   );
 
+  Future<void> details({String? recordId, String? entryId}) => showDialog<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: widget.controller,
+      builder: (_, _) {
+        final c = widget.controller;
+        final record = c.records
+            .where((r) => r.id == recordId && !r.deleted)
+            .firstOrNull;
+        final entry = c.entries.where((e) => e.id == entryId).firstOrNull;
+        return FlexModal(
+          title: Text(record?.kind.label ?? 'Orga'),
+          onClose: () => Navigator.pop(ctx),
+          content: record != null
+              ? SchoolRecordCard(
+                  key: ValueKey(record.id),
+                  controller: c,
+                  record: record,
+                  standalone: true,
+                )
+              : entry != null
+              ? widget.entryCard(entry)
+              : const Text('Dieser Eintrag wurde entfernt.'),
+        );
+      },
+    ),
+  );
+
+  Widget preview({
+    required String id,
+    required FlexSymbol symbol,
+    required String title,
+    required String date,
+    required String summary,
+    required String status,
+    required ScanContext scope,
+    required VoidCallback onOpen,
+  }) {
+    final c = widget.controller;
+    final docs = c.classroom.where(scope.matchesMaterial).toList();
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: scheme.onSurface.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          key: ValueKey('pupil-open-entry-$id'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: FlexIcon(symbol, size: 22, color: scheme.primary),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (date.isNotEmpty)
+                            Text(
+                              displayDate(date),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, size: 20),
+                  ],
+                ),
+                if (summary.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      summary,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (status.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      status,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: scheme.primary),
+                    ),
+                  ),
+                if (docs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: SizedBox(
+                      height: 48,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: docs.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) => Tooltip(
+                          message: docs[i].title,
+                          child: InkWell(
+                            key: ValueKey('pupil-preview-file-${docs[i].id}'),
+                            onTap: () => guarded(
+                              context,
+                              () => openMaterial(context, c, docs[i]),
+                            ),
+                            child: MaterialThumbnail(
+                              material: docs[i],
+                              width: 44,
+                              height: 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = widget.controller, p = widget.pupil;
@@ -179,10 +317,38 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             id: r.id,
             date: '${r.observedOn} ${r.observedTime}',
             pending: r.pending,
-            card: SchoolRecordCard(
-              key: ValueKey(r.id),
-              controller: c,
-              record: r,
+            card: preview(
+              id: r.id,
+              symbol: FlexSymbol.values.byName(r.kind.name),
+              title: r.title.isNotEmpty
+                  ? r.title
+                  : r.kind == SchoolKind.homework && r.subject.isNotEmpty
+                  ? 'Hausübung · ${r.subject}'
+                  : r.kind.label,
+              date: r.observedOn,
+              summary: r.kind == SchoolKind.homework
+                  ? r.tasks.map((t) => t.text).join(' · ')
+                  : [
+                      r.body,
+                      ...r.positive.map((t) => '+ $t'),
+                      ...r.neutral.map((t) => '• $t'),
+                      ...r.negative.map((t) => '− $t'),
+                    ].where((s) => s.isNotEmpty).join(' · '),
+              status: [
+                if (r.kind == SchoolKind.homework)
+                  '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} / ${r.tasks.length} erledigt',
+                if (r.kind == SchoolKind.goal)
+                  r.goalStatus == 'active'
+                      ? 'In Arbeit'
+                      : r.goalStatus == 'achieved'
+                      ? 'Erreicht'
+                      : 'Beendet',
+                if (r.dueDate != null) 'Fällig ${displayDate(r.dueDate)}',
+                if (r.nextReviewDate != null)
+                  'Überprüfen ${displayDate(r.nextReviewDate)}',
+              ].join(' · '),
+              scope: schoolScanContext(c, [r]),
+              onOpen: () => details(recordId: r.id),
             ),
           ),
       if (area == null || area == FlexSymbol.orga)
@@ -198,7 +364,25 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             id: e.id,
             date: e.observedOn.isEmpty ? e.updatedAtUtc : e.observedOn,
             pending: e.pending,
-            card: widget.entryCard(e),
+            card: preview(
+              id: e.id,
+              symbol: FlexSymbol.orga,
+              title: e.title.isEmpty ? 'Orga' : e.title,
+              date: e.observedOn,
+              summary: [
+                e.body,
+                ...e.items.map((i) => i.text),
+              ].where((s) => s.isNotEmpty).join(' · '),
+              status: e.isTask
+                  ? e.done
+                        ? 'Erledigt'
+                        : 'Offen'
+                  : e.isAppointment
+                  ? 'Termin ${displayDate(e.appointmentDate)}'
+                  : 'Notiz',
+              scope: orgaScanContext(c, e),
+              onOpen: () => details(entryId: e.id),
+            ),
           ),
     ]..sort((a, b) => b.date.compareTo(a.date));
     final title = Column(
@@ -223,23 +407,11 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       ],
     );
     final headerActions = <Widget>[
-      IconButton(
-        tooltip: 'Entwicklung',
-        icon: const Icon(Icons.insights_outlined),
-        onPressed: () => showDevelopment(context, c, p),
-      ),
       EntryHeaderButton(
         label: 'Entwürfe',
         icon: Icons.edit_note,
         count: widget.draftCount,
         onPressed: widget.showDrafts,
-      ),
-      IconButton(
-        tooltip: 'Verlauf',
-        icon: const Icon(Icons.history, size: 21),
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 40),
-        padding: const EdgeInsets.all(6),
-        onPressed: () => showPupilHistory(context, c, p.id),
       ),
       PopupMenuButton<String>(
         tooltip: 'Schüleraktionen',
@@ -282,7 +454,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             icon: const Icon(Icons.close_rounded),
           );
           final stacked =
-              constraints.maxWidth < 350 ||
+              constraints.maxWidth < 300 ||
               (constraints.maxWidth < 600 &&
                   MediaQuery.textScalerOf(context).scale(20) > 28);
           if (stacked) {
@@ -311,6 +483,32 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           );
         },
       ),
+      footerContent: Row(
+        children: [
+          Expanded(
+            child: TextButton.icon(
+              onPressed: () => showDevelopment(context, c, p),
+              icon: const Icon(Icons.insights_outlined, size: 19),
+              label: const Text('Entwicklung', textAlign: TextAlign.center),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextButton.icon(
+              onPressed: () => showPupilHistory(context, c, p.id),
+              icon: const Icon(Icons.history, size: 19),
+              label: const Text('Verlauf', textAlign: TextAlign.center),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          ),
+        ],
+      ),
       scrollable: false,
       content: SizedBox(
         height: MediaQuery.sizeOf(context).height * .7,
@@ -328,10 +526,13 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               iconOnly: true,
               leading: Align(
                 alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: () => showPupilMaterials(context, c, p),
                   icon: const Icon(Icons.folder_open_outlined),
                   label: const Text('Dokumente'),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                  ),
                 ),
               ),
               onChanged: (v) => setState(() => query = v),
@@ -345,7 +546,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                 if (!p.archived) ...[
                   const SizedBox(width: 8),
                   if (area != null)
-                    IconButton.filledTonal(
+                    IconButton(
                       tooltip: '${fullLabel(area!)} anlegen',
                       onPressed: () => create(area!),
                       icon: const Icon(Icons.add),
@@ -353,7 +554,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                   else
                     PopupMenuButton<FlexSymbol>(
                       tooltip: 'Eintrag anlegen',
-                      icon: const Icon(Icons.add_circle_outline),
+                      icon: const Icon(Icons.add),
                       onSelected: create,
                       itemBuilder: (_) => [
                         for (final s in FlexSymbol.values)
@@ -382,11 +583,16 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                   'open': 'Noch offen',
                   'closed': 'Abgeschlossen',
                 }.entries)
-                  ChoiceChip(
-                    key: ValueKey('pupil-filter-${option.key}'),
-                    label: Text(option.value),
-                    selected: filter == option.key,
-                    onSelected: (_) => setState(() => filter = option.key),
+                  transparentChip(
+                    ChoiceChip(
+                      key: ValueKey('pupil-filter-${option.key}'),
+                      label: Text(option.value),
+                      selected: filter == option.key,
+                      onSelected: (_) => setState(() => filter = option.key),
+                      backgroundColor: Colors.transparent,
+                      side: BorderSide.none,
+                      showCheckmark: false,
+                    ),
                   ),
               ],
             ),

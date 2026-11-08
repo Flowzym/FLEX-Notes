@@ -654,7 +654,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 pages: switch (_destination) {
                   0 => calendarPages,
                   1 => livePages,
-                  2 => const {0: 'Orga', 1: 'Rückläufe'},
+                  2 => const {0: 'Orga', 1: 'Rückläufe', 2: 'Notizen'},
                   3 => _materialPages,
                   _ => _morePages,
                 },
@@ -704,7 +704,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
                               onSwitchSection: _calendarShortcut,
                             ),
                             _generalOrga('task'),
-                            _generalOrga('note'),
                           ],
                         )
                       else
@@ -728,6 +727,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                           children: [
                             _generalOrga('all'),
                             ReturnLists(controller: c),
+                            _generalOrga('note'),
                           ],
                         )
                       else

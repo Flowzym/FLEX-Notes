@@ -3,12 +3,7 @@ import 'package:flutter/material.dart';
 import 'surfaces.dart';
 
 const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
-const calendarPages = {
-  0: 'Kalender',
-  1: 'Stundenplan',
-  2: 'Aufgaben',
-  3: 'Notizen',
-};
+const calendarPages = {0: 'Kalender', 1: 'Stundenplan', 2: 'Aufgaben'};
 
 /// Compact tracks with a raised selection. All destinations wrap at large text.
 class FlexPagePills extends StatelessWidget {

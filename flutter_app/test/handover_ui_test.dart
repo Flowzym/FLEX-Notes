@@ -391,6 +391,8 @@ void main() {
       await tester.pumpAndSettle();
       framed(tester, const Size(390, 844));
       await capture(tester, boundary, 'handover-homework-mobile');
+      await tester.tap(find.byKey(ValueKey('pupil-open-entry-${homework.id}')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('comment-task')));
       await tester.tap(find.byKey(const ValueKey('comment-task')));
       await tester.pumpAndSettle();

@@ -177,7 +177,7 @@ void main() {
     },
   );
   testWidgets(
-    'four calendar page buttons remain visible and usable at large text on phone',
+    'three calendar page buttons remain visible and usable at large text on phone',
     (t) async {
       var selected = -1;
       await host(
@@ -195,7 +195,7 @@ void main() {
       expect(active.top, lessThan(track.top));
       expect(active.bottom, greaterThan(track.bottom));
       expect(active.left, lessThan(track.left));
-      for (final i in [0, 1, 2, 3]) {
+      for (final i in calendarPages.keys) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);
         expect(shell.contains(button.bottomRight), isTrue);
