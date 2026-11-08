@@ -75,12 +75,14 @@ class SchoolEditor extends StatefulWidget {
     this.mode = 'entry',
     this.taskId,
     this.feedbackId,
+    this.focusDelivery = false,
   });
   final NotebookController controller;
   final SchoolRecord record;
   final SchoolDraft? draft;
   final String mode;
   final String? taskId, feedbackId;
+  final bool focusDelivery;
   @override
   State<SchoolEditor> createState() => _SchoolEditorState();
 }
@@ -168,7 +170,7 @@ class _SchoolEditorState extends State<SchoolEditor>
         });
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) commentFocus.requestFocus();
+        if (mounted && !widget.focusDelivery) commentFocus.requestFocus();
       });
     } else if (mode == 'review') {
       if (feedbackId == null) {
@@ -629,6 +631,30 @@ class _SchoolEditorState extends State<SchoolEditor>
   Widget comment() {
     final f = r.feedback.firstWhere((v) => v.id == feedbackId);
     final task = r.tasks.where((t) => t.id == f.taskId).firstOrNull;
+    final deliveryOptions = Column(
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in const {
+              'unknown': 'Nicht überprüft',
+              'submitted': 'Vorgelegt',
+              'missing': 'Nicht vorgelegt',
+              'absent': 'Abwesend',
+            }.entries.where((choice) => r.situation != choice.key))
+              transparentChip(
+                ChoiceChip(
+                  label: Text(option.value),
+                  selected: (f.delivery ?? r.delivery) == option.key,
+                  onSelected: (_) =>
+                      changeFeedback(f.copyWith(delivery: option.key)),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -646,11 +672,15 @@ class _SchoolEditorState extends State<SchoolEditor>
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
+        if (widget.focusDelivery && taskId == null) ...[
+          deliveryOptions,
+          const SizedBox(height: 16),
+        ],
         TextFormField(
           key: const ValueKey('homework-comment'),
           initialValue: f.note,
           focusNode: commentFocus,
-          autofocus: true,
+          autofocus: !widget.focusDelivery,
           minLines: 3,
           maxLines: 8,
           decoration: InputDecoration(
@@ -660,37 +690,14 @@ class _SchoolEditorState extends State<SchoolEditor>
           onChanged: (v) => changeFeedback(f.copyWith(note: v)),
         ),
         const SizedBox(height: 16),
-        if (taskId == null)
+        if (taskId == null && !widget.focusDelivery)
           optionalSection(
             'Abgabe & Zeitpunkt',
             deliveryOpen,
             (v) => deliveryOpen = v,
-            Column(
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final option in const {
-                      'unknown': 'Nicht überprüft',
-                      'submitted': 'Vorgelegt',
-                      'missing': 'Nicht vorgelegt',
-                      'absent': 'Abwesend',
-                    }.entries.where((choice) => r.situation != choice.key))
-                      transparentChip(
-                        ChoiceChip(
-                          label: Text(option.value),
-                          selected: (f.delivery ?? r.delivery) == option.key,
-                          onSelected: (_) =>
-                              changeFeedback(f.copyWith(delivery: option.key)),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+            deliveryOptions,
           ),
-        if (taskId != null || deliveryOpen)
+        if (taskId != null || deliveryOpen || widget.focusDelivery)
           TextButton.icon(
             onPressed: () async {
               final value = await pickFlexDate(
@@ -2027,7 +2034,11 @@ class _SchoolEditorState extends State<SchoolEditor>
     final title = mode == 'review'
         ? 'Ziel überprüfen'
         : mode == 'comment'
-        ? (taskId == null ? 'Notiz & Verlauf' : 'Kommentar')
+        ? (widget.focusDelivery
+              ? 'Abgabe prüfen'
+              : taskId == null
+              ? 'Notiz & Verlauf'
+              : 'Kommentar')
         : r.kind == SchoolKind.homework && r.revision > 0
         ? 'Hausübung bearbeiten'
         : r.kind.label;
@@ -2214,7 +2225,9 @@ class _SchoolEditorState extends State<SchoolEditor>
                       : mode == 'review'
                       ? 'Überprüfung speichern'
                       : mode == 'comment'
-                      ? taskId == null
+                      ? widget.focusDelivery
+                            ? 'Abgabe speichern'
+                            : taskId == null
                             ? 'Notiz speichern'
                             : 'Kommentar speichern'
                       : r.kind == SchoolKind.goal

@@ -1,5 +1,4 @@
 import 'package:flex_notizbuch/ui/surfaces.dart';
-import 'package:flex_notizbuch/ui/symbol_button.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -331,7 +330,14 @@ void main() {
       await tester.tap(partial);
       await tester.pumpAndSettle();
       expect(find.text('Synthetischer Speicherfehler'), findsOneWidget);
-      expect(tester.widget<FlexSymbolButton>(button).selected, isTrue);
+      expect(
+        tester
+            .widgetList<Semantics>(
+              find.ancestor(of: button, matching: find.byType(Semantics)),
+            )
+            .any((node) => node.properties.selected == true),
+        isTrue,
+      );
       expect(
         (await repo.schoolRecords()).single.taskState(record.tasks.first),
         TaskState.complete,

@@ -1030,6 +1030,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       key: ValueKey(school.id),
                       controller: c,
                       record: school,
+                      standalone: true,
                     )
                   : orga != null
                   ? _entryCard(orga)

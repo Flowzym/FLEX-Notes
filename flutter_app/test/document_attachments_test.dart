@@ -377,6 +377,65 @@ void main() {
     );
   }
 
+  for (final layout in [(390.0, 1.0), (320.0, 2.0)]) {
+    testWidgets(
+      'standalone homework separates task and record actions at $layout',
+      (t) async {
+        final r = await repo.saveSchoolRecord(taskRecord('p'));
+        await c.reload();
+        await host(
+          t,
+          SchoolRecordCard(controller: c, record: r, standalone: true),
+          width: layout.$1,
+          scale: layout.$2,
+        );
+        expect(find.byType(Card), findsNothing);
+        expect(find.text('Hausübung'), findsNothing);
+        expect(find.byTooltip('Hausübung einklappen'), findsNothing);
+        expect(find.text('1.1'), findsOneWidget);
+        expect(find.text('Zur Hausübung'), findsOneWidget);
+        expect(find.text('Erledigt'), findsNWidgets(3));
+        for (final state in TaskState.values) {
+          final control = find.byKey(ValueKey('status-child-${state.name}'));
+          expect(t.getSize(control).width, greaterThanOrEqualTo(44));
+          expect(t.getSize(control).height, greaterThanOrEqualTo(44));
+        }
+        // A record-level scan must not acquire the previous task's attachment scope.
+        await tap(t, action('record-attachments-${r.id}', 'attachment-scan'));
+        expect(
+          t
+              .widget<ScanEditor>(find.byType(ScanEditor))
+              .scope
+              .links
+              .single
+              .taskId,
+          isEmpty,
+        );
+        await finish(t);
+        await host(
+          t,
+          SchoolRecordCard(controller: c, record: r, standalone: true),
+          width: layout.$1,
+          scale: layout.$2,
+        );
+        await tap(t, find.byKey(ValueKey('homework-delivery-${r.id}')));
+        final editor = t.widget<SchoolEditor>(find.byType(SchoolEditor));
+        expect(editor.mode, 'comment');
+        expect(editor.taskId, isNull);
+        expect(find.text('Vorgelegt'), findsOneWidget);
+        expect(t.testTextInput.isVisible, isFalse);
+        await tap(t, find.text('Vorgelegt'));
+        await tap(t, find.text('Abgabe speichern'));
+        final saved = (await repo.schoolRecords()).single;
+        expect(saved.delivery, 'submitted');
+        expect(saved.tasks.map(saved.taskState), everyElement(TaskState.open));
+        expect(saved.liveFeedback.single.taskId, isNull);
+        expect(t.takeException(), isNull);
+        await finish(t);
+      },
+    );
+  }
+
   for (final kind in [SchoolKind.goal, SchoolKind.social, SchoolKind.work]) {
     testWidgets(
       '${kind.name} bottom scanner saves new entry before assigning it',

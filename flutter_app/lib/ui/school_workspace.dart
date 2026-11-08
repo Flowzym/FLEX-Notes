@@ -3,7 +3,7 @@ import 'collapsible_search.dart';
 import '../domain/document_scanner.dart';
 import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
-import 'symbol_button.dart';
+import 'homework_record_view.dart';
 import 'pupil_history.dart';
 import 'reminder_actions.dart';
 import 'draft_buffer.dart';
@@ -26,6 +26,7 @@ Future<void> editSchool(
   String mode = 'entry',
   String? taskId,
   String? feedbackId,
+  bool focusDelivery = false,
 }) async {
   await showDialog<void>(
     context: context,
@@ -37,6 +38,7 @@ Future<void> editSchool(
       mode: mode,
       taskId: taskId,
       feedbackId: feedbackId,
+      focusDelivery: focusDelivery,
     ),
   );
   await c.reload();
@@ -237,9 +239,11 @@ class SchoolRecordCard extends StatefulWidget {
     super.key,
     required this.controller,
     required this.record,
+    this.standalone = false,
   });
   final NotebookController controller;
   final SchoolRecord record;
+  final bool standalone;
   @override
   State<SchoolRecordCard> createState() => _SchoolRecordCardState();
 }
@@ -314,6 +318,124 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     );
   }
 
+  Widget homeworkView(BuildContext context) => HomeworkRecordView(
+    controller: c,
+    record: r,
+    expanded: homeworkExpanded,
+    standalone: widget.standalone,
+    busy: busy,
+    onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
+    onEdit: () => editSchool(context, c, r),
+    onTaskState: setTask,
+    onDelivery: () =>
+        editSchool(context, c, r, mode: 'comment', focusDelivery: true),
+    onComment: (taskId) =>
+        editSchool(context, c, r, mode: 'comment', taskId: taskId),
+    onReminder: () => showReminderActions(
+      context,
+      c,
+      'school:${r.id}',
+      r.title.isEmpty ? 'Hausübung' : r.title,
+    ),
+    onJournal: () => showJournal(context, c, r.id),
+    onDelete: () async {
+      if (r.deleted ||
+          await confirmFlex(
+            context,
+            'Eintrag in den Papierkorb?',
+            'Der Eintrag bleibt wiederherstellbar.',
+            accept: 'In den Papierkorb',
+          )) {
+        await mutate(r.patch({'deleted': !r.deleted}));
+      }
+    },
+    error: saveError == null
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                saveError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              TextButton(
+                onPressed: busy || retryValue == null
+                    ? null
+                    : () => mutate(retryValue!),
+                child: const Text('Erneut versuchen'),
+              ),
+            ],
+          ),
+    history: r.liveFeedback.isEmpty
+        ? null
+        : ExpansionTile(
+            key: PageStorageKey('feedback-${r.id}'),
+            tilePadding: EdgeInsets.zero,
+            title: Text('Verlauf · ${r.liveFeedback.length}'),
+            children: [
+              for (final f in r.liveFeedback.reversed)
+                ListTile(
+                  title: Text(
+                    [
+                      f.taskText,
+                      f.state?.label ?? '',
+                      f.note,
+                    ].where((v) => v.isNotEmpty).join(' · '),
+                  ),
+                  subtitle: Text(
+                    '${displayDate(f.observedOn)} ${f.observedTime}',
+                  ),
+                  trailing: r.deleted
+                      ? null
+                      : PopupMenuButton<String>(
+                          tooltip: 'Rückmeldung bearbeiten oder löschen',
+                          onSelected: (action) async {
+                            if (action == 'edit') {
+                              await editSchool(
+                                context,
+                                c,
+                                r,
+                                mode: 'comment',
+                                taskId: f.taskId,
+                                feedbackId: f.id,
+                              );
+                            } else if (await confirmFlex(
+                              context,
+                              'Rückmeldung löschen?',
+                              'Der vorherige Stand wird wieder wirksam.',
+                              accept: 'Löschen',
+                            )) {
+                              await mutate(
+                                r.patch({
+                                  'feedback': r.feedback
+                                      .map(
+                                        (v) =>
+                                            (v.id == f.id
+                                                    ? v.copyWith(deleted: true)
+                                                    : v)
+                                                .toJson(),
+                                      )
+                                      .toList(),
+                                }),
+                              );
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Bearbeiten'),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Löschen'),
+                            ),
+                          ],
+                        ),
+                ),
+            ],
+          ),
+  );
+
   Widget _observationTag(String text) => transparentChip(
     Chip(
       label: Text(text, textAlign: TextAlign.center),
@@ -331,16 +453,17 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (r.kind == SchoolKind.homework) {
+      if (widget.standalone) return homeworkView(context);
+      return FlexCard(
+        builder: (context) => Padding(
+          padding: const EdgeInsets.all(16),
+          child: homeworkView(context),
+        ),
+      );
+    }
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
-    final heading = r.kind == SchoolKind.homework
-        ? r.title.isNotEmpty
-              ? r.title
-              : r.subject.isNotEmpty
-              ? r.subject
-              : 'Hausübung'
-        : r.title.isEmpty
-        ? r.kind.label
-        : r.title;
+    final heading = r.title.isEmpty ? r.kind.label : r.title;
     return FlexCard(
       builder: (context) => Padding(
         padding: const EdgeInsets.all(16),
@@ -382,26 +505,10 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                     Text(
                       '${owner?.name ?? 'Unbekannt'} · ${displayDate(r.observedOn)} ${r.observedTime}'
                           .trim(),
-                      style: r.kind == SchoolKind.homework
-                          ? Theme.of(context).textTheme.bodySmall
-                          : null,
                     ),
                   ],
                 );
                 final actions = [
-                  if (r.kind == SchoolKind.homework)
-                    IconButton(
-                      tooltip: homeworkExpanded
-                          ? 'Hausübung einklappen'
-                          : 'Hausübung aufklappen',
-                      onPressed: () =>
-                          setState(() => homeworkExpanded = !homeworkExpanded),
-                      icon: Icon(
-                        homeworkExpanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                      ),
-                    ),
                   if (!r.deleted)
                     IconButton(
                       tooltip: 'Eintrag bearbeiten',
@@ -429,219 +536,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 );
               },
             ),
-            if (r.kind == SchoolKind.homework)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 2,
-                  children: [
-                    Text(
-                      '${r.tasks.where((task) => r.taskState(task) == TaskState.complete).length} von ${r.tasks.length} vollständig',
-                      key: ValueKey('homework-progress-${r.id}'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    if (r.subject.isNotEmpty && r.subject != heading)
-                      Text(
-                        r.subject,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    if (r.dueDate != null)
-                      Text(
-                        'Fällig: ${displayDate(r.dueDate)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
-                ),
-              ),
-            if (r.kind == SchoolKind.homework && homeworkExpanded) ...[
-              for (final task in r.tasks)
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: task.parentId == null ? 0 : 16,
-                    top: 10,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Divider(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  task.text,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                Text(
-                                  'Stand: ${r.taskState(task).label}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            key: ValueKey('comment-${task.id}'),
-                            tooltip:
-                                '${r.liveFeedback.any((f) => f.taskId == task.id && f.note.isNotEmpty) ? 'Kommentar vorhanden' : 'Kommentar'} zu ${task.text}',
-                            color:
-                                r.liveFeedback.any(
-                                  (f) =>
-                                      f.taskId == task.id && f.note.isNotEmpty,
-                                )
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            onPressed: busy || r.deleted
-                                ? null
-                                : () => editSchool(
-                                    context,
-                                    c,
-                                    r,
-                                    mode: 'comment',
-                                    taskId: task.id,
-                                  ),
-                            icon: const Icon(Icons.chat_bubble),
-                          ),
-                        ],
-                      ),
-                      DocumentAttachmentSection(
-                        key: ValueKey('task-attachments-${task.id}'),
-                        compact: true,
-                        controller: c,
-                        scope: schoolScanContext(
-                          c,
-                          [r],
-                          taskIds: {r.id: task.id},
-                        ),
-                        readOnly: r.deleted,
-                        leadingActions: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (final state in TaskState.values)
-                                FlexSymbolButton(
-                                  key: ValueKey(
-                                    'status-${task.id}-${state.name}',
-                                  ),
-                                  label: state.label,
-                                  icon: switch (state) {
-                                    TaskState.open =>
-                                      Icons.radio_button_unchecked,
-                                    TaskState.complete =>
-                                      Icons.check_circle_outline,
-                                    TaskState.partial => Icons.contrast,
-                                    TaskState.missing => Icons.cancel_outlined,
-                                  },
-                                  selected: r.taskState(task) == state,
-                                  exclusive: true,
-                                  onPressed: busy || r.deleted
-                                      ? null
-                                      : () => setTask(task, state),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      if (r.liveFeedback
-                          .where(
-                            (f) => f.taskId == task.id && f.note.isNotEmpty,
-                          )
-                          .isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            r.liveFeedback
-                                .lastWhere(
-                                  (f) =>
-                                      f.taskId == task.id && f.note.isNotEmpty,
-                                )
-                                .note,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 10),
-              Text(
-                'Abgabe: ${const {'unknown': 'Nicht überprüft', 'submitted': 'Vorgelegt', 'missing': 'Nicht vorgelegt', 'absent': 'Abwesend'}[r.delivery]}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              if (r.feedback.isNotEmpty)
-                ExpansionTile(
-                  key: PageStorageKey('feedback-${r.id}'),
-                  tilePadding: EdgeInsets.zero,
-                  title: Text('Verlauf · ${r.liveFeedback.length}'),
-                  children: [
-                    for (final f in r.liveFeedback.reversed)
-                      ListTile(
-                        title: Text(
-                          [
-                            f.taskText,
-                            f.state?.label ?? '',
-                            f.note,
-                          ].where((v) => v.isNotEmpty).join(' · '),
-                        ),
-                        subtitle: Text(
-                          '${displayDate(f.observedOn)} ${f.observedTime}',
-                        ),
-                        trailing: r.deleted
-                            ? null
-                            : PopupMenuButton<String>(
-                                tooltip: 'Rückmeldung bearbeiten oder löschen',
-                                onSelected: (action) async {
-                                  if (action == 'edit') {
-                                    await editSchool(
-                                      context,
-                                      c,
-                                      r,
-                                      mode: 'comment',
-                                      taskId: f.taskId,
-                                      feedbackId: f.id,
-                                    );
-                                  } else if (await confirmFlex(
-                                    context,
-                                    'Rückmeldung löschen?',
-                                    'Der vorherige Stand wird wieder wirksam.',
-                                    accept: 'Löschen',
-                                  )) {
-                                    await mutate(
-                                      r.patch({
-                                        'feedback': r.feedback
-                                            .map(
-                                              (v) =>
-                                                  (v.id == f.id
-                                                          ? v.copyWith(
-                                                              deleted: true,
-                                                            )
-                                                          : v)
-                                                      .toJson(),
-                                            )
-                                            .toList(),
-                                      }),
-                                    );
-                                  }
-                                },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Bearbeiten'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Löschen'),
-                                  ),
-                                ],
-                              ),
-                      ),
-                  ],
-                ),
-            ] else if (r.kind != SchoolKind.homework) ...[
+            ...[
               if (r.body.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -728,64 +623,37 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 ),
             ],
             if (r.needsCompletion) const Text('Später ergänzen'),
-            if (r.kind != SchoolKind.homework || homeworkExpanded)
-              DocumentAttachmentSection(
-                key: ValueKey('record-attachments-${r.id}'),
-                controller: c,
-                scope: schoolScanContext(c, [r], includeTasks: false),
-                readOnly: r.deleted,
-                compact: true,
-                leadingActions: [
-                  if (r.kind == SchoolKind.homework && !r.deleted) ...[
-                    IconButton(
-                      tooltip: 'Notiz & Verlauf',
-                      onPressed: busy
-                          ? null
-                          : () => editSchool(context, c, r, mode: 'comment'),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                    ),
-                    if (r.pending)
-                      IconButton(
-                        tooltip: 'Erinnerung verschieben',
-                        onPressed: busy
-                            ? null
-                            : () => showReminderActions(
+            DocumentAttachmentSection(
+              key: ValueKey('record-attachments-${r.id}'),
+              controller: c,
+              scope: schoolScanContext(c, [r], includeTasks: false),
+              readOnly: r.deleted,
+              compact: true,
+              actions: [
+                IconButton(
+                  tooltip: r.deleted ? 'Wiederherstellen' : 'Papierkorb',
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          if (r.deleted ||
+                              await confirmFlex(
                                 context,
-                                c,
-                                'school:${r.id}',
-                                heading,
-                              ),
-                        icon: const Icon(Icons.snooze),
-                      ),
-                  ],
-                ],
-                actions: [
-                  IconButton(
-                    tooltip: r.deleted ? 'Wiederherstellen' : 'Papierkorb',
-                    onPressed: busy
-                        ? null
-                        : () async {
-                            if (r.deleted ||
-                                await confirmFlex(
-                                  context,
-                                  'Eintrag in den Papierkorb?',
-                                  'Der Eintrag bleibt wiederherstellbar.',
-                                  accept: 'In den Papierkorb',
-                                )) {
-                              await mutate(r.patch({'deleted': !r.deleted}));
-                            }
-                          },
-                    icon: Icon(
-                      r.deleted ? Icons.restore : Icons.delete_outline,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Änderungen',
-                    onPressed: () => showJournal(context, c, r.id),
-                    icon: const Icon(Icons.history),
-                  ),
-                ],
-              ),
+                                'Eintrag in den Papierkorb?',
+                                'Der Eintrag bleibt wiederherstellbar.',
+                                accept: 'In den Papierkorb',
+                              )) {
+                            await mutate(r.patch({'deleted': !r.deleted}));
+                          }
+                        },
+                  icon: Icon(r.deleted ? Icons.restore : Icons.delete_outline),
+                ),
+                IconButton(
+                  tooltip: 'Änderungen',
+                  onPressed: () => showJournal(context, c, r.id),
+                  icon: const Icon(Icons.history),
+                ),
+              ],
+            ),
           ],
         ),
       ),
