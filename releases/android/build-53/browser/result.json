@@ -1,0 +1,21 @@
+{
+  "source_commit": "58e350deea683dd88832f59a608cc223c768ed6d",
+  "version": "0.16.0-rebuild.33+53",
+  "origin": "http://127.0.0.1:8084",
+  "fixtures": "synthetic document with paper shadow and colored highlight; no real pupil data",
+  "checks": [
+    "image import",
+    "automatic edge detection",
+    "filter previews",
+    "undo and redo",
+    "original comparison",
+    "PDF save with tags",
+    "persistent library thumbnail",
+    "PDF export and reimport for editing",
+    "in-place crop preview and corner editing",
+    "390px and 320px layouts"
+  ],
+  "page_errors": [],
+  "export": "scanner-export.pdf",
+  "browser_harness": "initial browser process closed during export; restarted and export repeated successfully"
+}

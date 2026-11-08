@@ -1,0 +1,24 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart
+00:00 +0: page editor tools remain reachable with doubled text at 320 pixels
+00:04 +1: filter remains reversible across tools and Original restores source color
+00:04 +2: undo redo and original comparison never change the selected export
+00:05 +3: crop loupe follows a corner and undo restores full image dimensions
+00:07 +4: removed pages can be restored in order and only abandoned bytes are cleaned
+00:09 +5: batch camera saves each page, cancellation retains batch and drag order persists
+00:12 +6: replacement stays at same position; prior bytes survive failed commit=false
+00:14 +7: replacement stays at same position; prior bytes survive failed commit=true
+00:15 +8: batch filter keeps page order and safely retries failed draft write=false
+00:16 +9: batch filter keeps page order and safely retries failed draft write=true
+00:17 +10: cancelled replacement leaves the original untouched
+00:18 +11: filter updates preview before Apply, latest selection wins and export stays full size
+00:20 +12: automatic crop survives switching to filters before saving
+00:21 +13: photo capture uses photo editor, tags survive draft resume and JPG save
+00:22 +14: document scanner falls back without Play Services; camera fails=false
+00:22 +15: document scanner falls back without Play Services; camera fails=true
+00:22 +16: interrupted native photo is recovered once and acknowledged only after durable draft
+00:23 +17: import, naming, focus, resume, reorder and PDF save preserve pupil context
+00:23 +18: metadata failure keeps page bytes and a close retry persists the draft
+00:24 +19: camera cancellation retains content and deleting an open draft removes its pages
+00:24 +20: redaction matches image coordinates on 320px screen: Size(180.0, 240.0)
+00:24 +21: redaction matches image coordinates on 320px screen: Size(240.0, 180.0)
+00:25 +22: All tests passed!

@@ -1,0 +1,10 @@
+{
+  "project_id": "appgprj_6aeefd223a6081919aa744b912822c38",
+  "deployment_id": "appgdep_6af05ee239b48191b6a5815500e01177",
+  "version_id": "appgprj_6aeefd223a6081919aa744b912822c38~appgver_38a0a18de67c81919ca0f1f5893d57c5",
+  "status": "succeeded",
+  "url": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site",
+  "visibility": "private, existing owner audience preserved",
+  "app_source_commit": "58e350deea683dd88832f59a608cc223c768ed6d",
+  "site_source_commit": "5301d84d8f0f9866f132d2ccd2e45e0f804a276f"
+}
