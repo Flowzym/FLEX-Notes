@@ -223,7 +223,21 @@ void main() {
       expect(find.byKey(const ValueKey('scan-crop-loupe')), findsOneWidget);
       await gesture.up();
       await t.pump();
-      await tap(t, find.text('Zuschnitt anwenden'));
+      await settleWork(
+        t,
+        () =>
+            t
+                .widget<IconButton>(
+                  find.widgetWithIcon(IconButton, Icons.preview_outlined),
+                )
+                .onPressed !=
+            null,
+      );
+      await tap(t, find.byTooltip('Zuschnittvorschau'));
+      expect(find.byKey(const ValueKey('scan-page-canvas')), findsNothing);
+      await tap(t, find.byTooltip('Ecken bearbeiten'));
+      expect(find.byKey(const ValueKey('scan-page-canvas')), findsOneWidget);
+      await tap(t, find.byTooltip('Zuschnitt anwenden'));
       await settleWork(
         t,
         () =>

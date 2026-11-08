@@ -33,7 +33,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
   late int currentWidth = widget.width, currentHeight = widget.height;
   String mode = 'filter', filter = 'color';
   double brightness = 1, contrast = 1, saturation = 1;
-  bool busy = false, comparing = false;
+  bool busy = false, comparing = false, cropPreview = false;
   final undo = <_ScanEditSnapshot>[], redo = <_ScanEditSnapshot>[];
   final zoom = TransformationController();
   String? error;
@@ -115,6 +115,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
         ..addAll(state.redactions);
       mode = state.mode;
       comparing = false;
+      cropPreview = false;
       error = null;
       start = end = null;
       dragging = null;
@@ -149,6 +150,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     }
     setState(() {
       mode = value;
+      cropPreview = false;
       start = end = null;
       comparing = false;
       zoom.value = Matrix4.identity();
@@ -291,6 +293,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             Offset(0, 1),
           ];
           mode = 'filter';
+          cropPreview = false;
           preview = previewSource = null;
           detected = [];
           edges = [];
@@ -375,15 +378,30 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                 icon: const Icon(Icons.redo),
               ),
               IconButton(
-                tooltip: comparing
+                tooltip: mode == 'crop'
+                    ? (cropPreview ? 'Ecken bearbeiten' : 'Zuschnittvorschau')
+                    : comparing
                     ? 'Bearbeitung anzeigen'
                     : 'Original vergleichen',
-                isSelected: comparing,
+                isSelected: mode == 'crop' ? cropPreview : comparing,
                 onPressed:
-                    busy || detecting || mode == 'crop' || mode == 'redact'
+                    busy ||
+                        detecting ||
+                        mode == 'redact' ||
+                        mode == 'crop' && preview == null
                     ? null
-                    : () => setState(() => comparing = !comparing),
-                icon: const Icon(Icons.compare_outlined),
+                    : () => setState(() {
+                        if (mode == 'crop') {
+                          cropPreview = !cropPreview;
+                        } else {
+                          comparing = !comparing;
+                        }
+                      }),
+                icon: Icon(
+                  mode == 'crop'
+                      ? Icons.preview_outlined
+                      : Icons.compare_outlined,
+                ),
               ),
               IconButton(
                 tooltip: 'Drehen',
@@ -433,6 +451,13 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                   selected: snapping,
                   onSelected: (v) => setState(() => snapping = v),
                 ),
+                IconButton(
+                  tooltip: 'Zuschnitt anwenden',
+                  onPressed: busy || detecting
+                      ? null
+                      : () => render(crop: true),
+                  icon: const Icon(Icons.check),
+                ),
               ],
             ),
             if (detectionMessage != null) Text(detectionMessage!),
@@ -441,11 +466,6 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               widget.photo
                   ? 'Die Ecken für den Bildausschnitt ziehen.'
                   : 'Die vier Ecken an die Dokumentränder ziehen.',
-            ),
-            TextButton.icon(
-              onPressed: busy || detecting ? null : () => render(crop: true),
-              icon: const Icon(Icons.check),
-              label: const Text('Zuschnitt anwenden'),
             ),
           ],
           if (mode == 'redact') ...[
@@ -473,19 +493,21 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               final image = Image.memory(
                 comparing
                     ? widget.bytes
-                    : mode == 'crop'
+                    : mode == 'crop' && !cropPreview
                     ? current
                     : preview ?? current,
                 key: const ValueKey('scan-live-preview'),
                 gaplessPlayback: true,
-                fit: comparing ? BoxFit.contain : BoxFit.fill,
+                fit: comparing || cropPreview ? BoxFit.contain : BoxFit.fill,
               );
               return Center(
                 child: SizedBox(
                   width: height * aspect,
                   height: height,
                   child: mode == 'crop' || mode == 'redact'
-                      ? _imageOverlay(image, height * aspect)
+                      ? cropPreview
+                            ? image
+                            : _imageOverlay(image, height * aspect)
                       : InteractiveViewer(
                           transformationController: zoom,
                           minScale: 1,
@@ -504,6 +526,12 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
                     ? 'Original'
                     : previewBusy
                     ? 'Vorschau …'
+                    : mode == 'crop'
+                    ? cropPreview
+                          ? 'Zuschnittvorschau'
+                          : 'Ecke ziehen · Lupe zur Feinkorrektur'
+                    : mode == 'redact'
+                    ? 'Schwärzung durch Ziehen markieren'
                     : 'Mit zwei Fingern vergrößern',
                 style: Theme.of(
                   context,
@@ -544,17 +572,6 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               adjustment('Sättigung', saturation, 0, 2, (v) => saturation = v),
           ],
           const SizedBox(height: 8),
-          if (mode == 'crop' && preview != null) ...[
-            const Text('Zuschnittvorschau'),
-            SizedBox(
-              height: 140,
-              child: Image.memory(
-                preview!,
-                gaplessPlayback: true,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
           const SizedBox(height: 8),
           if (mode == 'redact')
             const Text(
