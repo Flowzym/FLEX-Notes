@@ -18,14 +18,16 @@
     "comment saved and visible without changing partial status",
     "submission saved without changing task status",
     "submission visible in separate feedback history",
-    "saved comments, submission and attachments survive reload"
+    "saved comments, submission and attachments survive reload",
+    "PDF opens directly from the compact list thumbnail"
   ],
   "screenshots": [
     "single-task-390-final.png",
     "multiple-tasks-390-final.png",
     "multiple-tasks-320-final.png",
     "task-details-390-final.png",
-    "submission-history-320.png"
+    "submission-history-320.png",
+    "attachment-pdf-open-final.png"
   ],
   "browser_errors": [],
   "android_device_tested": false
