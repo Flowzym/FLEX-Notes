@@ -1,0 +1,58 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: task links round trip, isolate siblings and keep legacy identity and signatures
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: task references reject absent and foreign tasks without changing documents
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: renaming and reordering keep a subtask file; backup preserves exact association
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: removing a task retains files and scan drafts on the entry and rejects stale writes
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: failed stale task removal cannot move attachments
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework search retains query when collapsed and combines with open filter
+00:01 +6: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference navigation, 3+2 pupil cards and search focus replace the old page layout
+00:02 +7: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: homework summary survives collapse and actions remain reachable at (390.0, 1.0)
+00:02 +8: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:02 +9: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:03 +10: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:03 +11: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:04 +12: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:04 +13: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 1100.0
+00:04 +14: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: work bottom scanner saves new entry before assigning it
+00:04 +15: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+00:05 +16: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+00:05 +17: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+00:06 +18: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+00:06 +19: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors remain framed modals at 320.0
+00:06 +20: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: Orga bottom action opens scanner with saved owner
+00:07 +21: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: homework direct choices reject duplicates and preserve persisted state on a failed save
+00:07 +22: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: render reference-derived pupil pages, framed homework and focused comment using synthetic data
+00:08 +23: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: render reference-derived pupil pages, framed homework and focused comment using synthetic data
+00:08 +24: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:09 +25: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:10 +26: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+00:11 +27: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework recipients are tags and save separate records atomically
+00:11 +28: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+00:11 +29: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+00:12 +30: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: goals and observations use shared modal and preserve field text
+00:12 +31: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: goals and observations use shared modal and preserve field text
+00:12 +32: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: goals and observations use shared modal and preserve field text
+00:13 +33: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:13 +34: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:14 +35: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:14 +36: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:14 +37: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:15 +38: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+00:17 +39: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:18 +40: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: homework header opens assigned homework and keeps unpublished tasks separate
+00:19 +41: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga header filters pupil and class drafts and preserves current note
+00:21 +42: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: header navigation waits for draft storage and stays in editor after a failed write
+00:22 +43: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 320.0 font 1.0
+00:22 +44: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 320.0 font 1.0
+00:22 +45: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 320.0 font 1.0
+00:23 +46: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 390.0 font 1.0
+00:23 +47: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 390.0 font 1.0
+00:23 +48: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 390.0 font 1.0
+00:24 +49: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 1200.0 font 1.0
+00:24 +50: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 1200.0 font 1.0
+00:24 +51: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+00:25 +52: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 320.0 font 2.0
+00:25 +53: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 320.0 font 2.0
+00:26 +54: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 320.0 font 2.0
+00:26 +55: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: (tearDownAll)
+00:26 +55: All tests passed!

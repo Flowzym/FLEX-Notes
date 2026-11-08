@@ -1,0 +1,16 @@
+{
+  "source_commit": "da51e1663fe9943779036e7dbcfbcf892a83e30c",
+  "version": "0.16.0-rebuild.34+54",
+  "fixtures": "Local synthetic pupil, homework and test PDF; no real pupil data",
+  "checks": [
+    "compact pupil overview at 390px and 320px",
+    "open homework detail from pupil preview",
+    "task-specific document assignment and thumbnail",
+    "submission dialog opens directly without keyboard",
+    "save submission independently of task state",
+    "change task state and return to pupil preview",
+    "calendar has no Notes tab",
+    "general notes reachable in Organisation"
+  ],
+  "page_errors": []
+}
