@@ -1,0 +1,32 @@
+{
+  "version": "0.16.0-rebuild.35+55",
+  "source_commit": "920311d53188dcbea13d99a39e578e924dc3c2ff",
+  "synthetic_data_only": true,
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 320,
+      "height": 740
+    }
+  ],
+  "checks": [
+    "single and multiple task lists",
+    "task details show full text and task-scoped PDF thumbnail",
+    "comment saved and visible without changing partial status",
+    "submission saved without changing task status",
+    "submission visible in separate feedback history",
+    "saved comments, submission and attachments survive reload"
+  ],
+  "screenshots": [
+    "single-task-390-final.png",
+    "multiple-tasks-390-final.png",
+    "multiple-tasks-320-final.png",
+    "task-details-390-final.png",
+    "submission-history-320.png"
+  ],
+  "browser_errors": [],
+  "android_device_tested": false
+}
