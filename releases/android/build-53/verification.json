@@ -44,10 +44,10 @@
       "lib/x86_64/libsqlite3.so"
     ]
   },
-  "flutter_tests_passed": 71,
+  "flutter_tests_passed": 465,
   "flutter_test_scope": [
-    "47 scanner image, edge detection, editor and library tests, including 8 new regressions",
-    "24 attachment and full UI journey tests, plus focused crop preview verification"
+    "Complete Flutter test suite, 465 tests passed locally; 8 new scanner regressions",
+    "Targeted editor, library and attachment regression checks; browser import/edit/export/reimport journey"
   ],
   "android_device_tested": false,
   "browser_tests": true,
@@ -57,5 +57,11 @@
   "quick_xor_hash": "o+yues5UOywjyLSQJ+rbJ10mRXY=",
   "browser_evidence": "browser/result.json",
   "onedrive_upload_verified": true,
-  "private_web_deployment_verified": true
+  "private_web_deployment_verified": true,
+  "ci": {
+    "run_id": 42476226351,
+    "attempts": 2,
+    "status": "blocked_before_tests",
+    "reason": "sqlite3 native library download checksum mismatch; formatting, analysis and schema checks passed"
+  }
 }

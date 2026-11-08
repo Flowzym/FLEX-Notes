@@ -1,0 +1,29 @@
+{
+  "source_commit": "58e350deea683dd88832f59a608cc223c768ed6d",
+  "run_url": "https://github.com/Flowzym/FLEX-Notes/actions/runs/42476226351",
+  "attempts": [
+    {
+      "attempt": 1,
+      "job_id": 128718173982
+    },
+    {
+      "attempt": 2,
+      "job_id": 128719938840
+    }
+  ],
+  "checks_passed": [
+    "Dart formatting",
+    "Flutter analysis",
+    "SQLite schema constraints"
+  ],
+  "tests_started": false,
+  "blocker": "Downloaded libsqlite3.x64.linux.so checksum mismatch",
+  "expected_sha256": "d3d1eac2a4e0eb84f4e8d94d820e5963fddfd11aa95179ea215ddc3bc7bd1078",
+  "received_sha256": "8e8052a0c2d1b3568998cc84bea4b37c23a7db71d547cf8f34b6b109f2f55a30",
+  "local_fallback": {
+    "all_flutter_tests_passed": 465,
+    "analyze_passed": true,
+    "android_release_build_passed": true,
+    "web_release_build_passed": true
+  }
+}
