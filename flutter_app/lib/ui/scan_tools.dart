@@ -56,7 +56,7 @@ class ScanFilterStrip extends StatelessWidget {
   final ValueChanged<String>? onSelected;
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 98 + MediaQuery.textScalerOf(context).scale(11) * 2,
+    height: 68 + MediaQuery.textScalerOf(context).scale(11) * 3,
     child: SingleChildScrollView(
       key: const ValueKey('scan-filter-strip'),
       scrollDirection: Axis.horizontal,
@@ -70,7 +70,7 @@ class ScanFilterStrip extends StatelessWidget {
                 builder: (context) {
                   final chosen = selected == f.key;
                   return SizedBox(
-                    width: 84,
+                    width: 74,
                     child: Semantics(
                       selected: chosen,
                       button: true,
@@ -83,8 +83,8 @@ class ScanFilterStrip extends StatelessWidget {
                         child: Column(
                           children: [
                             Container(
-                              height: 82,
-                              width: 72,
+                              height: 60,
+                              width: 62,
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   width: chosen ? 3 : 1,

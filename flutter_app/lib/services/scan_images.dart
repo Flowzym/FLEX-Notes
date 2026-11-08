@@ -56,6 +56,69 @@ Map<String, dynamic> normalizeScan(Uint8List bytes) {
   };
 }
 
+/// Local paper illumination keeps text legible under uneven lighting. Integral
+/// sums make the filter linear in image size rather than in the window area.
+void _documentTone(img.Image pixels, {required bool binary}) {
+  final w = pixels.width, h = pixels.height, stride = pixels.width + 1;
+  final sums = Float64List((w + 1) * (h + 1));
+  for (var y = 0; y < h; y++) {
+    var row = 0.0;
+    for (var x = 0; x < w; x++) {
+      row += pixels.getPixel(x, y).luminance;
+      sums[(y + 1) * stride + x + 1] = sums[y * stride + x + 1] + row;
+    }
+  }
+  final radius = (math.min(w, h) * .035).round().clamp(4, 96);
+  for (final p in pixels) {
+    final left = math.max(0, p.x - radius),
+        right = math.min(w, p.x + radius + 1);
+    final top = math.max(0, p.y - radius),
+        bottom = math.min(h, p.y + radius + 1);
+    final mean =
+        (sums[bottom * stride + right] -
+            sums[top * stride + right] -
+            sums[bottom * stride + left] +
+            sums[top * stride + left]) /
+        ((right - left) * (bottom - top));
+    if (binary) {
+      final v = p.luminance < mean - 12 || p.luminance < 32 ? 0 : 255;
+      p.setRgb(v, v, v);
+    } else {
+      final gain = (245 / math.max(64, mean)).clamp(.8, 3.0);
+      p.setRgb(
+        (p.r * gain).clamp(0, 255),
+        (p.g * gain).clamp(0, 255),
+        (p.b * gain).clamp(0, 255),
+      );
+    }
+  }
+}
+
+void _redact(img.Image pixels, List rectangles) {
+  for (final rect in rectangles) {
+    final values = (rect as List).cast<num>();
+    if (values.length != 4 ||
+        values.any((v) => !v.isFinite || v < 0 || v > 1) ||
+        values[2] <= values[0] ||
+        values[3] <= values[1]) {
+      throw const DomainError('Ungültige Schwärzung.');
+    }
+    img.fillRect(
+      pixels,
+      x1: (values[0] * pixels.width).floor(),
+      y1: (values[1] * pixels.height).floor(),
+      x2: (values[2] * pixels.width).ceil().clamp(0, pixels.width - 1),
+      y2: (values[3] * pixels.height).ceil().clamp(0, pixels.height - 1),
+      color: img.ColorRgb8(0, 0, 0),
+    );
+  }
+}
+
+/// Geometry edits stay lossless until the final export. Pending redactions are
+/// burned in before moving pixels, so rotation/crop cannot displace a mask.
+Map<String, dynamic> transformScanPixels(Map<String, dynamic> args) =>
+    editScanPixels({...args, 'lossless': true, 'geometry': true});
+
 /// This same renderer feeds preview AND saved pages. Rectangles are burned into
 /// pixels after all transforms; the PDF never contains source text or overlays.
 Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
@@ -69,9 +132,13 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
       interpolation: img.Interpolation.average,
     );
   }
+  final geometry = args['geometry'] == true;
   final turns = args['turns'] as int? ?? 0;
-  if (turns % 4 != 0) pixels = img.copyRotate(pixels, angle: (turns % 4) * 90);
-  if (args['flip'] == true) pixels = img.flipHorizontal(pixels);
+  if (geometry) _redact(pixels, args['redactions'] as List? ?? []);
+  if (!geometry && turns % 4 != 0) {
+    pixels = img.copyRotate(pixels, angle: (turns % 4) * 90);
+  }
+  if (!geometry && args['flip'] == true) pixels = img.flipHorizontal(pixels);
   final corners = args['corners'] as List?;
   if (corners != null) {
     if (corners.length != 4) {
@@ -120,24 +187,31 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
       interpolation: img.Interpolation.linear,
     );
   }
+  if (geometry) {
+    if (turns % 4 != 0) {
+      pixels = img.copyRotate(pixels, angle: (turns % 4) * 90);
+    }
+    if (args['flip'] == true) pixels = img.flipHorizontal(pixels);
+    return {
+      'bytes': Uint8List.fromList(img.encodePng(pixels)),
+      'width': pixels.width,
+      'height': pixels.height,
+    };
+  }
   final filter = args['filter'] as String? ?? 'color';
   final brightness = (args['brightness'] as num? ?? 1).toDouble().clamp(
     .5,
     1.5,
   );
   final contrast = (args['contrast'] as num? ?? 1).toDouble().clamp(.5, 1.8);
-  if (filter == 'document') {
-    // Stretch the paper/ink range without a binary threshold; colored markings
-    // remain legible. The same renderer is used for preview and saved output.
-    img.normalize(pixels, min: 0, max: 255);
-  }
+  if (filter == 'document') _documentTone(pixels, binary: false);
   if ({'gray', 'bw'}.contains(filter)) {
     img.grayscale(pixels);
   }
   img.adjustColor(
     pixels,
     brightness: brightness,
-    contrast: filter == 'document' ? contrast * 1.15 : contrast,
+    contrast: contrast,
     saturation: {'gray', 'bw'}.contains(filter)
         ? null
         : (args['saturation'] as num? ?? 1).clamp(0, 2),
@@ -148,31 +222,14 @@ Map<String, dynamic> editScanPixels(Map<String, dynamic> args) {
       p.setRgb((p.r + shift).clamp(0, 255), p.g, (p.b - shift).clamp(0, 255));
     }
   }
-  if (filter == 'bw') {
-    for (final p in pixels) {
-      final v = p.luminance > 160 ? 255 : 0;
-      p.setRgb(v, v, v);
-    }
-  }
-  for (final rect in args['redactions'] as List? ?? []) {
-    final values = (rect as List).cast<num>();
-    if (values.length != 4 ||
-        values.any((v) => !v.isFinite || v < 0 || v > 1) ||
-        values[2] <= values[0] ||
-        values[3] <= values[1]) {
-      throw const DomainError('Ungültige Schwärzung.');
-    }
-    img.fillRect(
-      pixels,
-      x1: (values[0] * pixels.width).floor(),
-      y1: (values[1] * pixels.height).floor(),
-      x2: (values[2] * pixels.width).ceil().clamp(0, pixels.width - 1),
-      y2: (values[3] * pixels.height).ceil().clamp(0, pixels.height - 1),
-      color: img.ColorRgb8(0, 0, 0),
-    );
-  }
+  if (filter == 'bw') _documentTone(pixels, binary: true);
+  if (!geometry) _redact(pixels, args['redactions'] as List? ?? []);
   return {
-    'bytes': Uint8List.fromList(img.encodeJpg(pixels, quality: 92)),
+    'bytes': Uint8List.fromList(
+      args['lossless'] == true
+          ? img.encodePng(pixels)
+          : img.encodeJpg(pixels, quality: 94),
+    ),
     'width': pixels.width,
     'height': pixels.height,
   };

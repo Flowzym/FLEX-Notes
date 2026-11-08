@@ -207,6 +207,8 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   String? error;
   String progress = '';
   String? cameraNotice;
+  ScanPage? removedPage;
+  int removedIndex = 0;
   String scanError(Object e) {
     if (e is PlatformException &&
         {
@@ -682,10 +684,20 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await removeUnusedScanFiles(c.repository, widget.files, [page.key]);
   });
   Future<void> deletePage(int index) => action(() async {
-    final next = pages, removed = next.removeAt(index);
+    final next = pages;
+    removedIndex = index;
+    removedPage = next.removeAt(index);
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
-    await removeUnusedScanFiles(c.repository, widget.files, [removed.key]);
+    // Keep removed bytes until save/close so an accidental removal is reversible.
+  });
+  Future<void> undoRemoval() => action(() async {
+    if (removedPage == null || pages.length >= scanPageLimit) return;
+    final next = pages;
+    next.insert(removedIndex.clamp(0, next.length), removedPage!);
+    change({'pages': next.map((p) => p.toJson()).toList()});
+    await buffer.flush();
+    if (mounted) setState(() => removedPage = null);
   });
   Future<void> movePage(int index, int step) => action(() async {
     final next = pages, item = next.removeAt(index);
@@ -941,7 +953,23 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          const SizedBox(height: 14),
+          if (removedPage != null)
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              children: [
+                const Text('Seite entfernt'),
+                TextButton.icon(
+                  key: const ValueKey('scan-undo-remove'),
+                  onPressed: busy || pages.length >= scanPageLimit
+                      ? null
+                      : undoRemoval,
+                  icon: const Icon(Icons.undo),
+                  label: const Text('Rückgängig'),
+                ),
+              ],
+            ),
+          const SizedBox(height: 8),
           TextField(
             key: const ValueKey('scan-title'),
             controller: title,
@@ -949,6 +977,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             maxLength: 200,
             decoration: InputDecoration(
               labelText: 'Dateiname',
+              counterText: '',
               suffixText: photoOutput ? '.jpg' : '.pdf',
             ),
             onChanged: (v) => change({'title': v}),
@@ -979,6 +1008,13 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+              if (pages.length > 1)
+                IconButton(
+                  key: const ValueKey('scan-batch-filter'),
+                  tooltip: 'Filter für alle Seiten',
+                  onPressed: busy ? null : filterPages,
+                  icon: const Icon(Icons.auto_fix_high),
+                ),
               IconButton(
                 tooltip: pageGrid ? 'Seiten als Liste' : 'Seiten als Raster',
                 onPressed: () => setState(() => pageGrid = !pageGrid),
@@ -988,17 +1024,25 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
               ),
             ],
           ),
-          if (pages.length > 1)
-            TextButton.icon(
-              key: const ValueKey('scan-batch-filter'),
-              onPressed: busy ? null : filterPages,
-              icon: const Icon(Icons.auto_fix_high),
-              label: const Text('Filter für alle Seiten'),
-            ),
           if (pages.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Seiten scannen oder Bilder/PDF hinzufügen.'),
+              child: Column(
+                children: [
+                  Icon(Icons.document_scanner_outlined, size: 44),
+                  SizedBox(height: 12),
+                  Text(
+                    'Dein Dokument beginnt hier',
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Scannen, fotografieren oder eine Datei importieren.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
             ),
           if (pageGrid)
             pageTiles()

@@ -96,6 +96,207 @@ void main() {
   }
 
   testWidgets(
+    'page editor tools remain reachable with doubled text at 320 pixels',
+    (t) async {
+      t.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      await host(
+        t,
+        (_) => ScanPageEditor(
+          bytes: scannerImage(),
+          photo: true,
+          pageNumber: 1,
+          width: 180,
+          height: 240,
+        ),
+        width: 320,
+      );
+      for (final label in ['Zuschneiden', 'Schwärzen', 'Filter']) {
+        await tap(t, find.text(label));
+        await settleWork(
+          t,
+          () => find.byType(LinearProgressIndicator).evaluate().isEmpty,
+        );
+        expect(t.takeException(), isNull);
+      }
+      await tap(t, find.text('Abbrechen'));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'filter remains reversible across tools and Original restores source color',
+    (t) async {
+      Map<String, dynamic>? result;
+      await host(
+        t,
+        (_) => ScanPageEditor(
+          bytes: scannerImage(),
+          pageNumber: 1,
+          width: 180,
+          height: 240,
+        ),
+        onResult: (v) => result = v as Map<String, dynamic>?,
+      );
+      await tap(t, find.text('Graustufen'));
+      await tap(t, find.text('Schwärzen'));
+      await tap(t, find.text('Filter'));
+      await tap(t, find.text('Original'));
+      await tap(t, find.text('Übernehmen'));
+      await settleWork(t, () => result != null);
+      final pixel = img
+          .decodeJpg(result!['bytes'] as Uint8List)!
+          .getPixel(90, 120);
+      expect(pixel.r, greaterThan(pixel.g * 2));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'undo redo and original comparison never change the selected export',
+    (t) async {
+      Map<String, dynamic>? result;
+      await host(
+        t,
+        (_) => ScanPageEditor(
+          bytes: scannerImage(),
+          pageNumber: 1,
+          width: 180,
+          height: 240,
+        ),
+        onResult: (v) => result = v as Map<String, dynamic>?,
+      );
+      await tap(t, find.text('Graustufen'));
+      await tap(t, find.byTooltip('Rückgängig'));
+      expect(
+        t.widget<ScanFilterStrip>(find.byType(ScanFilterStrip)).selected,
+        'color',
+      );
+      await tap(t, find.byTooltip('Wiederholen'));
+      expect(
+        t.widget<ScanFilterStrip>(find.byType(ScanFilterStrip)).selected,
+        'gray',
+      );
+      await tap(t, find.byTooltip('Original vergleichen'));
+      final image =
+          t.widget<Image>(find.byKey(const ValueKey('scan-live-preview'))).image
+              as MemoryImage;
+      final original = img.decodeJpg(image.bytes)!.getPixel(90, 120);
+      expect(original.r, greaterThan(original.g * 2));
+      await tap(t, find.text('Übernehmen'));
+      await settleWork(t, () => result != null);
+      final exported = img
+          .decodeJpg(result!['bytes'] as Uint8List)!
+          .getPixel(90, 120);
+      expect((exported.r - exported.g).abs(), lessThan(3));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'crop loupe follows a corner and undo restores full image dimensions',
+    (t) async {
+      Map<String, dynamic>? result;
+      await host(
+        t,
+        (_) => ScanPageEditor(
+          bytes: scannerImage(),
+          pageNumber: 1,
+          width: 180,
+          height: 240,
+          photo: true,
+        ),
+        width: 320,
+        onResult: (v) => result = v as Map<String, dynamic>?,
+      );
+      await tap(t, find.text('Zuschneiden'));
+      final canvas = find.byKey(const ValueKey('scan-page-canvas'));
+      await t.ensureVisible(canvas);
+      await t.pumpAndSettle();
+      final box = t.getRect(canvas);
+      final gesture = await t.startGesture(box.topLeft + const Offset(3, 3));
+      await gesture.moveTo(
+        box.topLeft + Offset(box.width * .2, box.height * .2),
+      );
+      await t.pump();
+      expect(find.byKey(const ValueKey('scan-crop-loupe')), findsOneWidget);
+      await gesture.up();
+      await t.pump();
+      await tap(t, find.text('Zuschnitt anwenden'));
+      await settleWork(
+        t,
+        () =>
+            find.text('Filtervorschau').evaluate().isNotEmpty &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      await tap(t, find.byTooltip('Rückgängig'));
+      await tap(t, find.text('Übernehmen'));
+      await settleWork(t, () => result != null);
+      expect([result!['width'], result!['height']], [180, 240]);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'removed pages can be restored in order and only abandoned bytes are cleaned',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          initialImages: [
+            scannerImage(),
+            scannerImage(width: 240, height: 180),
+          ],
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      final keys = (c.dialogDrafts.single.data['pages'] as List)
+          .map((p) => p['key'])
+          .toList();
+      await tap(t, find.byTooltip('Seite entfernen').first);
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).length == 1 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(files.values.length, 2);
+      await tap(t, find.byKey(const ValueKey('scan-undo-remove')));
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(
+        (c.dialogDrafts.single.data['pages'] as List).map((p) => p['key']),
+        keys,
+      );
+      await tap(t, find.byTooltip('Seite entfernen').last);
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).length == 1 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      expect(files.values.keys, [keys.first]);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'batch camera saves each page, cancellation retains batch and drag order persists',
     (t) async {
       final c = await controller(), files = MemoryMaterialFiles();
@@ -412,7 +613,7 @@ void main() {
         t,
         () => find.text('Foto 1 bearbeiten').evaluate().isNotEmpty,
       );
-      expect(find.text('Spiegeln'), findsOneWidget);
+      expect(find.byTooltip('Spiegeln'), findsOneWidget);
       await tap(t, find.text('Filter'));
       await t.pumpAndSettle();
       expect(find.text('Warm'), findsOneWidget);

@@ -1,4 +1,4 @@
-import 'action_heading.dart';
+import 'collapsible_search.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
@@ -274,262 +274,305 @@ class _ScannerLibraryState extends State<ScannerLibrary>
         return Column(
           children: [
             Expanded(
-              child: ListView(
-                key: const PageStorageKey('scanner-library'),
-                padding: const EdgeInsets.all(16),
-                children: [
-                  ActionHeading(
-                    leading: Text(
-                      'Scans & Fotos',
-                      style: Theme.of(ctx).textTheme.headlineSmall,
-                    ),
-                    actions: [
-                      if (!draftsOnly)
-                        IconButton(
-                          tooltip: selecting
-                              ? 'Auswahl beenden'
-                              : 'Mehrere auswählen',
-                          onPressed: busy
-                              ? null
-                              : () => setState(() {
-                                  selecting
-                                      ? resetSelection()
-                                      : selecting = true;
-                                }),
-                          icon: Icon(selecting ? Icons.close : Icons.checklist),
-                        ),
-                      IconButton(
-                        tooltip: 'Scannen / Foto',
-                        onPressed: busy
-                            ? null
-                            : () => scanAndShow(ctx, c, const ScanContext()),
-                        icon: const Icon(Icons.add_a_photo_outlined),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: search,
-                    decoration: const InputDecoration(
-                      labelText: 'Name, Tag oder Schüler suchen',
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                    onChanged: (v) => setState(() {
-                      query = v;
-                      resetSelection();
-                    }),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (final type in const {
-                        'all': 'Alle',
-                        'pdf': 'PDF',
-                        'jpg': 'Fotos',
-                      }.entries)
-                        ChoiceChip(
-                          label: Text(type.value),
-                          selected: format == type.key && !draftsOnly,
-                          onSelected: (_) => setState(() {
-                            format = type.key;
-                            draftsOnly = false;
-                            resetSelection();
-                          }),
-                        ),
-                      FilterChip(
-                        label: Text('Entwürfe · ${drafts.length}'),
-                        selected: draftsOnly,
-                        onSelected: (v) => setState(() {
-                          draftsOnly = v;
-                          trash = false;
-                          resetSelection();
-                        }),
-                      ),
-                      FilterChip(
-                        label: const Text('Papierkorb'),
-                        selected: trash,
-                        onSelected: (v) => setState(() {
-                          trash = v;
-                          draftsOnly = false;
-                          tag = '';
-                          resetSelection();
-                        }),
-                      ),
-                    ],
-                  ),
-                  if (!draftsOnly) ...[
-                    Wrap(
-                      spacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          '${documents.length} ${documents.length == 1 ? 'Datei' : 'Dateien'}',
-                        ),
-                        PopupMenuButton<String>(
-                          tooltip: 'Sortieren',
-                          initialValue: sort,
-                          onSelected: (v) => setState(() => sort = v),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                              value: 'recent',
-                              child: Text('Zuletzt geändert'),
-                            ),
-                            PopupMenuItem(
-                              value: 'name',
-                              child: Text('Name A–Z'),
-                            ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.sort, size: 18),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    sort == 'name'
-                                        ? 'Name A–Z'
-                                        : 'Zuletzt geändert',
+              child: LayoutBuilder(
+                builder: (_, box) {
+                  final columns =
+                      ((box.maxWidth - 32) /
+                              (MediaQuery.textScalerOf(ctx).scale(1) > 1.5
+                                  ? 240
+                                  : 160))
+                          .floor()
+                          .clamp(1, 5);
+                  final width =
+                      (box.maxWidth - 32 - 12 * (columns - 1)) / columns;
+                  final count = draftsOnly
+                      ? drafts.length
+                      : grid
+                      ? (documents.length / columns).ceil()
+                      : documents.length;
+                  return ListView.builder(
+                    key: const PageStorageKey('scanner-library'),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 1 + (count == 0 ? 1 : count),
+                    itemBuilder: (_, index) {
+                      if (index == 0) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            CollapsibleSearch(
+                              controller: search,
+                              label: 'Name, Tag oder Schüler suchen',
+                              fieldKey: const ValueKey(
+                                'scanner-library-search',
+                              ),
+                              buttonKey: const ValueKey(
+                                'scanner-library-search-button',
+                              ),
+                              iconOnly: true,
+                              onChanged: (v) => setState(() {
+                                query = v;
+                                resetSelection();
+                              }),
+                              leading: Text(
+                                'Scans & Fotos',
+                                style: Theme.of(ctx).textTheme.headlineSmall,
+                              ),
+                              actions: [
+                                if (!draftsOnly)
+                                  IconButton(
+                                    tooltip: selecting
+                                        ? 'Auswahl beenden'
+                                        : 'Mehrere auswählen',
+                                    onPressed: busy
+                                        ? null
+                                        : () => setState(() {
+                                            selecting
+                                                ? resetSelection()
+                                                : selecting = true;
+                                          }),
+                                    icon: Icon(
+                                      selecting ? Icons.close : Icons.checklist,
+                                    ),
                                   ),
+                                IconButton(
+                                  tooltip: 'Scannen / Foto',
+                                  onPressed: busy
+                                      ? null
+                                      : () => scanAndShow(
+                                          ctx,
+                                          c,
+                                          const ScanContext(),
+                                        ),
+                                  icon: const Icon(Icons.add_a_photo_outlined),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: grid ? 'Listenansicht' : 'Rasteransicht',
-                          onPressed: () => setState(() => grid = !grid),
-                          icon: Icon(
-                            grid ? Icons.view_list_outlined : Icons.grid_view,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (tags.isNotEmpty || tag.isNotEmpty)
-                      SizedBox(
-                        height: 36 + MediaQuery.textScalerOf(ctx).scale(14),
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: ChoiceChip(
-                                label: const Text('Alle Tags'),
-                                selected: tag.isEmpty,
-                                onSelected: (_) => setState(() {
-                                  tag = '';
-                                  resetSelection();
-                                }),
-                              ),
-                            ),
-                            for (final t in {...tags, if (tag.isNotEmpty) tag})
-                              Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: ChoiceChip(
-                                  label: Text(t),
-                                  selected: tag == t,
-                                  onSelected: (_) => setState(() {
-                                    tag = t;
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                for (final type in const {
+                                  'all': 'Alle',
+                                  'pdf': 'PDF',
+                                  'jpg': 'Fotos',
+                                }.entries)
+                                  ChoiceChip(
+                                    label: Text(type.value),
+                                    selected: format == type.key && !draftsOnly,
+                                    onSelected: (_) => setState(() {
+                                      format = type.key;
+                                      draftsOnly = false;
+                                      resetSelection();
+                                    }),
+                                  ),
+                                FilterChip(
+                                  label: Text('Entwürfe · ${drafts.length}'),
+                                  selected: draftsOnly,
+                                  onSelected: (v) => setState(() {
+                                    draftsOnly = v;
+                                    trash = false;
                                     resetSelection();
                                   }),
                                 ),
-                              ),
-                          ],
-                        ),
-                      ),
-                  ],
-                  if (busy) const LinearProgressIndicator(),
-                  const SizedBox(height: 8),
-                  if (draftsOnly) ...[
-                    if (drafts.isEmpty)
-                      const Text('Keine passenden Scanentwürfe.'),
-                    for (final draft in drafts)
-                      ListTile(
-                        leading: ScanDraftThumbnail(draft: draft),
-                        title: Text(draft.data['title'] as String),
-                        subtitle: Text(
-                          '${(draft.data['pages'] as List).length} Seiten',
-                        ),
-                        onTap: () => scanAndShow(
-                          ctx,
-                          c,
-                          const ScanContext(),
-                          draft: draft,
-                        ),
-                        trailing: IconButton(
-                          tooltip: 'Scanentwurf löschen',
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => guarded(ctx, () async {
-                            if (!await confirmEditorDraftDeletion(ctx)) return;
-                            await discardScan(
-                              c.repository,
-                              const LocalMaterialFiles(),
-                              draft,
-                            );
-                            await c.reload();
-                          }),
-                        ),
-                      ),
-                  ] else ...[
-                    if (documents.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(
-                          child: Text('Keine passenden Scans oder Fotos.'),
-                        ),
-                      ),
-                    if (grid)
-                      LayoutBuilder(
-                        builder: (_, box) {
-                          final columns =
-                              (box.maxWidth /
-                                      (MediaQuery.textScalerOf(ctx).scale(1) >
-                                              1.5
-                                          ? 240
-                                          : 160))
-                                  .floor()
-                                  .clamp(1, 5);
-                          final width =
-                              (box.maxWidth - 12 * (columns - 1)) / columns;
-                          return Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              for (final d in documents) tile(d, width),
-                            ],
-                          );
-                        },
-                      )
-                    else
-                      for (final d in documents)
-                        Row(
-                          children: [
-                            if (selecting)
-                              Checkbox(
-                                value: selected.contains(d.id),
-                                onChanged: busy ? null : (_) => toggle(d.id),
-                                semanticLabel: '${d.title} auswählen',
-                              ),
-                            Expanded(
-                              child: MaterialRow(
-                                material: d,
-                                onOpen: () => selecting
-                                    ? toggle(d.id)
-                                    : guarded(
-                                        ctx,
-                                        () => openMaterial(ctx, c, d),
-                                      ),
-                                trailing: selecting ? null : fileActions(d),
-                              ),
+                                FilterChip(
+                                  label: const Text('Papierkorb'),
+                                  selected: trash,
+                                  onSelected: (v) => setState(() {
+                                    trash = v;
+                                    draftsOnly = false;
+                                    tag = '';
+                                    resetSelection();
+                                  }),
+                                ),
+                              ],
                             ),
+                            if (!draftsOnly) ...[
+                              Wrap(
+                                spacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    '${documents.length} ${documents.length == 1 ? 'Datei' : 'Dateien'}',
+                                  ),
+                                  PopupMenuButton<String>(
+                                    tooltip: 'Sortieren',
+                                    initialValue: sort,
+                                    onSelected: (v) => setState(() => sort = v),
+                                    itemBuilder: (_) => const [
+                                      PopupMenuItem(
+                                        value: 'recent',
+                                        child: Text('Zuletzt geändert'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'name',
+                                        child: Text('Name A–Z'),
+                                      ),
+                                    ],
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.sort, size: 18),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              sort == 'name'
+                                                  ? 'Name A–Z'
+                                                  : 'Zuletzt geändert',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: grid
+                                        ? 'Listenansicht'
+                                        : 'Rasteransicht',
+                                    onPressed: () =>
+                                        setState(() => grid = !grid),
+                                    icon: Icon(
+                                      grid
+                                          ? Icons.view_list_outlined
+                                          : Icons.grid_view,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (tags.isNotEmpty || tag.isNotEmpty)
+                                SizedBox(
+                                  height:
+                                      36 +
+                                      MediaQuery.textScalerOf(ctx).scale(14),
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 6,
+                                        ),
+                                        child: ChoiceChip(
+                                          label: const Text('Alle Tags'),
+                                          selected: tag.isEmpty,
+                                          onSelected: (_) => setState(() {
+                                            tag = '';
+                                            resetSelection();
+                                          }),
+                                        ),
+                                      ),
+                                      for (final t in {
+                                        ...tags,
+                                        if (tag.isNotEmpty) tag,
+                                      })
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 6,
+                                          ),
+                                          child: ChoiceChip(
+                                            label: Text(t),
+                                            selected: tag == t,
+                                            onSelected: (_) => setState(() {
+                                              tag = t;
+                                              resetSelection();
+                                            }),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                            if (busy) const LinearProgressIndicator(),
+                            const SizedBox(height: 8),
                           ],
-                        ),
-                  ],
-                  const SizedBox(height: 16),
-                ],
+                        );
+                      }
+                      if (count == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text(
+                              draftsOnly
+                                  ? 'Keine passenden Scanentwürfe.'
+                                  : 'Keine passenden Scans oder Fotos.',
+                            ),
+                          ),
+                        );
+                      }
+                      if (draftsOnly) {
+                        final draft = drafts[index - 1];
+                        return ListTile(
+                          leading: ScanDraftThumbnail(draft: draft),
+                          title: Text(draft.data['title'] as String),
+                          subtitle: Text(
+                            '${(draft.data['pages'] as List).length} Seiten',
+                          ),
+                          onTap: () => scanAndShow(
+                            ctx,
+                            c,
+                            const ScanContext(),
+                            draft: draft,
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Scanentwurf löschen',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => guarded(ctx, () async {
+                              if (!await confirmEditorDraftDeletion(ctx)) {
+                                return;
+                              }
+                              await discardScan(
+                                c.repository,
+                                const LocalMaterialFiles(),
+                                draft,
+                              );
+                              await c.reload();
+                            }),
+                          ),
+                        );
+                      }
+                      if (grid) {
+                        final from = (index - 1) * columns;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (
+                                var i = from;
+                                i < from + columns && i < documents.length;
+                                i++
+                              ) ...[
+                                if (i > from) const SizedBox(width: 12),
+                                tile(documents[i], width),
+                              ],
+                            ],
+                          ),
+                        );
+                      }
+                      final d = documents[index - 1];
+                      return Row(
+                        children: [
+                          if (selecting)
+                            Checkbox(
+                              value: selected.contains(d.id),
+                              onChanged: busy ? null : (_) => toggle(d.id),
+                              semanticLabel: '${d.title} auswählen',
+                            ),
+                          Expanded(
+                            child: MaterialRow(
+                              material: d,
+                              onOpen: () => selecting
+                                  ? toggle(d.id)
+                                  : guarded(ctx, () => openMaterial(ctx, c, d)),
+                              trailing: selecting ? null : fileActions(d),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
               ),
             ),
             if (selecting)

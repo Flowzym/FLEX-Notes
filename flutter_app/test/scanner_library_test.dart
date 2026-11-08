@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flex_notizbuch/ui/material_thumbnail.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/domain/models.dart';
@@ -63,6 +64,8 @@ void main() {
       expect(find.text('Mathe Scan'), findsOneWidget);
       expect(find.text('Klassenfoto'), findsOneWidget);
       expect(find.text('Unverknüpftes Material'), findsNothing);
+      await t.tap(find.byKey(const ValueKey('scanner-library-search-button')));
+      await t.pumpAndSettle();
       await t.enterText(find.byType(TextField), 'Alex');
       await t.pumpAndSettle();
       expect(find.text('Mathe Scan'), findsOneWidget);
@@ -89,7 +92,8 @@ void main() {
         false,
       );
       await t.tap(find.text('Papierkorb'));
-      await t.enterText(find.byType(TextField), '');
+      await t.tap(find.byTooltip('Suchtext leeren'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Fotos'));
       await t.pumpAndSettle();
       expect(find.text('Mathe Scan'), findsNothing);
@@ -168,6 +172,52 @@ void main() {
       await tap(find.widgetWithText(TextButton, 'Wiederherstellen'));
       expect(c.classroom.every((d) => !d.deleted), true);
       expect(c.classroom.every((d) => d.strings('tags').contains('Neu')), true);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'large scan library builds previews lazily and reaches the last file',
+    (t) async {
+      final c = NotebookController(classroomMemory());
+      await c.initialize();
+      addTearDown(() async {
+        c.dispose();
+        await c.repository.close();
+      });
+      final docs = [
+        for (var i = 0; i < 80; i++)
+          material(
+            'Scan ${i.toString().padLeft(3, '0')}',
+            fields: {'scanner': true},
+          ),
+      ];
+      await c.saveClassroomBatch(docs);
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ScannerLibrary(controller: c)),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byType(MaterialThumbnail).evaluate().length, lessThan(25));
+      await t.tap(find.byTooltip('Sortieren'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Name A–Z').last);
+      await t.pumpAndSettle();
+      await t.scrollUntilVisible(
+        find.text('Scan 079'),
+        500,
+        scrollable: find.byType(Scrollable).first,
+        maxScrolls: 80,
+      );
+      await t.ensureVisible(find.text('Scan 079'));
+      await t.pumpAndSettle();
+      expect(
+        find.byKey(ValueKey('scanner-file-${docs.last.id}')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.byType(MaterialThumbnail).evaluate().length, lessThan(25));
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

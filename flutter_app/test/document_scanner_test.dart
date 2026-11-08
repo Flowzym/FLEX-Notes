@@ -76,6 +76,61 @@ void main() {
   }
 
   test(
+    'adaptive document filters preserve dark text across a paper shadow',
+    () {
+      final page = img.Image(width: 260, height: 320);
+      for (final p in page) {
+        final paper = (100 + p.x / 259 * 135).round();
+        final ink = p.y % 40 >= 18 && p.y % 40 < 22 && p.x % 35 < 22;
+        p.setRgb(ink ? 30 : paper, ink ? 30 : paper, ink ? 30 : paper);
+      }
+      final bytes = Uint8List.fromList(img.encodePng(page));
+      final bw = img.decodeJpg(
+        editScanPixels({'bytes': bytes, 'filter': 'bw'})['bytes'] as Uint8List,
+      )!;
+      final document = img.decodeJpg(
+        editScanPixels({'bytes': bytes, 'filter': 'document'})['bytes']
+            as Uint8List,
+      )!;
+      for (final x in [10, 150, 250]) {
+        expect(bw.getPixel(x, 5).luminance, greaterThan(245));
+        expect(document.getPixel(x, 5).luminance, greaterThan(220));
+        expect(bw.getPixel(x, 20).luminance, lessThan(10));
+        expect(document.getPixel(x, 20).luminance, lessThan(100));
+      }
+    },
+  );
+
+  test(
+    'geometric editing is lossless and redaction moves with rotated pixels',
+    () {
+      final bytes = scannerImage();
+      var transformed = bytes;
+      for (var i = 0; i < 4; i++) {
+        transformed =
+            transformScanPixels({'bytes': transformed, 'turns': 1})['bytes']
+                as Uint8List;
+        expect(img.PngDecoder().isValidFile(transformed), true);
+      }
+      expect(
+        img.decodePng(transformed)!.getBytes(),
+        img.decodeJpg(bytes)!.getBytes(),
+      );
+      final hidden = transformScanPixels({
+        'bytes': bytes,
+        'turns': 1,
+        'redactions': [
+          [.1, .1, .4, .4],
+        ],
+      });
+      final result = img.decodePng(hidden['bytes'] as Uint8List)!;
+      expect([result.width, result.height], [240, 180]);
+      expect(result.getPixel(180, 45).luminance, 0);
+      expect(result.getPixel(3, 3).luminance, greaterThan(220));
+    },
+  );
+
+  test(
     'photo export keeps tags and links and round trips encrypted material backup',
     () async {
       final d = await draft(
