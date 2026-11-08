@@ -337,7 +337,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
       'school:${r.id}',
       r.title.isEmpty ? 'Hausübung' : r.title,
     ),
-    onJournal: () => showJournal(context, c, r.id),
+    onHistory: showHomeworkHistory,
     onDelete: () async {
       if (r.deleted ||
           await confirmFlex(
@@ -366,74 +366,123 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               ),
             ],
           ),
-    history: r.liveFeedback.isEmpty
-        ? null
-        : ExpansionTile(
-            key: PageStorageKey('feedback-${r.id}'),
-            tilePadding: EdgeInsets.zero,
-            title: Text('Verlauf · ${r.liveFeedback.length}'),
-            children: [
-              for (final f in r.liveFeedback.reversed)
-                ListTile(
-                  title: Text(
-                    [
-                      f.taskText,
-                      f.state?.label ?? '',
-                      f.note,
-                    ].where((v) => v.isNotEmpty).join(' · '),
+  );
+
+  Future<void> showHomeworkHistory() => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, refresh) => AnimatedBuilder(
+        animation: c,
+        builder: (context, _) {
+          final current = c.records.where((v) => v.id == r.id).firstOrNull ?? r;
+          return FlexModal(
+            title: const Text('Verlauf'),
+            onClose: () => Navigator.pop(dialogContext),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => showJournal(context, c, current.id),
+                    icon: const Icon(Icons.history, size: 20),
+                    label: const Text('Änderungen'),
                   ),
-                  subtitle: Text(
-                    '${displayDate(f.observedOn)} ${f.observedTime}',
-                  ),
-                  trailing: r.deleted
-                      ? null
-                      : PopupMenuButton<String>(
-                          tooltip: 'Rückmeldung bearbeiten oder löschen',
-                          onSelected: (action) async {
-                            if (action == 'edit') {
-                              await editSchool(
-                                context,
-                                c,
-                                r,
-                                mode: 'comment',
-                                taskId: f.taskId,
-                                feedbackId: f.id,
-                              );
-                            } else if (await confirmFlex(
-                              context,
-                              'Rückmeldung löschen?',
-                              'Der vorherige Stand wird wieder wirksam.',
-                              accept: 'Löschen',
-                            )) {
-                              await mutate(
-                                r.patch({
-                                  'feedback': r.feedback
-                                      .map(
-                                        (v) =>
-                                            (v.id == f.id
-                                                    ? v.copyWith(deleted: true)
-                                                    : v)
-                                                .toJson(),
-                                      )
-                                      .toList(),
-                                }),
-                              );
-                            }
-                          },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Bearbeiten'),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Löschen'),
-                            ),
-                          ],
-                        ),
                 ),
-            ],
-          ),
+                if (saveError != null)
+                  Text(
+                    saveError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                if (current.liveFeedback.isEmpty)
+                  const Text('Noch keine Rückmeldungen.'),
+                for (final f in current.liveFeedback.reversed)
+                  ListTile(
+                    key: ValueKey('homework-feedback-${f.id}'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      [
+                        f.taskText,
+                        f.state?.label ?? '',
+                        if (f.delivery != null)
+                          'Abgabe: ${homeworkDeliveryLabel(f.delivery!)}',
+                        f.note,
+                      ].where((v) => v.isNotEmpty).join(' · '),
+                    ),
+                    subtitle: Text(
+                      '${displayDate(f.observedOn)} ${f.observedTime}',
+                    ),
+                    trailing: current.deleted
+                        ? null
+                        : PopupMenuButton<String>(
+                            enabled: !busy,
+                            tooltip: 'Rückmeldung bearbeiten oder löschen',
+                            onSelected: (action) async {
+                              if (action == 'edit') {
+                                await editSchool(
+                                  context,
+                                  c,
+                                  current,
+                                  mode: 'comment',
+                                  taskId: f.taskId,
+                                  feedbackId: f.id,
+                                );
+                              } else if (await confirmFlex(
+                                context,
+                                'Rückmeldung löschen?',
+                                'Der vorherige Stand wird wieder wirksam.',
+                                accept: 'Löschen',
+                              )) {
+                                final latest = c.records
+                                    .where((v) => v.id == current.id)
+                                    .firstOrNull;
+                                if (latest == null ||
+                                    latest.deleted ||
+                                    !context.mounted ||
+                                    !mounted) {
+                                  return;
+                                }
+                                final saving = mutate(
+                                  latest.patch({
+                                    'feedback': latest.feedback
+                                        .map(
+                                          (v) =>
+                                              (v.id == f.id
+                                                      ? v.copyWith(
+                                                          deleted: true,
+                                                        )
+                                                      : v)
+                                                  .toJson(),
+                                        )
+                                        .toList(),
+                                  }),
+                                );
+                                refresh(() {});
+                                await saving;
+                                if (context.mounted) refresh(() {});
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Bearbeiten'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Löschen'),
+                              ),
+                            ],
+                          ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
   );
 
   Widget _observationTag(String text) => transparentChip(

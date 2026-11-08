@@ -353,20 +353,20 @@ void main() {
         expect(find.byTooltip('Notiz & Verlauf'), findsOneWidget);
         expect(find.byTooltip('Erinnerung verschieben'), findsOneWidget);
         expect(find.byTooltip('Papierkorb'), findsOneWidget);
-        expect(find.byTooltip('Änderungen'), findsOneWidget);
+        expect(
+          find.byKey(ValueKey('homework-history-${r.id}')),
+          findsOneWidget,
+        );
         await tap(t, find.byTooltip('Hausübung einklappen'));
         expect(
           find.byKey(ValueKey('homework-progress-${r.id}')),
           findsOneWidget,
         );
         expect(find.text('Fällig: 09.11.2026'), findsOneWidget);
-        expect(
-          find.byKey(const ValueKey('task-attachments-child')),
-          findsNothing,
-        );
+        expect(find.byKey(const ValueKey('task-previews-child')), findsNothing);
         await tap(t, find.byTooltip('Hausübung aufklappen'));
         expect(
-          find.byKey(const ValueKey('task-attachments-child')),
+          find.byKey(const ValueKey('task-previews-child')),
           findsOneWidget,
         );
         await tap(t, find.byTooltip('Erinnerung verschieben'));
@@ -393,15 +393,16 @@ void main() {
         expect(find.text('Hausübung'), findsNothing);
         expect(find.byTooltip('Hausübung einklappen'), findsNothing);
         expect(find.text('1.1'), findsOneWidget);
-        expect(find.text('Zur Hausübung'), findsOneWidget);
-        expect(find.text('Erledigt'), findsNWidgets(3));
+        expect(find.byKey(const ValueKey('attachment-scan')), findsNothing);
+        expect(find.byKey(const ValueKey('comment-child')), findsNothing);
         for (final state in TaskState.values) {
           final control = find.byKey(ValueKey('status-child-${state.name}'));
           expect(t.getSize(control).width, greaterThanOrEqualTo(44));
           expect(t.getSize(control).height, greaterThanOrEqualTo(44));
         }
         // A record-level scan must not acquire the previous task's attachment scope.
-        await tap(t, action('record-attachments-${r.id}', 'attachment-scan'));
+        await tap(t, find.byKey(ValueKey('record-attachments-${r.id}')));
+        await tap(t, find.text('Scannen / Foto'));
         expect(
           t
               .widget<ScanEditor>(find.byType(ScanEditor))
@@ -435,6 +436,142 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'one short task stays compact while details retain comments and the full text',
+    (t) async {
+      final r = await repo.saveSchoolRecord(
+        SchoolRecord.empty(SchoolKind.homework, 'p').patch({
+          'tasks': [
+            const HomeworkTask(id: 'one', text: 'Seite 24 üben').toJson(),
+          ],
+        }),
+      );
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+      expect(
+        t.getSize(find.byKey(ValueKey('homework-content-${r.id}'))).height,
+        lessThan(340),
+      );
+      expect(find.byKey(const ValueKey('attachment-scan')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('homework-task-details-one')));
+      expect(find.text('Seite 24 üben'), findsWidgets);
+      await tap(t, find.byKey(const ValueKey('comment-one')));
+      await t.enterText(
+        find.byKey(const ValueKey('homework-comment')),
+        'Nächstes Mal gemeinsam lesen',
+      );
+      await tap(t, find.byKey(const ValueKey('save-school-record')));
+      expect(find.text('Nächstes Mal gemeinsam lesen'), findsOneWidget);
+      final saved = (await repo.schoolRecords()).single;
+      expect(saved.liveFeedback.single.taskId, 'one');
+      expect(saved.taskState(saved.tasks.single), TaskState.open);
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
+
+  testWidgets(
+    'open task details track edits and stop capture after the task is removed',
+    (t) async {
+      var r = await repo.saveSchoolRecord(taskRecord('p'));
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+      await tap(t, find.byKey(const ValueKey('homework-task-details-child')));
+      r = await repo.saveSchoolRecord(
+        r.patch({
+          'tasks': r.tasks
+              .map(
+                (v) => (v.id == 'child' ? v.copyWith(text: 'Neuer Text') : v)
+                    .toJson(),
+              )
+              .toList(),
+        }),
+      );
+      await c.reload();
+      await t.pumpAndSettle();
+      expect(find.text('Neuer Text'), findsOneWidget);
+      await repo.saveSchoolRecord(
+        r.patch({
+          'tasks': r.tasks
+              .where((v) => v.id != 'child')
+              .map((v) => v.toJson())
+              .toList(),
+        }),
+      );
+      await c.reload();
+      await t.pumpAndSettle();
+      expect(find.text('Diese Aufgabe wurde entfernt.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('attachment-scan')), findsNothing);
+      expect(find.byKey(const ValueKey('comment-child')), findsNothing);
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
+
+  testWidgets(
+    'separate history identifies submission and deleting feedback restores the prior task state',
+    (t) async {
+      final r = await repo.saveSchoolRecord(
+        taskRecord('p').patch({
+          'feedback': [
+            SchoolFeedback(
+              id: 'result',
+              observedOn: '2026-11-07',
+              createdAtUtc: utcNow(),
+              taskId: 'child',
+              taskText: 'Gleicher Text',
+              state: TaskState.complete,
+            ).toJson(),
+            SchoolFeedback(
+              id: 'delivery',
+              observedOn: '2026-11-08',
+              createdAtUtc: utcNow(),
+              delivery: 'submitted',
+            ).toJson(),
+          ],
+        }),
+      );
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+      await tap(t, find.byKey(ValueKey('homework-history-${r.id}')));
+      expect(find.text('Änderungen'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('homework-feedback-delivery')),
+          matching: find.text('Abgabe: Vorgelegt'),
+        ),
+        findsOneWidget,
+      );
+      await tap(
+        t,
+        find.descendant(
+          of: find.byKey(const ValueKey('homework-feedback-result')),
+          matching: find.byType(PopupMenuButton<String>),
+        ),
+      );
+      await tap(t, find.text('Löschen'));
+      await tap(t, find.widgetWithText(FilledButton, 'Löschen'));
+      final saved = (await repo.schoolRecords()).single;
+      expect(saved.taskState(saved.tasks[1]), TaskState.open);
+      expect(saved.delivery, 'submitted');
+      expect(
+        find.byKey(const ValueKey('homework-feedback-result')),
+        findsNothing,
+      );
+      expect(t.takeException(), isNull);
+      await finish(t);
+    },
+  );
 
   for (final kind in [SchoolKind.goal, SchoolKind.social, SchoolKind.work]) {
     testWidgets(
@@ -539,25 +676,23 @@ void main() {
       expect(find.byKey(ValueKey('attachment-file-${d.id}')), findsOneWidget);
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('task-attachments-child')),
+          of: find.byKey(const ValueKey('task-previews-child')),
           matching: find.text('Lösungsfoto'),
         ),
         findsOneWidget,
       );
       expect(
         t
-            .widget<ListTile>(find.byKey(ValueKey('attachment-file-${d.id}')))
+            .widget<InkWell>(find.byKey(ValueKey('attachment-file-${d.id}')))
             .onTap,
         isNotNull,
       );
       expect(t.takeException(), isNull);
+      await tap(t, find.byKey(const ValueKey('homework-task-details-child')));
+      expect(find.text('Teilaufgabe 1.1'), findsOneWidget);
       expect(
-        t.getTopLeft(action('task-attachments-child', 'attachment-scan')).dy,
-        t
-            .getTopLeft(
-              action('task-attachments-child', 'attachment-documents'),
-            )
-            .dy,
+        action('task-attachments-child', 'attachment-file-${d.id}'),
+        findsOneWidget,
       );
       await tap(t, action('task-attachments-child', 'attachment-scan'));
       expect(

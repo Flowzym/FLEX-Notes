@@ -393,6 +393,13 @@ void main() {
       await capture(tester, boundary, 'handover-homework-mobile');
       await tester.tap(find.byKey(ValueKey('pupil-open-entry-${homework.id}')));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('homework-task-details-task')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('homework-task-details-task')),
+      );
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('comment-task')));
       await tester.tap(find.byKey(const ValueKey('comment-task')));
       await tester.pumpAndSettle();

@@ -157,6 +157,13 @@ void main() {
           state,
         );
       }
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('homework-task-details-task')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('homework-task-details-task')),
+      );
+      await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('comment-task')));
       await tester.tap(find.byKey(const ValueKey('comment-task')));
       await tester.pumpAndSettle();
