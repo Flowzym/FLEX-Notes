@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
 
@@ -238,7 +239,7 @@ Future<void> showContextDocuments(
   BuildContext context,
   NotebookController c,
   ScanContext scope,
-) => showDialog<void>(
+) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,

@@ -50,8 +50,14 @@ class FlexPalette {
     reading: true,
     fallback: Colors.black,
   );
-  Color get modal =>
-      paint(appearance.modalColor, appearance.modalOpacity, reading: true);
+  Color get modal => paint(
+    appearance.modalColor,
+    appearance.modalOpacity,
+    reading: true,
+    fallback: brightness == Brightness.dark
+        ? const Color(0xff17191c)
+        : const Color(0xfff4f5f0),
+  );
   Color get modalPerceived => Color.alphaBlend(modal, backdrop);
   Color get header => paint(
     appearance.dialogColor,

@@ -346,7 +346,7 @@ void main() {
         scale: 1.5,
       );
       await tap(t, find.text('Start'));
-      await tap(t, find.text('Abgelehnt'));
+      await tap(t, find.byTooltip('Abgelehnt'));
       expect(
         (await c.repository.classroomDocuments()).single
             .rows('participants')
@@ -354,8 +354,8 @@ void main() {
         'no',
       );
       expect(find.textContaining('0 offen'), findsOneWidget);
-      await tap(t, find.text('Sichtbare auswählen'));
-      await tap(t, find.text('Zugestimmt · 1'));
+      await tap(t, find.byTooltip('Sichtbare auswählen'));
+      await tap(t, find.widgetWithText(TextButton, 'Zugestimmt'));
       expect(
         (await c.repository.classroomDocuments()).single
             .rows('participants')
@@ -383,21 +383,21 @@ void main() {
         ),
       );
       await tap(t, find.text('Start'));
-      await tap(t, find.text('Bezahlt'));
+      await tap(t, find.byTooltip('Bezahlt'));
       expect(
         (await c.repository.classroomDocuments()).single
             .rows('participants')
             .single['paid'],
         1000,
       );
-      await tap(t, find.text('Offen'));
+      await tap(t, find.byTooltip('Offen'));
       expect(
         (await c.repository.classroomDocuments()).single
             .rows('participants')
             .single['paid'],
         0,
       );
-      await tap(t, find.text('Teilbezahlt'));
+      await tap(t, find.byTooltip('Teilbezahlt'));
       await t.enterText(find.byType(TextFormField).last, '4,50');
       await tap(t, find.text('Übernehmen'));
       final row = (await c.repository.classroomDocuments()).single

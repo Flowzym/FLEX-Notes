@@ -165,7 +165,7 @@ void main() {
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip('Schließen und Eingaben sichern').last);
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
   Future<void> finish(WidgetTester t) async {
     await t.pumpWidget(const SizedBox());
     await t.pumpAndSettle();

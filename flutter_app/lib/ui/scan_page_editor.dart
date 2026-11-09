@@ -350,6 +350,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
   Widget build(BuildContext context) => PopScope(
     canPop: !busy && !detecting,
     child: FlexModal(
+      closeLabel: 'Änderungen verwerfen',
       maxWidth: 950,
       title: Text(
         '${widget.photo ? 'Foto' : 'Seite'} ${widget.pageNumber} bearbeiten',

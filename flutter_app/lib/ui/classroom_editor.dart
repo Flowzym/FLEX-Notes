@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -247,7 +248,7 @@ Future<void> showClassroomEditor(
       });
     }
   }
-  await showDialog<void>(
+  await showFlexDetail<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => ProtectedDialog(

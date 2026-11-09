@@ -31,22 +31,27 @@ class FlexPagePills extends StatelessWidget {
           final scheme = Theme.of(context).colorScheme;
           final palette = Theme.of(context).extension<FlexSurfaces>()?.palette;
           final scale = MediaQuery.textScalerOf(context);
-          final style = const TextStyle(
+          final dense = pages.length > 4;
+          final style = TextStyle(
             fontFamily: 'FlexSans',
-            fontSize: 14,
+            fontSize: dense ? 12 : 14,
+            letterSpacing: 0,
             fontWeight: FontWeight.w600,
           );
           final available = math.max(48.0, constraints.maxWidth - 12);
           final rows = <List<(int, String, double)>>[[]];
-          var used = 0.0, height = 48.0;
+          var used = 0.0, height = dense ? 44.0 : 48.0;
           for (final e in pages.entries) {
             final text = TextPainter(
               text: TextSpan(text: e.value, style: style),
               textDirection: Directionality.of(context),
               textScaler: scale,
             )..layout(maxWidth: available - 24);
-            final width = (text.width + 24).clamp(48.0, available);
-            height = math.max(height, text.height + 22);
+            final width = (text.width + (dense ? 26 : 24)).clamp(
+              48.0,
+              available,
+            );
+            height = math.max(height, text.height + (dense ? 18 : 22));
             text.dispose();
             if (used + width > available && rows.last.isNotEmpty) {
               rows.add([]);
@@ -129,7 +134,9 @@ class FlexPagePills extends StatelessWidget {
                                           e.$2,
                                           textAlign: TextAlign.center,
                                           style: style.copyWith(
-                                            fontSize: selected == e.$1
+                                            fontSize: dense
+                                                ? 12
+                                                : selected == e.$1
                                                 ? 14
                                                 : 13,
                                             fontWeight: selected == e.$1

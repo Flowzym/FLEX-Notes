@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +16,7 @@ class FlexModal extends StatelessWidget {
     this.actions = const [],
     this.headerActions = const [],
     this.onClose,
+    this.closeLabel = 'Schließen',
     this.scrollable = true,
     this.maxWidth = 640,
     this.headerContent,
@@ -23,6 +25,7 @@ class FlexModal extends StatelessWidget {
     this.accentColor,
   });
   final Widget title, content;
+  final String closeLabel;
   final Widget? headerContent, footerContent;
   final Appearance? appearance;
   final Color? accentColor;
@@ -78,15 +81,21 @@ class FlexModal extends StatelessWidget {
             ),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: palette?.button,
-          foregroundColor: palette?.buttonInk,
-          textStyle: const TextStyle(
-            fontFamily: 'FlexSans',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ).merge(baseTheme.filledButtonTheme.style),
+        style:
+            FilledButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              textStyle: const TextStyle(
+                fontFamily: 'FlexSans',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ).merge(
+              baseTheme.filledButtonTheme.style?.copyWith(
+                backgroundColor: WidgetStatePropertyAll(scheme.primary),
+                foregroundColor: WidgetStatePropertyAll(scheme.onPrimary),
+              ),
+            ),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: const WidgetStatePropertyAll(Colors.white),
@@ -137,7 +146,11 @@ class FlexModal extends StatelessWidget {
         data: referenceStyle ? referenceTheme : baseTheme,
         child: ConstrainedBox(
           key: const ValueKey('flex-modal-frame'),
-          constraints: BoxConstraints(maxWidth: maxWidth),
+          constraints: BoxConstraints(
+            maxWidth: DetailFlowScope.maybeOf(context) == null
+                ? maxWidth
+                : double.infinity,
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxHeight < 440;
@@ -176,6 +189,13 @@ class FlexModal extends StatelessWidget {
                               )) ??
                         Row(
                           children: [
+                            if ((DetailFlowScope.maybeOf(context)?.depth ?? 0) >
+                                0)
+                              IconButton(
+                                tooltip: 'Zurück',
+                                onPressed: onClose,
+                                icon: const Icon(Icons.arrow_back),
+                              ),
                             Expanded(
                               child: DefaultTextStyle(
                                 style: Theme.of(context).textTheme.titleLarge!
@@ -189,9 +209,12 @@ class FlexModal extends StatelessWidget {
                               ),
                             ),
                             ...headerActions,
-                            if (onClose != null)
+                            if (onClose != null &&
+                                (DetailFlowScope.maybeOf(context)?.depth ??
+                                        0) ==
+                                    0)
                               IconButton(
-                                tooltip: 'Schließen und Eingaben sichern',
+                                tooltip: closeLabel,
                                 onPressed: onClose,
                                 color: headerForeground,
                                 icon: const Icon(Icons.close_rounded),
@@ -226,9 +249,8 @@ class FlexModal extends StatelessWidget {
                               appearance?.buttonRadius ?? 28,
                             ),
                           ),
-                          backgroundColor: palette?.button,
-                          foregroundColor:
-                              palette?.buttonInk ?? footerForeground,
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: footerForeground,
                           textStyle: referenceStyle
                               ? const TextStyle(
                                   fontFamily: 'FlexSans',
@@ -247,9 +269,8 @@ class FlexModal extends StatelessWidget {
                               appearance?.buttonRadius ?? 28,
                             ),
                           ),
-                          backgroundColor: palette?.button,
-                          foregroundColor:
-                              palette?.buttonInk ?? footerForeground,
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: footerForeground,
                           textStyle: referenceStyle
                               ? const TextStyle(
                                   fontFamily: 'FlexSans',
@@ -283,11 +304,19 @@ class FlexModal extends StatelessWidget {
                   horizontal: mobile ? 16 : 24,
                   vertical: compact ? 10 : 16,
                 ),
-                child: content,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: SizedBox(width: double.infinity, child: content),
+                  ),
+                ),
               );
               // With large type or a keyboard the complete dialog must scroll;
               // fixed header/footer otherwise consume the available height.
               final layout = _ModalSections(
+                expandBody: DetailFlowScope.maybeOf(context) != null,
                 scrollAll:
                     constraints.maxHeight < 520 ||
                     MediaQuery.textScalerOf(context).scale(1) > 1.5,
@@ -311,6 +340,9 @@ class FlexModal extends StatelessWidget {
         ),
       ),
     );
+    if (DetailFlowScope.maybeOf(context) != null) {
+      return dialog.child!;
+    }
     return referenceStyle
         ? BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
@@ -326,12 +358,13 @@ class FlexModal extends StatelessWidget {
 class _ModalSections extends StatefulWidget {
   const _ModalSections({
     required this.scrollAll,
+    required this.expandBody,
     required this.scrollBody,
     required this.header,
     required this.body,
     required this.footer,
   });
-  final bool scrollAll, scrollBody;
+  final bool scrollAll, scrollBody, expandBody;
   final Widget header, body;
   final Widget? footer;
 
@@ -364,6 +397,7 @@ class _ModalSectionsState extends State<_ModalSections> {
       children: [
         header,
         Flexible(
+          fit: widget.expandBody ? FlexFit.tight : FlexFit.loose,
           child: widget.scrollBody ? SingleChildScrollView(child: body) : body,
         ),
         ?footer,

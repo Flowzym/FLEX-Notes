@@ -12,8 +12,10 @@ class PupilCard extends StatelessWidget {
     required this.counts,
     required this.due,
     this.draftCounts = const {},
+    this.compact = false,
   });
   final Pupil pupil;
+  final bool compact;
   final VoidCallback onOpen;
   final ValueChanged<FlexSymbol> onShortcut;
   final Map<FlexSymbol, int> counts, draftCounts;
@@ -67,13 +69,17 @@ class PupilCard extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 64,
-                    height: 42,
+                    height: compact ? 30 : 42,
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
                         Align(
                           alignment: Alignment.bottomCenter,
-                          child: FlexIcon(symbol, size: 32, color: foreground),
+                          child: FlexIcon(
+                            symbol,
+                            size: compact ? 25 : 32,
+                            color: foreground,
+                          ),
                         ),
                         if (count > 0)
                           Positioned(
@@ -183,7 +189,7 @@ class PupilCard extends StatelessWidget {
                             pupil.name,
                             style: TextStyle(
                               fontFamily: 'FlexSerif',
-                              fontSize: 20,
+                              fontSize: compact ? 16 : 20,
                               height: 1.3,
                               fontWeight: FontWeight.w500,
                               letterSpacing: -.3,
@@ -204,26 +210,36 @@ class PupilCard extends StatelessWidget {
                   ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 6, 18, 8),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final symbol in order.take(3)) shortcut(symbol),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Spacer(),
-                          for (final symbol in order.skip(3))
-                            shortcut(symbol, flex: 2),
-                          const Spacer(),
-                        ],
-                      ),
-                    ],
-                  ),
+                  child:
+                      compact &&
+                          MediaQuery.sizeOf(context).width >= 360 &&
+                          MediaQuery.textScalerOf(context).scale(1) <= 1.4
+                      ? Row(
+                          children: [
+                            for (final symbol in order) shortcut(symbol),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final symbol in order.take(3))
+                                  shortcut(symbol),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Spacer(),
+                                for (final symbol in order.skip(3))
+                                  shortcut(symbol, flex: 2),
+                                const Spacer(),
+                              ],
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ),

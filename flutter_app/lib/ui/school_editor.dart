@@ -1056,17 +1056,12 @@ class _SchoolEditorState extends State<SchoolEditor>
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Row(
-        children: [
-          CompactSwitch(
-            key: ValueKey('section-$label'),
-            value: active,
-            onChanged: (v) => setState(() => change(v)),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label)),
-        ],
+      CompactSwitchListTile(
+        key: ValueKey('section-$label'),
+        title: Text(label),
+        value: active,
+        contentPadding: EdgeInsets.zero,
+        onChanged: (v) => setState(() => change(v)),
       ),
       if (active)
         Padding(
@@ -2052,6 +2047,7 @@ class _SchoolEditorState extends State<SchoolEditor>
         child: Focus(
           autofocus: true,
           child: FlexModal(
+            closeLabel: 'Schließen und Entwurf sichern',
             key: ValueKey(draftId),
             maxWidth: mode == 'comment'
                 ? 430

@@ -532,6 +532,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       child: Focus(
         autofocus: true,
         child: FlexModal(
+          closeLabel: 'Schließen und Entwurf sichern',
           key: ValueKey(draftId),
           title: isClass
               ? const Text('Klassen-Orga')

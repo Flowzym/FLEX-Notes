@@ -184,6 +184,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       child: Focus(
         autofocus: true,
         child: FlexModal(
+          closeLabel: 'Schließen und Entwurf sichern',
           maxWidth: widget.maxWidth,
           title: Text(widget.title),
           headerActions: [

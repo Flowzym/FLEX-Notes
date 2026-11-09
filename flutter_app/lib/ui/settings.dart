@@ -440,7 +440,8 @@ class _SettingsPageState extends State<SettingsPage>
             borderRadius: BorderRadius.circular(15),
           ),
           child:
-              constraints.maxWidth < 500 &&
+              tabCount > 2 &&
+                  constraints.maxWidth < 500 &&
                   MediaQuery.textScalerOf(context).scale(1) > 1.5
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -471,9 +472,9 @@ class _SettingsPageState extends State<SettingsPage>
             widget.dataOnly ? 'Daten' : 'Einstellungen',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
           if (!widget.dataOnly) tabs(),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           if (widget.dataOnly)
             data()
           else if (widget.layout.tab == 0)

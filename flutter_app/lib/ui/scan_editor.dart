@@ -1,7 +1,9 @@
+import 'detail_flow.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:typed_data' show BytesBuilder;
 import '../domain/school.dart';
+import '../domain/drafts.dart';
 import 'draft_actions.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flex_device/flex_device.dart';
@@ -30,7 +32,7 @@ Future<ClassroomDocument?> showDocumentScanner(
   ScanContext scope = const ScanContext(),
   DialogDraft? draft,
   ClassroomDocument? source,
-}) => showDialog<ClassroomDocument>(
+}) => showFlexDetail<ClassroomDocument>(
   context: context,
   barrierDismissible: false,
   builder: (_) =>
@@ -200,6 +202,8 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   late DraftBuffer buffer;
   late TextEditingController title, tags;
   bool pageEditorOpen = false, pageGrid = true;
+  String? sourceSignature;
+  bool loadingSource = false;
   bool get photoOutput => data['outputFormat'] == 'jpg';
   bool get nativeCamera =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -279,12 +283,19 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         widget.initialImages.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         action(() async {
-          if (source != null) {
-            final bytes = await widget.files.read(source.text('localKey'));
-            if (source.text('extension') == 'jpg') {
-              await addImage(bytes, photo: true);
-            } else {
-              await addPdf(bytes);
+          if (source != null && widget.draft == null) {
+            loadingSource = true;
+            try {
+              final bytes = await widget.files.read(source.text('localKey'));
+              if (source.text('extension') == 'jpg') {
+                await addImage(bytes, photo: true);
+              } else {
+                await addPdf(bytes);
+              }
+            } finally {
+              loadingSource = false;
+              sourceSignature = dialogDraftSignature('scan', data);
+              resetSourceBuffer();
             }
           }
           for (final image in widget.initialImages) {
@@ -322,7 +333,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
 
   void change(Json patch) {
     data = {...data, ...patch};
-    buffer.change(data);
+    if (!loadingSource) buffer.change(data);
     if (mounted) setState(() {});
   }
 
@@ -353,8 +364,44 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (mounted) Navigator.pop(context, result);
   }
 
-  Future<void> close() => action(() async {
-    await buffer.flush();
+  void resetSourceBuffer({bool retain = false}) {
+    final owner = buffer.draft.ownerId;
+    buffer.dispose();
+    buffer = DraftBuffer(
+      c.repository,
+      type: 'scan',
+      ownerId: owner,
+      data: data,
+      baseline: retain ? '' : sourceSignature,
+      onPersisted: c.reload,
+      onStatusChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
+    if (retain) buffer.change(data);
+  }
+
+  Future<void> retainSourceCopy() async {
+    if (widget.draft == null &&
+        sourceSignature != null &&
+        sourceSignature == dialogDraftSignature('scan', data)) {
+      await buffer.flush();
+      resetSourceBuffer(retain: true);
+    }
+  }
+
+  Future<void> close({bool keepDraft = false}) => action(() async {
+    if (keepDraft) await retainSourceCopy();
+    // Importing the original pages is preparation, not a user edit. Keep an
+    // existing draft, real edits, or an explicitly requested resumable copy.
+    if (!keepDraft &&
+        widget.draft == null &&
+        sourceSignature != null &&
+        sourceSignature == dialogDraftSignature('scan', data)) {
+      await buffer.discard();
+    } else {
+      await buffer.flush();
+    }
     await cleanupPages();
     await c.reload();
     await pop();
@@ -399,7 +446,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     });
     // A failed metadata write must retain both the buffered page and its bytes:
     // the next flush can safely retry without creating a dangling file reference.
-    await buffer.flush();
+    if (!loadingSource) await buffer.flush();
     if (replaceKey != null) {
       await removeUnusedScanFiles(c.repository, widget.files, [replaceKey]);
     }
@@ -655,7 +702,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         bytes = await widget.files.read(pages[index].key);
     if (!mounted) return;
     setState(() => pageEditorOpen = true);
-    final edited = await showDialog<Map<String, dynamic>>(
+    final edited = await showFlexDetail<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
       builder: (_) => ScanPageEditor(
@@ -780,11 +827,14 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
 
   Widget pageTiles() => LayoutBuilder(
     builder: (_, box) {
-      final columns =
-          (box.maxWidth /
-                  (MediaQuery.textScalerOf(context).scale(1) > 1.5 ? 220 : 145))
-              .floor()
-              .clamp(1, 4);
+      final columns = pages.length == 1
+          ? 1
+          : (box.maxWidth /
+                    (MediaQuery.textScalerOf(context).scale(1) > 1.5
+                        ? 220
+                        : 145))
+                .floor()
+                .clamp(1, 4);
       final width = (box.maxWidth - 10 * (columns - 1)) / columns;
       return Wrap(
         spacing: 10,
@@ -822,7 +872,16 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                             padding: const EdgeInsets.all(8),
                             child: Column(
                               children: [
-                                pagePreview(item.$2, item.$1, width - 16, 160),
+                                pagePreview(
+                                  item.$2,
+                                  item.$1,
+                                  width - 16,
+                                  pages.length == 1
+                                      ? (MediaQuery.sizeOf(context).height *
+                                                .38)
+                                            .clamp(200, 440)
+                                      : 160,
+                                ),
                                 const SizedBox(height: 6),
                                 Text(
                                   '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1} · Bearbeiten',
@@ -890,6 +949,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       );
 
   Future<void> save() => action(() async {
+    await retainSourceCopy();
     if (nativeCamera && data['capturePending'] == true) await recoverPhoto();
     await buffer.flush();
     final saved = await saveScan(
@@ -924,6 +984,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     },
     child: FlexModal(
       maxWidth: 900,
+      closeLabel: 'Schließen · Änderungen als Entwurf sichern',
       title: const Text('Scan & Foto'),
       onClose: busy ? null : close,
       headerActions: [
@@ -1310,7 +1371,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             runSpacing: 6,
             children: [
               TextButton(
-                onPressed: busy ? null : close,
+                onPressed: busy ? null : () => close(keepDraft: true),
                 child: const Text('Später fortsetzen'),
               ),
               FilledButton.icon(

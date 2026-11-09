@@ -466,7 +466,10 @@ void main() {
           record: SchoolRecord.empty(SchoolKind.social, 'a'),
         ),
       );
-      final control = find.byKey(const ValueKey('section-Beteiligt'));
+      final control = find.descendant(
+        of: find.byKey(const ValueKey('section-Beteiligt')),
+        matching: find.byType(CompactSwitch),
+      );
       await t.ensureVisible(control);
       await t.pumpAndSettle();
       await t.drag(control, const Offset(45, 0));

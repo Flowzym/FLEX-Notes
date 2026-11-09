@@ -582,7 +582,7 @@ void main() {
         'Clara Entwurf',
       );
       await tap(t, find.byTooltip('#AC5D72'));
-      await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
       final draft = (await repo.dialogDrafts()).single;
       expect(await repo.pupils(), hasLength(2));
       await open(t, PupilEditor(controller: c, draft: draft));
@@ -987,17 +987,17 @@ void main() {
           find.widgetWithText(TextField, 'Name'),
           'Nicht verlieren',
         );
-        await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
         expect(find.text('Entwurf nicht gesichert'), findsOneWidget);
         expect(await failing.dialogDrafts(), isEmpty);
         await tap(t, find.text('Verwerfen'));
         expect(find.text('Synthetischer Verwerfungsfehler'), findsOneWidget);
         expect(t.takeException(), isNull);
-        await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
         await tap(t, find.text('Weiterbearbeiten'));
         expect(find.text('Nicht verlieren'), findsOneWidget);
         failing.failWrites = false;
-        await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
         final draft = (await failing.dialogDrafts()).single;
         expect(draft.data['name'], 'Nicht verlieren');
         expect(await failing.pupils(), isEmpty);

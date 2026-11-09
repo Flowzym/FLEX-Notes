@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'general_orga_page.dart';
 import 'scanner_library.dart';
@@ -16,7 +17,6 @@ import 'surfaces.dart';
 import 'overview_entry.dart';
 import 'prototype_navigation.dart';
 import 'pupil_card.dart';
-import 'backup_dialog.dart';
 
 import 'package:flutter/material.dart';
 
@@ -772,7 +772,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   Future<void> _openPupil(Pupil pupil, {FlexSymbol? symbol}) async {
     try {
-      await showDialog<void>(
+      await showFlexDetail<void>(
         context: context,
         builder: (_) => StatefulBuilder(
           builder: (modalContext, refresh) {
@@ -1009,7 +1009,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   Future<void> _overviewDetails({SchoolRecord? record, OrgaEntry? entry}) =>
-      showDialog<void>(
+      showFlexDetail<void>(
         context: context,
         builder: (ctx) => AnimatedBuilder(
           animation: c,
@@ -1127,6 +1127,40 @@ class _NotebookScreenState extends State<NotebookScreen> {
           onEdit: () => editSchool(context, c, r),
         ),
     ]..sort((a, b) => upcoming ? a.order.compareTo(b.order) : b.order.compareTo(a.order));
+    if (upcoming && items.isNotEmpty) {
+      final today = dateOnly(DateTime.now());
+      String group(OverviewEntry item) {
+        final day = item.order.length >= 10
+            ? item.order.substring(0, 10)
+            : item.order;
+        return day.compareTo(today) < 0
+            ? 'Überfällig'
+            : day == today
+            ? 'Heute'
+            : 'Danach';
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final label in ['Überfällig', 'Heute', 'Danach'])
+            if (items.any((item) => group(item) == label)) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 6),
+                child: Text(
+                  '$label · ${items.where((item) => group(item) == label).length}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: label == 'Überfällig'
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+              ),
+              ...items.where((item) => group(item) == label),
+            ],
+        ],
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(
@@ -1195,7 +1229,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           label: 'Schüler suchen',
           iconOnly: true,
           leading: Text(
-            '${all.length} ${archived ? 'im Archiv' : 'Schüler'}',
+            '${archived ? 'Archiv' : 'Schülernotizen'} · ${all.length} Schüler',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           actions: [
@@ -1206,12 +1240,22 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 icon: const Icon(Icons.person_add),
               ),
             IconButton(
-              tooltip: 'Datensicherung herunterladen',
-              icon: const Icon(Icons.download),
-              onPressed: () => showDialog<void>(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => BackupDialog(controller: c, export: true),
+              key: const ValueKey('pupil-layout'),
+              tooltip: c.appearance.pupilCompact
+                  ? 'Schüler als Karten'
+                  : 'Schüler als kompakte Liste',
+              onPressed: () => guarded(
+                context,
+                () => c.saveAppearance(
+                  c.appearance.patch({
+                    'pupilCompact': !c.appearance.pupilCompact,
+                  }),
+                ),
+              ),
+              icon: Icon(
+                c.appearance.pupilCompact
+                    ? Icons.grid_view_outlined
+                    : Icons.view_list_outlined,
               ),
             ),
           ],
@@ -1227,24 +1271,25 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ),
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = ((constraints.maxWidth + 20) / 310).floor().clamp(
-              1,
-              4,
-            );
-            final cardWidth =
-                ((constraints.maxWidth - (columns - 1) * 20) / columns).clamp(
-                  0.0,
-                  420.0,
-                );
+            final columns = c.appearance.pupilCompact
+                ? 1
+                : ((constraints.maxWidth + 20) / 310).floor().clamp(1, 4);
+            final cardWidth = c.appearance.pupilCompact
+                ? constraints.maxWidth
+                : ((constraints.maxWidth - (columns - 1) * 20) / columns).clamp(
+                    0.0,
+                    420.0,
+                  );
             return Wrap(
               spacing: 20,
-              runSpacing: 20,
+              runSpacing: c.appearance.pupilCompact ? 8 : 20,
               children: [
                 for (final pupil in pupils)
                   SizedBox(
                     width: cardWidth,
                     child: PupilCard(
                       key: ValueKey('pupil-card-${pupil.id}'),
+                      compact: c.appearance.pupilCompact,
                       pupil: pupil,
                       onOpen: () => _openPupil(pupil),
                       onShortcut: (symbol) => _entryShortcut(pupil, symbol),

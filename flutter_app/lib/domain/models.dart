@@ -572,6 +572,9 @@ class DialogDraft {
 class Appearance {
   const Appearance({
     this.defaultObservationTone = 'neutral',
+    this.materialGrid = false,
+    this.materialSort = 'recent',
+    this.pupilCompact = false,
     this.mode = 'dark',
     this.accent = 0xffdae9a6,
     this.textScale = 1,
@@ -600,7 +603,7 @@ class Appearance {
     this.modalColor = 0,
     this.workspaceOpacity = .12,
     this.fieldOpacity = .22,
-    this.modalOpacity = 0,
+    this.modalOpacity = .78,
     this.backgroundTint = 0xff203a2d,
     this.backgroundTintStrength = 0,
     this.backgroundDim = 0,
@@ -613,6 +616,8 @@ class Appearance {
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
   final String defaultObservationTone;
+  final bool materialGrid, pupilCompact;
+  final String materialSort;
   final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
   final int accent, dialogColor, cardColor, buttonColor;
   final double uiScale, fieldRadius, buttonRadius, modalRadius;
@@ -731,7 +736,7 @@ class Appearance {
   Appearance patch(Json changes) =>
       Appearance.fromJson({...toJson(), ...changes});
   Json toJson() => {
-    'surfaceDefaultsVersion': 2,
+    'surfaceDefaultsVersion': 3,
     'mode': mode,
     'accent': accent,
     'textScale': textScale,
@@ -772,6 +777,9 @@ class Appearance {
     'cardRadius': cardRadius,
     'shortcutOrder': shortcutOrder,
     'defaultObservationTone': defaultObservationTone,
+    'materialGrid': materialGrid,
+    'materialSort': materialSort,
+    'pupilCompact': pupilCompact,
   };
   factory Appearance.fromJson(Json source) {
     final j = {...source};
@@ -799,7 +807,25 @@ class Appearance {
         'workspaceOpacity': .12,
       });
     }
+    if ((j['surfaceDefaultsVersion'] as int? ?? 0) < 3 &&
+        surfaceColors.every((key) => (j[key] ?? 0) == 0) &&
+        (j['modalOpacity'] ?? 0) == 0 &&
+        (j['cardOpacity'] ?? .28) == .28 &&
+        j['coupleSurfaces'] != true) {
+      j['modalOpacity'] = .78;
+    }
     final a = Appearance(
+      materialGrid: j['materialGrid'] == true,
+      pupilCompact: j['pupilCompact'] == true,
+      materialSort:
+          const {
+            'recent',
+            'name',
+            'format',
+            'subject',
+          }.contains(j['materialSort'])
+          ? j['materialSort'] as String
+          : 'recent',
       mode: j['mode'] as String? ?? 'dark',
       accent: j['accent'] as int? ?? 0xffdae9a6,
       textScale: (j['textScale'] as num? ?? 1).toDouble(),
@@ -828,7 +854,7 @@ class Appearance {
       modalColor: j['modalColor'] as int? ?? 0,
       workspaceOpacity: (j['workspaceOpacity'] as num? ?? .12).toDouble(),
       fieldOpacity: (j['fieldOpacity'] as num? ?? .22).toDouble(),
-      modalOpacity: (j['modalOpacity'] as num? ?? 0).toDouble(),
+      modalOpacity: (j['modalOpacity'] as num? ?? .78).toDouble(),
       backgroundTint: j['backgroundTint'] as int? ?? 0xff203a2d,
       backgroundTintStrength: (j['backgroundTintStrength'] as num? ?? 0)
           .toDouble(),

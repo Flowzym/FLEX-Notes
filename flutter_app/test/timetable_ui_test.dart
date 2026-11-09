@@ -247,7 +247,7 @@ void main() {
       );
       await tap(t, find.text('Verwalten'));
       await tap(t, find.byTooltip('Block wiederherstellen'));
-      await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
       expect(
         lessonOccurrences(
           c.classroom,

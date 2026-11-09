@@ -159,7 +159,7 @@ Future<void> showMaterialDetails(
   ClassroomDocument material, {
   OneDriveClient? drive,
 }) async {
-  await showDialog<void>(
+  await showFlexDetail<void>(
     context: context,
     builder: (ctx) => AnimatedBuilder(
       animation: c,

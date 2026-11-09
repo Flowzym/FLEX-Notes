@@ -1,3 +1,4 @@
+import 'package:flex_notizbuch/ui/detail_flow.dart';
 import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'dart:async';
 import 'dart:io';
@@ -129,9 +130,9 @@ void main() {
 
   Future<void> closeModal(WidgetTester tester) async {
     await tester.ensureVisible(
-      find.byTooltip('Schließen und Eingaben sichern').last,
+      find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last,
     );
-    await tester.tap(find.byTooltip('Schließen und Eingaben sichern').last);
+    await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
     await tester.pumpAndSettle();
   }
 
@@ -139,16 +140,27 @@ void main() {
     final frame = tester.getRect(
       find.byKey(const ValueKey('flex-modal-frame')).last,
     );
-    final gap = size.width <= 700 ? 10.0 : 16.0;
+    final adaptive = find
+        .ancestor(
+          of: find.byKey(const ValueKey('flex-modal-frame')).last,
+          matching: find.byType(DetailFlowScope),
+        )
+        .evaluate()
+        .isNotEmpty;
+    final gap = adaptive
+        ? (size.width <= 700 ? 0.0 : 20.0)
+        : size.width <= 700
+        ? 10.0
+        : 16.0;
     expect(frame.left, greaterThanOrEqualTo(gap - .01));
     expect(frame.right, lessThanOrEqualTo(size.width - gap + .01));
     expect(frame.top, greaterThanOrEqualTo(gap - .01));
     expect(frame.bottom, lessThanOrEqualTo(size.height - keyboard - gap + .01));
-    expect(frame.width, lessThanOrEqualTo(640.01));
+    expect(frame.width, lessThanOrEqualTo(adaptive ? 1120.01 : 640.01));
     final dialog = tester.widget<Dialog>(find.byType(Dialog).last);
     expect(
       (dialog.shape! as RoundedRectangleBorder).borderRadius,
-      BorderRadius.circular(24),
+      BorderRadius.circular(adaptive && size.width <= 700 ? 0 : 24),
     );
     expect(tester.takeException(), isNull);
   }
@@ -231,7 +243,7 @@ void main() {
 
   for (final size in [const Size(1100, 900), const Size(320, 700)]) {
     testWidgets(
-      'all five pupil areas and editors remain framed modals at ${size.width}',
+      'all five pupil areas and editors use adaptive details at ${size.width}',
       (tester) async {
         if (size.width == 320) {
           await c.saveAppearance(c.appearance.copyWith(textScale: 1.35));

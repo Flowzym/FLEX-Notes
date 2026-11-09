@@ -1,3 +1,5 @@
+import 'homework_record_view.dart';
+import 'detail_flow.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 
@@ -136,7 +138,7 @@ Future<void> showReturnDetail(
   BuildContext context,
   NotebookController c,
   String id,
-) => showDialog<void>(
+) => showFlexDetail<void>(
   context: context,
   builder: (_) => ReturnDetail(controller: c, id: id),
 );
@@ -151,6 +153,13 @@ class ReturnDetail extends StatefulWidget {
 
 class _ReturnDetailState extends State<ReturnDetail> {
   bool openOnly = false, busy = false;
+  final search = TextEditingController();
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
   final selected = <String>{};
   String query = '';
   NotebookController get c => widget.controller;
@@ -233,7 +242,7 @@ class _ReturnDetailState extends State<ReturnDetail> {
 
   Future<void> editRow(ClassroomDocument d, Json row) async {
     var note = row['note'] as String, paid = row['paid'] as int;
-    await showDialog<void>(
+    await showFlexDetail<void>(
       context: context,
       builder: (ctx) => FlexModal(
         title: Text(row['name'] as String),
@@ -241,7 +250,10 @@ class _ReturnDetailState extends State<ReturnDetail> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(d.title, style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: 12),
             TextFormField(
+              readOnly: d.flag('closed') || d.deleted,
               initialValue: note,
               decoration: const InputDecoration(labelText: 'Notiz'),
               minLines: 2,
@@ -250,6 +262,7 @@ class _ReturnDetailState extends State<ReturnDetail> {
             ),
             if (d.text('type') == 'payment')
               TextFormField(
+                readOnly: d.flag('closed') || d.deleted,
                 initialValue: (paid / 100).toStringAsFixed(2),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -262,6 +275,12 @@ class _ReturnDetailState extends State<ReturnDetail> {
                   paid = n == null || !n.isFinite ? -1 : (n * 100).round();
                 },
               ),
+            const SizedBox(height: 16),
+            DocumentAttachmentSection(
+              controller: c,
+              scope: rowScope(d, row),
+              readOnly: d.flag('closed') || d.deleted,
+            ),
           ],
         ),
         actions: [
@@ -269,45 +288,46 @@ class _ReturnDetailState extends State<ReturnDetail> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Abbrechen'),
           ),
-          FilledButton(
-            onPressed: () async {
-              if (paid < 0) {
-                await guarded(
+          if (!d.flag('closed') && !d.deleted)
+            FilledButton(
+              onPressed: () async {
+                if (paid < 0) {
+                  await guarded(
+                    ctx,
+                    () async => throw const DomainError(
+                      'Bitte einen gültigen Betrag eingeben.',
+                    ),
+                  );
+                  return;
+                }
+                final next = {
+                  ...row,
+                  'note': note,
+                  'paid': paid,
+                  'updatedAtUtc': utcNow(),
+                };
+                if (d.text('type') == 'payment' && row['status'] != 'exempt') {
+                  next['status'] = paid == 0
+                      ? 'open'
+                      : paid >= d.number('amountDue')
+                      ? 'received'
+                      : 'partial';
+                }
+                final ok = await guarded(
                   ctx,
-                  () async => throw const DomainError(
-                    'Bitte einen gültigen Betrag eingeben.',
+                  () => c.saveClassroom(
+                    d.patch({
+                      'participants': [
+                        for (final r in d.rows('participants'))
+                          if (r['pupilId'] == row['pupilId']) next else r,
+                      ],
+                    }),
                   ),
                 );
-                return;
-              }
-              final next = {
-                ...row,
-                'note': note,
-                'paid': paid,
-                'updatedAtUtc': utcNow(),
-              };
-              if (d.text('type') == 'payment' && row['status'] != 'exempt') {
-                next['status'] = paid == 0
-                    ? 'open'
-                    : paid >= d.number('amountDue')
-                    ? 'received'
-                    : 'partial';
-              }
-              final ok = await guarded(
-                ctx,
-                () => c.saveClassroom(
-                  d.patch({
-                    'participants': [
-                      for (final r in d.rows('participants'))
-                        if (r['pupilId'] == row['pupilId']) next else r,
-                    ],
-                  }),
-                ),
-              );
-              if (ok && ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Speichern'),
-          ),
+                if (ok && ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Speichern'),
+            ),
         ],
       ),
     );
@@ -332,6 +352,135 @@ class _ReturnDetailState extends State<ReturnDetail> {
       'FLEX-Ruecklauf-${dateOnly(DateTime.now())}.pdf',
       bytes,
       mime: 'application/pdf',
+    );
+  }
+
+  ScanContext generalScope(ClassroomDocument d) => ScanContext(
+    links: [DocumentLink('classroom', d.id)],
+    title: d.title,
+    category: 'form',
+    unassignedPupilsOnly: true,
+  );
+  ScanContext rowScope(ClassroomDocument d, Json row) => ScanContext(
+    pupilIds: [row['pupilId'] as String],
+    links: [DocumentLink('classroom', d.id)],
+    title: '${row['name']} · ${d.title}',
+    category: 'form',
+  );
+
+  Widget participantRow(BuildContext context, ClassroomDocument d, Json row) {
+    final scheme = Theme.of(context).colorScheme;
+    final scope = rowScope(d, row);
+    final count = c.classroom.where(scope.matchesMaterial).length;
+    final statusLabel = returnStatuses[d.text('type')]![row['status']]!;
+    final title = InkWell(
+      key: ValueKey('return-pupil-${row['pupilId']}'),
+      onTap: () => editRow(d, row),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row['name'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    [
+                      statusLabel,
+                      if (d.text('type') == 'payment')
+                        '${((row['paid'] as int) / 100).toStringAsFixed(2)} €',
+                      if ((row['note'] as String).isNotEmpty) 'Notiz',
+                      if (count > 0) '$count Dateien',
+                    ].join(' · '),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18),
+          ],
+        ),
+      ),
+    );
+    final statuses = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final status in returnStatuses[d.text('type')]!.entries)
+          Semantics(
+            selected: row['status'] == status.key,
+            child: IconButton(
+              key: ValueKey('return-status-${row['pupilId']}-${status.key}'),
+              tooltip: status.value,
+              onPressed: busy || d.flag('closed') || d.deleted
+                  ? null
+                  : () => setStatus(d, {row['pupilId'] as String}, status.key),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                backgroundColor: row['status'] == status.key
+                    ? scheme.primary.withValues(alpha: .18)
+                    : Colors.transparent,
+                foregroundColor: row['status'] == status.key
+                    ? scheme.primary
+                    : scheme.onSurface,
+              ),
+              icon: Icon(switch (status.key) {
+                'received' || 'yes' => Icons.check_circle_outline,
+                'partial' => Icons.contrast,
+                'no' => Icons.cancel_outlined,
+                'exempt' => Icons.remove_circle_outline,
+                _ => Icons.radio_button_unchecked,
+              }),
+            ),
+          ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (_, box) => Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                semanticLabel: '${row['name']} auswählen',
+                value: selected.contains(row['pupilId']),
+                onChanged: (v) => setState(() {
+                  if (v == true) {
+                    selected.add(row['pupilId'] as String);
+                  } else {
+                    selected.remove(row['pupilId']);
+                  }
+                }),
+              ),
+              Expanded(
+                child:
+                    box.maxWidth >= 540 &&
+                        MediaQuery.textScalerOf(context).scale(1) <= 1.4
+                    ? Row(
+                        children: [
+                          Expanded(child: title),
+                          statuses,
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [title, statuses],
+                      ),
+              ),
+            ],
+          ),
+        ),
+        HomeworkThumbnails(
+          controller: c,
+          scope: scope,
+          readOnly: d.deleted || d.flag('closed'),
+        ),
+        Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: .4)),
+      ],
     );
   }
 
@@ -376,18 +525,127 @@ class _ReturnDetailState extends State<ReturnDetail> {
               Text(
                 'Eingegangen: ${(rows.fold(0, (n, r) => n + (r['paid'] as int)) / 100).toStringAsFixed(2)} € · Soll: ${(rows.where((r) => r['status'] != 'exempt').length * d.number('amountDue') / 100).toStringAsFixed(2)} €',
               ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Zum gesamten Vorgang',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Unterlagen zum gesamten Vorgang',
+                  onPressed: () =>
+                      showContextDocuments(ctx, c, generalScope(d)),
+                  icon: const Icon(Icons.folder_open_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Für den gesamten Vorgang scannen',
+                  onPressed: d.deleted || d.flag('closed')
+                      ? null
+                      : () => scanAndShow(ctx, c, generalScope(d)),
+                  icon: const Icon(Icons.document_scanner_outlined),
+                ),
+              ],
+            ),
+            HomeworkThumbnails(
+              controller: c,
+              scope: generalScope(d),
+              readOnly: d.deleted || d.flag('closed'),
+            ),
+            for (final key in d.strings('materialIds'))
+              if (c.classroom.any((m) => m.id == key && !m.deleted))
+                MaterialRow(
+                  material: c.classroom.firstWhere((m) => m.id == key),
+                  onOpen: () => guarded(
+                    ctx,
+                    () => openMaterial(
+                      ctx,
+                      c,
+                      c.classroom.firstWhere((m) => m.id == key),
+                    ),
+                  ),
+                ),
+            const Divider(),
+            CollapsibleSearch(
+              controller: search,
+              fieldKey: const ValueKey('return-pupil-search'),
+              label: 'Schüler suchen',
+              iconOnly: true,
+              onChanged: (v) => setState(() => query = v),
+              leading: FilterChip(
+                label: const Text('Nur offene'),
+                selected: openOnly,
+                onSelected: (v) => setState(() => openOnly = v),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: selected.isEmpty
+                      ? 'Sichtbare auswählen'
+                      : 'Auswahl aufheben',
+                  onPressed: () => setState(() {
+                    if (selected.isEmpty) {
+                      selected.addAll(
+                        visible.map((r) => r['pupilId'] as String),
+                      );
+                    } else {
+                      selected.clear();
+                    }
+                  }),
+                  icon: Icon(
+                    selected.isEmpty ? Icons.checklist : Icons.deselect,
+                  ),
+                ),
+              ],
+            ),
+            if (selected.isNotEmpty) ...[
+              Text(
+                'Für ${selected.length} ausgewählte Schüler',
+                style: Theme.of(ctx).textTheme.titleSmall,
+              ),
+              Wrap(
+                spacing: 4,
+                children: [
+                  for (final status in returnStatuses[d.text('type')]!.entries)
+                    TextButton(
+                      onPressed: busy || d.flag('closed') || d.deleted
+                          ? null
+                          : () => setStatus(d, Set.of(selected), status.key),
+                      child: Text(status.value),
+                    ),
+                  IconButton(
+                    tooltip: 'Scan für ausgewählte Schüler',
+                    onPressed: busy || d.flag('closed') || d.deleted
+                        ? null
+                        : () => scanAndShow(
+                            ctx,
+                            c,
+                            ScanContext(
+                              pupilIds: selected.toList(),
+                              links: [DocumentLink('classroom', d.id)],
+                              title: d.title,
+                              category: 'form',
+                            ),
+                          ),
+                    icon: const Icon(Icons.document_scanner_outlined),
+                  ),
+                ],
+              ),
+            ],
+            if (busy) const LinearProgressIndicator(),
+            if (visible.isEmpty) const EmptyState('Keine passenden Schüler.'),
+            for (final row in visible) participantRow(ctx, d, row),
+            const SizedBox(height: 12),
+            const Divider(),
+            Text(
+              'Vorgang verwalten',
+              style: Theme.of(ctx).textTheme.titleSmall,
+            ),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                DocumentAttachmentsButton(
-                  controller: c,
-                  scope: ScanContext(
-                    links: [DocumentLink('classroom', d.id)],
-                    title: d.title,
-                    category: 'form',
-                  ),
-                ),
                 TextButton.icon(
                   onPressed: busy
                       ? null
@@ -447,131 +705,6 @@ class _ReturnDetailState extends State<ReturnDetail> {
                 ),
               ],
             ),
-            for (final key in d.strings('materialIds'))
-              if (c.classroom.any((m) => m.id == key && !m.deleted))
-                MaterialRow(
-                  material: c.classroom.firstWhere((m) => m.id == key),
-                  onOpen: () => guarded(
-                    ctx,
-                    () => openMaterial(
-                      ctx,
-                      c,
-                      c.classroom.firstWhere((m) => m.id == key),
-                    ),
-                  ),
-                ),
-            const Divider(),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Schüler suchen',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (v) => setState(() => query = v),
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('Nur offene'),
-                  selected: openOnly,
-                  onSelected: (v) => setState(() => openOnly = v),
-                ),
-                TextButton(
-                  onPressed: () => setState(
-                    () => selected.addAll(
-                      visible.map((r) => r['pupilId'] as String),
-                    ),
-                  ),
-                  child: const Text('Sichtbare auswählen'),
-                ),
-                TextButton(
-                  onPressed: () => setState(selected.clear),
-                  child: const Text('Auswahl aufheben'),
-                ),
-              ],
-            ),
-            if (selected.isNotEmpty)
-              Wrap(
-                spacing: 6,
-                children: [
-                  for (final status in returnStatuses[d.text('type')]!.entries)
-                    OutlinedButton(
-                      onPressed: busy || d.flag('closed') || d.deleted
-                          ? null
-                          : () => setStatus(d, Set.of(selected), status.key),
-                      child: Text('${status.value} · ${selected.length}'),
-                    ),
-                ],
-              ),
-            if (busy) const LinearProgressIndicator(),
-            for (final row in visible)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DocumentAttachmentsButton(
-                      controller: c,
-                      scope: ScanContext(
-                        pupilIds: [row['pupilId'] as String],
-                        links: [DocumentLink('classroom', d.id)],
-                        title: '${row['name']} · ${d.title}',
-                        category: 'form',
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: selected.contains(row['pupilId']),
-                          onChanged: (v) => setState(() {
-                            if (v == true) {
-                              selected.add(row['pupilId'] as String);
-                            } else {
-                              selected.remove(row['pupilId']);
-                            }
-                          }),
-                        ),
-                        Expanded(
-                          child: Text(
-                            row['name'] as String,
-                            style: Theme.of(ctx).textTheme.titleMedium,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Notiz / Betrag',
-                          onPressed: busy || d.flag('closed') || d.deleted
-                              ? null
-                              : () => editRow(d, row),
-                          icon: const Icon(Icons.edit_note),
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final status
-                            in returnStatuses[d.text('type')]!.entries)
-                          ChoiceChip(
-                            label: Text(status.value),
-                            selected: row['status'] == status.key,
-                            onSelected: busy || d.flag('closed') || d.deleted
-                                ? null
-                                : (_) => setStatus(d, {
-                                    row['pupilId'] as String,
-                                  }, status.key),
-                          ),
-                      ],
-                    ),
-                    if ((row['note'] as String).isNotEmpty)
-                      Text(row['note'] as String),
-                    if (d.text('type') == 'payment')
-                      Text(
-                        '${((row['paid'] as int) / 100).toStringAsFixed(2)} €',
-                      ),
-                  ],
-                ),
-              ),
           ],
         ),
       );

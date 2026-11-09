@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'document_attachments.dart';
 import 'collapsible_search.dart';
 import '../domain/document_scanner.dart';
@@ -28,7 +29,7 @@ Future<void> editSchool(
   String? feedbackId,
   bool focusDelivery = false,
 }) async {
-  await showDialog<void>(
+  await showFlexDetail<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => SchoolEditor(
@@ -368,7 +369,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
           ),
   );
 
-  Future<void> showHomeworkHistory() => showDialog<void>(
+  Future<void> showHomeworkHistory() => showFlexDetail<void>(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, refresh) => AnimatedBuilder(

@@ -27,6 +27,7 @@ class CalendarTimeline extends StatelessWidget {
     required this.onDay,
     required this.selectedDate,
     this.week = false,
+    this.nowMarkerKey,
     this.showDates = true,
     this.highlightNow = true,
     this.showBlockDetails = false,
@@ -34,6 +35,7 @@ class CalendarTimeline extends StatelessWidget {
   final List<DateTime> days;
   final List<CalendarItem> items;
   final DateTime now;
+  final Key? nowMarkerKey;
   final String selectedDate;
   final bool week, showDates, highlightNow, showBlockDetails;
   final ValueChanged<CalendarItem> onOpen;
@@ -43,10 +45,10 @@ class CalendarTimeline extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (ctx, constraints) {
       final scale = MediaQuery.textScalerOf(ctx).scale(1).clamp(1.0, 2.5);
-      final pixels = (week ? 1.1 : 1.2) * scale;
+      final pixels = (week ? 1.0 : 1.1) * scale;
       // Keep the existing week overlap boundaries: making short blocks longer
       // would incorrectly pull a following lesson into the same group.
-      final minMinutes = week ? 36 : 40;
+      final minMinutes = week ? 36 : 44;
       final baseHours = calendarHours(items, minimumMinutes: minMinutes);
       final todayIndex = highlightNow
           ? days.indexWhere((day) => dateOnly(day) == dateOnly(now))
@@ -262,6 +264,7 @@ class CalendarTimeline extends StatelessWidget {
                 height: 3,
                 child: IgnorePointer(
                   child: Semantics(
+                    key: nowMarkerKey,
                     label: 'Jetzt ${minuteClock(nowMinutes)}',
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -366,13 +369,13 @@ class _TimeBlock extends StatelessWidget {
           '${item.title}, $time${current ? ', jetzt' : ''}${next ? ', als Nächstes' : ''}',
       child: Material(
         color: Color.alphaBlend(
-          tint.withValues(alpha: current ? .25 : .13),
+          tint.withValues(alpha: current ? .20 : .06),
           scheme.surface,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9),
           side: BorderSide(
-            color: current ? scheme.primary : tint.withValues(alpha: .6),
+            color: current ? scheme.primary : tint.withValues(alpha: .35),
             width: current ? 2 : 1,
           ),
         ),

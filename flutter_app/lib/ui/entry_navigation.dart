@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/school.dart';
@@ -76,7 +77,7 @@ Future<void> showEntryDrafts(
   required String? pupilId,
   SchoolKind? kind,
   required String exclude,
-}) => showDialog<void>(
+}) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
@@ -144,7 +145,7 @@ Future<void> showEntryDrafts(
                   preview: d.entry.body.isEmpty ? d.entry.title : d.entry.body,
                   time: d.updatedAtUtc,
                   mode: 'Eintrag',
-                  open: () => showDialog<void>(
+                  open: () => showFlexDetail<void>(
                     context: ctx,
                     barrierDismissible: false,
                     builder: (_) => OrgaEditor(
@@ -233,7 +234,7 @@ Future<void> showAssignedHomework(
   BuildContext context,
   NotebookController c,
   String pupilId,
-) => showDialog<void>(
+) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
@@ -256,9 +257,15 @@ Future<void> showAssignedHomework(
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Schließen und Eingaben sichern',
+                  tooltip: (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
+                      ? 'Zurück'
+                      : 'Schließen',
                   onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(
+                    (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
+                        ? Icons.arrow_back
+                        : Icons.close,
+                  ),
                 ),
               ],
             ),

@@ -243,6 +243,7 @@ class _CalendarPageState extends State<CalendarPage>
   late DateTime calendarDate = schoolDay(dateOnly(now));
   DateTime? timetableDate;
   bool timetableView = false;
+  final nowMarker = GlobalKey();
   DateTime get selected => timetableView ? timetableDate! : calendarDate;
   set selected(DateTime date) {
     if (timetableView) {
@@ -358,6 +359,27 @@ class _CalendarPageState extends State<CalendarPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) setState(() {});
+  }
+
+  void goToNow() {
+    setState(() => selected = schoolDay(dateOnly(now)));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final target = nowMarker.currentContext;
+      if (target != null) {
+        Scrollable.ensureVisible(
+          target,
+          alignment: .28,
+          duration: const Duration(milliseconds: 250),
+        );
+      } else if (scroll.hasClients) {
+        scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void navigate(VoidCallback update) {
@@ -751,7 +773,7 @@ class _CalendarPageState extends State<CalendarPage>
           ),
         if (timed.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 22),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
               timetableView
                   ? 'Kein Unterricht an diesem Tag.'
@@ -764,6 +786,7 @@ class _CalendarPageState extends State<CalendarPage>
           days: [selected],
           items: timed,
           now: now,
+          nowMarkerKey: nowMarker,
           selectedDate: dateOnly(selected),
           onOpen: openItem,
           showBlockDetails: timetableView,
@@ -815,6 +838,7 @@ class _CalendarPageState extends State<CalendarPage>
           days: days,
           items: items.where(calendarTimed).toList(),
           now: now,
+          nowMarkerKey: nowMarker,
           selectedDate: dateOnly(selected),
           onDay: openDay,
           onOpen: openItem,
@@ -1178,8 +1202,8 @@ class _CalendarPageState extends State<CalendarPage>
                     icon: const Icon(Icons.chevron_right),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        navigate(() => selected = schoolDay(dateOnly(now))),
+                    key: const ValueKey('calendar-today'),
+                    onPressed: goToNow,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
@@ -1189,7 +1213,7 @@ class _CalendarPageState extends State<CalendarPage>
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
               child: Row(
                 children: [
                   Expanded(

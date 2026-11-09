@@ -334,7 +334,7 @@ void main() {
         final oldY = t.getTopLeft(line).dy;
         now = now.add(const Duration(minutes: 1));
         await t.pump(const Duration(minutes: 1));
-        expect(t.getTopLeft(line).dy - oldY, closeTo(1.2, .01));
+        expect(t.getTopLeft(line).dy - oldY, closeTo(1.1, .01));
         expect(
           find.descendant(of: label, matching: find.text('08:${now.minute}')),
           findsOneWidget,

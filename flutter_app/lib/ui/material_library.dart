@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'action_heading.dart';
 import 'dart:async';
@@ -480,7 +481,7 @@ Future<void> openMaterial(
     if (current.text('extension') == 'jpg') {
       final bytes = await files.read(current.text('localKey'));
       if (!context.mounted) return;
-      await showDialog<void>(
+      await showFlexDetail<void>(
         context: context,
         builder: (ctx) => FlexModal(
           title: Text(current.title),
@@ -497,7 +498,7 @@ Future<void> openMaterial(
         ),
       );
     } else if (current.text('extension') == 'pdf') {
-      await showDialog<void>(
+      await showFlexDetail<void>(
         context: context,
         builder: (_) => MaterialPdf(
           fileKey: current.text('localKey'),
@@ -508,7 +509,7 @@ Future<void> openMaterial(
     } else {
       final bytes = await files.read(current.text('localKey'));
       if (!context.mounted) return;
-      await showDialog<void>(
+      await showFlexDetail<void>(
         context: context,
         builder: (_) => MaterialDocx(
           title: current.title,
@@ -553,8 +554,9 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   final drive = OneDriveClient();
   final files = const LocalMaterialFiles();
   String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
-  String formatFilter = 'all', sort = 'recent';
-  bool grid = true;
+  String formatFilter = 'all';
+  String get sort => c.appearance.materialSort;
+  bool get grid => c.appearance.materialGrid;
   final search = TextEditingController();
   final selection = <String>{};
   bool busy = false,
@@ -1004,14 +1006,20 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     final layout = IconButton(
       key: const ValueKey('material-layout'),
       tooltip: grid ? 'Listenansicht' : 'Rasteransicht',
-      onPressed: () => setState(() => grid = !grid),
+      onPressed: () => guarded(
+        context,
+        () => c.saveAppearance(c.appearance.patch({'materialGrid': !grid})),
+      ),
       icon: Icon(grid ? Icons.view_list_outlined : Icons.grid_view_outlined),
     );
     final sorting = PopupMenuButton<String>(
       key: const ValueKey('material-sort'),
       tooltip: 'Materialien sortieren',
       initialValue: sort,
-      onSelected: (value) => setState(() => sort = value),
+      onSelected: (value) => guarded(
+        context,
+        () => c.saveAppearance(c.appearance.patch({'materialSort': value})),
+      ),
       itemBuilder: (_) => [
         for (final entry in _materialSortLabels.entries)
           CheckedPopupMenuItem(
@@ -1658,103 +1666,108 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                             onTap: () => showMaterialCollection(ctx, c, d),
                           ),
                     ],
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Ablage & Sicherung',
-                        style: Theme.of(ctx).textTheme.titleSmall,
+                    if (view == 'files') ...[
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Ablage & Sicherung',
+                          style: Theme.of(ctx).textTheme.titleSmall,
+                        ),
                       ),
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        if (drive.connected) ...[
-                          const Chip(
-                            label: Text('OneDrive verbunden'),
-                            avatar: Icon(Icons.cloud_done_outlined, size: 18),
-                          ),
-                          TextButton.icon(
-                            onPressed: busy
-                                ? null
-                                : () => action(
-                                    () => browseOneDrive(ctx, c, drive),
-                                  ),
-                            icon: const Icon(Icons.folder_open),
-                            label: const Text('Ordner wählen'),
-                          ),
-                          TextButton(
-                            onPressed: busy
-                                ? null
-                                : () => action(drive.disconnect),
-                            child: const Text('Trennen'),
-                          ),
-                        ],
-                      ],
-                    ),
-                    for (final f in c.classroom.where(
-                      (d) => !d.deleted && d.kind == ClassroomKind.folder,
-                    ))
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.folder_outlined),
-                        title: Text(f.title),
-                        onTap: busy
-                            ? null
-                            : () => action(
-                                () => browseOneDrive(ctx, c, drive, folder: f),
-                              ),
-                        trailing: Wrap(
-                          children: [
-                            IconButton(
-                              tooltip: 'Ordner einlesen / aktualisieren',
-                              onPressed: busy
-                                  ? null
-                                  : () => action(
-                                      () => reviewOneDriveFolder(
-                                        ctx,
-                                        c,
-                                        drive,
-                                        f,
-                                      ),
-                                    ),
-                              icon: const Icon(Icons.sync),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (drive.connected) ...[
+                            const Chip(
+                              label: Text('OneDrive verbunden'),
+                              avatar: Icon(Icons.cloud_done_outlined, size: 18),
                             ),
-                            IconButton(
-                              tooltip: 'Ordnerverknüpfung entfernen',
+                            TextButton.icon(
                               onPressed: busy
                                   ? null
                                   : () => action(
-                                      () => c.saveClassroom(
-                                        f.patch({'deleted': true}),
-                                      ),
+                                      () => browseOneDrive(ctx, c, drive),
                                     ),
-                              icon: const Icon(Icons.link_off),
+                              icon: const Icon(Icons.folder_open),
+                              label: const Text('Ordner wählen'),
+                            ),
+                            TextButton(
+                              onPressed: busy
+                                  ? null
+                                  : () => action(drive.disconnect),
+                              child: const Text('Trennen'),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        TextButton.icon(
-                          onPressed: busy || !materialDeviceAvailable
+                      for (final f in c.classroom.where(
+                        (d) => !d.deleted && d.kind == ClassroomKind.folder,
+                      ))
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.folder_outlined),
+                          title: Text(f.title),
+                          onTap: busy
                               ? null
-                              : () => action(exportBundle),
-                          icon: const Icon(Icons.enhanced_encryption_outlined),
-                          label: const Text('Materialsicherung erstellen'),
+                              : () => action(
+                                  () =>
+                                      browseOneDrive(ctx, c, drive, folder: f),
+                                ),
+                          trailing: Wrap(
+                            children: [
+                              IconButton(
+                                tooltip: 'Ordner einlesen / aktualisieren',
+                                onPressed: busy
+                                    ? null
+                                    : () => action(
+                                        () => reviewOneDriveFolder(
+                                          ctx,
+                                          c,
+                                          drive,
+                                          f,
+                                        ),
+                                      ),
+                                icon: const Icon(Icons.sync),
+                              ),
+                              IconButton(
+                                tooltip: 'Ordnerverknüpfung entfernen',
+                                onPressed: busy
+                                    ? null
+                                    : () => action(
+                                        () => c.saveClassroom(
+                                          f.patch({'deleted': true}),
+                                        ),
+                                      ),
+                                icon: const Icon(Icons.link_off),
+                              ),
+                            ],
+                          ),
                         ),
-                        TextButton.icon(
-                          onPressed: busy || !materialDeviceAvailable
-                              ? null
-                              : () => action(importBundle),
-                          icon: const Icon(Icons.restore),
-                          label: const Text('Materialsicherung öffnen'),
-                        ),
-                      ],
-                    ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          TextButton.icon(
+                            onPressed: busy || !materialDeviceAvailable
+                                ? null
+                                : () => action(exportBundle),
+                            icon: const Icon(
+                              Icons.enhanced_encryption_outlined,
+                            ),
+                            label: const Text('Materialsicherung erstellen'),
+                          ),
+                          TextButton.icon(
+                            onPressed: busy || !materialDeviceAvailable
+                                ? null
+                                : () => action(importBundle),
+                            icon: const Icon(Icons.restore),
+                            label: const Text('Materialsicherung öffnen'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -116,7 +116,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
         });
         final title = switch (widget.kind) {
           'task' => 'Aufgaben',
-          'note' => 'Notizen',
+          'note' => 'Allgemeine Notizen',
           _ => 'Organisation',
         };
         final drafts = c.drafts.where((d) => matches(d.entry)).length;

@@ -195,6 +195,8 @@ void main() {
     final a = t.getTopLeft(find.byKey(ValueKey(pdf.id)));
     final b = t.getTopLeft(find.byKey(ValueKey(docx.id)));
     expect(a.dy < b.dy || a.dy == b.dy && a.dx < b.dx, isTrue);
+    expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
+    await tap(t, find.byTooltip('Rasteransicht'));
     await tap(t, find.byTooltip('Listenansicht'));
     expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
     await tap(t, find.widgetWithText(TextButton, 'Filter'));
@@ -465,9 +467,9 @@ void main() {
     );
     await tap(t, find.text('Open'));
     expect(find.text('Bereitgelegt'), findsOneWidget);
-    expect(find.byTooltip('Schließen und Eingaben sichern'), findsOneWidget);
+    expect(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')), findsOneWidget);
     expect(t.takeException(), isNull);
-    await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+    await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
     expect(find.text('Bereitgelegt'), findsNothing);
   });
 
@@ -510,6 +512,8 @@ void main() {
         await t.tap(find.byKey(const ValueKey('bottom-3')));
         await t.pumpAndSettle();
         await capture(t, key, 'materialien-${width.toInt()}-${scale.toInt()}');
+        expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
+        await tap(t, find.byTooltip('Rasteransicht'));
         await tap(t, find.byTooltip('Listenansicht'));
         await capture(
           t,

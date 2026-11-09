@@ -63,11 +63,12 @@ class ScanContext {
     this.category = 'other',
     this.subject = '',
     this.includeTasks = true,
+    this.unassignedPupilsOnly = false,
   });
   final List<String> pupilIds;
   final List<DocumentLink> links;
   final String title, category, subject;
-  final bool includeTasks;
+  final bool includeTasks, unassignedPupilsOnly;
   Json initial({DateTime? now}) => {
     'title':
         '${dateOnly(now ?? DateTime.now())} · ${title.isEmpty ? 'Scan' : title.substring(0, title.length.clamp(0, 180))}',
@@ -82,6 +83,7 @@ class ScanContext {
   bool matchesMaterial(ClassroomDocument d) =>
       d.kind == ClassroomKind.material &&
       !d.deleted &&
+      (!unassignedPupilsOnly || d.strings('pupilIds').isEmpty) &&
       (pupilIds.isEmpty || pupilIds.every(d.strings('pupilIds').contains)) &&
       (links.isEmpty ||
           links.every(
@@ -96,6 +98,7 @@ class ScanContext {
           ));
   bool matchesDraft(DialogDraft d) =>
       d.type == 'scan' &&
+      (!unassignedPupilsOnly || (d.data['pupilIds'] as List).isEmpty) &&
       (pupilIds.isEmpty ||
           pupilIds.every(
             List<String>.from(d.data['pupilIds'] as List).contains,

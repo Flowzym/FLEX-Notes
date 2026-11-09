@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -51,9 +52,8 @@ class HomeworkRecordView extends StatelessWidget {
       (f) => f.taskId == null && f.note.isNotEmpty,
     );
     final scope = schoolScanContext(c, [r], includeTasks: false);
-    final count =
-        c.classroom.where(scope.matchesMaterial).length +
-        c.dialogDrafts.where(scope.matchesDraft).length;
+    final count = c.classroom.where(scope.matchesMaterial).length;
+    final draftCount = c.dialogDrafts.where(scope.matchesDraft).length;
     final editable = !busy && !r.deleted;
     return Column(
       key: ValueKey('homework-content-${r.id}'),
@@ -179,7 +179,9 @@ class HomeworkRecordView extends StatelessWidget {
                     ? null
                     : () => showContextDocuments(context, c, scope),
                 style: _quietButton(context),
-                child: Text('Anhänge${count == 0 ? '' : ' ($count)'}'),
+                child: Text(
+                  'Dateien${count == 0 ? '' : ' ($count)'}${draftCount == 0 ? '' : ' · $draftCount Entw.'}',
+                ),
               ),
               TextButton(
                 key: ValueKey('homework-history-${r.id}'),
@@ -237,8 +239,6 @@ class HomeworkRecordView extends StatelessWidget {
                 children: [
                   Text(
                     task.text,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -271,7 +271,7 @@ class HomeworkRecordView extends StatelessWidget {
         children: [
           LayoutBuilder(
             builder: (context, constraints) =>
-                constraints.maxWidth >= 300 &&
+                constraints.maxWidth >= 540 &&
                     MediaQuery.textScalerOf(context).scale(14) <= 20
                 ? Row(
                     children: [
@@ -283,7 +283,7 @@ class HomeworkRecordView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       title,
-                      Align(alignment: Alignment.centerRight, child: states),
+                      Align(alignment: Alignment.centerLeft, child: states),
                     ],
                   ),
           ),
@@ -302,7 +302,7 @@ class HomeworkRecordView extends StatelessWidget {
     BuildContext context,
     String taskId,
     String number,
-  ) => showDialog<void>(
+  ) => showFlexDetail<void>(
     context: context,
     builder: (dialogContext) => AnimatedBuilder(
       animation: controller,

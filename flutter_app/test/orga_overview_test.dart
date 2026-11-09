@@ -376,7 +376,7 @@ void main() {
           isNot(Colors.transparent),
         );
         expect(find.byKey(ValueKey('observation-$positive')), findsNothing);
-        await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
         final saved = (await repo.schoolDrafts()).single.record;
         expect(saved.positive, contains(positive));
         expect(saved.negative, contains(negativeLabel));
@@ -675,8 +675,10 @@ void main() {
         );
         expect(find.text('Rückmeldung zur Gruppenarbeit'), findsNothing);
         await capture(t, key, 'overview-$suffix');
-        await tap(t, find.byKey(const ValueKey('overview-show-more')));
-        expect(find.text('Weniger anzeigen'), findsOneWidget);
+        expect(
+          find.textContaining(RegExp(r'^(Überfällig|Heute|Danach) ·')),
+          findsWidgets,
+        );
         await tap(t, find.byKey(const ValueKey('overview-section-complete')));
         expect(find.text('Beobachtung nachtragen'), findsOneWidget);
         await tap(t, find.byKey(const ValueKey('overview-section-recent')));
@@ -686,7 +688,7 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-open-a')));
         expect(find.byKey(const ValueKey('pupil-entry-search')), findsNothing);
         await capture(t, key, 'pupil-dialog-$suffix');
-        await tap(t, find.byTooltip('Schließen und Eingaben sichern'));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
         await open(
           t,
           OrgaEditor(
