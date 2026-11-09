@@ -1,0 +1,33 @@
+{
+  "version": "0.16.0-rebuild.36+56",
+  "synthetic_data_only": true,
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 1280,
+      "height": 900
+    },
+    {
+      "width": 320,
+      "height": 740
+    }
+  ],
+  "flows_passed": [
+    "Live due groups",
+    "Compact pupil list and persistence",
+    "Homework task comment save and correct back context",
+    "Return list pupil detail and separate attachment scopes",
+    "Material layout persistence",
+    "Existing PDF open without automatic scan draft",
+    "Filter live preview and cancel",
+    "Material detail to scanner within single detail host",
+    "Today scroll to visible current time",
+    "Tablet list and selected detail side by side",
+    "Narrow phone entry and back navigation"
+  ],
+  "console_errors": [],
+  "physical_android_tested": false
+}
