@@ -448,13 +448,17 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     // the next flush can safely retry without creating a dangling file reference.
     if (!loadingSource) await buffer.flush();
     if (replaceKey != null) {
-      await removeUnusedScanFiles(c.repository, widget.files, [replaceKey]);
+      await cleanupPages([replaceKey]);
     }
   }
 
-  Future<void> cleanupPages() async {
+  Future<void> cleanupPages([Iterable<String>? keys]) async {
     try {
-      await removeUnusedScanFiles(c.repository, widget.files, knownKeys);
+      await removeUnusedScanFiles(
+        c.repository,
+        widget.files,
+        keys ?? knownKeys,
+      );
     } catch (_) {
       // Cleanup must not turn a successful save into a reported failure.
     }

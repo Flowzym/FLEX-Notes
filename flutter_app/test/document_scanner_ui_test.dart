@@ -31,6 +31,17 @@ class InterruptedScanRepository extends SqliteNotebook {
   }
 }
 
+class DelayedScanCleanup extends MemoryMaterialFiles {
+  bool failRemoval = false;
+  @override
+  Future<void> remove(String key) async {
+    if (failRemoval) {
+      throw const DomainError('Temporäres Aufräumen fehlgeschlagen');
+    }
+    await super.remove(key);
+  }
+}
+
 void main() {
   Future<NotebookController> controller() async {
     final c = NotebookController(InterruptedScanRepository());
@@ -419,6 +430,55 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'committed replacement survives cleanup failure without a false save error',
+    (t) async {
+      final c = await controller(), files = DelayedScanCleanup();
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          initialImages: [scannerImage(), scannerImage(width: 200)],
+          pickFiles: () async => [
+            XFile.fromData(scannerImage(width: 300), name: 'replacement.jpg'),
+          ],
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).length == 2,
+      );
+      final before = c.dialogDrafts.single.data['pages'] as List;
+      final oldKey = before.first['key'] as String;
+      files.failRemoval = true;
+      await tap(t, find.byKey(const ValueKey('scan-replace-page-0')));
+      await tap(t, find.text('Bild auswählen'));
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).first['width'] ==
+                300 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(
+        find.textContaining('Temporäres Aufräumen fehlgeschlagen'),
+        findsNothing,
+      );
+      expect(files.values.containsKey(oldKey), isTrue);
+      files.failRemoval = false;
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      final after = c.dialogDrafts.single.data['pages'] as List;
+      expect(after.map((v) => v['width']), [300, 200]);
+      expect(after.last['key'], before.last['key']);
+      expect(files.values.containsKey(oldKey), isFalse);
+      expect(files.values, hasLength(2));
+    },
+  );
 
   for (final failMetadata in [false, true]) {
     testWidgets(

@@ -271,24 +271,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final colors = tester
-          .widgetList<Container>(
-            find.descendant(
-              of: find.byType(FlexModal),
-              matching: find.byType(Container),
-            ),
-          )
-          .map((c) => c.color)
-          .whereType<Color>()
-          .toList();
-      expect(
-        colors,
-        contains(FlexPalette(const Appearance(), Brightness.light).header),
+      final backdrop = tester.widget<DecoratedBox>(
+        find
+            .descendant(
+              of: find.descendant(
+                of: find.byType(FlexModal),
+                matching: find.byType(FlexBackground),
+              ),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
       );
-      expect(
-        colors,
-        isNot(contains(const Color(0xff426574).withValues(alpha: .75))),
-      );
+      final colors = (backdrop.decoration as BoxDecoration).gradient!.colors;
+      const palette = FlexPalette(Brightness.light);
+      expect(colors, [palette.panel, palette.backdrop]);
+      expect(colors.every((color) => color.a == 1), isTrue);
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Schließen'));
       await tester.pumpAndSettle();

@@ -345,8 +345,8 @@ class _ReturnDetailState extends State<ReturnDetail> {
     ].join('\n');
     final bytes = await briefPdf(
       text: text,
-      regularFont: await rootBundle.load('assets/fonts/Selawik-Regular.ttf'),
-      boldFont: await rootBundle.load('assets/fonts/Selawik-Bold.ttf'),
+      regularFont: await rootBundle.load('assets/fonts/Inter-Regular.ttf'),
+      boldFont: await rootBundle.load('assets/fonts/Inter-Bold.ttf'),
     );
     await saveBytesFile(
       'FLEX-Ruecklauf-${dateOnly(DateTime.now())}.pdf',

@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'package:flex_notizbuch/ui/compact_switch.dart';
 import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
 import 'dart:async';
@@ -6,7 +7,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -27,23 +27,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SqliteNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = SqliteNotebook(
       NotebookDatabase(
@@ -653,7 +637,7 @@ void main() {
       'audit render and reachable controls ${view.$1}/${view.$3}/${view.$4}/${view.$5}',
       (t) async {
         await c.saveAppearance(
-          c.appearance.patch({'mode': view.$4, 'uiScale': view.$5}),
+          c.appearance.patch({'mode': view.$4, 'textScale': view.$5}),
         );
         final boundary = GlobalKey();
         final suffix = '${view.$1.toInt()}-${view.$3.toInt()}-${view.$4}';
@@ -700,8 +684,8 @@ void main() {
         final theme = Theme.of(dialogContext);
         final background = theme
             .extension<FlexSurfaces>()!
-            .palette!
-            .modalPerceived
+            .palette
+            .backdrop
             .computeLuminance();
         expect(IconTheme.of(dialogContext).color, theme.colorScheme.primary);
         final ink = theme.colorScheme.onSurfaceVariant.computeLuminance();

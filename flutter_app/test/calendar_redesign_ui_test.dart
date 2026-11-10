@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -20,15 +21,7 @@ import 'material_workspace_test.dart' show material;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(font.key)..addFont(rootBundle.load(font.value))).load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() {
     for (final channel in [
       'plugins.it_nomads.com/flutter_secure_storage',

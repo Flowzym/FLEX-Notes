@@ -12,7 +12,7 @@ class FlexApp extends StatelessWidget {
   const FlexApp({super.key, required this.controller});
   final NotebookController controller;
   ThemeData _theme(Appearance appearance, Brightness brightness) {
-    final p = FlexPalette(appearance, brightness);
+    final p = FlexPalette(brightness);
     final scheme =
         ColorScheme.fromSeed(
           seedColor: p.primary,
@@ -92,18 +92,10 @@ class FlexApp extends StatelessWidget {
       textTheme: textTheme,
       iconTheme: IconThemeData(color: p.primary, size: 24),
       colorScheme: scheme,
-      scaffoldBackgroundColor: p.backdrop,
+      scaffoldBackgroundColor: Colors.transparent,
       canvasColor: p.panel,
       dividerTheme: DividerThemeData(color: p.line, thickness: .8, space: 24),
-      extensions: [
-        FlexSurfaces(
-          appearance: appearance,
-          palette: p,
-          header: p.header,
-          footer: p.footer,
-          foreground: p.ink,
-        ),
-      ],
+      extensions: [FlexSurfaces(appearance: appearance, palette: p)],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           alignment: Alignment.center,
@@ -113,6 +105,22 @@ class FlexApp extends StatelessWidget {
           shape: shape,
           backgroundColor: p.primary,
           foregroundColor: scheme.onPrimary,
+          textStyle: const TextStyle(
+            fontFamily: 'FlexSans',
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+          elevation: 1,
+          shadowColor: scheme.shadow.withValues(alpha: .15),
+          backgroundBuilder: (context, states, child) => DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(FlexDesign.buttonRadius),
+              gradient: states.contains(WidgetState.disabled)
+                  ? null
+                  : FlexDesign.wash(p.primary),
+            ),
+            child: child,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -136,6 +144,8 @@ class FlexApp extends StatelessWidget {
           side: BorderSide(color: p.line),
           backgroundColor: p.panel,
           foregroundColor: p.ink,
+          elevation: 1,
+          shadowColor: scheme.shadow.withValues(alpha: .12),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -203,7 +213,8 @@ class FlexApp extends StatelessWidget {
       ),
       cardTheme: CardThemeData(
         color: p.card,
-        elevation: 0,
+        elevation: .5,
+        shadowColor: scheme.shadow.withValues(alpha: .10),
         surfaceTintColor: Colors.transparent,
         margin: const EdgeInsets.symmetric(vertical: 6),
         shape: RoundedRectangleBorder(
@@ -238,7 +249,6 @@ class FlexApp extends StatelessWidget {
       builder: (context, child) => FlexAppScale(
         textScale: controller.appearance.textScale,
         child: FlexBackground(
-          appearance: controller.appearance,
           child: controller.services == null
               ? child!
               : AppGuard(

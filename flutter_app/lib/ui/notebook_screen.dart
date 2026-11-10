@@ -15,7 +15,7 @@ import 'pupil_editor.dart';
 import 'dialog_workflows.dart';
 import 'surfaces.dart';
 import 'overview_entry.dart';
-import 'prototype_navigation.dart';
+import 'app_navigation.dart';
 import 'pupil_card.dart';
 
 import 'package:flutter/material.dart';
@@ -1234,13 +1234,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ),
           actions: [
             if (!archived)
-              IconButton.outlined(
-                style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
+              FlexCircleButton(
                 tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
                 icon: const Icon(Icons.person_add_alt_1_outlined),

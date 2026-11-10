@@ -413,10 +413,10 @@ void main() {
         text:
             'Gesprächsvorbereitung · Änne\nZeitraum: 01.11.2026 bis 04.11.2026\n${List.filled(300, 'Förderung: hört zu, übt und äußert Wünsche. ${'Sehr langer Text ' * 50}').join('\n')}\nNächste Schritte',
         regularFont: ByteData.sublistView(
-          await File('assets/fonts/Selawik-Regular.ttf').readAsBytes(),
+          await File('assets/fonts/Inter-Regular.ttf').readAsBytes(),
         ),
         boldFont: ByteData.sublistView(
-          await File('assets/fonts/Selawik-Bold.ttf').readAsBytes(),
+          await File('assets/fonts/Inter-Bold.ttf').readAsBytes(),
         ),
       );
       expect(ascii.decode(pdf.take(5).toList()), '%PDF-');

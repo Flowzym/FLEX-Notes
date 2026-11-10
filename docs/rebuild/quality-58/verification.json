@@ -1,0 +1,46 @@
+{
+  "version": "0.17.1+58",
+  "date": "2026-11-10",
+  "flutterTests": 486,
+  "dartAnalysis": "No issues found",
+  "format": "passed",
+  "sqliteSchemaTests": 11,
+  "previewServerTests": 3,
+  "webRelease": "passed",
+  "coverage": {
+    "sources": 102,
+    "linesHit": 14525,
+    "linesFound": 18265,
+    "percent": 79.52
+  },
+  "renderingsGenerated": 415,
+  "browser": {
+    "engine": "Chromium",
+    "viewport": "390x844",
+    "sameOriginUpgradeFromBuild57": true,
+    "pupilsPreserved": 12,
+    "previousPublishedRecordPreserved": true,
+    "draftCloseResumePublishReloadExport": true,
+    "neutralTagPreserved": true,
+    "appearance": {
+      "designVersion": 1,
+      "mode": "light",
+      "textScale": 1,
+      "defaultObservationTone": "neutral",
+      "materialGrid": false,
+      "materialSort": "recent",
+      "shortcutOrder": [
+        "goal",
+        "social",
+        "work",
+        "homework",
+        "orga"
+      ]
+    }
+  },
+  "limits": [
+    "No physical Android device acceptance",
+    "No live OneDrive sign-in",
+    "Original Android test signing key unavailable"
+  ]
+}

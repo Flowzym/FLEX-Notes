@@ -14,57 +14,91 @@ class FlexDesign {
   static const buttonRadius = 24.0;
   static const modalRadius = 24.0;
   static const cardRadius = 16.0;
+
+  static List<BoxShadow> shadows(BuildContext context) => [
+    BoxShadow(
+      color: Theme.of(context).colorScheme.shadow.withValues(
+        alpha: Theme.of(context).brightness == Brightness.dark ? .18 : .065,
+      ),
+      blurRadius: 12,
+      offset: const Offset(0, 3),
+    ),
+    BoxShadow(
+      color: Theme.of(context).colorScheme.shadow.withValues(alpha: .035),
+      blurRadius: 2,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
+  static LinearGradient wash(Color color) => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color.lerp(color, Colors.white, .07)!, color],
+  );
+
+  static BoxDecoration capsule(BuildContext context) => BoxDecoration(
+    gradient: wash(Theme.of(context).colorScheme.surface),
+    border: Border.all(
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .7),
+      width: .7,
+    ),
+    borderRadius: BorderRadius.circular(28),
+    boxShadow: shadows(context),
+  );
+}
+
+/// Raised, quiet icon controls for page headings and date navigation.
+class FlexCircleButton extends StatelessWidget {
+  const FlexCircleButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: FlexDesign.capsule(context),
+    child: IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(shape: const CircleBorder()),
+      icon: icon,
+    ),
+  );
 }
 
 class FlexPalette {
-  FlexPalette(this.appearance, this.brightness);
-  final Appearance appearance;
+  const FlexPalette(this.brightness);
   final Brightness brightness;
   bool get dark => brightness == Brightness.dark;
   Color get backdrop =>
-      dark ? const Color(0xff20231f) : const Color(0xfff8f5f0);
-  Color get panel => dark ? const Color(0xff282c26) : const Color(0xfffcfaf6);
+      dark ? const Color(0xff20231f) : const Color(0xfff8f4ef);
+  Color get panel => dark ? const Color(0xff282c26) : const Color(0xfffcf9f5);
   Color get primary => dark ? const Color(0xffb6c29c) : const Color(0xff606d48);
   Color get selection =>
-      dark ? const Color(0xff4a563c) : const Color(0xffb2b99e);
+      dark ? const Color(0xff4a563c) : const Color(0xffb2b89b);
   Color get line => dark ? const Color(0xff44493d) : const Color(0xffdedbd2);
   Color get ink => dark ? const Color(0xfff1eee6) : const Color(0xff292c27);
   Color get secondaryInk =>
       dark ? const Color(0xffc4c9bb) : const Color(0xff606655);
-  Color get workspace => panel;
   Color get card => panel;
-  Color get modal => backdrop;
-  Color get modalPerceived => modal;
-  Color get header => backdrop;
-  Color get footer => backdrop;
-  Color get button => dark ? const Color(0xff343a2f) : const Color(0xffeeeee5);
+  Color get button => dark ? const Color(0xff343a2f) : const Color(0xfff8f5ef);
   Color get field => dark ? const Color(0xff252923) : const Color(0xfffdfbf7);
-  Color get buttonInk => ink;
-  Color get fieldInk => ink;
-  Color get modalInk => ink;
-  Color get cardInk => ink;
-  Color get workspaceInk => ink;
 }
 
 class FlexSurfaces extends ThemeExtension<FlexSurfaces> {
-  const FlexSurfaces({
-    required this.header,
-    required this.footer,
-    required this.foreground,
-    this.appearance,
-    this.palette,
-  });
-  final Color header, footer, foreground;
-  final Appearance? appearance;
-  final FlexPalette? palette;
+  const FlexSurfaces({required this.appearance, required this.palette});
+  final Appearance appearance;
+  final FlexPalette palette;
   @override
-  FlexSurfaces copyWith({Color? header, Color? footer, Color? foreground}) =>
+  FlexSurfaces copyWith({Appearance? appearance, FlexPalette? palette}) =>
       FlexSurfaces(
-        header: header ?? this.header,
-        footer: footer ?? this.footer,
-        foreground: foreground ?? this.foreground,
-        appearance: appearance,
-        palette: palette,
+        appearance: appearance ?? this.appearance,
+        palette: palette ?? this.palette,
       );
   @override
   FlexSurfaces lerp(covariant FlexSurfaces? other, double t) => other ?? this;
@@ -85,46 +119,25 @@ class FlexCard extends StatelessWidget {
   final Widget? child;
   final WidgetBuilder? builder;
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final foreground =
-        theme.extension<FlexSurfaces>()?.palette?.cardInk ??
-        theme.colorScheme.onSurface;
-    return Card(
-      child: Theme(
-        data: theme.copyWith(
-          colorScheme: theme.colorScheme.copyWith(
-            onSurface: foreground,
-            onSurfaceVariant: foreground,
-          ),
-          textTheme: theme.textTheme.apply(
-            bodyColor: foreground,
-            displayColor: foreground,
-          ),
-        ),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(color: foreground),
-          child: IconTheme.merge(
-            data: IconThemeData(color: foreground),
-            child: builder == null ? child! : Builder(builder: builder!),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      Card(child: builder == null ? child! : Builder(builder: builder!));
 }
 
 class FlexBackground extends StatelessWidget {
-  const FlexBackground({
-    super.key,
-    required this.appearance,
-    required this.child,
-  });
-  final Appearance appearance;
+  const FlexBackground({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: FlexPalette(appearance, Theme.of(context).brightness).backdrop,
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final p = FlexPalette(Theme.of(context).brightness);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: const Alignment(-.85, -.7),
+          radius: 1.5,
+          colors: [p.panel, p.backdrop],
+        ),
+      ),
+      child: child,
+    );
+  }
 }

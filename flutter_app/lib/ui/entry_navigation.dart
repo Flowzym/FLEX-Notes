@@ -9,6 +9,7 @@ import 'common.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
+import 'surfaces.dart';
 
 /// Shared context and heading for the school and organisation editors.
 class EntryPageHeader extends StatelessWidget {
@@ -27,7 +28,6 @@ class EntryPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final scheme = Theme.of(context).colorScheme;
       final compact =
           constraints.maxWidth < 330 ||
           MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
@@ -49,11 +49,7 @@ class EntryPageHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              border: Border.all(color: scheme.outlineVariant),
-              borderRadius: BorderRadius.circular(28),
-            ),
+            decoration: FlexDesign.capsule(context),
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
             child: Row(
               children: [

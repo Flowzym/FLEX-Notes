@@ -1,4 +1,5 @@
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'support/app_test_fonts.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'package:flex_notizbuch/ui/settings.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -7,7 +8,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -31,28 +31,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late DesignNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = DesignNotebook(
       NotebookDatabase(
@@ -143,7 +122,7 @@ void main() {
       ).writeAsBytesSync(bytes!.buffer.asUint8List());
       picture.dispose();
       File('$directory/manifest.jsonl').writeAsStringSync(
-        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'uiScale': c.appearance.textScale, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.9 UI audit', 'data': 'synthetic'})}\n',
+        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.17.1+58 UI audit', 'data': 'synthetic'})}\n',
         mode: FileMode.append,
       );
     });
@@ -440,20 +419,12 @@ void main() {
     (1200.0, 1000.0, 1.0, 1.2),
     (320.0, 800.0, 2.0, 1.0),
     (320.0, 800.0, 1.0, 1.2),
-    (320.0, 800.0, 2.0, 1.2),
+    (320.0, 800.0, 2.0, 1.6),
   ]) {
     testWidgets(
-      'design and symbol renderings ${view.$1} font ${view.$3} zoom ${view.$4}',
+      'design and symbol renderings ${view.$1} system font ${view.$3} app font ${view.$4}',
       (t) async {
-        await c.saveAppearance(
-          c.appearance.patch({
-            'uiScale': view.$4,
-            'textScale': view.$3 == 2 && view.$4 == 1.2 ? 1.6 : 1.0,
-            'fieldRadius': 6.0,
-            'buttonRadius': 10.0,
-            'modalRadius': 12.0,
-          }),
-        );
+        await c.saveAppearance(c.appearance.patch({'textScale': view.$4}));
         final boundary = GlobalKey();
         final size = Size(view.$1, view.$2);
         final suffix =

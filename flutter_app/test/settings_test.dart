@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -34,11 +35,7 @@ void main() {
   final schema = File('assets/schema.sql').readAsStringSync();
   late AppearanceStore repo;
   late NotebookController c;
-  setUpAll(() async {
-    await (FontLoader(
-      'FlexSans',
-    )..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'))).load();
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = AppearanceStore(NotebookDatabase(NativeDatabase.memory(), schema));
     c = NotebookController(repo);
@@ -180,10 +177,10 @@ void main() {
     'both fixed palettes give readable text on opaque fields, navigation and cards',
     () {
       for (final brightness in Brightness.values) {
-        final p = FlexPalette(const Appearance(), brightness);
+        final p = FlexPalette(brightness);
         for (final pair in [
-          (p.field, p.fieldInk),
-          (p.card, p.cardInk),
+          (p.field, p.ink),
+          (p.card, p.ink),
           (p.selection, p.ink),
           (p.backdrop, p.secondaryInk),
         ]) {

@@ -24,7 +24,7 @@ class PupilCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context), scheme = Theme.of(context).colorScheme;
     final order =
-        (theme.extension<FlexSurfaces>()?.appearance?.shortcutOrder ??
+        (theme.extension<FlexSurfaces>()?.appearance.shortcutOrder ??
                 FlexSymbol.values.map((e) => e.name).toList())
             .map(FlexSymbol.values.byName);
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
@@ -64,7 +64,7 @@ class PupilCard extends StatelessWidget {
                           child: Text(
                             pupil.name,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              fontSize: 17,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
                           ),

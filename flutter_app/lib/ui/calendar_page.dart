@@ -31,6 +31,7 @@ import 'calendar_timeline.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 import 'timetable.dart';
+import 'surfaces.dart';
 
 part 'calendar_detail.dart';
 
@@ -1193,7 +1194,7 @@ class _CalendarPageState extends State<CalendarPage>
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
               child: Row(
                 children: [
-                  IconButton(
+                  FlexCircleButton(
                     tooltip: 'Vorheriger Zeitraum',
                     onPressed: () => step(-1),
                     icon: const Icon(Icons.chevron_left),
@@ -1235,15 +1236,16 @@ class _CalendarPageState extends State<CalendarPage>
                       ),
                     ),
                   ),
-                  IconButton(
+                  FlexCircleButton(
                     tooltip: 'Nächster Zeitraum',
                     onPressed: () => step(1),
                     icon: const Icon(Icons.chevron_right),
                   ),
-                  TextButton(
+                  const SizedBox(width: 6),
+                  OutlinedButton(
                     key: const ValueKey('calendar-today'),
                     onPressed: goToNow,
-                    style: TextButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
                     child: const Text('Heute'),

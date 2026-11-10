@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'surfaces.dart';
 
 const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
 const calendarPages = {0: 'Kalender', 1: 'Stundenplan', 2: 'Aufgaben'};
@@ -19,7 +20,7 @@ class FlexPagePills extends StatelessWidget {
   final String keyPrefix;
   static const _icons = {
     'Aktuell': Icons.calendar_today_outlined,
-    'Notizen': Icons.edit_note_outlined,
+    'Notizen': Icons.sticky_note_2_outlined,
     'Ablauf': Icons.account_tree_outlined,
     'Kalender': Icons.calendar_today_outlined,
     'Stundenplan': Icons.school_outlined,
@@ -41,7 +42,7 @@ class FlexPagePills extends StatelessWidget {
                   MediaQuery.textScalerOf(context).scale(1) <= 1.2;
               final style = TextStyle(
                 fontFamily: 'FlexSans',
-                fontSize: pages.length > 4 ? 12 : 13,
+                fontSize: pages.length > 4 ? 12 : 14,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
               );
@@ -58,7 +59,7 @@ class FlexPagePills extends StatelessWidget {
                   textDirection: Directionality.of(context),
                   textScaler: MediaQuery.textScalerOf(context),
                 )..layout(maxWidth: available - 20 - iconWidth);
-                final width = (text.width + 24 + iconWidth).clamp(
+                final width = (text.width + 20 + iconWidth).clamp(
                   48.0,
                   available,
                 );
@@ -80,20 +81,7 @@ class FlexPagePills extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       child: DecoratedBox(
                         key: ValueKey('$keyPrefix-track-${row.first.$1}'),
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          border: Border.all(
-                            color: scheme.outlineVariant.withValues(alpha: .65),
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: .055),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
+                        decoration: FlexDesign.capsule(context),
                         child: Padding(
                           padding: const EdgeInsets.all(3),
                           child: SizedBox(
@@ -109,62 +97,74 @@ class FlexPagePills extends StatelessWidget {
                                       selected: selected == e.$1,
                                       inMutuallyExclusiveGroup: true,
                                       child: Material(
-                                        color: selected == e.$1
-                                            ? scheme.primaryContainer
-                                            : Colors.transparent,
+                                        color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(24),
-                                        child: InkWell(
-                                          key: ValueKey('$keyPrefix-${e.$1}'),
-                                          borderRadius: BorderRadius.circular(
-                                            24,
-                                          ),
-                                          onTap: () => onSelected(e.$1),
-                                          child: ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                              minHeight: height,
+                                        child: Ink(
+                                          decoration: BoxDecoration(
+                                            gradient: selected == e.$1
+                                                ? FlexDesign.wash(
+                                                    scheme.primaryContainer,
+                                                  )
+                                                : null,
+                                            borderRadius: BorderRadius.circular(
+                                              24,
                                             ),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 8,
-                                                  ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  if (showIcons &&
-                                                      _icons.containsKey(
-                                                        e.$2,
-                                                      )) ...[
-                                                    Icon(
-                                                      _icons[e.$2],
-                                                      size: 18,
-                                                      color: selected == e.$1
-                                                          ? scheme
-                                                                .onPrimaryContainer
-                                                          : scheme.primary,
+                                          ),
+                                          child: InkWell(
+                                            key: ValueKey('$keyPrefix-${e.$1}'),
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
+                                            onTap: () => onSelected(e.$1),
+                                            child: ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                                minHeight: height,
+                                              ),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 8,
                                                     ),
-                                                    const SizedBox(width: 7),
-                                                  ],
-                                                  Flexible(
-                                                    child: Text(
-                                                      e.$2,
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: style.copyWith(
-                                                        fontWeight:
-                                                            selected == e.$1
-                                                            ? FontWeight.w600
-                                                            : FontWeight.w400,
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    if (showIcons &&
+                                                        _icons.containsKey(
+                                                          e.$2,
+                                                        )) ...[
+                                                      Icon(
+                                                        _icons[e.$2],
+                                                        size: 18,
                                                         color: selected == e.$1
                                                             ? scheme
                                                                   .onPrimaryContainer
-                                                            : scheme.onSurface,
+                                                            : scheme.primary,
+                                                      ),
+                                                      const SizedBox(width: 7),
+                                                    ],
+                                                    Flexible(
+                                                      child: Text(
+                                                        e.$2,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: style.copyWith(
+                                                          fontWeight:
+                                                              selected == e.$1
+                                                              ? FontWeight.w600
+                                                              : FontWeight.w400,
+                                                          color:
+                                                              selected == e.$1
+                                                              ? scheme
+                                                                    .onPrimaryContainer
+                                                              : scheme
+                                                                    .onSurface,
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -246,9 +246,9 @@ class FlexBottomNavigation extends StatelessWidget {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: selected == e.$1
-                                      ? scheme.primaryContainer
-                                      : Colors.transparent,
+                                  gradient: selected == e.$1
+                                      ? FlexDesign.wash(scheme.primaryContainer)
+                                      : null,
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: Column(

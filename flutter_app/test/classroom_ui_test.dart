@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
@@ -14,18 +15,11 @@ import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'package:flex_notizbuch/ui/calendar_page.dart';
 import 'package:flex_notizbuch/ui/return_lists.dart';
 import 'package:flex_notizbuch/ui/development_dialog.dart';
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'classroom_test.dart' show classroomMemory, lesson, returns;
 
 void main() {
-  setUpAll(() async {
-    final loader = FontLoader('FlexSans')
-      ..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'));
-    await loader.load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-  });
+  setUpAll(loadAppTestFonts);
   Future<void> capture(WidgetTester t, GlobalKey key, String name) async {
     final folder = Platform.environment['FLEX_TEST_ARTIFACT_DIR'];
     if (folder == null) return;

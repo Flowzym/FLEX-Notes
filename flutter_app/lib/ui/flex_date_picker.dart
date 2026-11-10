@@ -83,9 +83,6 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
     final rows = (days + offset + 6) ~/ 7;
     return FlexModal(
       maxWidth: 430,
-      appearance:
-          Theme.of(context).extension<FlexSurfaces>()?.appearance ??
-          const Appearance(),
       title: Text(
         widget.title,
         style: const TextStyle(

@@ -1049,10 +1049,10 @@ Future<void> showBrief(
                       final bytes = await briefPdf(
                         text: preview,
                         regularFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Regular.ttf',
+                          'assets/fonts/Inter-Regular.ttf',
                         ),
                         boldFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Bold.ttf',
+                          'assets/fonts/Inter-Bold.ttf',
                         ),
                       );
                       await saveBytesFile(

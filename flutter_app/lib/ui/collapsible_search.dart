@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'action_heading.dart';
+import 'surfaces.dart';
 
 /// Keeps the query when focus leaves; the compact button still shows the filter.
 class CollapsibleSearch extends StatefulWidget {
@@ -83,13 +84,7 @@ class _CollapsibleSearchState extends State<CollapsibleSearch> {
                   onPressed: clear,
                   icon: const Icon(Icons.close, size: 20),
                 ),
-              IconButton.outlined(
-                style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
+              FlexCircleButton(
                 key: widget.buttonKey,
                 tooltip: widget.controller.text.isEmpty
                     ? widget.label

@@ -264,6 +264,7 @@ class Reminders extends ChangeNotifier {
   int count = 0;
   NotebookSnapshot? _snapshot;
   Future<void> _pending = Future.value();
+  Future<void> _configurationWrites = Future.value();
   Future<void> initialize() async {
     final raw = await store.read(key);
     settings = raw == null
@@ -278,16 +279,26 @@ class Reminders extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> configure(Map<String, dynamic> changes) async {
-    if (changes['enabled'] == true && !await port.permission(request: true)) {
-      throw const DomainError('Android hat Benachrichtigungen nicht erlaubt.');
-    }
-    final value = {...settings, ...changes};
-    await store.write(key, jsonEncode(value));
-    settings = value;
-    _applied = null;
-    if (_snapshot != null) await sync(_snapshot!);
-    notifyListeners();
+  Future<void> configure(Map<String, dynamic> changes) {
+    final patch = Map<String, dynamic>.of(changes);
+    // Merge only after the preceding write and permission prompt finish.
+    // Rapid switches otherwise overwrite each other or re-enable a later-off
+    // setting when Android eventually answers an earlier permission request.
+    final write = _configurationWrites.then((_) async {
+      if (patch['enabled'] == true && !await port.permission(request: true)) {
+        throw const DomainError(
+          'Android hat Benachrichtigungen nicht erlaubt.',
+        );
+      }
+      final value = {...settings, ...patch};
+      await store.write(key, jsonEncode(value));
+      settings = value;
+      _applied = null;
+      if (_snapshot != null) await sync(_snapshot!);
+      notifyListeners();
+    });
+    _configurationWrites = write.catchError((Object _) {});
+    return write;
   }
 
   Future<void> requestExact() async {

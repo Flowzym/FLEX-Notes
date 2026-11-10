@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
@@ -16,17 +17,7 @@ import 'classroom_test.dart' show classroomMemory;
 import 'material_workspace_test.dart' show material;
 
 void main() {
-  setUpAll(() async {
-    await (FontLoader(
-      'FlexSans',
-    )..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'))).load();
-    await (FontLoader(
-      'FlexSerif',
-    )..addFont(rootBundle.load('assets/fonts/Gelasio-Regular.ttf'))).load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -87,6 +78,9 @@ void main() {
 
   Future<void> tap(WidgetTester t, Finder f) async {
     await t.ensureVisible(f);
+    // Filtering can change the list extent and schedule a scroll correction.
+    // Wait for that layout before choosing the real touch position.
+    await t.pumpAndSettle();
     await t.tap(f);
     await t.pumpAndSettle();
   }

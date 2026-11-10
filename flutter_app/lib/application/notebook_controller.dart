@@ -48,10 +48,11 @@ class NotebookController extends ChangeNotifier {
   }
 
   Future<void> reload() async {
+    if (_disposed) return;
     final generation = ++_loadGeneration;
     final appearanceGeneration = _appearanceGeneration;
     final next = await repository.snapshot();
-    if (generation != _loadGeneration) return;
+    if (_disposed || generation != _loadGeneration) return;
     pupils = next.pupils;
     entries = next.entries.where((e) => !e.deleted).toList();
     trashedEntries = next.entries.where((e) => e.deleted).toList();

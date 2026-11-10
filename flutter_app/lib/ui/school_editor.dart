@@ -1119,6 +1119,11 @@ class _SchoolEditorState extends State<SchoolEditor>
           options: observationTones,
           value: selectedTone,
           colors: observationToneColors,
+          icons: const {
+            'positive': Icons.thumb_up_outlined,
+            'neutral': Icons.remove_circle_outline,
+            'negative': Icons.thumb_down_outlined,
+          },
           minButtonHeight: 38,
           fontSize: 14,
           onChanged: (value) => setState(() {
@@ -1179,9 +1184,10 @@ class _SchoolEditorState extends State<SchoolEditor>
                       ? selectionColor
                       : Theme.of(
                               context,
-                            ).extension<FlexSurfaces>()?.palette?.button ??
+                            ).extension<FlexSurfaces>()?.palette.button ??
                             scheme.onSurface.withValues(alpha: .07),
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: FlexDesign.shadows(context),
                   border: Border.all(color: scheme.outlineVariant, width: .8),
                 ),
                 child: IntrinsicWidth(
@@ -1204,7 +1210,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                                 : Theme.of(context)
                                           .extension<FlexSurfaces>()
                                           ?.palette
-                                          ?.buttonInk ??
+                                          .ink ??
                                       scheme.onSurface,
                             minimumSize: const Size(0, 32),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1242,10 +1248,9 @@ class _SchoolEditorState extends State<SchoolEditor>
                           iconSize: 16,
                           color: selected.contains(text)
                               ? legibleOn(selectionColor)
-                              : Theme.of(context)
-                                        .extension<FlexSurfaces>()
-                                        ?.palette
-                                        ?.buttonInk ??
+                              : Theme.of(
+                                      context,
+                                    ).extension<FlexSurfaces>()?.palette.ink ??
                                     scheme.onSurface,
                           icon: Icon(
                             catalog.favorites.contains(text)
@@ -1291,14 +1296,14 @@ class _SchoolEditorState extends State<SchoolEditor>
                     backgroundColor:
                         Theme.of(
                           context,
-                        ).extension<FlexSurfaces>()?.palette?.button ??
+                        ).extension<FlexSurfaces>()?.palette.button ??
                         scheme.onSurface.withValues(alpha: .07),
                     color: WidgetStateProperty.resolveWith(
                       (states) => states.contains(WidgetState.selected)
                           ? scheme.primary
                           : Theme.of(
                                   context,
-                                ).extension<FlexSurfaces>()?.palette?.button ??
+                                ).extension<FlexSurfaces>()?.palette.button ??
                                 scheme.onSurface.withValues(alpha: .07),
                     ),
                     selected: r.situation == choice.key,
@@ -2004,7 +2009,6 @@ class _SchoolEditorState extends State<SchoolEditor>
                 : r.kind == SchoolKind.homework && r.revision > 0
                 ? 1000
                 : 640,
-            appearance: isObservation ? c.appearance : null,
             headerContent: mode == 'entry' ? observationHeader() : null,
             headerActions: [
               if (mode != 'entry' && (dirty || draftRevision > 0))

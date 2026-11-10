@@ -1,4 +1,17 @@
-# Aktueller Stand: 0.17.0+57
+# Aktueller Stand: 0.17.1+58
+
+Gestaltung näher an der freigegebenen Vorlage: Inter, sanfte Flächen/Schatten und
+gemeinsame Bedienelemente. Code und Tests konsolidiert; Fehler bei verspätetem
+Nachladen, Erinnerungseinstellungen und Scanner-Aufräumen behoben.
+486 Flutter-Tests, 11 Schematests und 3 Servertests bestanden; Analyse ohne Befunde.
+[Änderungen, Prüfumfang und Grenzen](QUALITY-BUILD-58.md).
+
+Webvorschau und bestehender GitHub-PR werden aktualisiert. Datenmodell und
+Vorschau-Adresse bleiben erhalten. Die Android-Geräteabnahme bleibt offen.
+
+---
+
+# Vorheriger Stand: 0.17.0+57
 
 Umsetzung der freigegebenen creme-/salbeifarbenen Smartphone-Entwürfe in der Flutter-App.
 Offene Schülerzeilen, einheitliche Navigation und Formulare; zwei Anzeigeeinstellungen.

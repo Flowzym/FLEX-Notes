@@ -1,6 +1,7 @@
+import 'support/app_test_fonts.dart';
 import 'package:flex_notizbuch/ui/detail_flow.dart';
 import 'package:flex_notizbuch/ui/entry_navigation.dart';
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -41,15 +42,7 @@ void main() {
           .setMockMethodCallHandler(MethodChannel(channel), null);
     }
   });
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(font.key)..addFont(rootBundle.load(font.value))).load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   Future<NotebookController> controller() async {
     final c = NotebookController(classroomMemory());
     await c.initialize();
@@ -105,6 +98,49 @@ void main() {
     });
   }
 
+  testWidgets(
+    'More pills keep all labels inside their touch targets with large text',
+    (t) async {
+      t.view.physicalSize = const Size(320, 740);
+      t.view.devicePixelRatio = 1;
+      t.platformDispatcher.textScaleFactorTestValue = 1.8;
+      addTearDown(t.view.reset);
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      const pages = {
+        0: 'Weitere',
+        1: 'Archiv',
+        2: 'Papierkorb',
+        3: 'Daten',
+        4: 'Einstellungen',
+        5: 'Scanner',
+      };
+      await t.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'FlexSans'),
+          home: Scaffold(
+            body: FlexPagePills(
+              selected: 4,
+              pages: pages,
+              keyPrefix: 'more-check',
+              onSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      for (final entry in pages.entries) {
+        final label = t.getRect(find.text(entry.value));
+        final button = t.getRect(
+          find.byKey(ValueKey('more-check-${entry.key}')),
+        );
+        expect(label.top, greaterThanOrEqualTo(button.top));
+        expect(label.bottom, lessThanOrEqualTo(button.bottom));
+        expect(button.height, greaterThanOrEqualTo(40));
+      }
+      expect(t.takeException(), isNull);
+    },
+  );
+
   for (final view in [
     (390.0, 844.0, 1.0, 'light'),
     (390.0, 844.0, 1.0, 'dark'),
@@ -112,49 +148,6 @@ void main() {
     (768.0, 1024.0, 1.0, 'light'),
     (1280.0, 900.0, 1.0, 'dark'),
   ]) {
-    testWidgets(
-      'More pills keep all labels inside their touch targets with large text',
-      (t) async {
-        t.view.physicalSize = const Size(320, 740);
-        t.view.devicePixelRatio = 1;
-        t.platformDispatcher.textScaleFactorTestValue = 1.8;
-        addTearDown(t.view.reset);
-        addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
-        const pages = {
-          0: 'Weitere',
-          1: 'Archiv',
-          2: 'Papierkorb',
-          3: 'Daten',
-          4: 'Einstellungen',
-          5: 'Scanner',
-        };
-        await t.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(fontFamily: 'FlexSans'),
-            home: Scaffold(
-              body: FlexPagePills(
-                selected: 4,
-                pages: pages,
-                keyPrefix: 'more-check',
-                onSelected: (_) {},
-              ),
-            ),
-          ),
-        );
-        await t.pumpAndSettle();
-        for (final entry in pages.entries) {
-          final label = t.getRect(find.text(entry.value));
-          final button = t.getRect(
-            find.byKey(ValueKey('more-check-${entry.key}')),
-          );
-          expect(label.top, greaterThanOrEqualTo(button.top));
-          expect(label.bottom, lessThanOrEqualTo(button.bottom));
-          expect(button.height, greaterThanOrEqualTo(40));
-        }
-        expect(t.takeException(), isNull);
-      },
-    );
-
     testWidgets(
       'populated navigation and editors remain usable at ${view.$1}/${view.$3}/${view.$4}',
       (t) async {
@@ -182,6 +175,18 @@ void main() {
               ),
             );
             await capture(t, key, 'page-${destination.$1}-$tab-$suffix');
+            if (destination.$1 == 0 && view.$1 == 390) {
+              // Calendar, timetable and tasks belong in one capsule at the
+              // standard phone size, even with the real semibold face.
+              expect(
+                find.byKey(const ValueKey('context-0-track-1')),
+                findsNothing,
+              );
+              expect(
+                find.byKey(const ValueKey('context-0-track-2')),
+                findsNothing,
+              );
+            }
             if (destination.$1 == 1 && tab == 1 && view.$1 == 390) {
               // Match the approved six-pupil phone layout without hiding any
               // of the five actions or shrinking their touch surfaces.

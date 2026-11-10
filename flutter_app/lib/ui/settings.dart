@@ -399,7 +399,7 @@ class _SettingsPageState extends State<SettingsPage>
           style: TextButton.styleFrom(
             minimumSize: const Size(0, 42),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(24),
             ),
             textStyle: const TextStyle(
               fontFamily: 'FlexSans',
@@ -430,15 +430,7 @@ class _SettingsPageState extends State<SettingsPage>
       child: LayoutBuilder(
         builder: (context, constraints) => Container(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).extension<FlexSurfaces>()?.palette?.workspace,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(15),
-          ),
+          decoration: FlexDesign.capsule(context),
           child:
               tabCount > 2 &&
                   constraints.maxWidth < 500 &&

@@ -20,12 +20,10 @@ class FlexModal extends StatelessWidget {
     this.maxWidth = 640,
     this.headerContent,
     this.footerContent,
-    this.appearance,
   });
   final Widget title, content;
   final String closeLabel;
   final Widget? headerContent, footerContent;
-  final Appearance? appearance;
   final List<Widget> actions, headerActions;
   final VoidCallback? onClose;
   final bool scrollable;
@@ -35,13 +33,8 @@ class FlexModal extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final mobile = MediaQuery.sizeOf(context).width <= 700;
     final surfaces = Theme.of(context).extension<FlexSurfaces>();
-    final appearance = this.appearance ?? surfaces?.appearance;
-    final headerColor = surfaces?.header ?? scheme.surfaceContainerHigh;
-    final footerColor = surfaces?.footer ?? scheme.surfaceContainerHigh;
-    final palette = surfaces?.palette;
-    final footerForeground = legibleOn(
-      Color.alphaBlend(footerColor, palette?.modalPerceived ?? scheme.surface),
-    );
+    final footerColor = surfaces?.palette.backdrop ?? scheme.surface;
+    final footerForeground = scheme.onSurface;
     final baseTheme = Theme.of(context);
     final dialog = Dialog(
       insetPadding: EdgeInsets.all(mobile ? 10 : 16),
@@ -83,7 +76,6 @@ class FlexModal extends StatelessWidget {
                     ),
                   Container(
                     key: const ValueKey('modal-header'),
-                    color: headerColor,
                     padding: EdgeInsets.fromLTRB(
                       mobile ? 16 : 24,
                       compact ? 4 : 8,
@@ -245,14 +237,12 @@ class FlexModal extends StatelessWidget {
                     ? footer
                     : null,
               );
-              final surface = ColoredBox(
+              final surface = Material(
                 key: const ValueKey('modal-surface'),
-                color: palette?.modal ?? scheme.surface,
-                child: Material(type: MaterialType.transparency, child: layout),
+                type: MaterialType.transparency,
+                child: layout,
               );
-              return appearance == null
-                  ? surface
-                  : FlexBackground(appearance: appearance, child: surface);
+              return FlexBackground(child: surface);
             },
           ),
         ),
