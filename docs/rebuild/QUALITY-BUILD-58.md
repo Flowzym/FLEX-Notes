@@ -83,8 +83,10 @@ Prüfung zeigt keine offenen Fehler in den durchgespielten Abläufen; sie ist ke
 Garantie für Fehlerfreiheit. Größere Editor- und Repository-Dateien bleiben
 vorhanden; eine vollständige Neuarchitektur wurde nicht behauptet oder erzwungen.
 
-Android-Übersetzung wird zusätzlich durch [FLEX CI](https://github.com/Flowzym/FLEX-Notes/actions/workflows/flutter-ci.yml)
-geprüft. Physische Kamera, Biometrie und Betriebssystem-Erinnerungen wurden hier
+Der Anwendungscode in Commit `c505d145e96f5ef0a6a2a37b81df15c236d1e45d`
+hat [FLEX CI #37](https://github.com/Flowzym/FLEX-Notes/actions/runs/42905239008)
+vollständig bestanden: Analyse/Tests, Webbuild/Server und Android-Releasebuild.
+Der anschließende Dokumentationsabgleich verändert den Anwendungscode nicht. Physische Kamera, Biometrie und Betriebssystem-Erinnerungen wurden hier
 nicht auf einem Handy abgenommen. Eine echte OneDrive-Anmeldung benötigt die
 Microsoft-Appregistrierung und ist nicht Teil dieses Gerätetests. Der ursprüngliche
 Android-Testsignierschlüssel fehlt weiterhin; eine CI-APK ist kein kompatibles
