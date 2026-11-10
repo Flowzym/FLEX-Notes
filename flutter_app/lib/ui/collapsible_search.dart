@@ -83,7 +83,13 @@ class _CollapsibleSearchState extends State<CollapsibleSearch> {
                   onPressed: clear,
                   icon: const Icon(Icons.close, size: 20),
                 ),
-              IconButton(
+              IconButton.outlined(
+                style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 key: widget.buttonKey,
                 tooltip: widget.controller.text.isEmpty
                     ? widget.label

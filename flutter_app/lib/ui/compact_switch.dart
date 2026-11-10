@@ -36,8 +36,10 @@ class CompactSwitchListTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.contentPadding,
+    this.leading,
   });
   final Widget title;
+  final Widget? leading;
   final bool value;
   final ValueChanged<bool>? onChanged;
   final EdgeInsetsGeometry? contentPadding;
@@ -45,6 +47,9 @@ class CompactSwitchListTile extends StatelessWidget {
   Widget build(BuildContext context) => MergeSemantics(
     child: ListTile(
       title: title,
+      leading: leading,
+      minLeadingWidth: 24,
+      horizontalTitleGap: 12,
       contentPadding: contentPadding,
       enabled: onChanged != null,
       onTap: onChanged == null ? null : () => onChanged!(!value),

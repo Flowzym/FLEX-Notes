@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/entry_navigation.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
 import 'package:flex_notizbuch/ui/pupil_workspace.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DeleteStore extends SqliteNotebook {
   DeleteStore(super.db);
@@ -148,12 +147,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
-      ),
-    );
     await t.pumpAndSettle();
   }
 
@@ -219,7 +212,7 @@ void main() {
             matching: find.byType(FlexIcon),
           );
           expect(t.getCenter(icon).dx, closeTo(t.getCenter(target).dx, .1));
-          expect(t.widget<FlexIcon>(icon).size, 32);
+          expect(t.widget<FlexIcon>(icon).size, 27);
           final labelFinder = find
               .descendant(of: target, matching: find.byType(Text))
               .last;
@@ -234,7 +227,7 @@ void main() {
             .getCenter(find.byKey(const ValueKey('pupil-open-a')))
             .dx;
         final order = c.appearance.shortcutOrder;
-        for (final row in [order.take(3), order.skip(3)]) {
+        for (final row in [order]) {
           final centers = row
               .map(
                 (name) =>

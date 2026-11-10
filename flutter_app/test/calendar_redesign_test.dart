@@ -27,6 +27,20 @@ CalendarItem slot(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  test('week headings distinguish month and year transitions', () {
+    expect(
+      calendarRangeLabel(DateTime(2026, 11, 9), DateTime(2026, 11, 15)),
+      '9.–15. November 2026',
+    );
+    expect(
+      calendarRangeLabel(DateTime(2026, 11, 30), DateTime(2026, 12, 6)),
+      '30. November – 6. Dezember 2026',
+    );
+    expect(
+      calendarRangeLabel(DateTime(2026, 12, 28), DateTime(2027, 1, 3)),
+      '28. Dezember 2026 – 3. Januar 2027',
+    );
+  });
   test(
     'adjacent lessons use full width, overlaps receive deterministic lanes',
     () {

@@ -1,5 +1,9 @@
 # FLEX Test für Android
 
+**Build 57 (0.17.0):** Die neue Gestaltung ist im Flutter-Quellstand und in der Webvorschau umgesetzt. In dieser Runde wird keine installierbare Update-APK bereitgestellt, da der bisherige Test-Signierschlüssel in der Arbeitsumgebung fehlt. Eine APK mit anderer Signatur kann die bestehende Testapp nicht aktualisieren. [Prüfung und Details](../docs/rebuild/CREAM-SAGE-BUILD-57.md).
+
+Die folgenden Angaben dokumentieren frühere Android-Teststände.
+
 Installierbare Flutter-App auf Basis von **0.16.0-rebuild.28+48**. Der aktuelle
 Funktionsumfang entspricht dem Wiederaufbau einschließlich Swipe-Navigation,
 Darstellungsreglern und Orga-/HÜ-Symbolen.

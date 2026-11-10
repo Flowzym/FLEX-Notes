@@ -1,5 +1,4 @@
 import 'package:flex_notizbuch/ui/detail_flow.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -105,12 +104,6 @@ void main() {
               child: FlexApp(controller: c),
             ),
     );
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        tester.element(find.byType(FlexBackground)),
-      ),
-    );
     await tester.pumpAndSettle();
   }
 
@@ -186,7 +179,7 @@ void main() {
   }
 
   testWidgets(
-    'reference navigation, 3+2 pupil cards and search focus replace the old page layout',
+    'open pupil rows retain all five aligned actions and search focus',
     (tester) async {
       await app(tester, const Size(1100, 900));
       expect(find.byType(NavigationRail), findsNothing);
@@ -210,13 +203,13 @@ void main() {
       expect(shortcut(FlexSymbol.homework).top, shortcut(FlexSymbol.orga).top);
       expect(
         shortcut(FlexSymbol.homework).top,
-        greaterThan(shortcut(FlexSymbol.goal).bottom),
+        equals(shortcut(FlexSymbol.goal).top),
       );
       expect(
-        (shortcut(FlexSymbol.homework).center.dx +
+        (shortcut(FlexSymbol.goal).center.dx +
                 shortcut(FlexSymbol.orga).center.dx) /
             2,
-        closeTo(shortcut(FlexSymbol.social).center.dx, .1),
+        closeTo(shortcut(FlexSymbol.work).center.dx, .1),
       );
       await tester.tap(find.byTooltip('Schüler suchen'));
       await tester.pumpAndSettle();

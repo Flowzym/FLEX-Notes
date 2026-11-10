@@ -1,3 +1,5 @@
+import 'package:flex_notizbuch/ui/detail_flow.dart';
+import 'package:flex_notizbuch/ui/entry_navigation.dart';
 import 'package:flex_notizbuch/ui/prototype_navigation.dart';
 import 'dart:async';
 import 'dart:io';
@@ -16,7 +18,6 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/option_bar.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'classroom_test.dart' show classroomMemory;
 import 'support/ui_audit_data.dart';
 
@@ -77,12 +78,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
-      ),
-    );
     await t.pumpAndSettle();
     return key;
   }
@@ -111,6 +106,7 @@ void main() {
   }
 
   for (final view in [
+    (390.0, 844.0, 1.0, 'light'),
     (390.0, 844.0, 1.0, 'dark'),
     (320.0, 740.0, 1.8, 'light'),
     (768.0, 1024.0, 1.0, 'light'),
@@ -193,7 +189,7 @@ void main() {
         final ctx = t.element(find.byType(Scaffold).first);
         for (final kind in SchoolKind.values) {
           unawaited(
-            showDialog<void>(
+            showFlexDetail<void>(
               context: ctx,
               builder: (_) => SchoolEditor(
                 controller: c,
@@ -204,10 +200,33 @@ void main() {
           await t.pumpAndSettle();
           await capture(t, key, 'editor-${kind.name}-$suffix');
           await tap(t, find.byKey(const ValueKey('cancel-editor')));
+          if (view.$1 == 390 && view.$4 == 'light') {
+            unawaited(
+              showFlexDetail<void>(
+                context: ctx,
+                builder: (_) => SchoolEditor(
+                  controller: c,
+                  record: SchoolRecord.empty(kind, 'audit-p0'),
+                ),
+              ),
+            );
+            await t.pumpAndSettle();
+            final owner = find.descendant(
+              of: find.byType(EntryPageHeader),
+              matching: find.text('Alex Beispiel 1'),
+            );
+            expect(
+              t.renderObject<RenderParagraph>(owner).didExceedMaxLines,
+              isFalse,
+              reason: '${kind.name} keeps the pupil name readable',
+            );
+            await capture(t, key, 'new-${kind.name}-$suffix');
+            await tap(t, find.byKey(const ValueKey('cancel-editor')));
+          }
         }
         for (final kind in ['note', 'task', 'appointment']) {
           unawaited(
-            showDialog<void>(
+            showFlexDetail<void>(
               context: ctx,
               builder: (_) => OrgaEditor(
                 controller: c,
@@ -343,7 +362,14 @@ void main() {
       expect(t.widget(bar), isA<OptionBar>());
       for (final label in ['Notiz', 'Aufgabe', 'Termin']) {
         final text = find.descendant(of: bar, matching: find.text(label));
-        expect(t.getSize(text).height, lessThan(30), reason: label);
+        final paragraph = t.renderObject<RenderParagraph>(text);
+        expect(
+          paragraph.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: label.length),
+          ),
+          hasLength(1),
+          reason: label,
+        );
       }
       await tap(t, find.byKey(const ValueKey('orga-kind-appointment')));
       expect(

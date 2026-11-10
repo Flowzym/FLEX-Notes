@@ -1,4 +1,14 @@
-# Aktueller Stand: 0.16.0-rebuild.26+46
+# Aktueller Stand: 0.17.0+57
+
+Umsetzung der freigegebenen creme-/salbeifarbenen Smartphone-Entwürfe in der Flutter-App.
+Offene Schülerzeilen, einheitliche Navigation und Formulare; zwei Anzeigeeinstellungen.
+[Umfang, Datenverträglichkeit und Prüfung](CREAM-SAGE-BUILD-57.md).
+
+Webvorschau und Quellstand sind die Auslieferung dieser Runde. Ein kompatibles Android-Testupdate benötigt weiterhin den ursprünglichen Test-Signierschlüssel.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.26+46
 
 Build 46: [Scannerzugänge und Anhänge je HÜ-Aufgabe](../../audit/SCANNER_ZUGAENGE_BUILD_46.md).
 

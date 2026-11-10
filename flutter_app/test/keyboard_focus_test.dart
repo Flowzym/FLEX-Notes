@@ -17,7 +17,7 @@ import 'package:flex_notizbuch/ui/school_editor.dart';
 
 void main() {
   for (final scale in [0.8, 1.0, 1.2]) {
-    testWidgets('keyboard resize keeps input connection at scale $scale', (
+    testWidgets('keyboard resize keeps input connection at text scale $scale', (
       t,
     ) async {
       t.view.devicePixelRatio = 1;
@@ -26,7 +26,7 @@ void main() {
       await t.pumpWidget(
         MaterialApp(
           builder: (context, child) =>
-              FlexAppScale(scale: scale, textScale: 1, child: child!),
+              FlexAppScale(textScale: scale, child: child!),
           home: const Scaffold(body: SizedBox()),
         ),
       );

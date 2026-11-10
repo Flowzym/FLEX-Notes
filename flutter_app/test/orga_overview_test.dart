@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DelayedDraftStore extends SqliteNotebook {
   DelayedDraftStore(super.db);
@@ -97,12 +96,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();

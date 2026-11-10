@@ -58,12 +58,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
           decoration: BoxDecoration(
             color: theme.inputDecorationTheme.fillColor,
             border: Border.all(color: theme.colorScheme.outline),
-            borderRadius: BorderRadius.circular(
-              Theme.of(
-                    context,
-                  ).extension<FlexSurfaces>()?.appearance?.fieldRadius ??
-                  14,
-            ),
+            borderRadius: BorderRadius.circular(FlexDesign.fieldRadius),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

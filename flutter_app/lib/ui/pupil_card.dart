@@ -3,6 +3,7 @@ import '../domain/models.dart';
 import 'flex_icons.dart';
 import 'surfaces.dart';
 
+/// A pupil is an open row: name and all five recording actions stay visible.
 class PupilCard extends StatelessWidget {
   const PupilCard({
     super.key,
@@ -12,10 +13,8 @@ class PupilCard extends StatelessWidget {
     required this.counts,
     required this.due,
     this.draftCounts = const {},
-    this.compact = false,
   });
   final Pupil pupil;
-  final bool compact;
   final VoidCallback onOpen;
   final ValueChanged<FlexSymbol> onShortcut;
   final Map<FlexSymbol, int> counts, draftCounts;
@@ -24,226 +23,182 @@ class PupilCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context), scheme = Theme.of(context).colorScheme;
-    final color = theme.cardTheme.color ?? scheme.surfaceContainerLow;
-    final appearance = theme.extension<FlexSurfaces>()?.appearance;
-    final palette = theme.extension<FlexSurfaces>()?.palette;
-    final headerColor = theme.extension<FlexSurfaces>()?.header;
-    final headerInk = legibleOn(
-      Color.alphaBlend(
-        headerColor ?? Colors.transparent,
-        Color.alphaBlend(color, palette?.backdrop ?? scheme.surface),
-      ),
-    );
-    final foreground =
-        theme.extension<FlexSurfaces>()?.palette?.cardInk ??
-        legibleOn(Color.alphaBlend(color, scheme.surface));
     final order =
-        (appearance?.shortcutOrder ??
+        (theme.extension<FlexSurfaces>()?.appearance?.shortcutOrder ??
                 FlexSymbol.values.map((e) => e.name).toList())
-            .map((name) => FlexSymbol.values.byName(name))
-            .toList();
+            .map(FlexSymbol.values.byName);
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
-    Widget shortcut(FlexSymbol symbol, {int flex = 1}) {
-      final openCount = counts[symbol] ?? 0;
-      final count = openCount + (draftCounts[symbol] ?? 0);
-      final drafts = draftCounts[symbol] ?? 0;
-      final label = labels[symbol.index];
-      return Expanded(
-        flex: flex,
-        child: Semantics(
-          button: true,
-          label:
-              '$label für ${pupil.name} öffnen, $openCount offen, $drafts Entwürfe',
-          child: InkWell(
-            key: ValueKey('shortcut-${pupil.id}-${symbol.name}'),
-            onTap: () => onShortcut(symbol),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 56),
-              padding: EdgeInsets.symmetric(
-                vertical: appearance?.compact == true ? 3 : 5,
-                horizontal: 2,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 64,
-                    height: compact ? 30 : 42,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: FlexIcon(
-                            symbol,
-                            size: compact ? 25 : 32,
-                            color: foreground,
+    return Material(
+      color: Colors.transparent,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: scheme.outlineVariant, width: .8),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 9),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                key: ValueKey('pupil-open-${pupil.id}'),
+                onTap: onOpen,
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.person_outline_rounded,
+                        size: 25,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          pupil.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (count > 0)
-                          Positioned(
-                            // Keep wider counts outside the icon as they grow.
-                            left: 48,
-                            top: 0,
-                            child: Tooltip(
-                              message:
-                                  '$openCount offene Einträge · $drafts Entwürfe',
-                              child: Container(
-                                key: ValueKey(
-                                  'count-${pupil.id}-${symbol.name}',
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 17,
-                                  minHeight: 17,
-                                ),
+                      ),
+                      if (pupil.archived)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Text('Archiviert'),
+                        ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: scheme.onSurface,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final symbol in order)
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          final open = counts[symbol] ?? 0;
+                          final drafts = draftCounts[symbol] ?? 0;
+                          final count = open + drafts;
+                          final label = labels[symbol.index];
+                          return Semantics(
+                            button: true,
+                            label:
+                                '$label für ${pupil.name} öffnen, $open offen, $drafts Entwürfe${due.contains(symbol) ? ', fällig' : ''}',
+                            excludeSemantics: true,
+                            child: InkWell(
+                              key: ValueKey(
+                                'shortcut-${pupil.id}-${symbol.name}',
+                              ),
+                              onTap: () => onShortcut(symbol),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 1,
+                                  horizontal: 2,
+                                  vertical: 4,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: due.contains(symbol)
-                                      ? const Color(0xffe9d399)
-                                      : scheme.primary,
-                                  borderRadius: BorderRadius.circular(99),
-                                ),
-                                child: Text(
-                                  count > 99 ? '99+' : '$count',
-                                  textAlign: TextAlign.center,
-                                  textScaler: TextScaler.noScaling,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: due.contains(symbol)
-                                        ? const Color(0xff3b321b)
-                                        : scheme.onPrimary,
-                                  ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 40,
+                                      height: 30,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.topCenter,
+                                            child: FlexIcon(
+                                              symbol,
+                                              size: 27,
+                                              color: scheme.primary,
+                                            ),
+                                          ),
+                                          if (count > 0)
+                                            Positioned(
+                                              right: 0,
+                                              bottom: -1,
+                                              child: Container(
+                                                key: ValueKey(
+                                                  'count-${pupil.id}-${symbol.name}',
+                                                ),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 16,
+                                                      minHeight: 16,
+                                                    ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 4,
+                                                      vertical: 1,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: due.contains(symbol)
+                                                      ? const Color(0xffe3d6b4)
+                                                      : scheme.primaryContainer,
+                                                  borderRadius:
+                                                      BorderRadius.circular(99),
+                                                  border: Border.all(
+                                                    color: scheme.surface,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  count > 99 ? '99+' : '$count',
+                                                  textAlign: TextAlign.center,
+                                                  textScaler:
+                                                      TextScaler.noScaling,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    height: 1.2,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: due.contains(symbol)
+                                                        ? const Color(
+                                                            0xff52442b,
+                                                          )
+                                                        : scheme
+                                                              .onPrimaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      label,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: 12,
+                                            height: 1.25,
+                                          ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                      color: foreground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(appearance?.cardRadius ?? 22),
-      child: Material(
-        color: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(appearance?.cardRadius ?? 22),
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 4,
-              child: ColoredBox(color: Color(pupil.color)),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  key: ValueKey('pupil-open-${pupil.id}'),
-                  onTap: onOpen,
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    padding: EdgeInsets.fromLTRB(
-                      22,
-                      appearance?.compact == true ? 3 : 6,
-                      18,
-                      appearance?.compact == true ? 3 : 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: headerColor,
-                      border: Border(
-                        bottom: BorderSide(color: scheme.outlineVariant),
+                          );
+                        },
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            pupil.name,
-                            style: TextStyle(
-                              fontFamily: 'FlexSerif',
-                              fontSize: compact ? 16 : 20,
-                              height: 1.3,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -.3,
-                              color: headerInk,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.chevron_right, size: 20, color: headerInk),
-                      ],
-                    ),
-                  ),
-                ),
-                if (pupil.archived)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Text('Archiviert'),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 6, 18, 8),
-                  child:
-                      compact &&
-                          MediaQuery.sizeOf(context).width >= 360 &&
-                          MediaQuery.textScalerOf(context).scale(1) <= 1.4
-                      ? Row(
-                          children: [
-                            for (final symbol in order) shortcut(symbol),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (final symbol in order.take(3))
-                                  shortcut(symbol),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Spacer(),
-                                for (final symbol in order.skip(3))
-                                  shortcut(symbol, flex: 2),
-                                const Spacer(),
-                              ],
-                            ),
-                          ],
-                        ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -12,169 +12,203 @@ class FlexApp extends StatelessWidget {
   const FlexApp({super.key, required this.controller});
   final NotebookController controller;
   ThemeData _theme(Appearance appearance, Brightness brightness) {
-    final dark = brightness == Brightness.dark;
-    final palette = FlexPalette(appearance, brightness);
-    final baseScheme = ColorScheme.fromSeed(
-      seedColor: Color(appearance.accent),
-      brightness: brightness,
-    );
-    final scheme = baseScheme.copyWith(
-      primary: Color(appearance.accent),
-      surface: palette.panel,
-      onSurface: palette.modalInk,
-      onPrimary: legibleOn(Color(appearance.accent)),
-      surfaceContainerHigh: dark
-          ? const Color(0xff35432e)
-          : baseScheme.surfaceContainerHigh,
-      outlineVariant: dark
-          ? const Color(0x24e9efcf)
-          : baseScheme.outlineVariant,
-      outline: dark ? const Color(0x45dbe6bf) : baseScheme.outline,
-      onSurfaceVariant: palette.modalInk,
-    );
-    final button = palette.button;
-    final buttonText = palette.buttonInk;
-    final card = palette.card;
+    final p = FlexPalette(appearance, brightness);
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: p.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: p.primary,
+          onPrimary: legibleOn(p.primary),
+          primaryContainer: p.selection,
+          onPrimaryContainer: p.ink,
+          secondary: p.primary,
+          onSecondary: legibleOn(p.primary),
+          secondaryContainer: p.button,
+          onSecondaryContainer: p.ink,
+          surface: p.panel,
+          onSurface: p.ink,
+          onSurfaceVariant: p.secondaryInk,
+          surfaceContainerLowest: p.backdrop,
+          surfaceContainerLow: p.field,
+          surfaceContainer: p.panel,
+          surfaceContainerHigh: p.button,
+          surfaceContainerHighest: p.button,
+          outline: p.secondaryInk.withValues(alpha: .45),
+          outlineVariant: p.line,
+        );
     final base = ThemeData(colorScheme: scheme, fontFamily: 'FlexSans');
-    final textTheme = base.textTheme.copyWith(
-      bodyLarge: base.textTheme.bodyLarge?.copyWith(
-        color: palette.fieldInk,
-        fontSize: 14,
-        height: 1.5,
-        letterSpacing: 0,
-      ),
-      bodyMedium: base.textTheme.bodyMedium?.copyWith(
-        fontSize: 14,
-        height: 1.5,
-        letterSpacing: 0,
-      ),
-      bodySmall: base.textTheme.bodySmall?.copyWith(
-        fontSize: 12,
-        height: 1.4,
-        letterSpacing: 0,
-      ),
-      labelLarge: base.textTheme.labelLarge?.copyWith(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0,
-      ),
-      titleLarge: base.textTheme.titleLarge?.copyWith(
-        fontSize: 18,
-        height: 1.3,
-        letterSpacing: 0,
-      ),
-      headlineSmall: base.textTheme.headlineSmall?.copyWith(
-        fontSize: 24,
-        height: 1.3,
-        letterSpacing: 0,
-      ),
+    final textTheme = base.textTheme
+        .copyWith(
+          bodyLarge: base.textTheme.bodyLarge?.copyWith(
+            fontSize: 15,
+            height: 1.4,
+            letterSpacing: 0,
+          ),
+          bodyMedium: base.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            height: 1.4,
+            letterSpacing: 0,
+          ),
+          bodySmall: base.textTheme.bodySmall?.copyWith(
+            fontSize: 12,
+            height: 1.35,
+            letterSpacing: 0,
+          ),
+          labelLarge: base.textTheme.labelLarge?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+          ),
+          titleMedium: base.textTheme.titleMedium?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+          ),
+          titleLarge: base.textTheme.titleLarge?.copyWith(
+            fontSize: 20,
+            height: 1.25,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -.3,
+          ),
+          headlineSmall: base.textTheme.headlineSmall?.copyWith(
+            fontSize: 25,
+            height: 1.25,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -.5,
+          ),
+        )
+        .apply(bodyColor: p.ink, displayColor: p.ink);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(FlexDesign.buttonRadius),
+    );
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(FlexDesign.fieldRadius),
+      borderSide: BorderSide(color: p.line),
     );
     return ThemeData(
       useMaterial3: true,
-      iconTheme: IconThemeData(color: palette.modalInk),
+      fontFamily: 'FlexSans',
+      textTheme: textTheme,
+      iconTheme: IconThemeData(color: p.primary, size: 24),
       colorScheme: scheme,
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: p.backdrop,
+      canvasColor: p.panel,
+      dividerTheme: DividerThemeData(color: p.line, thickness: .8, space: 24),
       extensions: [
         FlexSurfaces(
           appearance: appearance,
-          palette: palette,
-          header: palette.header,
-          footer: palette.footer,
-          foreground: legibleOn(
-            Color.alphaBlend(palette.header, palette.modalPerceived),
-          ),
+          palette: p,
+          header: p.header,
+          footer: p.footer,
+          foreground: p.ink,
         ),
       ],
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           alignment: Alignment.center,
           foregroundBuilder: centeredButtonLabel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(appearance.buttonRadius),
-          ),
-          backgroundColor: button,
-          foregroundColor: buttonText,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: shape,
+          backgroundColor: p.primary,
+          foregroundColor: scheme.onPrimary,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           alignment: Alignment.center,
           foregroundBuilder: centeredButtonLabel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(appearance.buttonRadius),
-          ),
-          backgroundColor: button,
-          foregroundColor: buttonText,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: shape,
+          backgroundColor: Colors.transparent,
+          foregroundColor: p.primary,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           alignment: Alignment.center,
           foregroundBuilder: centeredButtonLabel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(appearance.buttonRadius),
-          ),
-          backgroundColor: button,
-          foregroundColor: buttonText,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: shape,
+          side: BorderSide(color: p.line),
+          backgroundColor: p.panel,
+          foregroundColor: p.ink,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: p.primary,
+          minimumSize: const Size(44, 44),
         ),
       ),
       chipTheme: ChipThemeData(
         shape: const StadiumBorder(),
-        side: BorderSide.none,
-        backgroundColor: button,
-        selectedColor: scheme.primary,
+        side: BorderSide(color: p.line),
+        backgroundColor: p.button,
+        selectedColor: p.selection,
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
         labelStyle: TextStyle(
           fontFamily: 'FlexSans',
-          fontSize: 13,
+          fontSize: 12,
           height: 1.3,
-          color: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? legibleOn(scheme.primary)
-                : buttonText,
-          ),
+          color: p.ink,
         ),
-        secondaryLabelStyle: TextStyle(
-          fontFamily: 'FlexSans',
-          color: legibleOn(scheme.primary),
-        ),
+        secondaryLabelStyle: TextStyle(fontFamily: 'FlexSans', color: p.ink),
       ),
-      textTheme: appearance.serifHeaders
-          ? textTheme.copyWith(
-              titleLarge: textTheme.titleLarge?.copyWith(
-                fontFamily: 'FlexSerif',
-              ),
-              headlineSmall: textTheme.headlineSmall?.copyWith(
-                fontFamily: 'FlexSerif',
-              ),
-              headlineMedium: base.textTheme.headlineMedium?.copyWith(
-                fontFamily: 'FlexSerif',
-              ),
-            )
-          : textTheme,
-      fontFamily: 'FlexSans',
-      visualDensity: appearance.compact
-          ? VisualDensity.compact
-          : VisualDensity.standard,
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? scheme.onPrimary : p.panel,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? p.primary : p.line,
+        ),
+        trackOutlineColor: WidgetStatePropertyAll(p.line),
+      ),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(appearance.fieldRadius),
+        border: fieldBorder,
+        enabledBorder: fieldBorder,
+        focusedBorder: fieldBorder.copyWith(
+          borderSide: BorderSide(color: p.primary, width: 1.5),
         ),
         filled: true,
-        fillColor: palette.field,
-        labelStyle: TextStyle(color: palette.fieldInk),
-        hintStyle: TextStyle(color: palette.fieldInk),
+        fillColor: p.field,
+        labelStyle: TextStyle(color: p.secondaryInk),
+        hintStyle: TextStyle(color: p.secondaryInk),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
+          horizontal: 14,
+          vertical: 12,
         ),
       ),
-      appBarTheme: const AppBarTheme(centerTitle: false),
-      cardTheme: CardThemeData(
-        color: card,
+      appBarTheme: AppBarTheme(
+        centerTitle: false,
+        backgroundColor: p.backdrop,
+        foregroundColor: p.ink,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: p.backdrop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FlexDesign.modalRadius),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: p.backdrop,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+      ),
+      cardTheme: CardThemeData(
+        color: p.card,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         margin: const EdgeInsets.symmetric(vertical: 6),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(appearance.cardRadius),
+          borderRadius: BorderRadius.circular(FlexDesign.cardRadius),
+          side: BorderSide(color: p.line, width: .7),
         ),
       ),
     );
@@ -202,8 +236,7 @@ class FlexApp extends StatelessWidget {
         _ => ThemeMode.system,
       },
       builder: (context, child) => FlexAppScale(
-        scale: controller.appearance.uiScale,
-        textScale: controller.appearance.textScale * .95,
+        textScale: controller.appearance.textScale,
         child: FlexBackground(
           appearance: controller.appearance,
           child: controller.services == null

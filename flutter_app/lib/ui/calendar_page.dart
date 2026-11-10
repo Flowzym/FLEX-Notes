@@ -678,6 +678,46 @@ class _CalendarPageState extends State<CalendarPage>
   Widget dueStrip(List<CalendarItem> items, {String? label}) {
     final due = items.where(calendarDue).toList();
     if (due.isEmpty) return const SizedBox.shrink();
+    if (label == null && due.length == 1) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 10, right: 10),
+              child: Text('Ganztägig', style: TextStyle(fontSize: 12)),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final item in due)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => showCalendarItem(context, c, item),
+                        icon: Icon(calendarIcon(item.category), size: 19),
+                        label: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -753,24 +793,11 @@ class _CalendarPageState extends State<CalendarPage>
 
   Widget dayBody(List<CalendarItem> items) {
     final timed = items.where(calendarTimed).toList();
-    final active = currentCalendarItem(timed, now),
-        next = nextCalendarItem(timed, now);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         dueStrip(items),
         dayExtras(items),
-        if (dateOnly(selected) == dateOnly(now) &&
-            (active != null || next != null))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              active != null
-                  ? 'Jetzt · ${active.title} bis ${active.end}'
-                  : 'Als Nächstes · ${next!.time} ${next.title}',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
         if (timed.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -796,7 +823,7 @@ class _CalendarPageState extends State<CalendarPage>
     );
   }
 
-  Widget weekBody(List<CalendarItem> items) {
+  Widget weekBody(List<CalendarItem> items, {String? validity}) {
     final monday = selected.subtract(Duration(days: selected.weekday - 1));
     final weekendEvents = items
         .where((i) => schoolDay(i.date).weekday > 5)
@@ -816,15 +843,24 @@ class _CalendarPageState extends State<CalendarPage>
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
           children: [
-            Text(
-              timetableView ? 'Unterricht' : 'Stunden & Termine',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            TextButton(
+            if (validity != null)
+              Text(validity, style: Theme.of(context).textTheme.bodySmall),
+            if (!timetableView)
+              Text(
+                'Stunden & Termine',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            TextButton.icon(
+              icon: Icon(
+                showWeekend
+                    ? Icons.check_box_outlined
+                    : Icons.check_box_outline_blank,
+                size: 18,
+              ),
               onPressed: weekendEvents.isNotEmpty || selected.weekday > 5
                   ? null
                   : () => setState(() => weekends = !weekends),
-              child: Text(showWeekend ? 'Sa/So sichtbar' : 'Sa/So anzeigen'),
+              label: Text(showWeekend ? 'Sa/So sichtbar' : 'Sa/So anzeigen'),
             ),
           ],
         ),
@@ -924,7 +960,7 @@ class _CalendarPageState extends State<CalendarPage>
                           ? scheme.primary.withValues(alpha: .2)
                           : Colors.transparent,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(24),
                         side: BorderSide(
                           color: today ? scheme.primary : Colors.transparent,
                         ),
@@ -932,7 +968,7 @@ class _CalendarPageState extends State<CalendarPage>
                       child: InkWell(
                         key: ValueKey('calendar-month-${dateOnly(day)}'),
                         onTap: () => setState(() => selected = day),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(24),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -1117,7 +1153,7 @@ class _CalendarPageState extends State<CalendarPage>
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
                 child: Material(
-                  color: scheme.onSurface.withValues(alpha: .05),
+                  color: scheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   child: Row(
                     children: [
@@ -1142,7 +1178,7 @@ class _CalendarPageState extends State<CalendarPage>
                                     ? scheme.primary.withValues(alpha: .2)
                                     : Colors.transparent,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
                               ),
                               child: Text(tab.$2, textAlign: TextAlign.center),
@@ -1179,15 +1215,18 @@ class _CalendarPageState extends State<CalendarPage>
                             mode == 'month'
                                 ? '${calendarMonth(selected)} ${selected.year}'
                                 : mode == 'week'
-                                ? 'Woche'
-                                : calendarWeekday(selected),
+                                ? calendarRangeLabel(
+                                    schoolDay(bounds.from),
+                                    schoolDay(bounds.to),
+                                  )
+                                : '${calendarWeekday(selected, short: true)}, ${selected.day}. ${calendarMonth(selected)}',
                             textAlign: TextAlign.center,
                             style: Theme.of(ctx).textTheme.titleMedium,
                           ),
-                          if (mode != 'month')
+                          if (mode == 'day')
                             Text(
                               mode == 'day'
-                                  ? displayDate(dateOnly(selected))
+                                  ? '${selected.year}'
                                   : '${displayDate(bounds.from)} – ${displayDate(bounds.to)}',
                               textAlign: TextAlign.center,
                               style: Theme.of(ctx).textTheme.bodySmall,
@@ -1213,81 +1252,83 @@ class _CalendarPageState extends State<CalendarPage>
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
               child: Row(
                 children: [
                   Expanded(
-                    child: Material(
-                      color: scheme.onSurface.withValues(alpha: .05),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Row(
-                        children: [
-                          for (final e in {
-                            'day': 'Tag',
-                            'week': 'Woche',
-                            if (!timetableView) 'month': 'Monat',
-                          }.entries)
-                            Expanded(
-                              flex: largeText && !timetableView
-                                  ? (e.key == 'day' ? 3 : 5)
-                                  : 1,
-                              child: Semantics(
-                                selected: mode == e.key,
-                                child: TextButton(
-                                  key: ValueKey(
-                                    '${timetableView ? 'timetable' : 'calendar'}-mode-${e.key}',
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(44, 44),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: timetableView ? 240 : double.infinity,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: scheme.surface,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: scheme.outlineVariant,
+                              width: .7,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              for (final e in {
+                                'day': 'Tag',
+                                'week': 'Woche',
+                                if (!timetableView) 'month': 'Monat',
+                              }.entries)
+                                Expanded(
+                                  flex: largeText && !timetableView
+                                      ? (e.key == 'day' ? 3 : 5)
+                                      : 1,
+                                  child: Semantics(
+                                    selected: mode == e.key,
+                                    child: TextButton(
+                                      key: ValueKey(
+                                        '${timetableView ? 'timetable' : 'calendar'}-mode-${e.key}',
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        minimumSize: const Size(44, 40),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        backgroundColor: mode == e.key
+                                            ? scheme.primaryContainer
+                                            : Colors.transparent,
+                                        foregroundColor: scheme.onSurface,
+                                        shape: const StadiumBorder(),
+                                      ),
+                                      onPressed: () =>
+                                          navigate(() => mode = e.key),
+                                      child: Text(
+                                        e.value,
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ),
-                                    backgroundColor: mode == e.key
-                                        ? scheme.primary.withValues(alpha: .2)
-                                        : Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  onPressed: () => navigate(() => mode = e.key),
-                                  child: Text(
-                                    e.value,
-                                    textAlign: TextAlign.center,
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                   if (!timetableView) ...[
-                    const SizedBox(width: 6),
-                    if (largeText)
-                      IconButton(
-                        tooltip: filtered ? 'Filter aktiv' : 'Filter',
-                        onPressed: chooseFilters,
-                        icon: Icon(
-                          filtered
-                              ? Icons.filter_alt
-                              : Icons.filter_alt_outlined,
-                        ),
-                      )
-                    else
-                      TextButton.icon(
-                        onPressed: chooseFilters,
-                        icon: Icon(
-                          filtered
-                              ? Icons.filter_alt
-                              : Icons.filter_alt_outlined,
-                          size: 18,
-                        ),
-                        label: Text(filtered ? 'Filter ·' : 'Filter'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          backgroundColor: Colors.transparent,
-                        ),
+                    const SizedBox(width: 10),
+                    IconButton.outlined(
+                      tooltip: filtered ? 'Filter aktiv' : 'Filter',
+                      onPressed: chooseFilters,
+                      icon: Icon(
+                        filtered ? Icons.filter_alt : Icons.tune,
+                        size: 21,
                       ),
+                      style: IconButton.styleFrom(
+                        side: BorderSide(color: scheme.outlineVariant),
+                        backgroundColor: scheme.surface,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -1302,13 +1343,14 @@ class _CalendarPageState extends State<CalendarPage>
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                 children: [
                   if (timetableView) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Gültig ab ${displayDate(table.text('date'))}${table.text('endDate').isEmpty ? '' : ' bis ${displayDate(table.text('endDate'))}'}',
-                        style: Theme.of(ctx).textTheme.bodySmall,
+                    if (mode != 'week')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Gültig ab ${displayDate(table.text('date'))}${table.text('endDate').isEmpty ? '' : ' bis ${displayDate(table.text('endDate'))}'}',
+                          style: Theme.of(ctx).textTheme.bodySmall,
+                        ),
                       ),
-                    ),
                     if (existingTable == null) ...[
                       const Text(
                         'Vorlage aus deinem PDF. Vorhandene Kalendereinträge bleiben erhalten.',
@@ -1332,7 +1374,12 @@ class _CalendarPageState extends State<CalendarPage>
                   if (mode == 'day')
                     dayBody(items)
                   else if (mode == 'week')
-                    weekBody(items)
+                    weekBody(
+                      items,
+                      validity: timetableView
+                          ? 'Gültig ab ${displayDate(table.text('date'))}${table.text('endDate').isEmpty ? '' : ' bis ${displayDate(table.text('endDate'))}'}'
+                          : null,
+                    )
                   else
                     monthBody(items),
                   if (!timetableView)
@@ -1354,7 +1401,7 @@ class _CalendarPageState extends State<CalendarPage>
             SafeArea(
               top: false,
               child: Material(
-                color: scheme.surfaceContainerHigh.withValues(alpha: .7),
+                color: scheme.surface,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,

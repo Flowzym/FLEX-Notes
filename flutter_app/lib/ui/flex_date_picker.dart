@@ -89,7 +89,7 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
       title: Text(
         widget.title,
         style: const TextStyle(
-          fontFamily: 'FlexSerif',
+          fontFamily: 'FlexSans',
           fontSize: 22,
           fontWeight: FontWeight.w500,
         ),

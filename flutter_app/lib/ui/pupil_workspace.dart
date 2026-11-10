@@ -443,7 +443,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontFamily: 'FlexSerif',
+            fontFamily: 'FlexSans',
             fontSize: 20,
             height: 1.15,
           ),
@@ -493,7 +493,6 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     ];
     return FlexModal(
       maxWidth: 1120,
-      accentColor: Color(p.color),
       title: title,
       headerContent: LayoutBuilder(
         builder: (context, constraints) {

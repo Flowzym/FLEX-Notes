@@ -16,7 +16,6 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DesignNotebook extends SqliteNotebook {
   DesignNotebook(super.db);
@@ -92,12 +91,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
-      ),
-    );
     await t.pumpAndSettle();
   }
 
@@ -150,7 +143,7 @@ void main() {
       ).writeAsBytesSync(bytes!.buffer.asUint8List());
       picture.dispose();
       File('$directory/manifest.jsonl').writeAsStringSync(
-        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'uiScale': c.appearance.uiScale, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.9 UI audit', 'data': 'synthetic'})}\n',
+        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'uiScale': c.appearance.textScale, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.9 UI audit', 'data': 'synthetic'})}\n',
         mode: FileMode.append,
       );
     });
@@ -172,7 +165,9 @@ void main() {
   int page(WidgetTester t) =>
       t.widget<FlexPagePills>(find.byType(FlexPagePills)).selected;
   Future<void> slider(WidgetTester t, String name, double fraction) async {
-    final finder = find.byKey(ValueKey('setting-$name'));
+    final finder = find.byKey(
+      ValueKey(name == 'textScale' ? 'appearance-text-scale' : 'setting-$name'),
+    );
     await t.ensureVisible(finder);
     await t.pumpAndSettle();
     final rect = t.getRect(finder);
@@ -191,37 +186,22 @@ void main() {
         .dx;
   }
 
-  test(
-    'new appearance fields default safely and reject invalid dimensions',
-    () {
-      final old = Appearance.fromJson({'textScale': 1.15});
-      expect(old.uiScale, 1);
-      expect(old.textScale, 1.15);
-      expect(old.fieldRadius, 14);
-      expect(old.buttonRadius, 28);
-      expect(old.modalRadius, 24);
-      final custom = old.patch({
-        'uiScale': .8,
-        'textScale': 1.6,
-        'fieldRadius': 0.0,
-        'buttonRadius': 32.0,
-        'modalRadius': 8.0,
-      });
-      expect(Appearance.fromJson(custom.toJson()).toJson(), custom.toJson());
-      for (final change in <Json>[
-        {'uiScale': .79},
-        {'uiScale': 1.21},
-        {'uiScale': double.nan},
-        {'textScale': .79},
-        {'textScale': 1.61},
-        {'fieldRadius': -1},
-        {'buttonRadius': double.infinity},
-        {'modalRadius': 33},
-      ]) {
-        expect(() => old.patch(change), throwsA(isA<DomainError>()));
-      }
-    },
-  );
+  test('reading scale validates independently of retired design options', () {
+    final old = Appearance.fromJson({
+      'textScale': 1.15,
+      'uiScale': .8,
+      'fieldRadius': 0,
+    });
+    expect(old.textScale, 1.15);
+    expect(old.toJson(), isNot(contains('uiScale')));
+    for (final change in <Json>[
+      {'textScale': .79},
+      {'textScale': 1.61},
+      {'textScale': double.nan},
+    ]) {
+      expect(() => old.patch(change), throwsA(isA<DomainError>()));
+    }
+  });
   testWidgets(
     'horizontal swipes change primary page, vertical drags and settings sliders do not; search survives',
     (t) async {
@@ -299,53 +279,35 @@ void main() {
       await finish(t);
     },
   );
-  testWidgets(
-    'scale and text sliders are independent; design controls persist and full reset keeps shortcut order',
-    (t) async {
-      final order = ['orga', 'work', 'social', 'goal', 'homework'];
-      await c.saveAppearance(c.appearance.patch({'shortcutOrder': order}));
-      await app(t, size: const Size(1100, 1000));
-      await settings(t);
-      await slider(t, 'uiScale', .25);
-      expect(c.appearance.uiScale, lessThan(1));
-      expect(c.appearance.textScale, 1);
-      final zoom = c.appearance.uiScale;
-      await slider(t, 'textScale', .7);
-      expect(c.appearance.textScale, greaterThan(1.2));
-      expect(c.appearance.uiScale, zoom);
-
-      await slider(t, 'fieldRadius', .2);
-      await slider(t, 'buttonRadius', .3);
-
-      await slider(t, 'modalRadius', .2);
-      final saved = await repo.appearance();
-      expect(saved.toJson(), c.appearance.toJson());
-      expect(saved.fieldRadius, lessThan(14));
-      expect(saved.buttonRadius, lessThan(28));
-      expect(saved.modalRadius, lessThan(24));
-      await tap(t, find.text('Darstellung zurücksetzen'));
-      await tap(t, find.widgetWithText(FilledButton, 'Zurücksetzen'));
-      expect(c.appearance.uiScale, 1);
-      expect(c.appearance.textScale, 1);
-      expect(c.appearance.fieldRadius, 14);
-      expect(c.appearance.shortcutOrder, order);
-      await finish(t);
-    },
-  );
+  testWidgets('text size persists and resetting it keeps shortcut order', (
+    t,
+  ) async {
+    final order = ['orga', 'work', 'social', 'goal', 'homework'];
+    await c.saveAppearance(c.appearance.patch({'shortcutOrder': order}));
+    await app(t, size: const Size(1100, 1000));
+    await settings(t);
+    await slider(t, 'textScale', .7);
+    expect(c.appearance.textScale, greaterThan(1.2));
+    expect((await repo.appearance()).toJson(), c.appearance.toJson());
+    await tap(t, find.text('Standardgröße'));
+    expect(c.appearance.textScale, 1);
+    expect(c.appearance.shortcutOrder, order);
+    await finish(t);
+  });
   testWidgets(
     'failed scale persistence rolls back without losing the settings route',
     (t) async {
       await app(t);
       await settings(t);
       repo.failWrites = true;
-      await slider(t, 'uiScale', 0);
-      expect(c.appearance.uiScale, 1);
+      await slider(t, 'textScale', 0);
+      expect(c.appearance.textScale, 1);
       expect(c.appearanceError, isNotNull);
       expect(find.byType(SettingsPage), findsOneWidget);
       repo.failWrites = false;
-      await slider(t, 'uiScale', .25);
+      await slider(t, 'textScale', .65);
       expect(c.appearanceError, isNull);
-      expect((await repo.appearance()).uiScale, c.appearance.uiScale);
+      expect((await repo.appearance()).textScale, c.appearance.textScale);
       await finish(t);
     },
   );
@@ -417,7 +379,7 @@ void main() {
     },
   );
   testWidgets(
-    'app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted',
+    'legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry',
     (t) async {
       await app(t, size: const Size(390, 844));
       await open(
@@ -442,10 +404,10 @@ void main() {
         final toolbarIcon = find.byIcon(Icons.format_list_numbered);
         await t.ensureVisible(toolbarIcon);
         await t.pumpAndSettle();
-        expect(paintedWidth(t, toolbarIcon), closeTo(24 * zoom, .1));
+        expect(paintedWidth(t, toolbarIcon), closeTo(24, .1));
         final media = MediaQuery.of(t.element(find.byType(OrgaEditor)));
-        expect(media.size.width, closeTo(390 / zoom, .01));
-        expect(media.viewInsets.bottom, closeTo(240 / zoom, .01));
+        expect(media.size.width, closeTo(390, .01));
+        expect(media.viewInsets.bottom, closeTo(240, .01));
         expect(t.state(find.byType(OrgaEditor)), same(state));
         expect(
           input(t, const ValueKey('orga-note')).controller.text,
@@ -462,11 +424,11 @@ void main() {
       await t.pumpAndSettle();
       expect(
         paintedWidth(t, find.byIcon(Icons.format_list_numbered)),
-        closeTo(24 * 1.2, .1),
+        closeTo(24, .1),
       );
       expect(
         MediaQuery.textScalerOf(t.element(find.byType(OrgaEditor))).scale(20),
-        closeTo(20 * 1.5 * .95, .01),
+        closeTo(20 * 1.5, .01),
       );
       expect(t.takeException(), isNull);
       await finish(t);

@@ -1058,11 +1058,18 @@ class _SchoolEditorState extends State<SchoolEditor>
     children: [
       CompactSwitchListTile(
         key: ValueKey('section-$label'),
-        title: Text(label),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        leading: Icon(switch (label) {
+          'Beteiligt' => Icons.people_outline,
+          'Zielbezug' => Icons.track_changes,
+          'Reaktion / Unterstützung' => Icons.handshake_outlined,
+          _ => Icons.layers_outlined,
+        }),
         value: active,
         contentPadding: EdgeInsets.zero,
         onChanged: (v) => setState(() => change(v)),
       ),
+      const Divider(height: 1),
       if (active)
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 12),
@@ -1095,7 +1102,7 @@ class _SchoolEditorState extends State<SchoolEditor>
           children: [
             TextSpan(
               text: title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             if (hint.isNotEmpty)
               TextSpan(text: '  $hint', style: const TextStyle(fontSize: 12)),
@@ -1112,13 +1119,13 @@ class _SchoolEditorState extends State<SchoolEditor>
           options: observationTones,
           value: selectedTone,
           colors: observationToneColors,
-          minButtonHeight: 34,
+          minButtonHeight: 38,
           fontSize: 14,
           onChanged: (value) => setState(() {
             selectedTone = value;
           }),
         ),
-        const SizedBox(height: 8),
+        const Divider(height: 26),
         if (r.kind == SchoolKind.work) ...[
           label('Auftrag', 'optional'),
           TagTextField(
@@ -1147,7 +1154,7 @@ class _SchoolEditorState extends State<SchoolEditor>
             const Expanded(
               child: Text(
                 'Beobachtung',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
             ),
             IconButton(
@@ -1175,6 +1182,7 @@ class _SchoolEditorState extends State<SchoolEditor>
                             ).extension<FlexSurfaces>()?.palette?.button ??
                             scheme.onSurface.withValues(alpha: .07),
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: scheme.outlineVariant, width: .8),
                 ),
                 child: IntrinsicWidth(
                   child: Row(
@@ -1837,81 +1845,21 @@ class _SchoolEditorState extends State<SchoolEditor>
           ),
         ),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 330;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  iconSize: 20,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  tooltip: 'Zurück und Eingaben sichern',
-                  onPressed: busy ? null : close,
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                Expanded(
-                  child: Text(
-                    pupil.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                if (!compact) ...actions,
-                IconButton(
-                  iconSize: 20,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  tooltip: 'Schließen und Eingaben sichern',
-                  onPressed: busy ? null : close,
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            if (compact)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Wrap(children: actions),
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 6, bottom: 2),
-                    child: Text(
-                      r.revision > 0
-                          ? (r.kind == SchoolKind.homework
-                                ? 'Hausübung bearbeiten'
-                                : r.kind == SchoolKind.goal
-                                ? 'Ziel bearbeiten'
-                                : 'Eintrag bearbeiten')
-                          : r.kind.label,
-                      style: const TextStyle(
-                        fontFamily: 'FlexSerif',
-                        fontSize: 22,
-                        height: 1.15,
-                      ),
-                    ),
-                  ),
-                ),
-                if (dirty || draftRevision > 0)
-                  EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
-              ],
-            ),
-          ],
-        );
-      },
+    return EntryPageHeader(
+      owner: pupil.name,
+      title: r.revision > 0
+          ? (r.kind == SchoolKind.homework
+                ? 'Hausübung bearbeiten'
+                : r.kind == SchoolKind.goal
+                ? 'Ziel bearbeiten'
+                : 'Eintrag bearbeiten')
+          : r.kind.label,
+      onClose: busy ? null : close,
+      actions: actions,
+      titleActions: [
+        if (dirty || draftRevision > 0)
+          EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+      ],
     );
   }
 
@@ -2057,9 +2005,6 @@ class _SchoolEditorState extends State<SchoolEditor>
                 ? 1000
                 : 640,
             appearance: isObservation ? c.appearance : null,
-            accentColor: Color(
-              c.pupils.firstWhere((p) => p.id == r.pupilId).color,
-            ),
             headerContent: mode == 'entry' ? observationHeader() : null,
             headerActions: [
               if (mode != 'entry' && (dirty || draftRevision > 0))

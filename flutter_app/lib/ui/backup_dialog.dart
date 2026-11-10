@@ -192,7 +192,7 @@ class _BackupDialogState extends State<BackupDialog> {
             ),
             CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Darstellung und Hintergrundbild mitsichern'),
+              title: const Text('Anzeigeeinstellungen mitsichern'),
               value: appearance,
               onChanged: busy ? null : (v) => setState(() => appearance = v),
             ),

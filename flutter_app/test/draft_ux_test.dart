@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/draft_buffer.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'package:flex_notizbuch/domain/drafts.dart';
 import 'package:flex_notizbuch/ui/pupil_card.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
@@ -97,12 +96,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -821,7 +814,22 @@ void main() {
           of: find.byKey(const ValueKey('shortcut-a-social')),
           matching: find.byType(FlexIcon),
         );
-        expect(t.getRect(icon).overlaps(t.getRect(badge)), isFalse);
+        // The approved design places the count on the icon's lower-right
+        // edge. Keep it clear of the action label and within the touch target.
+        final badgeRect = t.getRect(badge);
+        final iconRect = t.getRect(icon);
+        final action = find.byKey(const ValueKey('shortcut-a-social'));
+        expect(badgeRect.center.dx, greaterThan(iconRect.center.dx));
+        expect(badgeRect.center.dy, greaterThan(iconRect.center.dy));
+        expect(badgeRect.right, lessThanOrEqualTo(t.getRect(action).right));
+        expect(
+          badgeRect.overlaps(
+            t.getRect(
+              find.descendant(of: action, matching: find.text('Sozial')),
+            ),
+          ),
+          isFalse,
+        );
         await capture(
           t,
           boundary,
@@ -926,7 +934,8 @@ void main() {
             );
             expect(
               t.getSize(find.byKey(const ValueKey('modal-header'))).height,
-              lessThan(110),
+              // The full pupil name and HÜ actions occupy two clear rows.
+              lessThan(144),
             );
           }
           await capture(

@@ -283,7 +283,7 @@ void main() {
     final line = find.byKey(const ValueKey('calendar-now-line'));
     final rect = t.getRect(line);
     expect(rect.width, greaterThan(300));
-    expect(rect.height, 3);
+    expect(rect.height, 2);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('calendar-now-label')),
@@ -306,7 +306,19 @@ void main() {
         rgba.getUint8(pixel + 1),
         rgba.getUint8(pixel + 2),
       );
-      expect(color, Theme.of(t.element(line)).colorScheme.error);
+      expect(
+        color,
+        (t
+                    .widget<DecoratedBox>(
+                      find.descendant(
+                        of: line,
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .decoration
+                as BoxDecoration)
+            .color,
+      );
       image.dispose();
     });
     await t.tapAt(rect.center);
@@ -332,9 +344,15 @@ void main() {
         await tap(t, find.byKey(ValueKey('calendar-section-$section')));
         await tap(t, find.byKey(ValueKey('$section-mode-day')));
         final oldY = t.getTopLeft(line).dy;
+        final minuteHeight =
+            (t.getTopLeft(find.byKey(const ValueKey('calendar-hour-540'))).dy -
+                t
+                    .getTopLeft(find.byKey(const ValueKey('calendar-hour-480')))
+                    .dy) /
+            60;
         now = now.add(const Duration(minutes: 1));
         await t.pump(const Duration(minutes: 1));
-        expect(t.getTopLeft(line).dy - oldY, closeTo(1.1, .01));
+        expect(t.getTopLeft(line).dy - oldY, closeTo(minuteHeight, .01));
         expect(
           find.descendant(of: label, matching: find.text('08:${now.minute}')),
           findsOneWidget,
@@ -428,7 +446,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
       expect(find.text('November 2026'), findsOneWidget);
       await tap(t, find.byTooltip('Tagesansicht öffnen'));
-      expect(find.text('Donnerstag'), findsOneWidget);
+      expect(find.textContaining('Do, 5. November'), findsOneWidget);
       await tap(t, find.text('Anlegen'));
       expect(find.text('Anlegen · 05.11.2026'), findsOneWidget);
       expect(find.text('Termin'), findsOneWidget);

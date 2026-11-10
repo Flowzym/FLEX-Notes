@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'package:flex_notizbuch/ui/conflict_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -151,12 +150,6 @@ void main() {
           child: FlexApp(controller: c),
         ),
       );
-      await t.runAsync(
-        () => precacheImage(
-          const AssetImage(FlexBackground.defaultDarkImage),
-          t.element(find.byType(FlexBackground).first),
-        ),
-      );
       await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-1')));
       await t.drag(find.byType(PageView), const Offset(-320, 0));
@@ -192,9 +185,9 @@ void main() {
       final shell = t.getRect(find.byKey(const ValueKey('page-pills')));
       final active = t.getRect(find.byKey(const ValueKey('page-0')));
       final track = t.getRect(find.byKey(const ValueKey('page-track-0')));
-      expect(active.top, lessThan(track.top));
-      expect(active.bottom, greaterThan(track.bottom));
-      expect(active.left, lessThan(track.left));
+      expect(active.top, greaterThanOrEqualTo(track.top));
+      expect(active.bottom, lessThanOrEqualTo(track.bottom));
+      expect(active.left, greaterThanOrEqualTo(track.left));
       for (final i in calendarPages.keys) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);

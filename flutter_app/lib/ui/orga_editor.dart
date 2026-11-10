@@ -534,75 +534,64 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
         child: FlexModal(
           closeLabel: 'Schließen und Entwurf sichern',
           key: ValueKey(draftId),
-          title: isClass
-              ? const Text('Klassen-Orga')
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      c.owner(entry),
-                      style: const TextStyle(
-                        fontFamily: 'FlexSans',
-                        fontSize: 15,
-                      ),
-                    ),
-                    const Text('Orga'),
-                  ],
-                ),
-          accentColor: isClass
-              ? null
-              : Color(c.pupils.firstWhere((p) => p.id == entry.pupilId).color),
-          headerActions: [
-            IconButton(
-              tooltip: entry.revision == 0
-                  ? 'Speichern und Dokumente öffnen'
-                  : 'Dokumente',
-              icon: const Icon(Icons.folder_open_outlined),
-              onPressed: busy
-                  ? null
-                  : () => entry.revision == 0
-                        ? save(documents: true)
-                        : navigateEntry(
-                            () => showContextDocuments(
-                              context,
-                              c,
-                              orgaScanContext(
-                                c,
-                                c.entries
-                                        .where((e) => e.id == entry.id)
-                                        .firstOrNull ??
-                                    entry,
-                              ),
-                            ),
-                          ),
-            ),
-            if (dirty || draftRevision > 0)
-              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
-            AnimatedBuilder(
-              animation: c,
-              builder: (_, _) => EntryHeaderButton(
-                key: const ValueKey('entry-drafts'),
-                label: 'Entwürfe',
-                icon: Icons.edit_note,
-                count: entryDraftCount(
-                  c,
-                  pupilId: entry.pupilId,
-                  exclude: draftId,
-                ),
+          title: Text(isClass ? 'Klassen-Orga' : 'Orga'),
+          headerContent: EntryPageHeader(
+            owner: isClass ? 'FLEX-Klasse' : c.owner(entry),
+            title: isClass ? 'Klassen-Orga' : 'Orga',
+            onClose: busy ? null : close,
+            titleActions: [
+              if (dirty || draftRevision > 0)
+                EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+            ],
+            actions: [
+              IconButton(
+                tooltip: entry.revision == 0
+                    ? 'Speichern und Dokumente öffnen'
+                    : 'Dokumente',
+                icon: const Icon(Icons.folder_open_outlined),
                 onPressed: busy
                     ? null
-                    : () => navigateEntry(
-                        () => showEntryDrafts(
-                          context,
-                          c,
-                          pupilId: entry.pupilId,
-                          exclude: draftId,
-                        ),
-                      ),
+                    : () => entry.revision == 0
+                          ? save(documents: true)
+                          : navigateEntry(
+                              () => showContextDocuments(
+                                context,
+                                c,
+                                orgaScanContext(
+                                  c,
+                                  c.entries
+                                          .where((e) => e.id == entry.id)
+                                          .firstOrNull ??
+                                      entry,
+                                ),
+                              ),
+                            ),
               ),
-            ),
-          ],
+              AnimatedBuilder(
+                animation: c,
+                builder: (_, _) => EntryHeaderButton(
+                  key: const ValueKey('entry-drafts'),
+                  label: 'Entwürfe',
+                  icon: Icons.edit_note,
+                  count: entryDraftCount(
+                    c,
+                    pupilId: entry.pupilId,
+                    exclude: draftId,
+                  ),
+                  onPressed: busy
+                      ? null
+                      : () => navigateEntry(
+                          () => showEntryDrafts(
+                            context,
+                            c,
+                            pupilId: entry.pupilId,
+                            exclude: draftId,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,
@@ -620,6 +609,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                   OptionBar(
                     key: const ValueKey('orga-kind-bar'),
+                    minButtonHeight: 38,
+                    fontSize: 14,
                     keyPrefix: 'orga-kind',
                     options: kinds,
                     value: kind,
@@ -638,41 +629,49 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                  Text(
-                    entry.isAppointment
-                        ? 'Termin und Notizen'
-                        : entry.isTask
-                        ? 'Aufgabe'
-                        : 'Notiz',
-                  ),
-                  Wrap(
-                    spacing: 4,
+                  Row(
                     children: [
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-check'),
-                        label: 'Checkliste',
-                        icon: Icons.checklist,
-                        onPressed: () {
-                          setState(() => listOpen = true);
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) itemFocus.requestFocus();
-                          });
-                        },
+                      Expanded(
+                        child: Text(
+                          entry.isAppointment
+                              ? 'Termin und Notizen'
+                              : entry.isTask
+                              ? 'Aufgabe'
+                              : 'Notiz',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-bullet'),
-                        label: 'Aufzählung',
-                        icon: Icons.format_list_bulleted,
-                        onPressed: () => insertPrefix('• '),
-                      ),
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-number'),
-                        label: 'Nummerierung',
-                        icon: Icons.format_list_numbered,
-                        onPressed: () => insertPrefix('1. '),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-check'),
+                            label: 'Checkliste',
+                            icon: Icons.checklist,
+                            onPressed: () {
+                              setState(() => listOpen = true);
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) itemFocus.requestFocus();
+                              });
+                            },
+                          ),
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-bullet'),
+                            label: 'Aufzählung',
+                            icon: Icons.format_list_bulleted,
+                            onPressed: () => insertPrefix('• '),
+                          ),
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-number'),
+                            label: 'Nummerierung',
+                            icon: Icons.format_list_numbered,
+                            onPressed: () => insertPrefix('1. '),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
                   DecoratedBox(
                     key: const ValueKey('orga-text-editor'),
                     decoration: BoxDecoration(
@@ -681,11 +680,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         color: Theme.of(context).colorScheme.outline,
                       ),
                       borderRadius: BorderRadius.circular(
-                        Theme.of(context)
-                                .extension<FlexSurfaces>()
-                                ?.appearance
-                                ?.fieldRadius ??
-                            14,
+                        FlexDesign.fieldRadius,
                       ),
                     ),
                     child: Padding(
@@ -847,7 +842,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                   ),
                   if (entry.isTask) ...[
-                    TextButton.icon(
+                    OutlinedButton.icon(
                       onPressed: () => date(due: true),
                       icon: const Icon(Icons.calendar_month),
                       label: Text(
@@ -856,7 +851,11 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                     CompactSwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Aufgabe erledigt'),
+                      leading: const Icon(Icons.check_circle_outline),
+                      title: const Text(
+                        'Aufgabe erledigt',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       value: entry.done,
                       onChanged: (v) =>
                           change(v ? entry.complete() : entry.reopen()),
@@ -864,7 +863,11 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   ],
                   CompactSwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Erinnern'),
+                    leading: const Icon(Icons.notifications_none_outlined),
+                    title: const Text(
+                      'Erinnern',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     value: reminderOpen,
                     onChanged: (v) {
                       setState(() => reminderOpen = v);
@@ -947,28 +950,41 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: CompactSwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Später ergänzen'),
-                value: entry.needsCompletion,
-                onChanged: busy
-                    ? null
-                    : (v) => change(entry.copyWith(needsCompletion: v)),
+          footerContent: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: CompactSwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Später ergänzen'),
+                  value: entry.needsCompletion,
+                  onChanged: busy
+                      ? null
+                      : (v) => change(entry.copyWith(needsCompletion: v)),
+                ),
               ),
-            ),
-            TextButton(
-              key: const ValueKey('cancel-editor'),
-              onPressed: busy ? null : close,
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: busy ? null : save,
-              child: const Text('Speichern'),
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      key: const ValueKey('cancel-editor'),
+                      onPressed: busy ? null : close,
+                      child: const Text('Abbrechen'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: busy ? null : save,
+                      child: const Text('Speichern'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     ),

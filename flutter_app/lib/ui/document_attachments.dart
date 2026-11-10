@@ -39,7 +39,7 @@ class DocumentAttachmentsButton extends StatelessWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              TextButton.icon(
+              OutlinedButton.icon(
                 onPressed: () => scanAndShow(ctx, controller, scope),
                 icon: const Icon(Icons.document_scanner_outlined),
                 label: const Text('Scannen / Foto'),
@@ -170,7 +170,7 @@ class DocumentAttachmentSection extends StatelessWidget {
                     ],
                   )
                 else if (!readOnly) ...[
-                  TextButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('attachment-scan'),
                     onPressed:
                         onScan ?? () => scanAndShow(ctx, controller, scope),
@@ -179,7 +179,7 @@ class DocumentAttachmentSection extends StatelessWidget {
                       saveFirst ? 'Speichern & scannen' : 'Scannen / Foto',
                     ),
                   ),
-                  TextButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('attachment-documents'),
                     onPressed:
                         onDocuments ??

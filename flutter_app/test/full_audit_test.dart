@@ -81,12 +81,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
-      ),
-    );
     await t.pumpAndSettle();
   }
 
@@ -376,7 +370,7 @@ void main() {
         final bar = find.byKey(const ValueKey('tone-pill'));
         String tone() => t.widget<OptionBar>(bar).value;
         expect(tone(), 'neutral');
-        expect(t.getSize(bar).height, inInclusiveRange(38, 40));
+        expect(t.getSize(bar).height, inInclusiveRange(42, 46));
         final neutral = observationDefaults['${kind.name}-neutral']!.first;
         await tap(t, find.byKey(ValueKey('observation-$neutral')));
         for (final entry in [
@@ -488,8 +482,9 @@ void main() {
     await t.runAsync(c.flushAppearance);
     expect((await repo.appearance()).defaultObservationTone, 'negative');
     await tap(t, find.byKey(const ValueKey('settings-tab-0')));
-    await tap(t, find.text('Darstellung zurücksetzen'));
-    await tap(t, find.widgetWithText(FilledButton, 'Zurücksetzen'));
+    c.previewAppearance({'textScale': 1.2});
+    await t.pumpAndSettle();
+    await tap(t, find.byKey(const ValueKey('appearance-reset-size')));
     expect(c.appearance.defaultObservationTone, 'negative');
     await open(
       t,
@@ -708,7 +703,7 @@ void main() {
             .palette!
             .modalPerceived
             .computeLuminance();
-        expect(IconTheme.of(dialogContext).color, theme.colorScheme.onSurface);
+        expect(IconTheme.of(dialogContext).color, theme.colorScheme.primary);
         final ink = theme.colorScheme.onSurfaceVariant.computeLuminance();
         final contrast = ink > background
             ? (ink + .05) / (background + .05)
@@ -727,24 +722,11 @@ void main() {
           );
           await capture(t, boundary, 'settings-$tab-$suffix');
           if (tab == 0) {
-            for (final name in [
-              'uiScale',
-              'textScale',
-              'cardRadius',
-              'buttonRadius',
-              'fieldRadius',
-              'modalRadius',
-              'footerOpacity',
-            ]) {
-              final control = find.byKey(ValueKey('setting-$name'));
-              expect(control, findsOneWidget);
-              await t.ensureVisible(control);
-              await t.pumpAndSettle();
-            }
-            expect(
-              find.textContaining('App-Skalierung verändert'),
-              findsNothing,
-            );
+            final control = find.byKey(const ValueKey('appearance-text-scale'));
+            expect(control, findsOneWidget);
+            await t.ensureVisible(control);
+            await t.pumpAndSettle();
+            expect(find.textContaining('App-Skalierung'), findsNothing);
           } else if (tab == 2) {
             for (final label in [
               'Exportieren',

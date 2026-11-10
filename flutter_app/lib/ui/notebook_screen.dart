@@ -629,8 +629,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   'FLEX.',
                   key: const ValueKey('app-wordmark'),
                   style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 1.8,
+                    fontSize: 11,
+                    letterSpacing: .5,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(
                       context,
@@ -640,7 +640,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
               child: FlexPagePills(
                 keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
                 selected: switch (_destination) {
@@ -878,7 +878,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 'Überblick',
                 style: Theme.of(
                   context,
-                ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSerif'),
+                ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSans'),
               ),
             ),
             IconButton(
@@ -1229,35 +1229,22 @@ class _NotebookScreenState extends State<NotebookScreen> {
           label: 'Schüler suchen',
           iconOnly: true,
           leading: Text(
-            '${archived ? 'Archiv' : 'Schülernotizen'} · ${all.length} Schüler',
-            style: Theme.of(context).textTheme.bodySmall,
+            archived ? 'Archiv' : 'Notizen',
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
           actions: [
             if (!archived)
-              IconButton(
+              IconButton.outlined(
+                style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
-                icon: const Icon(Icons.person_add),
+                icon: const Icon(Icons.person_add_alt_1_outlined),
               ),
-            IconButton(
-              key: const ValueKey('pupil-layout'),
-              tooltip: c.appearance.pupilCompact
-                  ? 'Schüler als Karten'
-                  : 'Schüler als kompakte Liste',
-              onPressed: () => guarded(
-                context,
-                () => c.saveAppearance(
-                  c.appearance.patch({
-                    'pupilCompact': !c.appearance.pupilCompact,
-                  }),
-                ),
-              ),
-              icon: Icon(
-                c.appearance.pupilCompact
-                    ? Icons.grid_view_outlined
-                    : Icons.view_list_outlined,
-              ),
-            ),
           ],
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
@@ -1269,41 +1256,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 : 'Noch keine passenden Schüler.',
             icon: Icons.people,
           ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = c.appearance.pupilCompact
-                ? 1
-                : ((constraints.maxWidth + 20) / 310).floor().clamp(1, 4);
-            final cardWidth = c.appearance.pupilCompact
-                ? constraints.maxWidth
-                : ((constraints.maxWidth - (columns - 1) * 20) / columns).clamp(
-                    0.0,
-                    420.0,
-                  );
-            return Wrap(
-              spacing: 20,
-              runSpacing: c.appearance.pupilCompact ? 8 : 20,
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
+            child: Column(
               children: [
                 for (final pupil in pupils)
-                  SizedBox(
-                    width: cardWidth,
-                    child: PupilCard(
-                      key: ValueKey('pupil-card-${pupil.id}'),
-                      compact: c.appearance.pupilCompact,
-                      pupil: pupil,
-                      onOpen: () => _openPupil(pupil),
-                      onShortcut: (symbol) => _entryShortcut(pupil, symbol),
-                      counts: _shortcutCounts(pupil),
-                      draftCounts: {
-                        for (final symbol in FlexSymbol.values)
-                          symbol: _pupilDraftCount(pupil.id, symbol),
-                      },
-                      due: _dueShortcuts(pupil),
-                    ),
+                  PupilCard(
+                    key: ValueKey('pupil-card-${pupil.id}'),
+                    pupil: pupil,
+                    onOpen: () => _openPupil(pupil),
+                    onShortcut: (symbol) => _entryShortcut(pupil, symbol),
+                    counts: _shortcutCounts(pupil),
+                    draftCounts: {
+                      for (final symbol in FlexSymbol.values)
+                        symbol: _pupilDraftCount(pupil.id, symbol),
+                    },
+                    due: _dueShortcuts(pupil),
                   ),
               ],
-            );
-          },
+            ),
+          ),
         ),
       ],
     );

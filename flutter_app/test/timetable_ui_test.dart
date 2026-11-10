@@ -347,6 +347,9 @@ void main() {
   ) async {
     final c = await controller();
     await host(t, c);
+    // A shorter viewport deliberately requires scrolling even with the compact grid.
+    t.view.physicalSize = const Size(390, 500);
+    await t.pumpAndSettle();
     await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
     await tap(t, find.byTooltip('Nächster Zeitraum'));
     expect(find.text('Dezember 2026'), findsOneWidget);
@@ -358,7 +361,7 @@ void main() {
     expect(find.text('Monat'), findsNothing);
     await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
     await tap(t, find.byTooltip('Nächster Zeitraum'));
-    expect(find.text('02.12.2026'), findsOneWidget);
+    expect(find.textContaining('2. Dezember'), findsOneWidget);
     final scroll = find.byKey(const PageStorageKey('timetable-page'));
     await t.drag(scroll, const Offset(0, -250));
     await t.pumpAndSettle();
@@ -376,7 +379,7 @@ void main() {
       findsOneWidget,
     );
     await tap(t, find.byKey(const ValueKey('calendar-section-timetable')));
-    expect(find.text('02.12.2026'), findsOneWidget);
+    expect(find.textContaining('2. Dezember'), findsOneWidget);
     expect(
       t
           .state<ScrollableState>(
@@ -419,7 +422,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       expect(find.text('Flexk'), findsNothing);
       await tap(t, find.byTooltip('Nächster Zeitraum'));
-      expect(find.text('10.11.2026'), findsOneWidget);
+      expect(find.textContaining('10. November'), findsOneWidget);
       expect(find.text('Flexk'), findsNWidgets(2));
       expect(find.text('08:00–11:00'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('calendar-section-calendar')));

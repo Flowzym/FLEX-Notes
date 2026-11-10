@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/domain/observation_catalog.dart';
 import 'package:flex_notizbuch/ui/option_bar.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,12 +75,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();
@@ -531,7 +524,7 @@ void main() {
           if (view.$2 == 1) {
             expect(
               t.getSize(find.byKey(const ValueKey('tone-pill'))).height,
-              inInclusiveRange(38, 40),
+              inInclusiveRange(42, 46),
             );
           }
           await capture(t, boundary, 'tone-$tone-$suffix');

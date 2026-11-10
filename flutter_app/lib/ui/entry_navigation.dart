@@ -10,6 +10,104 @@ import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
 
+/// Shared context and heading for the school and organisation editors.
+class EntryPageHeader extends StatelessWidget {
+  const EntryPageHeader({
+    super.key,
+    required this.owner,
+    required this.title,
+    required this.onClose,
+    this.actions = const [],
+    this.titleActions = const [],
+  });
+  final String owner, title;
+  final VoidCallback? onClose;
+  final List<Widget> actions, titleActions;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scheme = Theme.of(context).colorScheme;
+      final compact =
+          constraints.maxWidth < 330 ||
+          MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+          constraints.maxWidth - (actions.length + 2) * 44 - 8 < 140;
+      final actionsWithTitle =
+          compact &&
+          constraints.maxWidth >= 330 &&
+          MediaQuery.textScalerOf(context).scale(1) <= 1.4;
+      Widget exit(IconData icon, String label) => IconButton(
+        tooltip: label,
+        iconSize: 20,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        padding: const EdgeInsets.all(6),
+        onPressed: onClose,
+        icon: Icon(icon),
+      );
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              border: Border.all(color: scheme.outlineVariant),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+            child: Row(
+              children: [
+                exit(Icons.arrow_back, 'Zurück und Eingaben sichern'),
+                Expanded(
+                  child: Tooltip(
+                    message: owner,
+                    child: Text(
+                      owner,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                if (!compact) ...actions,
+                exit(Icons.close, 'Schließen und Eingaben sichern'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          if (compact && !actionsWithTitle)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(children: actions),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6, bottom: 2),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+              if (actionsWithTitle) ...actions,
+              ...titleActions,
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
 int entryDraftCount(
   NotebookController c, {
   required String? pupilId,
@@ -272,7 +370,7 @@ Future<void> showAssignedHomework(
             const Text(
               'Hausübungen',
               style: TextStyle(
-                fontFamily: 'FlexSerif',
+                fontFamily: 'FlexSans',
                 fontSize: 20,
                 height: 1.3,
               ),

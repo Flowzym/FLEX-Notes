@@ -106,37 +106,20 @@ void main() {
     },
   );
   test(
-    'appearance preserves old preferences and validates new surface settings',
+    'old theme preferences migrate and new reading preferences validate',
     () {
       final old = Appearance.fromJson({
         'mode': 'dark',
         'accent': 0xffdae9a6,
         'textScale': 1.0,
-        'compact': false,
       });
-      expect(old.dialogColor, 0);
-      expect(old.desktopImage, isEmpty);
-      final configured = old.patch({
-        'dialogColor': 0xff426574,
-        'headerOpacity': .5,
-        'footerOpacity': .75,
-        'desktopFit': 'contain',
-        'mobileFit': 'fitHeight',
-        'serifHeaders': true,
-      });
+      expect(old.mode, 'light');
+      final configured = old.patch({'mode': 'system', 'textScale': 1.3});
       expect(
         Appearance.fromJson(configured.toJson()).toJson(),
         configured.toJson(),
       );
-      for (final invalid in <Json>[
-        {'headerOpacity': 1.1},
-        {'cardOpacity': -1},
-        {'mobileFit': 'unknown'},
-        {'desktopImage': 'a'},
-        {'textScale': double.nan},
-      ]) {
-        expect(() => old.patch(invalid), throwsA(isA<DomainError>()));
-      }
+      expect(() => old.patch({'textScale': 3}), throwsA(isA<DomainError>()));
     },
   );
   test(
@@ -253,31 +236,12 @@ void main() {
       }
     },
   );
-  test(
-    'all five background modes and readable colors are mapped explicitly',
-    () {
-      expect(
-        [
-          'cover',
-          'contain',
-          'fitWidth',
-          'fitHeight',
-          'fill',
-        ].map(backgroundFit).toSet(),
-        {
-          BoxFit.cover,
-          BoxFit.contain,
-          BoxFit.fitWidth,
-          BoxFit.fitHeight,
-          BoxFit.fill,
-        },
-      );
-      expect(legibleOn(Colors.white), Colors.black);
-      expect(legibleOn(Colors.black), Colors.white);
-    },
-  );
+  test('contrast helpers choose readable foregrounds', () {
+    expect(legibleOn(Colors.white), Colors.black);
+    expect(legibleOn(Colors.black), Colors.white);
+  });
   testWidgets(
-    'shared modal uses chosen bar hue with independently stored alpha',
+    'shared modal uses the fixed cream surface despite legacy customization',
     (tester) async {
       final repo = fresh();
       final c = NotebookController(repo);
@@ -317,8 +281,14 @@ void main() {
           .map((c) => c.color)
           .whereType<Color>()
           .toList();
-      expect(colors, contains(const Color(0xff426574).withValues(alpha: .5)));
-      expect(colors, contains(const Color(0xff426574).withValues(alpha: .75)));
+      expect(
+        colors,
+        contains(FlexPalette(const Appearance(), Brightness.light).header),
+      );
+      expect(
+        colors,
+        isNot(contains(const Color(0xff426574).withValues(alpha: .75))),
+      );
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Schließen'));
       await tester.pumpAndSettle();

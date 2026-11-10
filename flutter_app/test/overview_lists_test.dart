@@ -96,12 +96,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
-      ),
-    );
     await t.pumpAndSettle();
   }
 
@@ -172,44 +166,27 @@ void main() {
         .descendant(of: find.byKey(key), matching: find.byType(EditableText))
         .last,
   );
-  test(
-    'automatic surfaces use neutral role colors and migrate only unchanged old defaults',
-    () {
-      final a = const Appearance();
-      final palette = FlexPalette(a, Brightness.dark);
-      for (final color in [palette.card, palette.field]) {
-        expect(color.toARGB32() & 0xffffff, 0);
-        expect(color.a, lessThan(.5));
+  test('fixed surfaces ignore legacy colors and remain opaque', () {
+    final migrated = Appearance.fromJson({
+      'mode': 'dark',
+      'cardColor': 0xffff0000,
+      'headerOpacity': .1,
+    });
+    expect(migrated.mode, 'light');
+    for (final b in Brightness.values) {
+      final palette = FlexPalette(migrated, b);
+      for (final color in [
+        palette.card,
+        palette.field,
+        palette.header,
+        palette.footer,
+        palette.button,
+      ]) {
+        expect(color.a, 1);
       }
-      for (final color in [palette.header, palette.footer, palette.button]) {
-        expect(color.toARGB32() & 0xffffff, 0xffffff);
-        expect(color.a, lessThan(.5));
-      }
-      final old = {...a.toJson()}..remove('surfaceDefaultsVersion');
-      old.addAll({
-        'headerOpacity': .65,
-        'footerOpacity': .65,
-        'cardOpacity': .82,
-        'buttonOpacity': .94,
-        'fieldOpacity': .94,
-        'workspaceOpacity': .88,
-      });
-      expect(Appearance.fromJson(old).toJson(), a.toJson());
-      final custom = Appearance.fromJson({
-        ...old,
-        'fieldColor': 0xff123456,
-        'headerOpacity': .47,
-      });
-      expect(custom.fieldColor, 0xff123456);
-      expect(custom.headerOpacity, .47);
-      expect(custom.cardOpacity, .82);
-      expect(
-        FlexPalette(custom, Brightness.dark).field.toARGB32() & 0xffffff,
-        0x123456,
-      );
-    },
-  );
-
+      expect(palette.card, FlexPalette(const Appearance(), b).card);
+    }
+  });
   test(
     'list styling replaces and toggles prefixes across selected lines; Enter renumbers following items',
     () {

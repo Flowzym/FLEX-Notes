@@ -106,12 +106,6 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
-      ),
-    );
     await t.pumpAndSettle();
   }
 
@@ -1187,13 +1181,19 @@ void main() {
           'menu-$menu': (ctx) async {
             await t.tap(find.byTooltip('Weitere Bereiche'));
             await t.pumpAndSettle();
-            await t.tap(
-              menu.startsWith('drafts')
-                  ? find.textContaining('Entwürfe (').last
-                  : find
-                        .text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb')
-                        .last,
-            );
+            final target = menu.startsWith('drafts')
+                ? find.textContaining('Entwürfe (')
+                : find.text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb');
+            if (target.evaluate().isEmpty) {
+              await t.scrollUntilVisible(
+                target,
+                100,
+                scrollable: find.byType(Scrollable).last,
+              );
+            }
+            await t.ensureVisible(target.last);
+            await t.pumpAndSettle();
+            await t.tap(target.last);
           },
         'conflicts': (ctx) => showDialog<void>(
           context: ctx,
