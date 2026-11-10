@@ -3,7 +3,7 @@
 00:00 +1: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: controller snapshot holds one SQLite transaction across all reads
 00:00 +2: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: old theme preferences migrate and new reading preferences validate
 00:00 +3: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: surface colors and separate images survive database and backup round trip
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -21,7 +21,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 00:00 +4: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: Orga trash cancels reminders, preserves checklist and restore does not reactivate
 00:00 +5: /workspace/FLEX-Notes/flutter_app/test/recovery_extensions_test.dart: original version 1 backup gets default schema 7 fields without changing data
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -90,7 +90,7 @@ This warning will only appear on debug builds.
 00:16 +56: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment values survive closing, backup restore and database restart
 00:16 +57: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment values survive closing, backup restore and database restart
 00:16 +57: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: date-only reminders, task metadata and pupil drafts survive a real SQLite reopen
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -106,7 +106,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -123,7 +123,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -150,7 +150,7 @@ This warning will only appear on debug builds.
 00:21 +66: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
 00:21 +67: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
 00:21 +67: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: backup review preserves local catalogs when their import is disabled
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -177,7 +177,7 @@ This warning will only appear on debug builds.
 00:24 +76: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: standalone homework separates task and record actions at (390.0, 1.0)
 00:24 +77: /workspace/FLEX-Notes/flutter_app/test/document_attachments_test.dart: standalone homework separates task and record actions at (390.0, 1.0)
 00:24 +77: /workspace/FLEX-Notes/flutter_app/test/dialog_reference_test.dart: failed draft close offers recovery and retry keeps the entered pupil data
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -272,7 +272,7 @@ This warning will only appear on debug builds.
 01:09 +155: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
 01:09 +156: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
 01:09 +156: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: complete rebuild backup round trip includes records, drafts and history
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -291,7 +291,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 01:09 +157: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
 01:09 +157: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: foreign payload format is rejected without partial restore
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -310,7 +310,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 01:10 +158: /workspace/FLEX-Notes/flutter_app/test/device_features_test.dart: automatic backup encrypts, verifies, rotates only own files, and restores
 01:10 +158: /workspace/FLEX-Notes/flutter_app/test/school_test.dart: real version 1 file migrates to schema 7 without losing pupil
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -410,7 +410,7 @@ This warning will only appear on debug builds.
 02:03 +241: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
 02:04 +242: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
 02:06 +242: /workspace/FLEX-Notes/flutter_app/test/observation_catalog_test.dart: catalog edits and concurrent favorites survive a full backup and invalid restoration rolls back
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -426,7 +426,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -480,7 +480,7 @@ This warning will only appear on debug builds.
 02:19 +278: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
 02:19 +279: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
 02:19 +279: /workspace/FLEX-Notes/flutter_app/test/settings_test.dart: old database preferences migrate through restart and backup without losing pupils, records or drafts
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -496,7 +496,7 @@ Here is the stacktrace from when the database was opened a second time:
 #7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -512,7 +512,7 @@ Here is the stacktrace from when the database was opened a second time:
 #7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -534,7 +534,7 @@ This warning will only appear on debug builds.
 02:20 +283: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
 02:20 +284: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
 02:20 +284: /workspace/FLEX-Notes/flutter_app/test/draft_ux_test.dart: baseline survives SQLite close, reopen and complete backup restore for all draft stores
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -550,7 +550,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -567,7 +567,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -679,7 +679,7 @@ Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fon
 03:13 +375: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
 03:14 +376: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
 03:14 +376: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: neutral records, drafts, favorites and default survive database restart and complete restore
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -695,7 +695,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -710,7 +710,7 @@ Here is the stacktrace from when the database was opened a second time:
 #7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -740,7 +740,7 @@ This warning will only appear on debug builds.
 03:31 +387: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
 03:31 +388: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
 03:31 +388: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointments retain local date/time through database, drafts, backup and legacy payload
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -758,7 +758,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 03:31 +389: /workspace/FLEX-Notes/flutter_app/test/full_audit_test.dart: work: neutral default, three-way swipe, bounded ends and mixed tags survive save
 03:31 +389: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointments retain local date/time through database, drafts, backup and legacy payload
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -840,7 +840,7 @@ This warning will only appear on debug builds.
 04:09 +452: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
 04:09 +453: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
 04:09 +453: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: backup round trip preserves revisions, drafts, IDs, settings and staged legacy
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -858,7 +858,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 04:09 +454: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
 04:09 +454: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: invalid backup foreign keys roll back all inserted rows
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -876,7 +876,7 @@ Here is the stacktrace from when the database was opened a second time:
 This warning will only appear on debug builds.
 04:09 +455: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
 04:09 +455: /workspace/FLEX-Notes/flutter_app/test/notebook_test.dart: disk database survives close and reopening with original IDs
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
@@ -892,7 +892,7 @@ Here is the stacktrace from when the database was opened a second time:
 #7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
 #0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
