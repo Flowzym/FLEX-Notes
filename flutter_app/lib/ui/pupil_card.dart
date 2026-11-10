@@ -37,48 +37,51 @@ class PupilCard extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 9),
+          padding: const EdgeInsets.symmetric(vertical: 2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              InkWell(
-                key: ValueKey('pupil-open-${pupil.id}'),
-                onTap: onOpen,
-                borderRadius: BorderRadius.circular(10),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.person_outline_rounded,
-                        size: 25,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          pupil.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: InkWell(
+                  key: ValueKey('pupil-open-${pupil.id}'),
+                  onTap: onOpen,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline_rounded,
+                          size: 25,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            pupil.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      if (pupil.archived)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Text('Archiviert'),
+                        if (pupil.archived)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Text('Archiviert'),
+                          ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: scheme.onSurface,
                         ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 20,
-                        color: scheme.onSurface,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -107,7 +110,7 @@ class PupilCard extends StatelessWidget {
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 2,
-                                  vertical: 4,
+                                  vertical: 0,
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,

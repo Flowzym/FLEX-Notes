@@ -182,6 +182,32 @@ void main() {
               ),
             );
             await capture(t, key, 'page-${destination.$1}-$tab-$suffix');
+            if (destination.$1 == 1 && tab == 1 && view.$1 == 390) {
+              // Match the approved six-pupil phone layout without hiding any
+              // of the five actions or shrinking their touch surfaces.
+              for (final pupil in [
+                'audit-p0',
+                'audit-p4',
+                'audit-p8',
+                'audit-p10',
+                'audit-p2',
+                'audit-p6',
+              ]) {
+                for (final action in [
+                  'goal',
+                  'social',
+                  'work',
+                  'homework',
+                  'orga',
+                ]) {
+                  final button = find.byKey(
+                    ValueKey('shortcut-$pupil-$action'),
+                  );
+                  expect(button.hitTestable(), findsOneWidget);
+                  expect(t.getSize(button).height, greaterThanOrEqualTo(44));
+                }
+              }
+            }
           }
         }
         await tap(t, find.byKey(const ValueKey('bottom-1')));

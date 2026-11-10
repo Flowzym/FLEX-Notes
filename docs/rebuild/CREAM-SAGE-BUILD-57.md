@@ -5,7 +5,7 @@ Die freigegebenen Smartphone-Entwürfe bilden jetzt die gemeinsame Oberfläche d
 ## Oberfläche
 
 - Kleines FLEX. über der Kontextnavigation; zusammenhängende Navigationspille, helle untere Bereichsleiste und zusammengehörige aktive Symbole/Beschriftungen.
-- Notizen zeigt jeden Schüler als offene Zeile mit allen fünf direkten Aktionen: Ziele, Sozial, Arbeit, HÜ, Orga. Zähler sitzen am unteren rechten Symbolrand; Namen und Aktionen bleiben getrennt lesbar.
+- Notizen zeigt jeden Schüler als offene Zeile mit allen fünf direkten Aktionen: Ziele, Sozial, Arbeit, HÜ, Orga. Zähler sitzen am unteren rechten Symbolrand; Namen und Aktionen bleiben getrennt lesbar. Bei 390 × 844 px sind sechs Schüler mit allen fünf Aktionen gleichzeitig erreichbar; die Aktionsflächen bleiben mindestens 44 px hoch.
 - Gemeinsame Kopf-, Formular- und Fußgestaltung für Sozial, Arbeit, Ziele, HÜ und Orga. Orga-Typen bleiben direkt sichtbar; Entwürfe, Verlauf, aufgegebene HÜ und Dokumente bleiben erreichbar. Bei knapper Breite wechseln Kopfaktionen in eine weitere Zeile.
 - Kalender und Stundenplan verwenden dieselben ruhigen Flächen, Tages-/Wochenraster, klare Datumsbereiche und die waagrechte Zeitmarkierung. Die aktuelle Wochenspalte ist leicht hinterlegt. Kurze Termine behalten ihre Berührungsfläche; lange Unterrichtsblöcke erhalten eine kompakte Darstellung mit vollständiger Zeitspanne.
 - Material, Scannerverwaltung, Aufgaben, Schülerdetails, Archiv, Papierkorb und Daten übernehmen die gemeinsame Schrift-, Farb-, Formular-, Dialog- und Button-Gestaltung. Scannerfunktionen und Dateizuordnung bleiben bestehen.
