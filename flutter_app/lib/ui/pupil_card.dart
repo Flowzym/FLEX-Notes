@@ -37,7 +37,7 @@ class PupilCard extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.only(top: 6, bottom: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

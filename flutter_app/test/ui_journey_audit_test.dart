@@ -188,8 +188,8 @@ void main() {
               );
             }
             if (destination.$1 == 1 && tab == 1 && view.$1 == 390) {
-              // Match the approved six-pupil phone layout without hiding any
-              // of the five actions or shrinking their touch surfaces.
+              // Roomier pupil rows keep all five actions directly reachable;
+              // the sixth row may require scrolling on a standard phone.
               for (final pupil in [
                 'audit-p0',
                 'audit-p4',
@@ -198,6 +198,12 @@ void main() {
                 'audit-p2',
                 'audit-p6',
               ]) {
+                if (pupil == 'audit-p6') {
+                  await t.ensureVisible(
+                    find.byKey(ValueKey('shortcut-$pupil-orga')),
+                  );
+                  await t.pumpAndSettle();
+                }
                 for (final action in [
                   'goal',
                   'social',

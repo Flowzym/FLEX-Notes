@@ -1,4 +1,16 @@
-# Aktueller Stand: 0.17.1+58
+# Aktueller Stand: 0.17.2+59
+
+Schülerzeilen haben mehr Abstand zur Trennlinie: unten 10 statt 2 logische Pixel,
+oben 6 statt 2. Jede Zeile ist damit 12 Pixel höher. Die fünf Eintragungsaktionen
+bleiben direkt sichtbar und behalten ihre Berührungsflächen. Der vorhandene
+Smartphone-Test berücksichtigt, dass die sechste Zeile nun Scrollen benötigen kann.
+
+22 bestehende UI-Tests bestanden; Analyse und Formatprüfung ohne Befunde,
+Release-Webbuild erfolgreich. Helle und dunkle Smartphone-Renderings geprüft.
+
+---
+
+# Vorheriger Stand: 0.17.1+58
 
 Gestaltung näher an der freigegebenen Vorlage: Inter, sanfte Flächen/Schatten und
 gemeinsame Bedienelemente. Code und Tests konsolidiert; Fehler bei verspätetem
