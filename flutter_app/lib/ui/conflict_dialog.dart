@@ -19,6 +19,7 @@ const conflictFieldLabels = <String, String>{
   'label': 'Bezeichnung',
   'taskFree': 'Freier Auftrag',
   'taskTags': 'Auftrag-Tags',
+  'assignmentSources': 'Verknüpfte Aufträge und Materialien',
   'positive': 'Positive Beobachtungen',
   'neutral': 'Neutrale Beobachtungen',
   'negative': 'Negative Beobachtungen',

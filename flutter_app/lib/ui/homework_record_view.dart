@@ -24,7 +24,6 @@ class HomeworkRecordView extends StatelessWidget {
     required this.onEdit,
     required this.onTaskState,
     required this.onComment,
-    required this.onDelivery,
     required this.onReminder,
     required this.onDelete,
     required this.onHistory,
@@ -36,7 +35,6 @@ class HomeworkRecordView extends StatelessWidget {
   final VoidCallback onExpand, onEdit, onReminder, onDelete, onHistory;
   final void Function(HomeworkTask, TaskState) onTaskState;
   final void Function(String?) onComment;
-  final VoidCallback onDelivery;
   final Widget? error;
 
   @override
@@ -100,25 +98,16 @@ class HomeworkRecordView extends StatelessWidget {
               ),
           ],
         ),
-        Wrap(
-          spacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (r.dueDate != null)
-              Text(
-                'Fällig: ${displayDate(r.dueDate)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+        if (r.dueDate != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Fällig: ${displayDate(r.dueDate)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-            TextButton(
-              key: ValueKey('homework-delivery-${r.id}'),
-              onPressed: editable ? onDelivery : null,
-              style: _quietButton(context),
-              child: Text('Abgabe: ${homeworkDeliveryLabel(r.delivery)}'),
             ),
-          ],
-        ),
+          ),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(

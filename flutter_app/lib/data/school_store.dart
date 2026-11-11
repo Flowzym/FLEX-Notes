@@ -139,6 +139,73 @@ mixin SchoolStore {
     return saved;
   });
 
+  Future<SchoolRecord> reassignHomeworkTask(
+    SchoolRecord source,
+    String taskId, {
+    String? dueDate,
+  }) => db.transaction(() async {
+    final rows = await _rows('SELECT * FROM school_records WHERE id=?', [
+      source.id,
+    ]);
+    if (rows.isEmpty) throw const StaleRevision();
+    final current = _record(rows.single);
+    if (current.revision != source.revision) throw const StaleRevision();
+    final task = current.tasks.where((t) => t.id == taskId).firstOrNull;
+    if (current.deleted ||
+        current.kind != SchoolKind.homework ||
+        task == null ||
+        current.taskState(task) != TaskState.missing) {
+      throw const DomainError(
+        'Die Aufgabe ist nicht mehr als nicht erledigt markiert.',
+      );
+    }
+    final ids = <String>{taskId};
+    for (final t in current.tasks) {
+      if (ids.contains(t.parentId)) ids.add(t.id);
+    }
+    final mapping = {for (final id in ids) id: newId()};
+    final next = await saveSchoolRecord(
+      SchoolRecord.empty(SchoolKind.homework, current.pupilId).patch({
+        'title': current.title,
+        'subject': current.subject,
+        'body': current.body,
+        'dueDate': dueDate,
+        'tasks': [
+          for (final t in current.tasks.where((t) => ids.contains(t.id)))
+            HomeworkTask(
+              id: mapping[t.id]!,
+              text: t.text,
+              parentId: mapping[t.parentId],
+            ).toJson(),
+        ],
+      }),
+    );
+    final note = SchoolFeedback(
+      id: newId(),
+      observedOn: dateOnly(DateTime.now()),
+      createdAtUtc: utcNow(),
+      taskId: task.id,
+      taskText: task.text,
+      note: 'Erneut aufgegeben${dueDate == null ? '' : ' · fällig $dueDate'}',
+    );
+    await saveSchoolRecord(
+      current.patch({
+        'feedback': [...current.feedback.map((f) => f.toJson()), note.toJson()],
+      }),
+    );
+    await (this as SqliteNotebook)._rewriteAttachmentLinks(
+      (l) =>
+          l.kind == 'school' &&
+          l.id == current.id &&
+          (l.taskId.isEmpty || ids.contains(l.taskId)),
+      (l) => [
+        l,
+        DocumentLink('school', next.id, taskId: mapping[l.taskId] ?? ''),
+      ],
+    );
+    return next;
+  });
+
   Future<List<SchoolRecord>> saveSchoolGroup(
     SchoolRecord record,
     List<String> recipients,

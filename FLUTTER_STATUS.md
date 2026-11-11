@@ -1,13 +1,16 @@
 # Aktueller Flutter-Stand
 
-Aktive Rekonstruktion: **0.16.0-rebuild.12+32**, Branch `fix/dialog-reference-audit`.
+**0.19.0+61**, Branch `redesign/cream-olive`.
 
-Android-Testapp: [Installation und Bau](flutter_app/ANDROID-TEST.md),
-[Tastaturkorrektur](audit/ANDROID_TASTATUR_FIX.md). Der UI-Prüfbericht steht unter
-[audit/ORGA_UEBERSICHT_ABGLEICH.md](audit/ORGA_UEBERSICHT_ABGLEICH.md), Startanweisungen unter
-[flutter_app/README.md](flutter_app/README.md).
+Der fortlaufende [Projektstatus](docs/rebuild/STATUS.md) und der
+[Prüfbericht für Build 61](docs/rebuild/QUALITY-BUILD-61.md) beschreiben den
+aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 
-Die ursprünglichen Quellen von 0.15.3+19 und 0.16.0+20 fehlen. Die erhaltene
-Web-App bleibt unverändert. Historische Statusberichte sind unter `reference/`
-und in den Originalarchiven erhalten. Keine Browsertests, keine Veröffentlichung
-der Cloud-Umgebung.
+[Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
+[GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
+[Startanweisungen](flutter_app/README.md) ·
+[Android-Bau und Installation](flutter_app/ANDROID-TEST.md).
+
+Ein Android-Update benötigt weiterhin den ursprünglichen Test-Signierschlüssel.
+Der CI-Build prüft die Kompilierung und wird nicht als Geräteupdate ausgegeben.
+Historische Rekonstruktionsstände stehen im Projektstatus und unter `reference/`.

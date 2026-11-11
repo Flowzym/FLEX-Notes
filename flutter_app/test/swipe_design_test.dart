@@ -334,6 +334,10 @@ void main() {
           findsNothing,
         );
         await tap(t, target);
+        if (state == TaskState.missing) {
+          expect(find.text('Erneut aufgeben?'), findsOneWidget);
+          await tap(t, find.text('So belassen'));
+        }
         final saved = (await repo.schoolRecords()).single;
         expect(saved.taskState(saved.tasks.first), state);
         expect(saved.taskState(saved.tasks.last), TaskState.partial);

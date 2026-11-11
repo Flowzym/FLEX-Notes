@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
+import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
 
 enum ClassroomKind {
@@ -295,6 +296,7 @@ class ClassroomDocument {
         'links',
         'scan',
         'scanner',
+        'versions',
         'pageCount',
       },
       ClassroomKind.materialSet => {
@@ -437,6 +439,7 @@ class ClassroomDocument {
       throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
     }
     if (kind == ClassroomKind.material) {
+      materialVersions(_json);
       final links = rows('links').map(DocumentLink.fromJson).toList();
       if (links.length > 100 ||
           links.map((l) => l.identity).toSet().length != links.length ||

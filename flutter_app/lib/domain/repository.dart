@@ -74,6 +74,11 @@ abstract interface class NotebookRepository {
     DialogDraft? draft,
   );
   Future<List<SchoolRecord>> schoolRecords();
+  Future<SchoolRecord> reassignHomeworkTask(
+    SchoolRecord source,
+    String taskId, {
+    String? dueDate,
+  });
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
     String? draftId,

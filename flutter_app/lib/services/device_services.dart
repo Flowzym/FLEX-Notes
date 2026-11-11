@@ -9,6 +9,8 @@ import '../domain/repository.dart';
 import '../platform/backup_mutex.dart';
 import 'app_lock.dart';
 import 'automatic_backup.dart';
+import 'complete_backup.dart';
+import 'material_storage.dart';
 import 'reminders.dart';
 import 'secret_store.dart';
 
@@ -36,7 +38,7 @@ Future<void> scheduleBackup(int? hours) async {
 AutomaticBackup makeBackup(NotebookRepository repository) => AutomaticBackup(
   store: DeviceSecretStore(),
   files: const DeviceBackupFiles(),
-  export: repository.exportBackup,
+  export: () => CompleteBackup.capture(repository, const LocalMaterialFiles()),
   schedule: scheduleBackup,
   withLock: backupMutex,
 );

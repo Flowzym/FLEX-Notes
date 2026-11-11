@@ -136,6 +136,11 @@ void main() {
           (await repo.schoolRecords()).single.taskState(initial.tasks.single),
           state,
         );
+        if (state == TaskState.missing) {
+          expect(find.text('Erneut aufgeben?'), findsOneWidget);
+          await tester.tap(find.text('So belassen'));
+          await tester.pumpAndSettle();
+        }
       }
       await tester.ensureVisible(
         find.byKey(const ValueKey('homework-task-details-task')),

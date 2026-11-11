@@ -551,7 +551,11 @@ void main() {
         final after = c.dialogDrafts.single.data['pages'] as List;
         expect(after.map((p) => p['width']), [180, 240]);
         expect(after.map((p) => p['key']).toList(), isNot(before));
-        expect(files.values.length, 2);
+        expect(
+          files.values.length,
+          4,
+        ); // Current pages and durable filter undo.
+        expect((c.dialogDrafts.single.data['filterUndo'] as Map).length, 2);
         for (final p in after) {
           final image = img.decodeJpg(files.values[p['key']]!)!;
           final pixel = image.getPixel(image.width ~/ 2, image.height ~/ 2);
@@ -621,6 +625,13 @@ void main() {
       );
       expect(keys().last, original.last);
       expect(original.every(files.values.containsKey), true);
+      await tap(t, find.text('Später fortsetzen'));
+      final resumed = (await c.repository.dialogDrafts()).single;
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: resumed),
+      );
+      await t.pumpAndSettle();
       await tap(t, find.byTooltip('Stapelfilter rückgängig'));
       await settleWork(
         t,

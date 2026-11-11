@@ -192,6 +192,18 @@ void validateScanData(Json j) {
       )) {
     throw const DomainError('Ungültiger Scanentwurf.');
   }
+  final undo = j['filterUndo'] ?? const {};
+  if (undo is! Map || undo.length > scanPageLimit) {
+    throw const DomainError('Ungültiger Filterverlauf.');
+  }
+  for (final e in undo.entries) {
+    if (e.key is! String ||
+        !RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(e.key as String) ||
+        e.value is! Map) {
+      throw const DomainError('Ungültiger Filterverlauf.');
+    }
+    ScanPage.fromJson(Json.from(e.value as Map));
+  }
   final pages = (j['pages'] as List)
       .map((p) => ScanPage.fromJson(Json.from(p as Map)))
       .toList();

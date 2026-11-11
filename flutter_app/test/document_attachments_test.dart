@@ -420,18 +420,14 @@ void main() {
           width: layout.$1,
           scale: layout.$2,
         );
-        await tap(t, find.byKey(ValueKey('homework-delivery-${r.id}')));
-        final editor = t.widget<SchoolEditor>(find.byType(SchoolEditor));
-        expect(editor.mode, 'comment');
-        expect(editor.taskId, isNull);
-        expect(find.text('Vorgelegt'), findsOneWidget);
-        expect(t.testTextInput.isVisible, isFalse);
-        await tap(t, find.text('Vorgelegt'));
-        await tap(t, find.text('Abgabe speichern'));
+        expect(find.byKey(ValueKey('homework-delivery-${r.id}')), findsNothing);
+        expect(find.text('Abgabe: Nicht überprüft'), findsNothing);
+        await tap(t, find.byKey(const ValueKey('status-child-missing')));
+        expect(find.text('Erneut aufgeben?'), findsOneWidget);
+        await tap(t, find.text('So belassen'));
         final saved = (await repo.schoolRecords()).single;
-        expect(saved.delivery, 'submitted');
-        expect(saved.tasks.map(saved.taskState), everyElement(TaskState.open));
-        expect(saved.liveFeedback.single.taskId, isNull);
+        expect(saved.taskState(saved.tasks[1]), TaskState.missing);
+        expect(saved.taskState(saved.tasks.first), TaskState.open);
         expect(t.takeException(), isNull);
         await finish(t);
       },

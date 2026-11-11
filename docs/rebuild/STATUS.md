@@ -1,4 +1,20 @@
-# Aktueller Stand: 0.18.0+60
+# Aktueller Stand: 0.19.0+61
+
+Auftragsquellen direkt im Arbeitsverhalten: FLEX-Planungen, Tagesmaterialien,
+DOCX-/PDF-Aufgaben und weitere Materialien. Die HÜ-Abgabeprüfung entfällt;
+X bietet erneutes Aufgeben an, mit Erhalt des bisherigen Stands.
+
+Vollsicherungen bündeln Notizbuch, lokale Dateien, Scanentwürfe und Dokumentversionen.
+Filter-Rückgängig bleibt im Entwurf erhalten; bis zu fünf frühere Dateifassungen
+sind wiederherstellbar. Große Editoren sind nach Verantwortlichkeiten aufgeteilt.
+OneDrive lässt sich mit einer öffentlichen Client-ID direkt in der App einrichten.
+
+[Änderungen, Prüfnachweise und verbleibende Voraussetzungen](QUALITY-BUILD-61.md).
+Physische Android-Abnahme und Microsoft-Appregistrierung bleiben offen.
+
+---
+
+# Vorheriger Stand: 0.18.0+60
 
 Anhänge bereits vor dem Speichern eines Eintrags, gemeinsame Tag-Auswahl und
 Tag-Verwaltung, echtes Teilen sowie Stapelfilter mit Seitenauswahl, Vorschau und

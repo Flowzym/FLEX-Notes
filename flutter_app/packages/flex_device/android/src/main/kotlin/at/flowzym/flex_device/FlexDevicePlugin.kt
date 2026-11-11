@@ -34,7 +34,7 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     private var screenProtected = false
     private var binding: ActivityPluginBinding? = null
     private var pending: MethodChannel.Result? = null
-    private val maxBytes = 28_000_000
+    private val maxBytes = 220_000_000
     private val backupName = Regex("FLEX-Auto-[0-9TZ-]+-[a-f0-9-]+\\.json")
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {

@@ -418,7 +418,7 @@ void main() {
     },
   );
   test(
-    'replace removes old local PDF, stale replacement preserves both draft and newer file',
+    'replace retains the previous PDF as a version; stale replacement preserves all files',
     () async {
       final first = await saveScan(repo, files, await draft());
       final edit = await draft(
@@ -427,7 +427,11 @@ void main() {
       final replaced = await saveScan(repo, files, edit, replace: true);
       expect(replaced.id, first.id);
       expect(replaced.revision, first.revision + 1);
-      expect(files.values.containsKey(first.text('localKey')), isFalse);
+      expect(files.values.containsKey(first.text('localKey')), isTrue);
+      expect(
+        replaced.rows('versions').single['localKey'],
+        first.text('localKey'),
+      );
       final stale = await draft(
         fields: {'sourceId': replaced.id, 'sourceRevision': replaced.revision},
       );

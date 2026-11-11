@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../security/backup_codec.dart';
+import '../services/complete_backup.dart';
+import '../services/material_files.dart';
+import '../services/material_storage.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
@@ -83,9 +86,15 @@ Future<String?> backupPassword(
 }
 
 class BackupDialog extends StatefulWidget {
-  const BackupDialog({super.key, required this.controller, this.export = true});
+  const BackupDialog({
+    super.key,
+    required this.controller,
+    this.export = true,
+    this.files = const LocalMaterialFiles(),
+  });
   final NotebookController controller;
   final bool export;
+  final MaterialFiles files;
   @override
   State<BackupDialog> createState() => _BackupDialogState();
 }
@@ -108,15 +117,11 @@ class _BackupDialogState extends State<BackupDialog> {
   }
 
   Future<void> exportFile() async {
-    final data = Json.from(
-      jsonDecode(await widget.controller.repository.exportBackup()) as Map,
+    var text = await CompleteBackup.capture(
+      widget.controller.repository,
+      widget.files,
+      appearance: appearance,
     );
-    if (!appearance) {
-      (data['tables']['preferences'] as List).removeWhere(
-        (row) => row['key'] == 'appearance',
-      );
-    }
-    var text = jsonEncode(data);
     if (encrypt) {
       if (!mounted) return;
       final password = await backupPassword(context, opening: false);
@@ -144,13 +149,13 @@ class _BackupDialogState extends State<BackupDialog> {
       ],
     );
     if (file == null) return;
-    if (await file.length() > BackupCodec.maxEnvelopeBytes) {
-      throw const DomainError('Die Datei überschreitet 28 MB.');
+    if (await file.length() > BackupCodec.maxCompleteEnvelopeBytes) {
+      throw const DomainError('Die Datei überschreitet 220 MB.');
     }
     final bytes = BytesBuilder();
     await for (final part in file.openRead()) {
-      if (bytes.length + part.length > BackupCodec.maxEnvelopeBytes) {
-        throw const DomainError('Die Datei überschreitet 28 MB.');
+      if (bytes.length + part.length > BackupCodec.maxCompleteEnvelopeBytes) {
+        throw const DomainError('Die Datei überschreitet 220 MB.');
       }
       bytes.add(part);
     }
@@ -167,6 +172,7 @@ class _BackupDialogState extends State<BackupDialog> {
       widget.controller,
       text,
       catalogs: catalogs,
+      files: widget.files,
     );
   }
 
@@ -176,7 +182,7 @@ class _BackupDialogState extends State<BackupDialog> {
     child: FlexModal(
       maxWidth: 430,
       title: Text(
-        widget.export ? 'Sicherung exportieren' : 'Sicherung importieren',
+        widget.export ? 'Vollständige Sicherung' : 'Sicherung wiederherstellen',
       ),
       onClose: busy ? null : () => Navigator.pop(context),
       content: Column(
@@ -205,7 +211,7 @@ class _BackupDialogState extends State<BackupDialog> {
             ),
           if (widget.export)
             const Text(
-              'Die Sicherung enthält Unterrichtsdaten und Entwürfe einschließlich Papierkorb und früherer Fassungen. Bewahre sie geschützt auf.',
+              'Eine Datei für Einträge, Entwürfe, lokale Materialien, Scans und Dokumentversionen. OneDrive-Links bleiben verknüpft; nur heruntergeladene Dateien sind offline enthalten.',
             ),
           if (message != null)
             Padding(
@@ -233,12 +239,29 @@ Future<void> showImportReview(
   NotebookController c,
   String text, {
   bool catalogs = true,
+  MaterialFiles files = const LocalMaterialFiles(),
+  CompleteRestore? complete,
 }) async {
   Json value;
   try {
     value = Json.from(jsonDecode(text) as Map);
   } catch (_) {
     throw const DomainError('Keine gültige FLEX-Sicherung.');
+  }
+  if (value['format'] == CompleteBackup.format) {
+    final bundle = await CompleteBackup.decode(value);
+    final restore = await bundle.prepare(files);
+    if (context.mounted) {
+      await showImportReview(
+        context,
+        c,
+        restore.notebook,
+        catalogs: catalogs,
+        files: files,
+        complete: restore,
+      );
+    }
+    return;
   }
   final legacy =
       value['format'] != 'FLEX-Flutter-Rebuild-Backup' &&
@@ -281,7 +304,13 @@ Future<void> showImportReview(
       c.stagedLegacyCount > 0 ||
       c.classroom.isNotEmpty) {
     if (context.mounted) {
-      await showMergeReview(context, c, text, catalogs: catalogs);
+      await showMergeReview(
+        context,
+        c,
+        text,
+        catalogs: catalogs,
+        complete: complete,
+      );
     }
     return;
   }
@@ -305,6 +334,10 @@ Future<void> showImportReview(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (complete != null)
+                Text(
+                  '${complete.fileCount} Dateien geprüft · werden gemeinsam wiederhergestellt',
+                ),
               Text(
                 '${(tables['pupils'] as List).length} Schüler · ${(tables['school_records'] as List? ?? []).length + (tables['orga'] as List? ?? []).length} Einträge',
               ),
@@ -383,7 +416,13 @@ Future<void> showImportReview(
                             ),
                           );
                         }
-                        await c.repository.restoreBackup(jsonEncode(copy));
+                        Future<void> apply() =>
+                            c.repository.restoreBackup(jsonEncode(copy));
+                        if (complete == null) {
+                          await apply();
+                        } else {
+                          await complete.commit(apply);
+                        }
                         await c.reload();
                         if (ctx.mounted) Navigator.pop(ctx);
                       } catch (e) {

@@ -252,6 +252,12 @@ Future<void> showMaterialDetails(
                       icon: const Icon(Icons.download_outlined),
                       label: const Text('Exportieren'),
                     ),
+                  if (d.rows('versions').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => showMaterialVersions(ctx, c, d),
+                      icon: const Icon(Icons.history),
+                      label: Text('Versionen · ${d.rows('versions').length}'),
+                    ),
                   OutlinedButton.icon(
                     onPressed: () => showClassroomEditor(
                       ctx,

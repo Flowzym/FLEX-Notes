@@ -1,3 +1,4 @@
+import 'assignment_sources.dart';
 import 'models.dart';
 
 enum SchoolKind { social, work, goal, homework }
@@ -167,6 +168,7 @@ class SchoolRecord {
     this.subject = '',
     this.taskFree,
     List<String> taskTags = const [],
+    List<AssignmentSource> assignmentSources = const [],
     this.context = '',
     this.situation = '',
     this.source = 'self',
@@ -189,7 +191,8 @@ class SchoolRecord {
     List<HomeworkTask> tasks = const [],
     List<SchoolFeedback> feedback = const [],
     List<GoalReview> reviews = const [],
-  }) : taskTags = List.unmodifiable(taskTags),
+  }) : assignmentSources = List.unmodifiable(assignmentSources),
+       taskTags = List.unmodifiable(taskTags),
        positive = List.unmodifiable(positive),
        neutral = List.unmodifiable(neutral),
        negative = List.unmodifiable(negative),
@@ -225,6 +228,7 @@ class SchoolRecord {
   // Old free-form assignments remain whole; never split narrative on " · ".
   final String? taskFree;
   final List<String> taskTags;
+  final List<AssignmentSource> assignmentSources;
   String get assignmentFree => taskFree ?? subject;
   final SchoolKind kind;
   final int revision;
@@ -272,6 +276,7 @@ class SchoolRecord {
     ...positive,
     ...neutral,
     ...negative,
+    ...assignmentSources.map((s) => '${s.title} ${s.text}'),
     ...tasks.map((t) => t.text),
     ...liveFeedback.map((f) => f.note),
   ].join(' ');
@@ -288,6 +293,7 @@ class SchoolRecord {
     'createdAtUtc': createdAtUtc,
     'subject': subject,
     'taskTags': taskTags,
+    'assignmentSources': assignmentSources.map((s) => s.toJson()).toList(),
     'taskFree': taskFree,
     'context': context,
     'situation': situation,
@@ -330,6 +336,9 @@ class SchoolRecord {
       createdAtUtc: j['createdAtUtc'] as String,
       subject: j['subject'] as String,
       taskTags: List<String>.from(j['taskTags'] as List? ?? const []),
+      assignmentSources: (j['assignmentSources'] as List? ?? [])
+          .map((s) => AssignmentSource.fromJson(Json.from(s as Map)))
+          .toList(),
       taskFree: j['taskFree'] as String?,
       context: j['context'] as String,
       situation: j['situation'] as String,
@@ -391,14 +400,18 @@ class SchoolRecord {
         neutral.isEmpty &&
         negative.isEmpty &&
         (situationId == null || context.trim().isEmpty) &&
-        (kind != SchoolKind.work || subject.trim().isEmpty)) {
+        (kind != SchoolKind.work ||
+            subject.trim().isEmpty && assignmentSources.isEmpty)) {
       throw DomainError(
         kind == SchoolKind.work
             ? 'Bitte einen Auftrag, eine Auswahl oder eine Beobachtung eingeben.'
             : 'Bitte kurz beschreiben, was passiert ist, oder eine Beobachtung auswählen.',
       );
     }
-    if (body.length > 12000 ||
+    if (assignmentSources.length > 30 ||
+        assignmentSources.map((s) => s.identity).toSet().length !=
+            assignmentSources.length ||
+        body.length > 12000 ||
         title.length > 3000 ||
         criterion.length > 2000 ||
         pupilPerspective.length > 2000 ||

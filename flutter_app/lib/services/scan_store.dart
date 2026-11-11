@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
 import '../domain/models.dart';
+import '../domain/material_versions.dart';
 import '../domain/repository.dart';
 import 'material_files.dart';
 import 'scan_images.dart';
@@ -16,11 +17,10 @@ Future<void> removeUnusedScanFiles(
   final docs = await repo.classroomDocuments();
   final drafts = await repo.dialogDrafts();
   final retained = {
-    for (final d in docs) d.text('localKey'),
-    for (final d in drafts)
-      if (d.data['localKey'] is String) d.data['localKey'] as String,
+    for (final d in docs) ...materialFileKeys(d.toJson()),
+    for (final d in drafts) ...materialFileKeys(d.data),
     for (final d in drafts.where((d) => d.type == 'scan'))
-      for (final p in d.data['pages'] as List) p['key'] as String,
+      ...scanFileKeys(d.data),
   };
   for (final key
       in keys.where((k) => k.isNotEmpty && !retained.contains(k)).toSet()) {
@@ -41,11 +41,7 @@ Future<void> discardScan(
     });
   }
   await repo.discardDialogDraft(draft.id, draft.revision);
-  await removeUnusedScanFiles(
-    repo,
-    files,
-    (draft.data['pages'] as List).map((p) => p['key'] as String),
-  );
+  await removeUnusedScanFiles(repo, files, scanFileKeys(draft.data));
 }
 
 Future<ClassroomDocument> saveScan(
@@ -94,6 +90,12 @@ Future<ClassroomDocument> saveScan(
       'Zum Ersetzen eines Fotos bitte genau ein Bild behalten.',
     );
   }
+  final previousVersion = source == null
+      ? null
+      : materialVersionSnapshot({
+          ...source.toJson(),
+          'size': (await files.read(source.text('localKey'))).length,
+        });
   final outputs = photo ? inputs : [await compute(scanPdf, inputs)];
   final keys = <String>[];
   final documents = <ClassroomDocument>[];
@@ -114,6 +116,11 @@ Future<ClassroomDocument> saveScan(
         'extension': photo ? 'jpg' : 'pdf',
         'localKey': key,
         'size': item.$2.length,
+        if (source != null)
+          'versions': [
+            previousVersion!,
+            ...materialVersions(source.toJson()),
+          ].take(materialVersionLimit).toList(),
         'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
         'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
@@ -147,8 +154,8 @@ Future<ClassroomDocument> saveScan(
   // The committed document survives a best-effort cleanup failure.
   try {
     await removeUnusedScanFiles(repo, files, [
-      ...pages.map((p) => p.key),
-      if (source != null) source.text('localKey'),
+      ...scanFileKeys(draft.data),
+      if (source != null) ...materialFileKeys(source.toJson()),
     ]);
   } catch (_) {}
   return saved;
