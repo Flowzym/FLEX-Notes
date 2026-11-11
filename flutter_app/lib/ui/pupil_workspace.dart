@@ -444,7 +444,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontFamily: 'FlexSans',
-            fontSize: 20,
+            fontSize: 18,
             height: 1.15,
           ),
         ),

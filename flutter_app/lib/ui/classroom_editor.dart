@@ -1,3 +1,4 @@
+import 'material_tags.dart';
 import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
@@ -555,19 +556,10 @@ Future<void> showClassroomEditor(
                 onChanged: (v) => change({'audience': v}),
               ),
               const SizedBox(height: 10),
-              TextFormField(
-                initialValue: (data['tags'] as List? ?? []).join(', '),
-                decoration: const InputDecoration(
-                  labelText: 'Schlagwörter · mit Komma trennen',
-                ),
-                onChanged: (v) => change({
-                  'tags': v
-                      .split(',')
-                      .map((s) => s.trim())
-                      .where((s) => s.isNotEmpty)
-                      .toSet()
-                      .toList(),
-                }),
+              MaterialTagEditor(
+                values: List<String>.from(data['tags'] as List? ?? []),
+                suggestions: materialTagUsage(c).keys,
+                onChanged: (v) => change({'tags': v}),
               ),
             ],
             if (kind == ClassroomKind.plan) ...[

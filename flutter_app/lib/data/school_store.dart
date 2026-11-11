@@ -127,6 +127,11 @@ mixin SchoolStore {
       }
     }
     if (draftId != null) {
+      await (this as SqliteNotebook)._publishSchoolAttachments(
+        draftId,
+        record,
+        [saved],
+      );
       await db.customStatement('DELETE FROM school_drafts WHERE id=?', [
         draftId,
       ]);
@@ -205,6 +210,11 @@ mixin SchoolStore {
         utcNow(),
       ],
     );
+    await (this as SqliteNotebook)._publishSchoolAttachments(
+      requestId,
+      record,
+      result,
+    );
     await db.customStatement('DELETE FROM school_drafts WHERE id=?', [
       requestId,
     ]);
@@ -266,6 +276,19 @@ mixin SchoolStore {
           updatedAtUtc: utcNow(),
         ),
       );
+      await (this as SqliteNotebook)._recoverGroupAttachments(
+        'bulkDraft',
+        recovered.id,
+        (request['school'] as List)
+            .map((j) => SchoolRecord.fromJson(Json.from(j as Map)))
+            .toList(),
+        (request['orga'] as List)
+            .map((j) => OrgaEntry.fromJson(Json.from(j as Map)))
+            .toList(),
+        (originalDraft.data['tasks'] as List? ?? [])
+            .map((j) => HomeworkTask.fromJson(Json.from(j as Map)))
+            .toList(),
+      );
       await db.customStatement(
         'UPDATE group_saves SET undone_at_utc=?,recovery_draft_id=? WHERE id=?',
         [utcNow(), recovered.id, id],
@@ -301,6 +324,13 @@ mixin SchoolStore {
         recipients: List<String>.from(request['recipients'] as List),
         updatedAtUtc: utcNow(),
       ),
+    );
+    await (this as SqliteNotebook)._recoverGroupAttachments(
+      'schoolDraft',
+      draftId,
+      originals,
+      [],
+      SchoolRecord.fromJson(Json.from(request['template'] as Map)).tasks,
     );
     await db.customStatement(
       'UPDATE group_saves SET undone_at_utc=?,recovery_draft_id=? WHERE id=?',
@@ -338,6 +368,7 @@ mixin SchoolStore {
       'SELECT payload FROM school_drafts WHERE id=?',
       [draft.id],
     );
+    final removedTasks = <String>{};
     if (existing.isNotEmpty) {
       final j = Json.from(
         jsonDecode(existing.single['payload'] as String) as Map,
@@ -345,6 +376,11 @@ mixin SchoolStore {
       if (j['editRevision'] != draft.editRevision) {
         throw const StaleRevision();
       }
+      removedTasks.addAll(
+        SchoolRecord.fromJson(Json.from(j['record'] as Map)).tasks
+            .map((t) => t.id)
+            .where((id) => !draft.record.tasks.any((t) => t.id == id)),
+      );
     } else if (draft.editRevision != 0) {
       throw const StaleRevision();
     }
@@ -368,6 +404,15 @@ mixin SchoolStore {
         saved.updatedAtUtc,
       ],
     );
+    if (removedTasks.isNotEmpty) {
+      await (this as SqliteNotebook)._rewriteAttachmentLinks(
+        (link) =>
+            link.kind == 'schoolDraft' &&
+            link.id == saved.id &&
+            removedTasks.contains(link.taskId),
+        (_) => [DocumentLink('schoolDraft', saved.id)],
+      );
+    }
     return saved;
   });
   Future<void> discardSchoolDraft(String id, {int? expectedRevision}) =>
@@ -375,6 +420,10 @@ mixin SchoolStore {
         if (expectedRevision != null) {
           await _checkDraftRevision(id, expectedRevision);
         }
+        await (this as SqliteNotebook)._detachDraftAttachments(
+          'schoolDraft',
+          id,
+        );
         await db.customStatement('DELETE FROM school_drafts WHERE id=?', [id]);
       });
 

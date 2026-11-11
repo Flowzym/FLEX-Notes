@@ -494,11 +494,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('observation-date')));
       await tester.pumpAndSettle();
       await capture(tester, boundary, 'reference-calendar-date');
-      expect(find.byKey(const ValueKey('calendar-hour')), findsNothing);
+      expect(find.byKey(const ValueKey('calendar-time')), findsNothing);
       await tester.tap(find.text('Uhrzeit hinzufügen'));
       await tester.pumpAndSettle();
       await capture(tester, boundary, 'reference-calendar-time');
-      expect(find.byKey(const ValueKey('calendar-hour')), findsOneWidget);
+      expect(find.byKey(const ValueKey('calendar-time')), findsOneWidget);
       await tester.tap(find.byTooltip('Uhrzeit entfernen'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('calendar-day-2026-11-02')));

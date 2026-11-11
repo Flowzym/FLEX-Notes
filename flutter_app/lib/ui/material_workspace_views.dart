@@ -228,6 +228,13 @@ Future<void> showMaterialDetails(
                     ),
                   if (d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => shareMaterials(ctx, [d])),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Teilen'),
+                    ),
+                  if (d.text('localKey').isNotEmpty)
+                    OutlinedButton.icon(
                       onPressed: () => guarded(ctx, () async {
                         final bytes = await const LocalMaterialFiles().read(
                           d.text('localKey'),
@@ -242,8 +249,8 @@ Future<void> showMaterialDetails(
                               : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                         );
                       }),
-                      icon: const Icon(Icons.ios_share),
-                      label: const Text('Teilen / Exportieren'),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Exportieren'),
                     ),
                   OutlinedButton.icon(
                     onPressed: () => showClassroomEditor(

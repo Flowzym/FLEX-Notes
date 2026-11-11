@@ -220,8 +220,8 @@ class FlexBottomNavigation extends StatelessWidget {
                   children: [
                     for (final e in const [
                       (0, 'Kalender', Icons.calendar_today_outlined),
-                      (1, 'Live', Icons.people_outline_rounded),
                       (2, 'Organisation', Icons.layers_outlined),
+                      (1, 'Live', Icons.people_outline_rounded),
                       (3, 'Material', Icons.folder_outlined),
                       (4, 'Mehr', Icons.more_horiz),
                     ])
@@ -290,4 +290,15 @@ class FlexBottomNavigation extends StatelessWidget {
       },
     ),
   );
+}
+
+/// A short, critically damped snap without elastic overscroll.
+class FlexPageScrollPhysics extends PageScrollPhysics {
+  const FlexPageScrollPhysics({super.parent});
+  @override
+  FlexPageScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      FlexPageScrollPhysics(parent: buildParent(ancestor));
+  @override
+  SpringDescription get spring =>
+      SpringDescription.withDampingRatio(mass: .5, stiffness: 900, ratio: 1);
 }

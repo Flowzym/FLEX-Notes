@@ -1,3 +1,6 @@
+import 'scan_batch_filter.dart';
+import 'share_documents.dart';
+import '../services/material_sharing.dart';
 import 'detail_flow.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -25,6 +28,7 @@ import 'flex_modal.dart';
 import 'scan_page_editor.dart';
 import 'scan_tools.dart';
 import 'material_thumbnail.dart';
+import 'material_tags.dart';
 
 Future<ClassroomDocument?> showDocumentScanner(
   BuildContext context,
@@ -40,6 +44,21 @@ Future<ClassroomDocument?> showDocumentScanner(
 );
 
 String documentLinkLabel(NotebookController c, DocumentLink link) {
+  if (link.kind == 'orgaDraft') {
+    final draft = c.drafts.where((d) => d.id == link.id).firstOrNull;
+    return 'Entwurf · ${draft == null ? 'Orga' : c.owner(draft.entry)} · ${draft?.entry.title ?? ''}';
+  }
+  if (link.kind == 'schoolDraft') {
+    final r = c.schoolDrafts.where((d) => d.id == link.id).firstOrNull?.record;
+    final owner =
+        c.pupils.where((p) => p.id == r?.pupilId).firstOrNull?.name ??
+        'Schüler';
+    final task = r?.tasks.where((t) => t.id == link.taskId).firstOrNull;
+    return 'Entwurf · $owner · ${r?.kind.label ?? 'Eintrag'}${task == null ? '' : ' · ${task.text.isEmpty ? 'Aufgabe' : task.text}'}';
+  }
+  if (link.kind == 'bulkDraft') {
+    return 'Entwurf · Gruppeneintrag${link.taskId.isEmpty ? '' : ' · Aufgabe'}';
+  }
   if (link.kind == 'school' && link.taskId.isNotEmpty) {
     final record = c.records.where((r) => r.id == link.id).firstOrNull;
     final task = record?.tasks.where((t) => t.id == link.taskId).firstOrNull;
@@ -142,6 +161,7 @@ Future<List<DocumentLink>?> chooseDocumentLinks(
                 subtitle: Text(switch (l.kind) {
                   'orga' => 'Orga',
                   'school' => 'Schüler',
+                  'orgaDraft' || 'schoolDraft' || 'bulkDraft' => 'Entwurf',
                   'lesson' => 'Unterrichtsstunde',
                   _ => 'Klasse',
                 }),
@@ -200,7 +220,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   late Json data;
   late DraftBuffer buffer;
-  late TextEditingController title, tags;
+  late TextEditingController title;
   bool pageEditorOpen = false, pageGrid = true;
   String? sourceSignature;
   bool loadingSource = false;
@@ -212,6 +232,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   String progress = '';
   String? cameraNotice;
   ScanPage? removedPage;
+  final filterUndo = <String, ScanPage>{};
   int removedIndex = 0;
   String scanError(Object e) {
     if (e is PlatformException &&
@@ -263,9 +284,6 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'sourceRevision': source.revision,
       };
     }
-    tags = TextEditingController(
-      text: (data['tags'] as List? ?? []).join(', '),
-    );
     title = TextEditingController(text: data['title'] as String);
     knownKeys.addAll(pages.map((p) => p.key));
     buffer = DraftBuffer(
@@ -327,7 +345,6 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     buffer.dispose();
     title.dispose();
-    tags.dispose();
     super.dispose();
   }
 
@@ -732,7 +749,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     );
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
-    await removeUnusedScanFiles(c.repository, widget.files, [page.key]);
+    await cleanupPages([page.key]);
   });
   Future<void> deletePage(int index) => action(() async {
     final next = pages;
@@ -765,41 +782,21 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   Future<void> filterPages() => action(() async {
     final originals = pages;
     if (originals.isEmpty) return;
-    final first = await widget.files.read(originals.first.key);
-    final bundle = await compute(scanPreviewBundle, first);
-    if (!mounted) return;
-    var selected = 'document';
-    final filter = await showDialog<String>(
+    final choice = await showDialog<(String, Set<String>)>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => FlexModal(
-          title: Text('Filter für ${originals.length} Seiten'),
-          onClose: () => Navigator.pop(ctx),
-          content: ScanFilterStrip(
-            thumbnails: Map<String, Uint8List>.from(
-              bundle['thumbnails'] as Map,
-            ),
-            selected: selected,
-            onSelected: (v) => update(() => selected = v),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, selected),
-              child: const Text('Auf alle anwenden'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => ScanBatchFilter(pages: originals, files: widget.files),
     );
-    if (filter == null || !mounted) return;
+    if (choice == null || !mounted) return;
+    final (filter, selected) = choice;
+    final undo = <String, ScanPage>{};
     // Stage all new pixels before switching the ordered draft references. A
     // failure retains the old pages; failed metadata writes remain retryable.
     final next = <ScanPage>[];
     for (final page in originals) {
+      if (!selected.contains(page.key)) {
+        next.add(page);
+        continue;
+      }
       setState(
         () => progress = 'Seite ${next.length + 1} von ${originals.length} …',
       );
@@ -810,6 +807,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       final key = newId();
       await widget.files.write(key, result['bytes'] as Uint8List);
       knownKeys.add(key);
+      undo[key] = page;
       next.add(
         ScanPage(
           key,
@@ -822,11 +820,19 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
-    await removeUnusedScanFiles(
-      c.repository,
-      widget.files,
-      originals.map((p) => p.key),
-    );
+    filterUndo
+      ..clear()
+      ..addAll(undo);
+    // Keep the previous pixels until save/close for a lossless one-step undo.
+  });
+  Future<void> undoFilter() => action(() async {
+    change({
+      'pages': [
+        for (final page in pages) (filterUndo[page.key] ?? page).toJson(),
+      ],
+    });
+    await buffer.flush();
+    filterUndo.clear();
   });
 
   Widget pageTiles() => LayoutBuilder(
@@ -952,6 +958,32 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         height: height,
       );
 
+  Future<void> shareCurrent() => action(() async {
+    await buffer.flush();
+    final bytes = [for (final p in pages) await widget.files.read(p.key)];
+    final name = title.text.trim().isEmpty ? 'Scan' : title.text.trim();
+    final documents = photoOutput
+        ? [
+            for (final page in bytes.indexed)
+              SharedDocument(
+                scanFilename(
+                  '$name${bytes.length == 1 ? '' : ' · ${page.$1 + 1}'}',
+                  extension: 'jpg',
+                ),
+                page.$2,
+                'image/jpeg',
+              ),
+          ]
+        : [
+            SharedDocument(
+              scanFilename(name),
+              await compute(scanPdf, bytes),
+              'application/pdf',
+            ),
+          ];
+    if (mounted) await sharePreparedDocuments(context, documents);
+  });
+
   Future<void> save() => action(() async {
     await retainSourceCopy();
     if (nativeCamera && data['capturePending'] == true) await recoverPhoto();
@@ -1073,10 +1105,22 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+              if (pages.any((p) => filterUndo.containsKey(p.key)))
+                IconButton(
+                  tooltip: 'Stapelfilter rückgängig',
+                  onPressed: busy ? null : undoFilter,
+                  icon: const Icon(Icons.undo),
+                ),
+              if (pages.isNotEmpty)
+                IconButton(
+                  tooltip: 'Teilen',
+                  onPressed: busy ? null : shareCurrent,
+                  icon: const Icon(Icons.ios_share),
+                ),
               if (pages.length > 1)
                 IconButton(
                   key: const ValueKey('scan-batch-filter'),
-                  tooltip: 'Filter für alle Seiten',
+                  tooltip: 'Seiten filtern',
                   onPressed: busy ? null : filterPages,
                   icon: const Icon(Icons.auto_fix_high),
                 ),
@@ -1218,15 +1262,12 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          TextField(
+          MaterialTagEditor(
             key: const ValueKey('scan-tags'),
-            controller: tags,
+            values: List<String>.from(data['tags'] as List? ?? []),
+            suggestions: materialTagUsage(c).keys,
             enabled: !busy,
-            decoration: const InputDecoration(
-              labelText: 'Tags (mit Komma trennen)',
-              prefixIcon: Icon(Icons.sell_outlined),
-            ),
-            onChanged: (v) => change({'tags': scanTags(v)}),
+            onChanged: (v) => change({'tags': v}),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -1266,7 +1307,9 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
                 icon: const Icon(Icons.people_outline),
                 label: Text(
                   pupilIds.isEmpty
-                      ? 'FLEX-Klasse'
+                      ? (links.any((l) => l.kind.endsWith('Draft'))
+                            ? 'Über Entwurf zugeordnet'
+                            : 'FLEX-Klasse')
                       : '${pupilIds.length} Schüler',
                 ),
               ),

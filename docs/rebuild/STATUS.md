@@ -1,4 +1,18 @@
-# Aktueller Stand: 0.17.2+59
+# Aktueller Stand: 0.18.0+60
+
+Anhänge bereits vor dem Speichern eines Eintrags, gemeinsame Tag-Auswahl und
+Tag-Verwaltung, echtes Teilen sowie Stapelfilter mit Seitenauswahl, Vorschau und
+Rückgängig-Funktion. Live steht unten mittig; Abstände, Titel, Uhrzeiteingabe und
+Swipe-Übergänge sind angepasst.
+
+500 Flutter-Tests, 11 Schematests und 3 Servertests bestanden. Zusätzliche
+Nachprüfungen der abschließenden Datenfluss-/Materialänderungen: 34 + 17 Tests.
+Analyse ohne Befunde; Release-Webbuild erfolgreich. Android-Geräteprüfung bleibt offen.
+[Änderungen, kritisches Review und Prüfgrenzen](QUALITY-BUILD-60.md).
+
+---
+
+# Vorheriger Stand: 0.17.2+59
 
 Schülerzeilen haben mehr Abstand zur Trennlinie: unten 10 statt 2 logische Pixel,
 oben 6 statt 2. Jede Zeile ist damit 12 Pixel höher. Die fünf Eintragungsaktionen

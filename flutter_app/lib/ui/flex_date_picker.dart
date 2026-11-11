@@ -19,9 +19,12 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
   late DateTime selected, visible;
   late bool withTime;
   late int hour, minute;
+  late TextEditingController timeText;
+  String? timeError;
   final dayFocus = <String, FocusNode>{};
   @override
   void dispose() {
+    timeText.dispose();
     for (final node in dayFocus.values) {
       node.dispose();
     }
@@ -71,6 +74,47 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
         : int.tryParse(parts.last) ?? 0;
     hour = hour.clamp(0, 23);
     minute = minute.clamp(0, 59);
+    timeText = TextEditingController(text: formattedTime);
+  }
+
+  String get formattedTime =>
+      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+
+  bool readTime({bool showError = true}) {
+    var text = timeText.text.trim();
+    if (RegExp(r'^\d{3,4}$').hasMatch(text)) {
+      text =
+          '${text.substring(0, text.length - 2)}:${text.substring(text.length - 2)}';
+    }
+    final match = RegExp(r'^([01]?\d|2[0-3]):([0-5]\d)$').firstMatch(text);
+    if (match == null) {
+      if (showError) {
+        setState(() => timeError = 'Bitte eine Uhrzeit eingeben, z. B. 08:30.');
+      }
+      return false;
+    }
+    hour = int.parse(match[1]!);
+    minute = int.parse(match[2]!);
+    return true;
+  }
+
+  Future<void> chooseTime() async {
+    readTime(showError: false);
+    final value = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: hour, minute: minute),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (value == null || !mounted) return;
+    setState(() {
+      hour = value.hour;
+      minute = value.minute;
+      timeText.text = formattedTime;
+      timeError = null;
+    });
   }
 
   void month(int value) =>
@@ -87,7 +131,7 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
         widget.title,
         style: const TextStyle(
           fontFamily: 'FlexSans',
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -291,47 +335,36 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<int>(
-                      key: const ValueKey('calendar-hour'),
-                      initialValue: hour,
-                      isExpanded: true,
-                      menuMaxHeight: 280,
-                      decoration: const InputDecoration(labelText: 'Stunde'),
-                      items: [
-                        for (var i = 0; i < 24; i++)
-                          DropdownMenuItem(
-                            value: i,
-                            child: Text(i.toString().padLeft(2, '0')),
-                          ),
+                    child: TextField(
+                      key: const ValueKey('calendar-time'),
+                      controller: timeText,
+                      keyboardType: TextInputType.datetime,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
+                        LengthLimitingTextInputFormatter(5),
                       ],
-                      onChanged: (v) => setState(() => hour = v!),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(':'),
-                  ),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      key: const ValueKey('calendar-minute'),
-                      initialValue: minute,
-                      isExpanded: true,
-                      menuMaxHeight: 280,
-                      decoration: const InputDecoration(labelText: 'Minute'),
-                      items: [
-                        for (var i = 0; i < 60; i++)
-                          DropdownMenuItem(
-                            value: i,
-                            child: Text(i.toString().padLeft(2, '0')),
-                          ),
-                      ],
-                      onChanged: (v) => setState(() => minute = v!),
+                      decoration: InputDecoration(
+                        labelText: 'Uhrzeit',
+                        hintText: 'HH:mm',
+                        errorText: timeError,
+                        suffixIcon: IconButton(
+                          tooltip: 'Uhrzeit auf der Uhr wählen',
+                          onPressed: chooseTime,
+                          icon: const Icon(Icons.schedule),
+                        ),
+                      ),
+                      onChanged: (_) {
+                        if (timeError != null) setState(() => timeError = null);
+                      },
                     ),
                   ),
                   if (!widget.requireTime)
                     IconButton(
                       tooltip: 'Uhrzeit entfernen',
-                      onPressed: () => setState(() => withTime = false),
+                      onPressed: () => setState(() {
+                        withTime = false;
+                        timeError = null;
+                      }),
                       icon: const Icon(Icons.close),
                     ),
                 ],
@@ -357,12 +390,13 @@ class _FlexDatePickerState extends State<_FlexDatePicker> {
               child: const Text('Datum entfernen'),
             ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, (
-              dateOnly(selected),
-              widget.allowTime && withTime
-                  ? '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}'
-                  : '',
-            )),
+            onPressed: () {
+              if (widget.allowTime && withTime && !readTime()) return;
+              Navigator.pop(context, (
+                dateOnly(selected),
+                widget.allowTime && withTime ? formattedTime : '',
+              ));
+            },
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
             ),

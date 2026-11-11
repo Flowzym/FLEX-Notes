@@ -175,11 +175,19 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     debounce = Timer(const Duration(milliseconds: 400), persist);
   }
 
-  Future<bool> persist() async {
+  bool get hasDraftAttachments {
+    final scope = orgaDraftScanContext(c, draftId, value);
+    return c.classroom.any(scope.matchesMaterial) ||
+        c.dialogDrafts.any(scope.matchesDraft);
+  }
+
+  Future<bool> persist({bool force = false}) async {
     final snapshot = value, types = typeDraft, generation = editGeneration;
-    if (dirty) {
+    if (dirty || force || draftRevision > 0) {
       pending = pending.catchError((Object _) {}).then((_) async {
-        if (signature(snapshot, types) == baseline) {
+        if (!force &&
+            signature(snapshot, types) == baseline &&
+            !hasDraftAttachments) {
           if (draftRevision > 0) {
             await c.repository.discardDraft(
               draftId,
@@ -187,7 +195,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             );
             draftRevision = 0;
           }
-        } else {
+        } else if (dirty || force && draftRevision == 0) {
           final saved = await c.repository.saveDraft(
             EditDraft(
               id: draftId,
@@ -332,7 +340,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  Future<void> save({bool documents = false, bool scan = false}) async {
+  Future<void> save() async {
     if (busy) return;
     debounce?.cancel();
     setState(() {
@@ -360,15 +368,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       saved.validate();
       await c.saveEntry(saved, draftId: draftId, draftRevision: draftRevision);
       if (!mounted) return;
-      final host = Navigator.of(context).context;
       await pop();
-      if ((documents || scan) && host.mounted) {
-        if (scan) {
-          await scanAndShow(host, c, orgaScanContext(c, saved));
-        } else {
-          await showContextDocuments(host, c, orgaScanContext(c, saved));
-        }
-      }
     } catch (e) {
       if (mounted) {
         setState(() => error = friendlyError(e));
@@ -376,6 +376,31 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       }
     }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> openAttachments({bool scan = false}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await persist(force: true) || !mounted) return;
+      final scope = orgaDraftScanContext(c, draftId, value);
+      if (scan) {
+        await scanAndShow(context, c, scope);
+      } else {
+        await showContextDocuments(
+          context,
+          c,
+          scope,
+          additionalScopes: [orgaScanContext(c, value)],
+        );
+      }
+      if (mounted) await persist();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   void addItem({bool fromEnter = false}) {
@@ -544,29 +569,6 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                 EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
             ],
             actions: [
-              IconButton(
-                tooltip: entry.revision == 0
-                    ? 'Speichern und Dokumente öffnen'
-                    : 'Dokumente',
-                icon: const Icon(Icons.folder_open_outlined),
-                onPressed: busy
-                    ? null
-                    : () => entry.revision == 0
-                          ? save(documents: true)
-                          : navigateEntry(
-                              () => showContextDocuments(
-                                context,
-                                c,
-                                orgaScanContext(
-                                  c,
-                                  c.entries
-                                          .where((e) => e.id == entry.id)
-                                          .firstOrNull ??
-                                      entry,
-                                ),
-                              ),
-                            ),
-              ),
               AnimatedBuilder(
                 animation: c,
                 builder: (_, _) => EntryHeaderButton(
@@ -914,26 +916,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   DocumentAttachmentSection(
                     controller: c,
-                    scope: orgaScanContext(c, value),
-                    saveFirst: entry.revision == 0,
-                    onScan: () => entry.revision == 0
-                        ? save(scan: true)
-                        : navigateEntry(
-                            () => scanAndShow(
-                              context,
-                              c,
-                              orgaScanContext(c, value),
-                            ),
-                          ),
-                    onDocuments: () => entry.revision == 0
-                        ? save(documents: true)
-                        : navigateEntry(
-                            () => showContextDocuments(
-                              context,
-                              c,
-                              orgaScanContext(c, value),
-                            ),
-                          ),
+                    scope: orgaDraftScanContext(c, draftId, value),
+                    additionalScopes: [orgaScanContext(c, value)],
+                    onScan: () => openAttachments(scan: true),
+                    onDocuments: () => openAttachments(),
                   ),
                   if (error != null)
                     Padding(

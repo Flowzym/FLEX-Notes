@@ -335,7 +335,7 @@ void main() {
       expect(find.text('Kopien vorbereiten'), findsOneWidget);
       for (final label in [
         'Scannen / Foto',
-        'Dokumente · 0',
+        'Dateien · 0',
         'Erledigen',
         'Wiederholung',
         'Erinnerung verschieben',

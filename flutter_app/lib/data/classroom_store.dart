@@ -123,20 +123,53 @@ mixin ClassroomStore on SchoolStore {
         .map((d) => d.id)
         .toSet();
     final school = {for (final r in await schoolRecords()) r.id: r};
+    final schoolDrafts = {
+      for (final d in await this.schoolDrafts()) d.id: d.record,
+    };
+    final orgaDrafts = (await (this as SqliteNotebook).drafts())
+        .map((d) => d.id)
+        .toSet();
+    final pending = await (this as SqliteNotebook).dialogDrafts();
+    final bulkDrafts = {
+      for (final d in pending)
+        if (d.type == 'bulk') d.id: d,
+    };
     final documentIds = docs.map((d) => d.id).toSet();
+    bool validLink(DocumentLink link) => switch (link.kind) {
+      'orga' => orga.contains(link.id),
+      'school' =>
+        school.containsKey(link.id) &&
+            (link.taskId.isEmpty ||
+                school[link.id]!.kind == SchoolKind.homework &&
+                    school[link.id]!.tasks.any((t) => t.id == link.taskId)),
+      'orgaDraft' => orgaDrafts.contains(link.id),
+      'schoolDraft' =>
+        schoolDrafts.containsKey(link.id) &&
+            (link.taskId.isEmpty ||
+                schoolDrafts[link.id]!.tasks.any((t) => t.id == link.taskId)),
+      'bulkDraft' =>
+        bulkDrafts.containsKey(link.id) &&
+            (link.taskId.isEmpty ||
+                (bulkDrafts[link.id]!.data['tasks'] as List? ?? []).any(
+                  (t) => t['id'] == link.taskId,
+                )),
+      'lesson' => lessons.contains(link.id),
+      _ => documentIds.contains(link.id),
+    };
+    for (final scan in pending.where((d) => d.type == 'scan')) {
+      for (final raw in scan.data['links'] as List) {
+        final link = DocumentLink.fromJson(Json.from(raw as Map));
+        if (link.kind.endsWith('Draft') && !validLink(link)) {
+          throw const DomainError(
+            'Ein Scan verweist auf einen fehlenden Entwurf.',
+          );
+        }
+      }
+    }
     for (final d in docs) {
       for (final value in d.rows('links')) {
         final link = DocumentLink.fromJson(value);
-        final valid = switch (link.kind) {
-          'orga' => orga.contains(link.id),
-          'school' =>
-            school.containsKey(link.id) &&
-                (link.taskId.isEmpty ||
-                    school[link.id]!.kind == SchoolKind.homework &&
-                        school[link.id]!.tasks.any((t) => t.id == link.taskId)),
-          'lesson' => lessons.contains(link.id),
-          _ => documentIds.contains(link.id),
-        };
+        final valid = validLink(link);
         if (!valid) {
           throw const DomainError(
             'Eine Dokumentzuordnung fehlt. Bitte zuerst die zugehörigen Einträge wiederherstellen oder die Zuordnung ändern.',

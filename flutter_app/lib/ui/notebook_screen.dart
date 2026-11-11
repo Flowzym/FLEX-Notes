@@ -174,8 +174,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (mounted && _pages.hasClients) {
         _pages.animateToPage(
           index,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.linear,
         );
       }
     });
@@ -188,8 +188,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (mounted && _calendarPages.hasClients) {
         _calendarPages.animateToPage(
           index,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.linear,
         );
       }
     });
@@ -640,7 +640,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
               child: FlexPagePills(
                 keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
                 selected: switch (_destination) {
@@ -683,6 +683,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     children: [
                       if (_visited.contains(0))
                         PageView(
+                          physics: const FlexPageScrollPhysics(
+                            parent: ClampingScrollPhysics(),
+                          ),
                           key: const ValueKey('calendar-pages'),
                           controller: _calendarPages,
                           onPageChanged: (index) =>
@@ -709,6 +712,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       else
                         const SizedBox(),
                       PageView(
+                        physics: const FlexPageScrollPhysics(
+                          parent: ClampingScrollPhysics(),
+                        ),
                         key: const ValueKey('main-pages'),
                         controller: _pages,
                         onPageChanged: (index) {

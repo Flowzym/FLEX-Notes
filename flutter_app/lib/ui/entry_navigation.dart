@@ -73,7 +73,7 @@ class EntryPageHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
           if (compact && !actionsWithTitle)
             Align(
               alignment: Alignment.centerRight,
@@ -87,7 +87,7 @@ class EntryPageHeader extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
                       height: 1.2,
                     ),
@@ -367,7 +367,7 @@ Future<void> showAssignedHomework(
               'Hausübungen',
               style: TextStyle(
                 fontFamily: 'FlexSans',
-                fontSize: 20,
+                fontSize: 18,
                 height: 1.3,
               ),
             ),

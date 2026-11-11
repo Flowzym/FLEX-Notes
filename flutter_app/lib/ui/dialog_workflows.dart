@@ -1,5 +1,3 @@
-import 'dart:convert';
-import '../domain/document_scanner.dart';
 import 'document_attachments.dart';
 import 'compact_switch.dart';
 import 'draft_actions.dart';
@@ -69,6 +67,12 @@ class _ProtectedDialogState extends State<ProtectedDialog>
         if (mounted) setState(() {});
       },
       initial: widget.draft,
+      retainEmpty: (draft) {
+        if (draft.type != 'bulk') return false;
+        final scope = bulkDraftScanContext(draft.id);
+        return widget.controller.classroom.any(scope.matchesMaterial) ||
+            widget.controller.dialogDrafts.any(scope.matchesDraft);
+      },
     );
   }
 
@@ -148,9 +152,30 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     }
   }
 
-  Future<void> save({
-    Future<void> Function(BuildContext, DialogDraft)? afterSave,
-  }) async {
+  Future<void> openAttachment(bool scan, {String? taskId}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      final scope = bulkDraftScanContext(buffer.draft.id, taskId: taskId);
+      if (scan) {
+        await scanAndShow(context, widget.controller, scope);
+      } else {
+        await showContextDocuments(context, widget.controller, scope);
+      }
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> save() async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -161,11 +186,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       await widget.save(data, buffer.draft);
       await widget.controller.reload();
       if (mounted) {
-        final host = Navigator.of(context).context;
         await pop();
-        if (afterSave != null && host.mounted) {
-          await afterSave(host, buffer.draft);
-        }
       }
     } catch (e) {
       if (mounted) setState(() => error = friendlyError(e));
@@ -470,7 +491,6 @@ Future<void> showBulk(
   String initialSubject = '',
 }) async {
   final editorKey = GlobalKey<_ProtectedDialogState>();
-  final attachmentOwner = newId();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;
@@ -514,71 +534,22 @@ Future<void> showBulk(
         final kind = data['kind'] as String,
             ids = List<String>.from(data['recipients'] as List);
         final individuals = Json.from(data['individual'] as Map);
-        Future<void> openDocuments(
+        Widget attachments({
           HomeworkTask? task,
-          bool scan,
-        ) => guarded(ctx, () async {
-          final tasks = (data['tasks'] as List? ?? [])
-              .map((t) => HomeworkTask.fromJson(Json.from(t as Map)))
-              .where((t) => t.text.trim().isNotEmpty)
-              .toList();
-          final index = task == null
-              ? -1
-              : tasks.indexWhere((t) => t.id == task.id);
-          if (task != null && index < 0) {
-            throw const DomainError(
-              'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
-            );
-          }
-          await editorKey.currentState?.save(
-            afterSave: (host, saved) async {
-              final group = (await c.repository.schoolGroups()).firstWhere(
-                (g) => g['id'] == saved.id,
-              );
-              final request = Json.from(
-                jsonDecode(group['request'] as String) as Map,
-              );
-              final records = (request['school'] as List)
-                  .map((r) => SchoolRecord.fromJson(Json.from(r as Map)))
-                  .toList();
-              final entries = (request['orga'] as List)
-                  .map((e) => OrgaEntry.fromJson(Json.from(e as Map)))
-                  .toList();
-              final scope = records.isNotEmpty
-                  ? schoolScanContext(
-                      c,
-                      records,
-                      taskIds: {
-                        if (index >= 0)
-                          for (final r in records) r.id: r.tasks[index].id,
-                      },
-                    )
-                  : ScanContext(
-                      pupilIds: ids,
-                      links: entries
-                          .map((e) => DocumentLink('orga', e.id))
-                          .toList(),
-                      title: 'FLEX-Klasse · Orga',
-                      category: 'form',
-                    );
-              if (!host.mounted) return;
-              if (scan) {
-                await scanAndShow(host, c, scope);
-              } else {
-                await showContextDocuments(host, c, scope);
-              }
-            },
-          );
-        });
-        Widget attachments({HomeworkTask? task}) => DocumentAttachmentSection(
+          bool showActions = true,
+        }) => DocumentAttachmentSection(
           controller: c,
-          // This context is deliberately unique until the group has been saved.
-          scope: ScanContext(links: [DocumentLink('school', attachmentOwner)]),
-          saveFirst: true,
+          scope: bulkDraftScanContext(
+            editorKey.currentState!.buffer.draft.id,
+            taskId: task?.id,
+          ),
           compact: task != null,
-          showFiles: task == null,
-          onScan: () => openDocuments(task, true),
-          onDocuments: () => openDocuments(task, false),
+          showActions: showActions,
+          showFiles: task == null || !showActions,
+          onScan: () =>
+              editorKey.currentState?.openAttachment(true, taskId: task?.id),
+          onDocuments: () =>
+              editorKey.currentState?.openAttachment(false, taskId: task?.id),
         );
         Widget text(String key, String label, {int lines = 1}) => TextFormField(
           key: ValueKey('bulk-$kind-$key'),
@@ -845,6 +816,8 @@ Future<void> showBulk(
             if (kind == 'homework') ...[
               HomeworkTaskEditor(
                 attachmentActionsBuilder: (task) => attachments(task: task),
+                attachmentBuilder: (task) =>
+                    attachments(task: task, showActions: false),
                 tasks: (data['tasks'] as List)
                     .map((v) => HomeworkTask.fromJson(Json.from(v as Map)))
                     .toList(),

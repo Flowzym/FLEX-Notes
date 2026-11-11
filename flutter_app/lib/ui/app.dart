@@ -61,18 +61,18 @@ class FlexApp extends StatelessWidget {
             letterSpacing: 0,
           ),
           titleMedium: base.textTheme.titleMedium?.copyWith(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: 0,
           ),
           titleLarge: base.textTheme.titleLarge?.copyWith(
-            fontSize: 20,
+            fontSize: 18,
             height: 1.25,
             fontWeight: FontWeight.w600,
             letterSpacing: -.3,
           ),
           headlineSmall: base.textTheme.headlineSmall?.copyWith(
-            fontSize: 25,
+            fontSize: 22,
             height: 1.25,
             fontWeight: FontWeight.w700,
             letterSpacing: -.5,

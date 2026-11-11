@@ -13,10 +13,12 @@ import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
+import '../domain/material_tags.dart';
 import 'database.dart';
 part 'school_store.dart';
 part 'backup_merge_store.dart';
 part 'classroom_store.dart';
+part 'draft_document_store.dart';
 
 class SqliteNotebook
     with SchoolStore, ClassroomStore, BackupMergeStore
@@ -37,6 +39,50 @@ class SqliteNotebook
     );
   });
   SqliteNotebook(this.db);
+
+  @override
+  Future<void> renameMaterialTag(String oldTag, String? newTag) =>
+      db.transaction(() async {
+        final key = materialTagKey(oldTag);
+        final replacement = newTag == null ? null : checkedMaterialTag(newTag);
+        List<String> rewrite(Iterable<String> tags) => normalizeMaterialTags([
+          for (final tag in tags)
+            if (materialTagKey(tag) != key) tag else ?replacement,
+        ]);
+        bool affected(Iterable<String> tags) =>
+            tags.any((t) => materialTagKey(t) == key);
+        final revisions = <String, (int, int)>{};
+        for (final d in await classroomDocuments()) {
+          if (d.kind != ClassroomKind.material ||
+              !affected(d.strings('tags'))) {
+            continue;
+          }
+          final saved = await _writeClassroom(
+            d.patch({'tags': rewrite(d.strings('tags'))}),
+          );
+          revisions[d.id] = (d.revision, saved.revision);
+        }
+        for (final draft in await dialogDrafts()) {
+          if (!{'scan', 'classroom'}.contains(draft.type)) continue;
+          final tags = List<String>.from(draft.data['tags'] as List? ?? []);
+          final isScan = draft.type == 'scan';
+          final source = revisions[draft.data[isScan ? 'sourceId' : 'id']];
+          final revisionKey = isScan ? 'sourceRevision' : 'revision';
+          final updateSource =
+              source != null && draft.data[revisionKey] == source.$1;
+          if (!affected(tags) && !updateSource) continue;
+          await saveDialogDraft(
+            DialogDraft.fromJson({
+              ...draft.toJson(),
+              'data': {
+                ...draft.data,
+                if (affected(tags)) 'tags': rewrite(tags),
+                if (updateSource) revisionKey: source.$2,
+              },
+            }),
+          );
+        }
+      });
   @override
   final NotebookDatabase db;
 
@@ -379,7 +425,6 @@ class SqliteNotebook
         'Die Auswahl enthält einen nicht mehr aktiven Schüler. Bitte die Schülerauswahl neu treffen.',
       );
     }
-    await discardDialogDraft(draft.id, draft.revision);
     final kind = data['kind'] as String;
     String? contextId;
     if (kind == 'social' || kind == 'work') {
@@ -477,6 +522,28 @@ class SqliteNotebook
         school.add((await saveSchoolRecord(r)).toJson());
       }
     }
+    final templateTasks = (data['tasks'] as List? ?? [])
+        .where((t) => (t['text'] as String).trim().isNotEmpty)
+        .toList();
+    await _rewriteAttachmentLinks(
+      (link) => link.kind == 'bulkDraft' && link.id == draft.id,
+      (link) {
+        final index = templateTasks.indexWhere((t) => t['id'] == link.taskId);
+        return [
+          for (final r in school)
+            DocumentLink(
+              'school',
+              r['id'] as String,
+              taskId: index >= 0 && index < (r['tasks'] as List).length
+                  ? r['tasks'][index]['id'] as String
+                  : '',
+            ),
+          for (final e in orga) DocumentLink('orga', e['id'] as String),
+        ];
+      },
+      addedPupils: recipients.toSet(),
+    );
+    await discardDialogDraft(draft.id, draft.revision);
     await db.customStatement(
       'INSERT INTO group_saves(id,request,saved_at_utc) VALUES (?,?,?)',
       [
@@ -524,6 +591,24 @@ class SqliteNotebook
       'INSERT INTO context_drafts(id,entity_id,payload,updated_at_utc) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at_utc=excluded.updated_at_utc',
       [saved.id, saved.ownerId, jsonEncode(saved.toJson()), saved.updatedAtUtc],
     );
+    if (saved.type == 'bulk' && previous != null) {
+      final removedTasks = (previous.data['tasks'] as List? ?? [])
+          .map((t) => t['id'])
+          .where(
+            (id) =>
+                !(saved.data['tasks'] as List? ?? []).any((t) => t['id'] == id),
+          )
+          .toSet();
+      if (removedTasks.isNotEmpty) {
+        await _rewriteAttachmentLinks(
+          (l) =>
+              l.kind == 'bulkDraft' &&
+              l.id == saved.id &&
+              removedTasks.contains(l.taskId),
+          (_) => [DocumentLink('bulkDraft', saved.id)],
+        );
+      }
+    }
     return saved;
   });
   @override
@@ -539,6 +624,11 @@ class SqliteNotebook
                 Json.from(jsonDecode(rows.single['payload'] as String) as Map),
               ).revision;
         if (actual != revision) throw const StaleRevision();
+        if (rows.isNotEmpty &&
+            (jsonDecode(rows.single['payload'] as String) as Map)['type'] ==
+                'bulk') {
+          await _detachDraftAttachments('bulkDraft', id);
+        }
         await db.customStatement('DELETE FROM context_drafts WHERE id=?', [id]);
       });
   @override
@@ -810,6 +900,11 @@ class SqliteNotebook
         saved.toJson(),
       );
       if (draftId != null) {
+        await _rewriteAttachmentLinks(
+          (link) => link.kind == 'orgaDraft' && link.id == draftId,
+          (_) => [DocumentLink('orga', saved.id)],
+          addedPupils: {if (saved.pupilId != null) saved.pupilId!},
+        );
         await db.customStatement('DELETE FROM drafts WHERE id=?', [draftId]);
       }
       return saved;
@@ -929,6 +1024,7 @@ class SqliteNotebook
         if (expectedRevision != null) {
           await _checkOrgaDraft(id, expectedRevision);
         }
+        await _detachDraftAttachments('orgaDraft', id);
         await db.customStatement('DELETE FROM drafts WHERE id=?', [id]);
       });
   @override

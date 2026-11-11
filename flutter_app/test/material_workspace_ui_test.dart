@@ -130,6 +130,18 @@ void main() {
       await c.saveClassroom(material('Brüche'));
       await c.saveClassroom(material('Englisch'));
       await host(t, (_) => MaterialLibraryPage(controller: c));
+      t
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byKey(const PageStorageKey('materials-library')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position
+          .jumpTo(0);
+      await t.pumpAndSettle();
       await tap(t, find.byTooltip('Materialien suchen'));
       await t.enterText(find.byType(TextField), 'Brüche');
       await t.pumpAndSettle();
@@ -197,6 +209,18 @@ void main() {
     await tap(t, find.byKey(const ValueKey('material-format-docx')));
     expect(find.byKey(ValueKey(pdf.id)), findsNothing);
     expect(find.byKey(ValueKey(docx.id)), findsOneWidget);
+    t
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byKey(const PageStorageKey('materials-library')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position
+        .jumpTo(0);
+    await t.pumpAndSettle();
     await tap(t, find.byTooltip('Materialien suchen'));
     await t.enterText(find.byType(TextField), 'Kein Treffer');
     await t.pumpAndSettle();

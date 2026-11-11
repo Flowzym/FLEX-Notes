@@ -241,13 +241,21 @@ class _SchoolEditorState extends State<SchoolEditor>
     });
   }
 
-  Future<bool> persist() async {
+  bool get hasDraftAttachments {
+    final scope = schoolDraftScanContext(c, draftId, r, includeTasks: true);
+    return c.classroom.any(scope.matchesMaterial) ||
+        c.dialogDrafts.any(scope.matchesDraft);
+  }
+
+  Future<bool> persist({bool force = false}) async {
     final snapshot = r,
         targets = recipients.toList(),
         generation = editGeneration;
-    if (dirty) {
+    if (dirty || force || draftRevision > 0) {
       pending = pending.catchError((Object _) {}).then((_) async {
-        if (signature(snapshot, targets) == baseline) {
+        if (!force &&
+            signature(snapshot, targets) == baseline &&
+            !hasDraftAttachments) {
           if (draftRevision > 0) {
             await c.repository.discardSchoolDraft(
               draftId,
@@ -255,7 +263,7 @@ class _SchoolEditorState extends State<SchoolEditor>
             );
             draftRevision = 0;
           }
-        } else {
+        } else if (dirty || force && draftRevision == 0) {
           final saved = await c.repository.saveSchoolDraft(
             SchoolDraft(
               id: draftId,
@@ -384,11 +392,7 @@ class _SchoolEditorState extends State<SchoolEditor>
     }
   }
 
-  Future<void> save({
-    bool documents = false,
-    bool scan = false,
-    String? documentTaskId,
-  }) async {
+  Future<void> save() async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -465,17 +469,8 @@ class _SchoolEditorState extends State<SchoolEditor>
         });
       }
       r.validate();
-      final taskIndex = documentTaskId == null
-          ? -1
-          : r.tasks.indexWhere((t) => t.id == documentTaskId);
-      if (documentTaskId != null && taskIndex < 0) {
-        throw const DomainError(
-          'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
-        );
-      }
-      var documentRecords = <SchoolRecord>[r];
       if (r.revision == 0 && r.kind == SchoolKind.homework) {
-        documentRecords = await c.repository.saveSchoolGroup(
+        await c.repository.saveSchoolGroup(
           r,
           recipients.toList(),
           draftId,
@@ -485,26 +480,7 @@ class _SchoolEditorState extends State<SchoolEditor>
       } else {
         await c.saveRecord(r, draftId: draftId, draftRevision: draftRevision);
       }
-      if (mounted) {
-        final host = Navigator.of(context).context;
-        await pop();
-        if ((documents || scan) && host.mounted) {
-          final scope = schoolScanContext(
-            c,
-            documentRecords,
-            taskIds: {
-              if (taskIndex >= 0)
-                for (final record in documentRecords)
-                  record.id: record.tasks[taskIndex].id,
-            },
-          );
-          if (scan) {
-            await scanAndShow(host, c, scope);
-          } else {
-            await showContextDocuments(host, c, scope);
-          }
-        }
-      }
+      if (mounted) await pop();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -724,39 +700,57 @@ class _SchoolEditorState extends State<SchoolEditor>
     );
   }
 
+  Future<void> openAttachments({String? forTask, bool scan = false}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await persist(force: true) || !mounted) return;
+      final scope = schoolDraftScanContext(c, draftId, r, taskId: forTask);
+      if (scan) {
+        await scanAndShow(context, c, scope);
+      } else {
+        await showContextDocuments(
+          context,
+          c,
+          scope,
+          additionalScopes: [
+            schoolScanContext(
+              c,
+              [r],
+              taskIds: {r.id: ?forTask},
+              includeTasks: false,
+            ),
+          ],
+        );
+      }
+      if (mounted) await persist();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Widget attachments({
     String? forTask,
     bool showActions = true,
     bool showFiles = true,
-  }) {
-    final current = c.records.where((v) => v.id == r.id).firstOrNull;
-    final saveFirst =
-        current == null ||
-        forTask != null && !current.tasks.any((t) => t.id == forTask);
-    final scope = schoolScanContext(
-      c,
-      [r],
-      taskIds: {r.id: ?forTask},
-      includeTasks: false,
-    );
-    return DocumentAttachmentSection(
-      key: ValueKey(
-        'editor-${showActions ? 'attachments' : 'files'}-${forTask ?? 'entry'}',
-      ),
-      controller: c,
-      scope: scope,
-      saveFirst: saveFirst,
-      compact: forTask != null,
-      showActions: showActions,
-      showFiles: showFiles,
-      onScan: () => saveFirst
-          ? save(scan: true, documentTaskId: forTask)
-          : navigateEntry(() => scanAndShow(context, c, scope)),
-      onDocuments: () => saveFirst
-          ? save(documents: true, documentTaskId: forTask)
-          : navigateEntry(() => showContextDocuments(context, c, scope)),
-    );
-  }
+  }) => DocumentAttachmentSection(
+    key: ValueKey(
+      'editor-${showActions ? 'attachments' : 'files'}-${forTask ?? 'entry'}',
+    ),
+    controller: c,
+    scope: schoolDraftScanContext(c, draftId, r, taskId: forTask),
+    additionalScopes: [
+      schoolScanContext(c, [r], taskIds: {r.id: ?forTask}, includeTasks: false),
+    ],
+    compact: forTask != null,
+    showActions: showActions,
+    showFiles: showFiles,
+    onScan: () => openAttachments(forTask: forTask, scan: true),
+    onDocuments: () => openAttachments(forTask: forTask),
+  );
 
   Widget homework() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1102,7 +1096,7 @@ class _SchoolEditorState extends State<SchoolEditor>
           children: [
             TextSpan(
               text: title,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
             if (hint.isNotEmpty)
               TextSpan(text: '  $hint', style: const TextStyle(fontSize: 12)),
@@ -1159,7 +1153,7 @@ class _SchoolEditorState extends State<SchoolEditor>
             const Expanded(
               child: Text(
                 'Beobachtung',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
             ),
             IconButton(
@@ -1772,28 +1766,6 @@ class _SchoolEditorState extends State<SchoolEditor>
   Widget observationHeader() {
     final pupil = c.pupils.firstWhere((p) => p.id == r.pupilId);
     final actions = <Widget>[
-      IconButton(
-        iconSize: 20,
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        padding: const EdgeInsets.all(6),
-        tooltip: r.revision == 0
-            ? 'Speichern und Dokumente öffnen'
-            : 'Dokumente',
-        icon: const Icon(Icons.folder_open_outlined),
-        onPressed: busy
-            ? null
-            : () => r.revision == 0
-                  ? save(documents: true)
-                  : navigateEntry(
-                      () => showContextDocuments(
-                        context,
-                        c,
-                        schoolScanContext(c, [
-                          c.records.where((v) => v.id == r.id).firstOrNull ?? r,
-                        ]),
-                      ),
-                    ),
-      ),
       IconButton(
         iconSize: 20,
         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

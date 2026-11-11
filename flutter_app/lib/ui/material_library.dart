@@ -1,3 +1,6 @@
+import 'share_documents.dart';
+import 'material_tags.dart';
+import '../domain/material_tags.dart';
 import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'action_heading.dart';
@@ -559,6 +562,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   bool get grid => c.appearance.materialGrid;
   final search = TextEditingController();
   final selection = <String>{};
+  final tagFilter = <String>{};
   bool busy = false,
       trash = false,
       searching = false,
@@ -847,6 +851,24 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     }
   }
 
+  Future<void> tagSelection() async {
+    final documents = c.classroom
+        .where((d) => selection.contains(d.id))
+        .toList();
+    final choice = await chooseMaterialTags(
+      context,
+      c,
+      count: documents.length,
+    );
+    if (choice == null) return;
+    await c.saveClassroomBatch([
+      for (final d in documents)
+        d.patch({
+          'tags': changeMaterialTags(d.strings('tags'), choice.$2, choice.$1),
+        }),
+    ]);
+  }
+
   Future<void> togglePreparedToday(String id) async {
     final date = dateOnly(DateTime.now());
     final current = preparationFor(c.classroom, date);
@@ -956,6 +978,26 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                             action(addSelectionToPackage, showProgress: false),
                   icon: const Icon(Icons.folder_copy_outlined),
                   label: const Text('Paket'),
+                ),
+                IconButton(
+                  tooltip: 'Tags der Auswahl bearbeiten',
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () => action(tagSelection, showProgress: false),
+                  icon: const Icon(Icons.sell_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Auswahl teilen',
+                  onPressed: busy || selection.isEmpty
+                      ? null
+                      : () => action(
+                          () => shareMaterials(
+                            ctx,
+                            c.classroom.where((d) => selection.contains(d.id)),
+                          ),
+                          showProgress: false,
+                        ),
+                  icon: const Icon(Icons.ios_share),
                 ),
                 IconButton(
                   tooltip: 'Auswahl offline laden',
@@ -1161,6 +1203,11 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         d.kind == kind &&
                         d.deleted == trash &&
                         materialMatches(d, query, pupils: c.pupils) &&
+                        (view != 'files' ||
+                            matchesMaterialTags(
+                              d.strings('tags'),
+                              tagFilter,
+                            )) &&
                         (kind != ClassroomKind.material ||
                             (!favorites || d.flag('favorite')) &&
                                 (formatFilter == 'all' ||
@@ -1481,6 +1528,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                               label: Text(
                                 typeFilter != 'all' ||
                                         subjectFilter.isNotEmpty ||
+                                        tagFilter.isNotEmpty ||
                                         formatFilter != 'all'
                                     ? 'Filter aktiv'
                                     : 'Filter',
@@ -1514,6 +1562,43 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                         onSelected: (_) => setState(
                                           () => formatFilter = item.$1,
                                         ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Expanded(child: Text('Tags')),
+                                    IconButton(
+                                      tooltip: 'Tags verwalten',
+                                      onPressed: () =>
+                                          showMaterialTagManager(ctx, c),
+                                      icon: const Icon(Icons.edit_outlined),
+                                    ),
+                                    if (tagFilter.isNotEmpty)
+                                      TextButton(
+                                        onPressed: () =>
+                                            setState(tagFilter.clear),
+                                        child: const Text('Alle'),
+                                      ),
+                                  ],
+                                ),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    for (final tag in {
+                                      ...materialTagUsage(c).keys,
+                                      ...tagFilter,
+                                    })
+                                      FilterChip(
+                                        label: Text(tag),
+                                        selected: tagFilter.contains(tag),
+                                        onSelected: (_) => setState(() {
+                                          if (!tagFilter.add(tag)) {
+                                            tagFilter.remove(tag);
+                                          }
+                                        }),
                                       ),
                                   ],
                                 ),
@@ -1611,6 +1696,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                   favorites ||
                                   typeFilter != 'all' ||
                                   subjectFilter.isNotEmpty ||
+                                  tagFilter.isNotEmpty ||
                                   formatFilter != 'all')
                                 TextButton(
                                   onPressed: () => setState(() {
@@ -1619,6 +1705,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                     favorites = false;
                                     typeFilter = 'all';
                                     subjectFilter = '';
+                                    tagFilter.clear();
                                     formatFilter = 'all';
                                   }),
                                   child: const Text(

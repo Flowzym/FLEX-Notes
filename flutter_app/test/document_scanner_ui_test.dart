@@ -101,7 +101,9 @@ void main() {
   }
 
   Future<void> tap(WidgetTester t, Finder f) async {
+    await t.pump();
     await t.ensureVisible(f);
+    await t.pump();
     await t.tap(f);
     await t.pump();
   }
@@ -505,17 +507,37 @@ void main() {
         await tap(t, find.byKey(const ValueKey('scan-batch-filter')));
         await settleWork(
           t,
-          () => find.text('Auf alle anwenden').evaluate().isNotEmpty,
+          () =>
+              find
+                  .byKey(const ValueKey('scan-filter-gray'))
+                  .evaluate()
+                  .isNotEmpty &&
+              t
+                      .widget<FilledButton>(
+                        find.byKey(const ValueKey('scan-batch-apply')),
+                      )
+                      .onPressed !=
+                  null,
         );
         await tap(t, find.byKey(const ValueKey('scan-filter-gray')));
+        await settleWork(
+          t,
+          () =>
+              t
+                  .widget<FilledButton>(
+                    find.byKey(const ValueKey('scan-batch-apply')),
+                  )
+                  .onPressed !=
+              null,
+        );
         (c.repository as InterruptedScanRepository).failWrite = failMetadata;
-        await tap(t, find.text('Auf alle anwenden'));
+        await tap(t, find.text('Anwenden · 2'));
         await settleWork(
           t,
           () =>
               files.values.length >= (failMetadata ? 4 : 2) &&
               find.byType(LinearProgressIndicator).evaluate().isEmpty &&
-              find.text('Auf alle anwenden').evaluate().isEmpty,
+              find.text('Anwenden · 2').evaluate().isEmpty,
         );
         if (failMetadata) {
           expect(
@@ -539,6 +561,80 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'batch selection preserves unselected pixels and undo restores original page order',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          initialImages: [scannerImage(width: 180), scannerImage(width: 240)],
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      List<String> keys() => (c.dialogDrafts.single.data['pages'] as List)
+          .map((p) => p['key'] as String)
+          .toList();
+      final original = keys();
+      await tap(t, find.byKey(const ValueKey('scan-batch-filter')));
+      await settleWork(
+        t,
+        () =>
+            find
+                .byKey(const ValueKey('scan-filter-gray'))
+                .evaluate()
+                .isNotEmpty &&
+            t
+                    .widget<FilledButton>(
+                      find.byKey(const ValueKey('scan-batch-apply')),
+                    )
+                    .onPressed !=
+                null,
+      );
+      await tap(t, find.widgetWithText(FilterChip, 'Seite 2'));
+      await tap(t, find.byKey(const ValueKey('scan-filter-gray')));
+      await settleWork(
+        t,
+        () =>
+            t
+                .widget<FilledButton>(
+                  find.byKey(const ValueKey('scan-batch-apply')),
+                )
+                .onPressed !=
+            null,
+      );
+      await tap(t, find.byKey(const ValueKey('scan-batch-apply')));
+      await settleWork(
+        t,
+        () =>
+            keys().first != original.first &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(keys().last, original.last);
+      expect(original.every(files.values.containsKey), true);
+      await tap(t, find.byTooltip('Stapelfilter rückgängig'));
+      await settleWork(
+        t,
+        () =>
+            keys().first == original.first &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(keys(), original);
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      expect(files.values.keys.toSet(), original.toSet());
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets('cancelled replacement leaves the original untouched', (t) async {
     final c = await controller(), files = MemoryMaterialFiles();
@@ -679,9 +775,21 @@ void main() {
             find.byType(LinearProgressIndicator).evaluate().isEmpty,
       );
       await t.enterText(
-        find.byKey(const ValueKey('scan-tags')),
-        '#Mathe, Probe, mathe',
+        find.descendant(
+          of: find.byKey(const ValueKey('scan-tags')),
+          matching: find.byType(TextField),
+        ),
+        '#Mathe',
       );
+      await tap(t, find.byTooltip('Tag übernehmen'));
+      await t.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('scan-tags')),
+          matching: find.byType(TextField),
+        ),
+        'Probe',
+      );
+      await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('scan-edit-page-0')));
       await settleWork(
         t,
@@ -700,13 +808,8 @@ void main() {
       expect(resume.data['tags'], ['Mathe', 'Probe']);
       await t.tap(find.text('Öffnen'));
       await t.pumpAndSettle();
-      expect(
-        t
-            .widget<TextField>(find.byKey(const ValueKey('scan-tags')))
-            .controller!
-            .text,
-        'Mathe, Probe',
-      );
+      expect(find.widgetWithText(InputChip, 'Mathe'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'Probe'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('save-scan')));
       await settleWork(t, () => result != null);
       expect(result!.text('extension'), 'jpg');
