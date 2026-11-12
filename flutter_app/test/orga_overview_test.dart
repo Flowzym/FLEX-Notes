@@ -353,7 +353,7 @@ void main() {
           isNot(Colors.transparent),
         );
         expect(find.byKey(ValueKey('observation-$positive')), findsNothing);
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         final saved = (await repo.schoolDrafts()).single.record;
         expect(saved.positive, contains(positive));
         expect(saved.negative, contains(negativeLabel));
@@ -665,7 +665,7 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-open-a')));
         expect(find.byKey(const ValueKey('pupil-entry-search')), findsNothing);
         await capture(t, key, 'pupil-dialog-$suffix');
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         await open(
           t,
           OrgaEditor(

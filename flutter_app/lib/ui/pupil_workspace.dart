@@ -578,7 +578,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                   child: TextButton.icon(
                     onPressed: () => showPupilMaterials(context, c, p),
                     icon: const Icon(Icons.folder_open_outlined),
-                    label: const Text('Dokumente'),
+                    label: const Text('Materialien'),
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
                     ),

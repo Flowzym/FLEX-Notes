@@ -42,35 +42,67 @@ class FlexPagePills extends StatelessWidget {
                   MediaQuery.textScalerOf(context).scale(1) <= 1.2;
               final style = TextStyle(
                 fontFamily: 'FlexSans',
-                fontSize: pages.length > 4 ? 12 : 14,
+                fontSize: pages.length >= 4 ? 12 : 14,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
               );
+              if (pages.isEmpty) return const SizedBox.shrink();
               final available = math.max(48.0, constraints.maxWidth - 8);
-              final rows = <List<(int, String, double)>>[[]];
-              var used = 0.0;
-              var height = 44.0;
-              for (final entry in pages.entries) {
-                final iconWidth = showIcons && _icons.containsKey(entry.value)
-                    ? 25.0
-                    : 0.0;
+              final horizontalPadding = pages.length >= 4 ? 4.0 : 8.0;
+              var minWidth = 48.0;
+              for (final label in pages.values) {
                 final text = TextPainter(
-                  text: TextSpan(text: entry.value, style: style),
+                  text: TextSpan(text: label, style: style),
                   textDirection: Directionality.of(context),
                   textScaler: MediaQuery.textScalerOf(context),
-                )..layout(maxWidth: available - 20 - iconWidth);
-                final width = (text.width + 20 + iconWidth).clamp(
-                  48.0,
-                  available,
+                )..layout();
+                minWidth = math.max(
+                  minWidth,
+                  text.width + horizontalPadding * 2,
                 );
-                height = math.max(height, text.height + 20);
                 text.dispose();
-                if (used + width > available && rows.last.isNotEmpty) {
-                  rows.add([]);
-                  used = 0;
-                }
-                rows.last.add((entry.key, entry.value, width));
-                used += width;
+              }
+              final maxColumns = math.min(
+                pages.length <= 4 ? pages.length : 3,
+                math.max(1, ((available - 6) / minWidth).floor()),
+              );
+              // Balance wrapped rows while retaining the same width in every row.
+              final rowCount = (pages.length / maxColumns).ceil();
+              final columns = (pages.length / rowCount).ceil();
+              final width = (available - 6) / columns;
+              var height = 44.0;
+              final entries = pages.entries.toList();
+              final rows = <List<MapEntry<int, String>>>[
+                for (var i = 0; i < entries.length; i += columns)
+                  entries.sublist(i, math.min(i + columns, entries.length)),
+              ];
+              final iconsFit =
+                  showIcons &&
+                  entries.every((entry) {
+                    final text = TextPainter(
+                      text: TextSpan(text: entry.value, style: style),
+                      textDirection: Directionality.of(context),
+                      textScaler: MediaQuery.textScalerOf(context),
+                    )..layout();
+                    final fits =
+                        text.width + horizontalPadding * 2 + 25 <= width;
+                    text.dispose();
+                    return fits;
+                  });
+              for (final entry in entries) {
+                final text =
+                    TextPainter(
+                      text: TextSpan(text: entry.value, style: style),
+                      textDirection: Directionality.of(context),
+                      textScaler: MediaQuery.textScalerOf(context),
+                    )..layout(
+                      maxWidth: math.max(
+                        1,
+                        width - horizontalPadding * 2 - (iconsFit ? 25 : 0),
+                      ),
+                    );
+                height = math.max(height, text.height + 16);
+                text.dispose();
               }
               return Column(
                 key: ValueKey('$keyPrefix-pills'),
@@ -80,28 +112,25 @@ class FlexPagePills extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       child: DecoratedBox(
-                        key: ValueKey('$keyPrefix-track-${row.first.$1}'),
+                        key: ValueKey('$keyPrefix-track-${row.first.key}'),
                         decoration: FlexDesign.capsule(context),
                         child: Padding(
                           padding: const EdgeInsets.all(3),
                           child: SizedBox(
-                            width: rows.length == 1 && pages.length <= 4
-                                ? available
-                                : row.fold<double>(0.0, (sum, e) => sum + e.$3),
+                            width: width * row.length,
                             child: Row(
                               children: [
                                 for (final e in row)
                                   Expanded(
-                                    flex: (e.$3 * 100).round(),
                                     child: Semantics(
-                                      selected: selected == e.$1,
+                                      selected: selected == e.key,
                                       inMutuallyExclusiveGroup: true,
                                       child: Material(
                                         color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(24),
                                         child: Ink(
                                           decoration: BoxDecoration(
-                                            gradient: selected == e.$1
+                                            gradient: selected == e.key
                                                 ? FlexDesign.wash(
                                                     scheme.primaryContainer,
                                                   )
@@ -111,33 +140,34 @@ class FlexPagePills extends StatelessWidget {
                                             ),
                                           ),
                                           child: InkWell(
-                                            key: ValueKey('$keyPrefix-${e.$1}'),
+                                            key: ValueKey(
+                                              '$keyPrefix-${e.key}',
+                                            ),
                                             borderRadius: BorderRadius.circular(
                                               24,
                                             ),
-                                            onTap: () => onSelected(e.$1),
+                                            onTap: () => onSelected(e.key),
                                             child: ConstrainedBox(
                                               constraints: BoxConstraints(
                                                 minHeight: height,
                                               ),
                                               child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 8,
-                                                    ),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: horizontalPadding,
+                                                  vertical: 8,
+                                                ),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children: [
-                                                    if (showIcons &&
+                                                    if (iconsFit &&
                                                         _icons.containsKey(
-                                                          e.$2,
+                                                          e.value,
                                                         )) ...[
                                                       Icon(
-                                                        _icons[e.$2],
+                                                        _icons[e.value],
                                                         size: 18,
-                                                        color: selected == e.$1
+                                                        color: selected == e.key
                                                             ? scheme
                                                                   .onPrimaryContainer
                                                             : scheme.primary,
@@ -146,16 +176,16 @@ class FlexPagePills extends StatelessWidget {
                                                     ],
                                                     Flexible(
                                                       child: Text(
-                                                        e.$2,
+                                                        e.value,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: style.copyWith(
                                                           fontWeight:
-                                                              selected == e.$1
+                                                              selected == e.key
                                                               ? FontWeight.w600
                                                               : FontWeight.w400,
                                                           color:
-                                                              selected == e.$1
+                                                              selected == e.key
                                                               ? scheme
                                                                     .onPrimaryContainer
                                                               : scheme

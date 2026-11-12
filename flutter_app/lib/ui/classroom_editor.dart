@@ -515,7 +515,17 @@ Future<void> showClassroomEditor(
                     c,
                     List<String>.from(data['pupilIds'] as List? ?? []),
                   );
-                  if (ids != null) change({'pupilIds': ids});
+                  if (ids != null) {
+                    change({
+                      'pupilIds': ids,
+                      if (kind == ClassroomKind.material &&
+                          data.containsKey('pupilDates'))
+                        'pupilDates': [
+                          for (final row in data['pupilDates'] as List)
+                            if (ids.contains((row as Map)['pupilId'])) row,
+                        ],
+                    });
+                  }
                 },
               ),
             ],

@@ -222,8 +222,20 @@ class ClassroomDocument {
       (_json[key] as List? ?? []).map((r) => Json.from(r as Map)).toList();
   Json map(String key) => Json.from(_json[key] as Map? ?? {});
   Json toJson() => Json.from(jsonDecode(jsonEncode(_json)) as Map);
-  ClassroomDocument patch(Json fields) =>
-      ClassroomDocument.fromJson({...toJson(), ...fields});
+  ClassroomDocument patch(Json fields) {
+    final next = {...toJson(), ...fields};
+    // Removing a pupil assignment also removes only that pupil's teaching dates.
+    if (kind == ClassroomKind.material &&
+        fields.containsKey('pupilIds') &&
+        next.containsKey('pupilDates')) {
+      final pupils = List<String>.from(next['pupilIds'] as List);
+      next['pupilDates'] = (next['pupilDates'] as List)
+          .where((row) => pupils.contains((row as Map)['pupilId']))
+          .toList();
+    }
+    return ClassroomDocument.fromJson(next);
+  }
+
   RepeatRule get rule => RepeatRule.fromJson(map('repeat'));
   String get label => switch (kind) {
     ClassroomKind.timetable => 'Stundenplan',
@@ -290,6 +302,7 @@ class ClassroomDocument {
         'documentType',
         'audience',
         'pupilIds',
+        'pupilDates',
         'tags',
         'favorite',
         'sourcePath',
@@ -439,6 +452,25 @@ class ClassroomDocument {
       throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
     }
     if (kind == ClassroomKind.material) {
+      final dates = rows('pupilDates');
+      final pupils = strings('pupilIds');
+      if (dates.length > 5000 ||
+          dates.any(
+            (row) =>
+                row.keys.any((key) => !{'pupilId', 'date'}.contains(key)) ||
+                !pupils.contains(row['pupilId']) ||
+                row['date'] is! String ||
+                !validDate(row['date'] as String),
+          ) ||
+          dates
+                  .map((row) => '${row['pupilId']}:${row['date']}')
+                  .toSet()
+                  .length !=
+              dates.length) {
+        throw const DomainError(
+          'Bitte die Unterrichtsdaten und Schülerzuordnung prüfen.',
+        );
+      }
       materialVersions(_json);
       final links = rows('links').map(DocumentLink.fromJson).toList();
       if (links.length > 100 ||

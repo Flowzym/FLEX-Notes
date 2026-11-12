@@ -45,7 +45,7 @@ void main() {
       );
       await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
       await tester.pumpAndSettle();
       final saved = (await repo.entries()).single;
       await tester.tap(find.byKey(ValueKey('overview-open-${saved.id}')));
@@ -85,7 +85,7 @@ void main() {
         find.widgetWithText(TextField, 'Neuer Listenpunkt'),
         'Noch nicht hinzugefügter Testpunkt',
       );
-      await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
+      await tester.tap(find.byKey(const ValueKey('entry-back')));
       await tester.pumpAndSettle();
       expect(await repo.entries(), isEmpty);
       final draft = (await repo.drafts()).single;

@@ -398,6 +398,57 @@ void main() {
   );
 
   testWidgets(
+    'pupil assignment plans files, cancels atomically and clears only personal dates',
+    (t) async {
+      final c = await controller();
+      const pupil = Pupil(id: 'p', name: 'Anna Beispiel');
+      await c.repository.savePupil(pupil);
+      await c.repository.savePupil(const Pupil(id: 'q', name: 'Emil Beispiel'));
+      final today = dateOnly(DateTime.now());
+      final m = planPupilMaterial(material('Brüche üben'), 'q', today);
+      await c.repository.saveClassroomDocument(m);
+      await c.reload();
+      final imageKey = GlobalKey();
+      await host(
+        t,
+        (ctx) => RepaintBoundary(
+          key: imageKey,
+          child: TextButton(
+            onPressed: () => showPupilMaterials(ctx, c, pupil),
+            child: const Text('Open'),
+          ),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      Future<void> select() async {
+        await tap(t, find.byKey(const ValueKey('pupil-assign-materials')));
+        await tap(t, find.text('Brüche üben'));
+        await tap(t, find.text('Übernehmen'));
+        expect(find.text('Im Unterricht geplant'), findsOneWidget);
+      }
+
+      await select();
+      await tap(t, find.byTooltip('Schließen').last);
+      expect(c.classroom.single.strings('pupilIds'), ['q']);
+      await select();
+      await tap(t, find.text('Übernehmen'));
+      expect(c.classroom.single.strings('pupilIds'), containsAll(['q', 'p']));
+      expect(pupilMaterialDates(c.classroom.single, 'p'), [today]);
+      expect(pupilMaterialDates(c.classroom.single, 'q'), [today]);
+      expect(find.byType(MaterialThumbnail), findsOneWidget);
+      await tap(t, find.byKey(ValueKey('pupil-material-date-${m.id}-$today')));
+      await tap(t, find.text('Datum entfernen'));
+      expect(pupilMaterialDates(c.classroom.single, 'p'), isEmpty);
+      expect(pupilMaterialDates(c.classroom.single, 'q'), [today]);
+      expect(c.classroom.single.strings('pupilIds'), contains('p'));
+      await tap(t, find.byTooltip('Schülerzuordnung entfernen'));
+      expect(c.classroom.single.strings('pupilIds'), ['q']);
+      expect(c.classroom.single.deleted, isFalse);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'pupil unlink keeps shared material and package accessible elsewhere',
     (t) async {
       final c = await controller();
@@ -485,9 +536,9 @@ void main() {
     );
     await tap(t, find.text('Open'));
     expect(find.text('Bereitgelegt'), findsOneWidget);
-    expect(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')), findsOneWidget);
+    expect(find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')), findsOneWidget);
     expect(t.takeException(), isNull);
-    await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+    await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
     expect(find.text('Bereitgelegt'), findsNothing);
   });
 

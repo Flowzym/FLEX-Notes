@@ -68,6 +68,7 @@ const conflictFieldLabels = <String, String>{
   'room': 'Raum',
   'materialIds': 'Materialien',
   'pupilIds': 'Schülerzuordnungen',
+  'pupilDates': 'Unterrichtsdaten pro Schüler',
   'lessonIds': 'Unterrichtszuordnungen',
   'planIds': 'Planungen dieser Stunde',
   'documentType': 'Dokumentart',

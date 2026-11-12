@@ -129,7 +129,7 @@ void main() {
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
   EditableText input(WidgetTester t, Key key) => t.widget<EditableText>(
     find
         .descendant(of: find.byKey(key), matching: find.byType(EditableText))

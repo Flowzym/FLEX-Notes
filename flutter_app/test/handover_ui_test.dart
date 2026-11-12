@@ -102,9 +102,9 @@ void main() {
 
   Future<void> closeModal(WidgetTester tester) async {
     await tester.ensureVisible(
-      find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last,
+      find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')).last,
     );
-    await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
+    await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')).last);
     await tester.pumpAndSettle();
   }
 

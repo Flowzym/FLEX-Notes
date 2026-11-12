@@ -128,6 +128,10 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
+      final widths = pages.keys
+          .map((i) => t.getSize(find.byKey(ValueKey('more-check-$i'))).width)
+          .toList();
+      expect(widths.every((w) => (w - widths.first).abs() < .01), isTrue);
       for (final entry in pages.entries) {
         final label = t.getRect(find.text(entry.value));
         final button = t.getRect(

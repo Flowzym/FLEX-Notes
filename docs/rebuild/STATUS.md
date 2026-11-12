@@ -1,4 +1,18 @@
-# Aktueller Stand: 0.20.0+63
+# Aktueller Stand: 0.21.0+64
+
+Individuelle Materialzuordnung in der Schülerübersicht mit unabhängigen
+Unterrichtsdaten, Kalenderzugriff und erhaltenen gemeinsamen Dateien.
+Breitere Eintragungsköpfe; gleich breite Navigationssegmente mit lesbaren
+Beschriftungen auch bei großer Schrift.
+
+519 Flutter-Tests, 11 SQLite-Tests und 3 Servertests bestanden; Analyse ohne Befunde.
+
+[Bedienung und Datenverträglichkeit](PUPIL-MATERIALS-BUILD-64.md) ·
+[APK und Prüfnachweise](../../releases/android/build-64/README.md).
+
+---
+
+# Vorheriger Stand: 0.20.0+63
 
 Gemeinsamer Kalender für Unterricht, Termine und Fristen. Separate
 Stundenplan-Unterseite entfernt; Grundplan und Stundenzeiten bleiben direkt

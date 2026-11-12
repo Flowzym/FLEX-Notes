@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=FLEX Android, O=FLEX, C=AT
+Signer #1 certificate SHA-256 digest: 9e50d1e2393e2bf867fc33b11e50383fd066f7b2df5026fd1f2a1d2790fdcd79
+Signer #1 certificate SHA-1 digest: 3bfb38454f18029bf8df2345f47315afc38aa3cd
+Signer #1 certificate MD5 digest: a87fa9ab803d88490db96652ee5befa5
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 4096
+Signer #1 public key SHA-256 digest: 6e52f2c38f17958827d68bdb670b08ab39094192b33d9e0a5d51df567426da1b
+Signer #1 public key SHA-1 digest: 019167c92c3b4fffb475ed5e8987399e5c07bca7
+Signer #1 public key MD5 digest: 04c903bcfc74de4a225cd80225186e2d

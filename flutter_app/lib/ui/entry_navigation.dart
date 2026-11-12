@@ -9,7 +9,6 @@ import 'common.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
-import 'surfaces.dart';
 
 /// Shared context and heading for the school and organisation editors.
 class EntryPageHeader extends StatelessWidget {
@@ -28,76 +27,62 @@ class EntryPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final compact =
-          constraints.maxWidth < 330 ||
-          MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
-          constraints.maxWidth - (actions.length + 2) * 44 - 8 < 140;
-      final actionsWithTitle =
-          compact &&
-          constraints.maxWidth >= 330 &&
-          MediaQuery.textScalerOf(context).scale(1) <= 1.4;
-      Widget exit(IconData icon, String label) => IconButton(
-        tooltip: label,
-        iconSize: 20,
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        padding: const EdgeInsets.all(6),
-        onPressed: onClose,
-        icon: Icon(icon),
+      final headingStyle = const TextStyle(
+        fontFamily: 'FlexSans',
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
       );
+      final heading = Text(title, style: headingStyle);
+      final tools = [...actions, ...titleActions];
+      final painter = TextPainter(
+        text: TextSpan(text: title, style: headingStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final separateTools =
+          painter.width + tools.length * 48 + 8 > constraints.maxWidth;
+      painter.dispose();
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            decoration: FlexDesign.capsule(context),
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-            child: Row(
-              children: [
-                exit(Icons.arrow_back, 'Zurück und Eingaben sichern'),
-                Expanded(
-                  child: Tooltip(
-                    message: owner,
-                    child: Text(
-                      owner,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                if (!compact) ...actions,
-                exit(Icons.close, 'Schließen und Eingaben sichern'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (compact && !actionsWithTitle)
-            Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(children: actions),
-            ),
           Row(
             children: [
+              IconButton(
+                key: const ValueKey('entry-back'),
+                tooltip: 'Zurück und Eingaben sichern',
+                iconSize: 20,
+                onPressed: onClose,
+                icon: const Icon(Icons.arrow_back),
+              ),
+              const SizedBox(width: 4),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 6, bottom: 2),
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                    ),
+                child: Text(
+                  owner,
+                  key: const ValueKey('entry-owner'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              if (actionsWithTitle) ...actions,
-              ...titleActions,
             ],
           ),
+          if (separateTools) ...[
+            heading,
+            if (tools.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(children: tools),
+              ),
+          ] else
+            Row(
+              children: [
+                Expanded(child: heading),
+                ...tools,
+              ],
+            ),
         ],
       );
     },
