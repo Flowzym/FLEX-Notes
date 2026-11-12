@@ -112,7 +112,7 @@ extension _SchoolObservationView on _SchoolEditorState {
             onChanged: (v) =>
                 edit({'assignmentSources': v.map((s) => s.toJson()).toList()}),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
         ],
         Row(
           children: [

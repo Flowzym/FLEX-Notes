@@ -63,7 +63,7 @@ class FlexModal extends StatelessWidget {
                       DetailFlowScope.maybeOf(context) != null &&
                       !compact)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                       child: Text(
                         'FLEX.',
                         style: TextStyle(
@@ -78,9 +78,9 @@ class FlexModal extends StatelessWidget {
                     key: const ValueKey('modal-header'),
                     padding: EdgeInsets.fromLTRB(
                       mobile ? 16 : 24,
-                      compact ? 4 : 8,
+                      4,
                       mobile ? 12 : 18,
-                      compact ? 4 : 12,
+                      4,
                     ),
                     child: Material(
                       type: MaterialType.transparency,
@@ -210,9 +210,11 @@ class FlexModal extends StatelessWidget {
                 ),
               );
               final body = Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: mobile ? 16 : 24,
-                  vertical: compact ? 10 : 16,
+                padding: EdgeInsets.fromLTRB(
+                  mobile ? 16 : 24,
+                  6,
+                  mobile ? 16 : 24,
+                  compact ? 10 : 16,
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,

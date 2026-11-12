@@ -1,4 +1,18 @@
-# Aktueller Stand: 0.21.0+64
+# Aktueller Stand: 0.21.1+65
+
+Kompaktere Abstände zwischen FLEX., Schülername, Seitentitel und Navigation
+in den gemeinsamen Eintragungsseiten. Im Arbeitsverhalten rücken Auftrag und
+Beobachtung näher zusammen. Bedienflächen, Funktionen und Datenformat bleiben gleich.
+
+21 gezielte UI-/Editorprüfungen bestanden, einschließlich großer Schrift und
+verschiedener Bildschirmgrößen. Analyse ohne Befunde; Android- und Web-Release.
+
+[Änderungen und Prüfbericht](SPACING-BUILD-65.md) ·
+[APK und Prüfnachweise](../../releases/android/build-65/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.0+64
 
 Individuelle Materialzuordnung in der Schülerübersicht mit unabhängigen
 Unterrichtsdaten, Kalenderzugriff und erhaltenen gemeinsamen Dateien.
