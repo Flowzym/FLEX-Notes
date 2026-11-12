@@ -13,4 +13,6 @@ aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 
 Ein Android-Update benötigt weiterhin den ursprünglichen Test-Signierschlüssel.
 Der CI-Build prüft die Kompilierung und wird nicht als Geräteupdate ausgegeben.
+[Erneuter Build und Signaturstatus vom 12. November](docs/rebuild/ANDROID-BUILD-61.md):
+Ein unsigniertes Release kann ohne Ersatzschlüssel vorbereitet werden.
 Historische Rekonstruktionsstände stehen im Projektstatus und unter `reference/`.

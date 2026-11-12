@@ -8,3 +8,6 @@ flutter_app/linux/flutter/ephemeral/
 flutter_app/macos/Flutter/ephemeral/
 **/__pycache__/
 audit/tools/node_modules/
+*.keystore
+*.jks
+**/key.properties

@@ -1,6 +1,11 @@
 # FLEX Test für Android
 
-**Build 57 (0.17.0):** Die neue Gestaltung ist im Flutter-Quellstand und in der Webvorschau umgesetzt. In dieser Runde wird keine installierbare Update-APK bereitgestellt, da der bisherige Test-Signierschlüssel in der Arbeitsumgebung fehlt. Eine APK mit anderer Signatur kann die bestehende Testapp nicht aktualisieren. [Prüfung und Details](../docs/rebuild/CREAM-SAGE-BUILD-57.md).
+**Build 61 (0.19.0):** Der aktuelle Anwendungscode und die Webvorschau sind verfügbar.
+Für ein direktes Android-Update wird weiterhin der ursprüngliche private Keystore
+der zuletzt bereitgestellten APK (Build 56) benötigt. Ein unsigned Release lässt
+sich jetzt ausdrücklich vorbereiten; es ist noch **nicht installierbar** und wird
+nicht mit einem Ersatzschlüssel als Update ausgegeben.
+[Build, Signatur und Nachweise](../docs/rebuild/ANDROID-BUILD-61.md).
 
 Die folgenden Angaben dokumentieren frühere Android-Teststände.
 
@@ -140,6 +145,17 @@ Release-Modus verwendet derzeit bewusst die lokale Android-Debugsignatur für di
 Test-App. Den Keystore für nachfolgende Testupdates behalten, nicht ins Repository
 oder in ein öffentliches Quellenpaket aufnehmen. Ein Store-Release braucht eine
 eigene Veröffentlichungs- und Signaturkonfiguration.
+
+Fehlt der ursprüngliche Keystore, lässt sich ein **unsigniertes** Release ohne
+Erzeugung einer Ersatzsignatur vorbereiten:
+
+```sh
+ORG_GRADLE_PROJECT_flexUnsignedRelease=true flutter build apk --release
+```
+
+Die App-ID bleibt gleich. Vor einer Verteilung muss mit dem ursprünglichen
+Keystore signiert und der Zertifikatsfingerabdruck mit dem dokumentierten Build 56
+verglichen werden. Eine beliebige neu erzeugte `debug.keystore` ist kein Ersatz.
 
 [Orga-/Übersichtsupdate und Prüfungen](../audit/ORGA_UEBERSICHT_ABGLEICH.md) ·
 [Schülerkarten-Update und Prüfungen](../audit/SCHUELERKARTEN_ABGLEICH.md) ·

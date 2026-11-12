@@ -4,6 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Prepare an unsigned APK when the original installation key is unavailable.
+// This keeps the existing app identity without silently substituting a new key.
+val unsignedRelease = providers.gradleProperty("flexUnsignedRelease")
+    .map(String::toBoolean).getOrElse(false)
+
 android {
     namespace = "at.flowzym.flex_notizbuch"
     compileSdk = flutter.compileSdkVersion
@@ -34,7 +39,7 @@ android {
         release {
             // This is a sideloaded test app, not a store release. Keep the local
             // debug keystore for update installs; never commit signing keys.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (unsignedRelease) null else signingConfigs.getByName("debug")
         }
     }
 }

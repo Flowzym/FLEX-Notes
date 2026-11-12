@@ -3,6 +3,9 @@
 build/
 .flutter-plugins*
 android/local.properties
+android/key.properties
+*.keystore
+*.jks
 android/.gradle/
 android/gradlew
 android/gradlew.bat
