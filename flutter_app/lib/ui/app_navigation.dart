@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'surfaces.dart';
 
 const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
-const calendarPages = {0: 'Kalender', 1: 'Stundenplan', 2: 'Aufgaben'};
+const calendarPages = {0: 'Kalender', 1: 'Aufgaben'};
 
 /// A quiet shared capsule. Destinations wrap instead of disappearing at large text.
 class FlexPagePills extends StatelessWidget {

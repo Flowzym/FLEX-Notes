@@ -1,4 +1,20 @@
-# Aktueller Stand: 0.19.1+62
+# Aktueller Stand: 0.20.0+63
+
+Gemeinsamer Kalender für Unterricht, Termine und Fristen. Separate
+Stundenplan-Unterseite entfernt; Grundplan und Stundenzeiten bleiben direkt
+bearbeitbar. Einzeltermine und Änderungen ab Datum sind klar getrennt.
+Serienänderungen erhalten Dokumentzuordnungen, Planungen und Erinnerungen.
+
+514 Flutter-Tests, 11 SQLite-Tests und 3 Servertests bestanden; Analyse ohne
+Befunde. Android- und Web-Release gebaut, Smartphone-Browser geprüft.
+Build 63 aktualisiert die neue FLEX aus Build 62 mit derselben Signatur.
+
+[Änderungen und Datenverträglichkeit](CALENDAR-BUILD-63.md) ·
+[APK und Prüfnachweise](../../releases/android/build-63/README.md).
+
+---
+
+# Vorheriger Stand: 0.19.1+62
 
 Signierte Android-App **FLEX** mit eigener Kennung neben der vorhandenen FLEX Test.
 Dauerhafter Schlüssel, öffentlich festgeschriebener Zertifikatfingerabdruck und

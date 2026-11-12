@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/calendar_page.dart';
 import 'package:flex_notizbuch/ui/material_thumbnail.dart';
 import 'package:flex_notizbuch/ui/document_attachments.dart';
 import 'package:flex_notizbuch/domain/document_scanner.dart';
@@ -43,7 +42,7 @@ void main() {
   }
 
   testWidgets(
-    'calendar owns timetable without duplicate shortcuts, section callbacks preserve date',
+    'one calendar retains mode and lesson visibility across task swipes without mutating data',
     (t) async {
       final c = await controller();
       await host(t, c);
@@ -51,31 +50,33 @@ void main() {
       expect(find.text('Übersicht'), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
-      final date = DateTime(2026, 12, 14);
-      t
-          .widget<CalendarPage>(find.byKey(const ValueKey('main-calendar')))
-          .onSwitchSection!(true, date);
+      final state = t.state(find.byKey(const ValueKey('main-calendar')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+      final before = c.classroom.map((d) => d.toJson()).toList();
+      await tap(t, find.byKey(const ValueKey('context-0-1')));
+      expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
+      await t.drag(
+        find.byKey(const ValueKey('calendar-pages')),
+        const Offset(320, 0),
+      );
       await t.pumpAndSettle();
-      expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+      expect(t.state(find.byKey(const ValueKey('main-calendar'))), same(state));
+      expect(
+        find.byKey(const ValueKey('calendar-time-grid-week')),
+        findsOneWidget,
+      );
       expect(
         t
-            .widget<CalendarPage>(find.byKey(const ValueKey('main-timetable')))
-            .shortcutDate,
-        date,
+            .widget<FilterChip>(
+              find.byKey(const ValueKey('calendar-show-lessons')),
+            )
+            .selected,
+        isFalse,
       );
-      expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
-      expect(find.text('Zum Kalender'), findsNothing);
-      t
-          .widget<CalendarPage>(find.byKey(const ValueKey('main-timetable')))
-          .onSwitchSection!(false, date);
-      await t.pumpAndSettle();
-      expect(find.text('Zum Stundenplan'), findsNothing);
-      expect(
-        t
-            .widget<CalendarPage>(find.byKey(const ValueKey('main-calendar')))
-            .shortcutDate,
-        date,
-      );
+      expect(c.classroom.map((d) => d.toJson()).toList(), before);
+      expect(find.byKey(const ValueKey('main-timetable')), findsNothing);
+      expect(find.byKey(const ValueKey('context-0-2')), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-1')));
       expect(find.text('Stundenplan'), findsNothing);
       final pages = t.widget<PageView>(
@@ -106,7 +107,7 @@ void main() {
       );
       await host(t, c);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
+      await tap(t, find.byKey(const ValueKey('context-0-1')));
       expect(find.text('Nur Alex').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('general-add-task')));
       await t.enterText(
@@ -128,7 +129,7 @@ void main() {
       );
       expect(
         (calendar.childrenDelegate as SliverChildListDelegate).children.length,
-        3,
+        2,
       );
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-2')));
@@ -144,7 +145,7 @@ void main() {
       expect(note.isTask, false);
       expect(note.pupilId, isNull);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
+      await tap(t, find.byKey(const ValueKey('context-0-1')));
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-0')));
@@ -175,7 +176,7 @@ void main() {
       await c.reload();
       await host(t, c, scale: 2);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
+      await tap(t, find.byKey(const ValueKey('context-0-1')));
       await tap(t, find.byTooltip('Entwürfe · 1'));
       expect(find.text('Allgemeiner Entwurf'), findsOneWidget);
       expect(find.text('Schülerentwurf'), findsNothing);

@@ -234,26 +234,74 @@ class CalendarTimeline extends StatelessWidget {
                             ),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${cluster.length}',
-                                style: Theme.of(ctx).textTheme.labelLarge
-                                    ?.copyWith(fontSize: 12, height: 1.15),
+                        child:
+                            cluster
+                                        .where(
+                                          (p) => p.item.category == 'lesson',
+                                        )
+                                        .length ==
+                                    1 &&
+                                cluster.any(
+                                  (p) => p.item.category == 'appointment',
+                                )
+                            ? Stack(
+                                children: [
+                                  for (final p in [
+                                    ...cluster.where(
+                                      (p) => p.item.category == 'lesson',
+                                    ),
+                                    ...cluster.where(
+                                      (p) => p.item.category != 'lesson',
+                                    ),
+                                  ])
+                                    Positioned(
+                                      key: ValueKey(
+                                        'calendar-overlap-${p.item.id}',
+                                      ),
+                                      top:
+                                          (p.start - cluster.first.start) *
+                                          pixels,
+                                      left: p.item.category == 'lesson' ? 0 : 4,
+                                      right: 0,
+                                      height: (p.finish - p.start) * pixels - 4,
+                                      child: IgnorePointer(
+                                        child: _TimeBlock(
+                                          item: p.item,
+                                          compact: true,
+                                          details: false,
+                                          current: false,
+                                          next: false,
+                                          onTap: () {},
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${cluster.length} Einträge',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(ctx).textTheme.labelSmall,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        cluster
+                                            .map((p) => p.item.title)
+                                            .join(' · '),
+                                        overflow: TextOverflow.fade,
+                                        style: Theme.of(
+                                          ctx,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                'Einträge',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(ctx).textTheme.bodySmall
-                                    ?.copyWith(fontSize: 11, height: 1.15),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   )
@@ -331,8 +379,8 @@ class CalendarTimeline extends StatelessWidget {
                   0,
                   headHeight + (nowMinutes - hours.start) * pixels - 9 * scale,
                 ),
-                left: week ? axis + todayIndex * colWidth + 3 : 0,
-                width: week ? math.min(colWidth - 6, 44) : axis - 6,
+                left: 0,
+                width: axis - 6,
                 child: IgnorePointer(
                   child: ExcludeSemantics(
                     child: Container(
@@ -398,7 +446,7 @@ class _TimeBlock extends StatelessWidget {
         message: '${item.title} · $time',
         child: Material(
           color: Color.alphaBlend(
-            tint.withValues(alpha: item.category == 'lesson' ? .18 : .12),
+            tint.withValues(alpha: item.category == 'lesson' ? .10 : .24),
             scheme.surface,
           ),
           shape: RoundedRectangleBorder(

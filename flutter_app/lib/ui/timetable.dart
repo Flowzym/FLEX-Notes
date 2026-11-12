@@ -8,73 +8,158 @@ import 'common.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 
+Future<void> showTimetableSettings(
+  BuildContext context,
+  NotebookController c, {
+  String? date,
+}) async {
+  final table = c.classroom
+      .where((d) => d.kind == ClassroomKind.timetable)
+      .firstOrNull;
+  if (table != null && !table.deleted) {
+    await showTimetableManagement(context, c, table, date: date);
+    return;
+  }
+  final accepted = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => FlexModal(
+      title: const Text('Stundenplan bearbeiten'),
+      onClose: () => Navigator.pop(ctx),
+      content: Text(
+        table == null
+            ? 'Die Vorlage aus deinem PDF übernehmen? Vorhandene Kalendereinträge bleiben erhalten.'
+            : 'Der Stundenplan liegt im Papierkorb. Wiederherstellen?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(
+            table == null ? 'Stundenplan übernehmen' : 'Wiederherstellen',
+          ),
+        ),
+      ],
+    ),
+  );
+  if (accepted != true || !context.mounted) return;
+  await guarded(context, () async {
+    await c.saveClassroomBatch(
+      table == null
+          ? flexTimetableTemplate()
+          : [
+              table.patch({'deleted': false}),
+            ],
+    );
+    if (context.mounted) await showTimetableSettings(context, c, date: date);
+  });
+}
+
 Future<void> showTimetableManagement(
   BuildContext context,
   NotebookController c,
-  ClassroomDocument table,
-) => showDialog<void>(
+  ClassroomDocument table, {
+  String? date,
+}) => showDialog<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
-    builder: (ctx, _) => FlexModal(
-      title: const Text('Stundenplan verwalten'),
-      onClose: () => Navigator.pop(ctx),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final block
-              in (c.classroom
-                  .where(
-                    (b) =>
-                        b.kind == ClassroomKind.lesson &&
-                        b.text('timetableId') == table.id,
-                  )
-                  .toList()
-                ..sort(
-                  (
-                    a,
-                    b,
-                  ) => '${schoolDay(a.text('date')).weekday} ${a.text('start')}'
-                      .compareTo(
-                        '${schoolDay(b.text('date')).weekday} ${b.text('start')}',
-                      ),
-                )))
-            ListTile(
-              title: Text(
-                '${block.title}${block.deleted ? ' · Papierkorb' : ''}',
-              ),
-              subtitle: Text(
-                '${calendarWeekday(schoolDay(block.text('date')))} · ${block.text('start')}–${block.text('end')}',
-              ),
-              onTap: block.deleted
-                  ? null
-                  : () => showTimetableBlockEditor(
-                      ctx,
-                      c,
-                      table,
-                      document: block,
-                    ),
-              trailing: IconButton(
-                tooltip: block.deleted
-                    ? 'Block wiederherstellen'
-                    : 'Block bearbeiten',
-                icon: Icon(block.deleted ? Icons.restore : Icons.edit_outlined),
-                onPressed: block.deleted
-                    ? () => guarded(
-                        ctx,
-                        () => c.saveClassroom(block.patch({'deleted': false})),
-                      )
+    builder: (ctx, _) {
+      final currentTable =
+          c.classroom.where((d) => d.id == table.id).firstOrNull ?? table;
+      return FlexModal(
+        title: const Text('Stundenplan verwalten'),
+        onClose: () => Navigator.pop(ctx),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => showTimetableBlockEditor(
+                    ctx,
+                    c,
+                    currentTable,
+                    weekday: schoolDay(
+                      date ?? dateOnly(DateTime.now()),
+                    ).weekday,
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Block hinzufügen'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => showTimetableHours(ctx, c, currentTable),
+                  icon: const Icon(Icons.schedule),
+                  label: const Text('Stundenzeiten'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Grundplan · Änderungen gelten für den gesamten gewählten Block.',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+            for (final block
+                in (c.classroom
+                    .where(
+                      (b) =>
+                          b.kind == ClassroomKind.lesson &&
+                          b.text('timetableId') == table.id,
+                    )
+                    .toList()
+                  ..sort(
+                    (
+                      a,
+                      b,
+                    ) => '${schoolDay(a.text('date')).weekday} ${a.text('start')}'
+                        .compareTo(
+                          '${schoolDay(b.text('date')).weekday} ${b.text('start')}',
+                        ),
+                  )))
+              ListTile(
+                title: Text(
+                  '${block.title}${block.deleted ? ' · Papierkorb' : ''}',
+                ),
+                subtitle: Text(
+                  '${calendarWeekday(schoolDay(block.text('date')))} · ${block.text('start')}–${block.text('end')}\nAb ${displayDate(block.text('date'))}${block.rule.until == null ? '' : ' bis ${displayDate(block.rule.until!)}'}',
+                ),
+                onTap: block.deleted
+                    ? null
                     : () => showTimetableBlockEditor(
                         ctx,
                         c,
-                        table,
+                        currentTable,
                         document: block,
                       ),
+                trailing: IconButton(
+                  tooltip: block.deleted
+                      ? 'Block wiederherstellen'
+                      : 'Block bearbeiten',
+                  icon: Icon(
+                    block.deleted ? Icons.restore : Icons.edit_outlined,
+                  ),
+                  onPressed: block.deleted
+                      ? () => guarded(
+                          ctx,
+                          () =>
+                              c.saveClassroom(block.patch({'deleted': false})),
+                        )
+                      : () => showTimetableBlockEditor(
+                          ctx,
+                          c,
+                          currentTable,
+                          document: block,
+                        ),
+                ),
               ),
-            ),
-        ],
-      ),
-    ),
+          ],
+        ),
+      );
+    },
   ),
 );
 

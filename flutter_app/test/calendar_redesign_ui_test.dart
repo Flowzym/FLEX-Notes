@@ -322,7 +322,7 @@ void main() {
   });
 
   testWidgets(
-    'both day subpages update current time and omit it on other dates',
+    'shared day updates current time with and without lessons and omits it on other dates',
     (t) async {
       final c = await controller(seed: true);
       var now = DateTime(2026, 11, 9, 8, 20);
@@ -333,9 +333,11 @@ void main() {
       );
       final line = find.byKey(const ValueKey('calendar-now-line'));
       final label = find.byKey(const ValueKey('calendar-now-label'));
-      for (final section in ['calendar', 'timetable']) {
-        await tap(t, find.byKey(ValueKey('calendar-section-$section')));
-        await tap(t, find.byKey(ValueKey('$section-mode-day')));
+      for (final showLessons in [true, false]) {
+        if (!showLessons) {
+          await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+        }
+        await tap(t, find.byKey(const ValueKey('calendar-mode-day')));
         final oldY = t.getTopLeft(line).dy;
         final minuteHeight =
             (t.getTopLeft(find.byKey(const ValueKey('calendar-hour-540'))).dy -
@@ -464,9 +466,17 @@ void main() {
       await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
       expect(find.text('Sa'), findsOneWidget);
       expect(find.text('So'), findsOneWidget);
-      await tap(t, find.text('Einträge').first);
+      await tap(
+        t,
+        find
+            .ancestor(
+              of: find.text('Elterngespräch').first,
+              matching: find.byType(InkWell),
+            )
+            .last,
+      );
       expect(find.text('2 Einträge'), findsOneWidget);
-      expect(find.text('Elterngespräch'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Elterngespräch'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
@@ -662,6 +672,42 @@ void main() {
         isTrue,
       );
       expect(await c.repository.dialogDrafts(), isEmpty);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'week keeps a conversation visible inside Flexk and both entries reachable',
+    (t) async {
+      final c = await controller();
+      await c.saveClassroom(
+        lesson(
+          date: '2026-11-02',
+        ).patch({'title': 'Flexk', 'start': '07:45', 'end': '11:30'}),
+      );
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Gespräch',
+          appointmentDate: '2026-11-02',
+          appointmentTime: '09:00',
+        ),
+      );
+      final key = await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      expect(find.text('Flexk'), findsOneWidget);
+      expect(find.text('Gespräch'), findsOneWidget);
+      await capture(t, key, 'calendar-week-overlap');
+      await tap(
+        t,
+        find
+            .ancestor(of: find.text('Gespräch'), matching: find.byType(InkWell))
+            .last,
+      );
+      expect(find.text('2 Einträge'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Flexk'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Gespräch'), findsOneWidget);
+      await tap(t, find.widgetWithText(ListTile, 'Flexk'));
+      expect(find.text('Nur diesen Termin bearbeiten'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

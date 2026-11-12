@@ -151,7 +151,7 @@ void main() {
       expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('context-0-1')));
-      expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+      expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
       expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
       await tap(t, find.byKey(const ValueKey('context-0-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
@@ -164,7 +164,7 @@ void main() {
     },
   );
   testWidgets(
-    'three calendar page buttons remain visible and usable at large text on phone',
+    'two calendar page buttons remain visible and usable at large text on phone',
     (t) async {
       var selected = -1;
       await host(

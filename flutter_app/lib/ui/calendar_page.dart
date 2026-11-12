@@ -15,7 +15,6 @@ import '../domain/classroom.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import '../domain/school.dart';
-import '../domain/timetable.dart';
 import '../services/calendar_ics.dart';
 import 'classroom_editor.dart';
 import 'common.dart';
@@ -41,7 +40,6 @@ Future<void> showCalendarManagement(
   Future<void> Function()? importCalendar,
   Future<void> Function()? exportCalendar,
   String? date,
-  VoidCallback? openTimetable,
 }) => showDialog<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
@@ -58,15 +56,13 @@ Future<void> showCalendarManagement(
             spacing: 8,
             runSpacing: 6,
             children: [
-              if (openTimetable != null)
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    openTimetable();
-                  },
-                  icon: const Icon(Icons.table_chart_outlined),
-                  label: const Text('Stundenplan'),
-                ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  showTimetableSettings(ctx, c, date: date);
+                },
+                icon: const Icon(Icons.table_chart_outlined),
+                label: const Text('Stundenplan bearbeiten'),
+              ),
               OutlinedButton.icon(
                 onPressed: () => showClassroomEditor(
                   ctx,
@@ -219,19 +215,7 @@ Future<void> showCalendarManagement(
 );
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({
-    super.key,
-    required this.controller,
-    this.clock,
-    this.initialTimetable = false,
-    this.shortcutDate,
-    this.shortcutRevision = 0,
-    this.onSwitchSection,
-  });
-  final bool initialTimetable;
-  final DateTime? shortcutDate;
-  final int shortcutRevision;
-  final void Function(bool, DateTime)? onSwitchSection;
+  const CalendarPage({super.key, required this.controller, this.clock});
   final DateTime Function()? clock;
   final NotebookController controller;
   @override
@@ -241,97 +225,19 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   DateTime get now => widget.clock?.call() ?? DateTime.now();
-  late DateTime calendarDate = schoolDay(dateOnly(now));
-  DateTime? timetableDate;
-  bool timetableView = false;
+  late DateTime selected = schoolDay(dateOnly(now));
+  String mode = 'day';
   final nowMarker = GlobalKey();
-  DateTime get selected => timetableView ? timetableDate! : calendarDate;
-  set selected(DateTime date) {
-    if (timetableView) {
-      timetableDate = date;
-    } else {
-      calendarDate = date;
-    }
-  }
-
-  String calendarMode = 'day', timetableMode = 'week';
-  String get mode => timetableView ? timetableMode : calendarMode;
-  set mode(String value) {
-    if (timetableView) {
-      timetableMode = value;
-    } else {
-      calendarMode = value;
-    }
-  }
-
-  void selectSection(bool timetable) {
-    if (timetable == timetableView) return;
-    if (widget.onSwitchSection != null) {
-      widget.onSwitchSection!(timetable, selected);
-      return;
-    }
-    setState(() {
-      if (timetable && timetableDate == null) {
-        final table =
-            c.classroom
-                .where((d) => d.kind == ClassroomKind.timetable)
-                .firstOrNull ??
-            flexTimetableTemplate().first;
-        timetableDate = calendarDate.isBefore(schoolDay(table.text('date')))
-            ? schoolDay(table.text('date'))
-            : calendarDate;
-      }
-      timetableView = timetable;
-    });
-  }
-
-  Future<void> openItem(CalendarItem item) async {
-    if (!timetableView) {
-      await showCalendarItem(context, c, item);
-      return;
-    }
-    final table = c.classroom
-        .where((d) => d.kind == ClassroomKind.timetable)
-        .firstOrNull;
-    if (table == null || table.deleted) return;
-    if (item.category == 'lesson') {
-      await showTimetableBlockEditor(
-        context,
-        c,
-        table,
-        document: item.document,
-      );
-    } else if (item.document != null) {
-      await showClassroomEditor(
-        context,
-        c,
-        item.document!.kind,
-        document: item.document,
-      );
-    }
-  }
-
+  final scroll = ScrollController();
   Timer? ticker;
   bool weekends = false, showCompleted = false;
-  final calendarScroll = ScrollController(),
-      timetableScroll = ScrollController();
-  ScrollController get scroll =>
-      timetableView ? timetableScroll : calendarScroll;
+
+  Future<void> openItem(CalendarItem item) =>
+      showCalendarItem(context, c, item);
+
   @override
   void initState() {
     super.initState();
-    timetableView = widget.initialTimetable;
-    if (timetableView) {
-      final table =
-          c.classroom
-              .where((d) => d.kind == ClassroomKind.timetable)
-              .firstOrNull ??
-          flexTimetableTemplate().first;
-      timetableDate = calendarDate.isBefore(schoolDay(table.text('date')))
-          ? schoolDay(table.text('date'))
-          : calendarDate;
-    }
-    if (widget.shortcutDate != null) selected = widget.shortcutDate!;
     WidgetsBinding.instance.addObserver(this);
     ticker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
@@ -339,20 +245,9 @@ class _CalendarPageState extends State<CalendarPage>
   }
 
   @override
-  void didUpdateWidget(covariant CalendarPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.shortcutDate != null &&
-        (widget.shortcutDate != oldWidget.shortcutDate ||
-            widget.shortcutRevision != oldWidget.shortcutRevision)) {
-      selected = widget.shortcutDate!;
-    }
-  }
-
-  @override
   void dispose() {
     ticker?.cancel();
-    calendarScroll.dispose();
-    timetableScroll.dispose();
+    scroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -687,7 +582,7 @@ class _CalendarPageState extends State<CalendarPage>
           children: [
             const Padding(
               padding: EdgeInsets.only(top: 10, right: 10),
-              child: Text('Ganztägig', style: TextStyle(fontSize: 12)),
+              child: Text('Fällig', style: TextStyle(fontSize: 12)),
             ),
             Expanded(
               child: Column(
@@ -803,9 +698,7 @@ class _CalendarPageState extends State<CalendarPage>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
-              timetableView
-                  ? 'Kein Unterricht an diesem Tag.'
-                  : filters.isEmpty
+              filters.isEmpty
                   ? 'Keine Bereiche ausgewählt.'
                   : 'Keine Stunden oder Termine mit Uhrzeit.',
             ),
@@ -817,14 +710,14 @@ class _CalendarPageState extends State<CalendarPage>
           nowMarkerKey: nowMarker,
           selectedDate: dateOnly(selected),
           onOpen: openItem,
-          showBlockDetails: timetableView,
+          showBlockDetails: true,
           onDay: openDay,
         ),
       ],
     );
   }
 
-  Widget weekBody(List<CalendarItem> items, {String? validity}) {
+  Widget weekBody(List<CalendarItem> items) {
     final monday = selected.subtract(Duration(days: selected.weekday - 1));
     final weekendEvents = items
         .where((i) => schoolDay(i.date).weekday > 5)
@@ -844,13 +737,10 @@ class _CalendarPageState extends State<CalendarPage>
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
           children: [
-            if (validity != null)
-              Text(validity, style: Theme.of(context).textTheme.bodySmall),
-            if (!timetableView)
-              Text(
-                'Stunden & Termine',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+            Text(
+              'Stunden & Termine',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             TextButton.icon(
               icon: Icon(
                 showWeekend
@@ -868,7 +758,7 @@ class _CalendarPageState extends State<CalendarPage>
         if (!items.any(calendarTimed))
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
-            child: Text('Noch kein Unterricht in dieser Woche.'),
+            child: Text('Keine Stunden oder Termine in dieser Woche.'),
           ),
         CalendarTimeline(
           week: true,
@@ -879,7 +769,7 @@ class _CalendarPageState extends State<CalendarPage>
           selectedDate: dateOnly(selected),
           onDay: openDay,
           onOpen: openItem,
-          showBlockDetails: timetableView,
+          showBlockDetails: true,
         ),
         for (final day in days) ...[
           if (items.any((i) => i.date == dateOnly(day) && !calendarTimed(i)))
@@ -945,7 +835,9 @@ class _CalendarPageState extends State<CalendarPage>
                   index - first.weekday + 2,
                 );
                 final entries = items
-                    .where((i) => i.date == dateOnly(day))
+                    .where(
+                      (i) => i.date == dateOnly(day) && i.category != 'lesson',
+                    )
                     .toList();
                 final scheme = Theme.of(ctx).colorScheme;
                 final today = dateOnly(day) == dateOnly(now);
@@ -984,11 +876,7 @@ class _CalendarPageState extends State<CalendarPage>
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  for (final category in [
-                                    'lesson',
-                                    'appointment',
-                                    'due',
-                                  ])
+                                  for (final category in ['appointment', 'due'])
                                     if (entries.any(
                                       (i) => category == 'due'
                                           ? calendarDue(i)
@@ -1030,7 +918,6 @@ class _CalendarPageState extends State<CalendarPage>
           runSpacing: 4,
           children: [
             for (final marker in [
-              ('Unterricht', Theme.of(context).colorScheme.primary),
               ('Termine', const Color(0xff829fb8)),
               ('Fällig', Theme.of(context).colorScheme.onSurfaceVariant),
             ])
@@ -1087,60 +974,11 @@ class _CalendarPageState extends State<CalendarPage>
       animation: c,
       builder: (ctx, _) {
         final bounds = range;
-        final existingTable = c.classroom
-            .where((d) => d.kind == ClassroomKind.timetable)
-            .firstOrNull;
-        final timetableDocuments = existingTable == null
-            ? flexTimetableTemplate()
-            : c.classroom;
-        final table = existingTable ?? timetableDocuments.first;
-        final items = timetableView
-            ? <CalendarItem>[
-                if (!table.deleted)
-                  for (final lesson in lessonOccurrences(
-                    timetableDocuments,
-                    bounds.from,
-                    bounds.to,
-                  ).where((l) => l.document.text('timetableId') == table.id))
-                    CalendarItem(
-                      id: lesson.target,
-                      date: lesson.date,
-                      title: lesson.title,
-                      category: 'lesson',
-                      time: lesson.start,
-                      end: lesson.end,
-                      document: lesson.document,
-                      lesson: lesson,
-                      detail: [
-                        blockPeriodLabel(table, lesson.document),
-                        lesson.document.text('teacher'),
-                        lesson.document.text('room'),
-                      ].where((s) => s.isNotEmpty).join(' · '),
-                    ),
-                for (final holiday in timetableDocuments.where(
-                  (d) =>
-                      !d.deleted &&
-                      d.kind == ClassroomKind.holiday &&
-                      d.text('date').compareTo(bounds.to) <= 0 &&
-                      d.text('endDate').compareTo(bounds.from) >= 0,
-                ))
-                  CalendarItem(
-                    id: holiday.id,
-                    date: holiday.text('date').compareTo(bounds.from) < 0
-                        ? bounds.from
-                        : holiday.text('date'),
-                    title: holiday.title,
-                    category: 'holiday',
-                    document: holiday,
-                  ),
-              ]
-            : calendarItems(c.currentSnapshot, bounds.from, bounds.to)
-                  .where(
-                    (i) =>
-                        filters.contains(i.category) &&
-                        (showCompleted || !i.done),
-                  )
-                  .toList();
+        final items = calendarItems(c.currentSnapshot, bounds.from, bounds.to)
+            .where(
+              (i) => filters.contains(i.category) && (showCompleted || !i.done),
+            )
+            .toList();
         final filtered =
             filters.length != calendarCategories.length || showCompleted;
         final scheme = Theme.of(ctx).colorScheme;
@@ -1148,48 +986,8 @@ class _CalendarPageState extends State<CalendarPage>
             MediaQuery.textScalerOf(ctx).scale(1) > 1.4 &&
             MediaQuery.sizeOf(ctx).width < 600;
         final content = Column(
-          key: ValueKey(timetableView ? 'timetable-view' : 'calendar-view'),
+          key: const ValueKey('calendar-view'),
           children: [
-            if (widget.onSwitchSection == null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
-                child: Material(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    children: [
-                      for (final tab in const [
-                        (false, 'Kalender'),
-                        (true, 'Stundenplan'),
-                      ])
-                        Expanded(
-                          child: Semantics(
-                            selected: timetableView == tab.$1,
-                            child: TextButton(
-                              key: ValueKey(
-                                'calendar-section-${tab.$1 ? 'timetable' : 'calendar'}',
-                              ),
-                              onPressed: () => selectSection(tab.$1),
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(44, 44),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                backgroundColor: timetableView == tab.$1
-                                    ? scheme.primary.withValues(alpha: .2)
-                                    : Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              child: Text(tab.$2, textAlign: TextAlign.center),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
               child: Row(
@@ -1261,9 +1059,7 @@ class _CalendarPageState extends State<CalendarPage>
                     child: Align(
                       alignment: Alignment.center,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: timetableView ? 240 : double.infinity,
-                        ),
+                        constraints: BoxConstraints(maxWidth: double.infinity),
                         child: Container(
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
@@ -1279,18 +1075,16 @@ class _CalendarPageState extends State<CalendarPage>
                               for (final e in {
                                 'day': 'Tag',
                                 'week': 'Woche',
-                                if (!timetableView) 'month': 'Monat',
+                                'month': 'Monat',
                               }.entries)
                                 Expanded(
-                                  flex: largeText && !timetableView
+                                  flex: largeText
                                       ? (e.key == 'day' ? 3 : 5)
                                       : 1,
                                   child: Semantics(
                                     selected: mode == e.key,
                                     child: TextButton(
-                                      key: ValueKey(
-                                        '${timetableView ? 'timetable' : 'calendar'}-mode-${e.key}',
-                                      ),
+                                      key: ValueKey('calendar-mode-${e.key}'),
                                       style: TextButton.styleFrom(
                                         minimumSize: const Size(44, 40),
                                         padding: const EdgeInsets.symmetric(
@@ -1317,7 +1111,7 @@ class _CalendarPageState extends State<CalendarPage>
                       ),
                     ),
                   ),
-                  if (!timetableView) ...[
+                  ...[
                     const SizedBox(width: 10),
                     IconButton.outlined(
                       tooltip: filtered ? 'Filter aktiv' : 'Filter',
@@ -1335,68 +1129,60 @@ class _CalendarPageState extends State<CalendarPage>
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  FilterChip(
+                    key: const ValueKey('calendar-show-lessons'),
+                    label: const Text('Unterricht'),
+                    selected: filters.contains('lesson'),
+                    onSelected: (value) => setState(() {
+                      if (value) {
+                        filters.add('lesson');
+                      } else {
+                        filters.remove('lesson');
+                      }
+                    }),
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('calendar-edit-timetable'),
+                    onPressed: () =>
+                        showTimetableSettings(ctx, c, date: dateOnly(selected)),
+                    icon: const Icon(Icons.edit_calendar_outlined, size: 18),
+                    label: const Text('Stundenplan bearbeiten'),
+                  ),
+                ],
+              ),
+            ),
             if (busy) const LinearProgressIndicator(),
             Expanded(
               child: ListView(
                 controller: scroll,
-                key: PageStorageKey(
-                  timetableView ? 'timetable-page' : 'calendar-page',
-                ),
+                key: const PageStorageKey('calendar-page'),
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                 children: [
-                  if (timetableView) ...[
-                    if (mode != 'week')
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Gültig ab ${displayDate(table.text('date'))}${table.text('endDate').isEmpty ? '' : ' bis ${displayDate(table.text('endDate'))}'}',
-                          style: Theme.of(ctx).textTheme.bodySmall,
-                        ),
-                      ),
-                    if (existingTable == null) ...[
-                      const Text(
-                        'Vorlage aus deinem PDF. Vorhandene Kalendereinträge bleiben erhalten.',
-                      ),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('Stundenplan übernehmen'),
-                        onPressed: () =>
-                            run(() => c.saveClassroomBatch(timetableDocuments)),
-                      ),
-                    ] else if (table.deleted)
-                      FilledButton.icon(
-                        icon: const Icon(Icons.restore),
-                        label: const Text('Stundenplan wiederherstellen'),
-                        onPressed: () => run(
-                          () =>
-                              c.saveClassroom(table.patch({'deleted': false})),
-                        ),
-                      ),
-                  ],
                   if (mode == 'day')
                     dayBody(items)
                   else if (mode == 'week')
-                    weekBody(
-                      items,
-                      validity: timetableView
-                          ? 'Gültig ab ${displayDate(table.text('date'))}${table.text('endDate').isEmpty ? '' : ' bis ${displayDate(table.text('endDate'))}'}'
-                          : null,
-                    )
+                    weekBody(items)
                   else
                     monthBody(items),
-                  if (!timetableView)
-                    for (final plan in c.classroom.where(
-                      (p) => planOnDay(p, dateOnly(selected)),
-                    ))
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.event_note_outlined),
-                        title: Text(plan.title),
-                        subtitle: Text(
-                          planStatuses[plan.text('status', 'planned')]!,
-                        ),
-                        onTap: () => showMaterialCollection(ctx, c, plan),
+                  for (final plan in c.classroom.where(
+                    (p) => planOnDay(p, dateOnly(selected)),
+                  ))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_note_outlined),
+                      title: Text(plan.title),
+                      subtitle: Text(
+                        planStatuses[plan.text('status', 'planned')]!,
                       ),
+                      onTap: () => showMaterialCollection(ctx, c, plan),
+                    ),
                 ],
               ),
             ),
@@ -1412,73 +1198,41 @@ class _CalendarPageState extends State<CalendarPage>
                   child: Wrap(
                     alignment: WrapAlignment.spaceEvenly,
                     children: [
-                      for (final action
-                          in timetableView
-                              ? [
-                                  (
-                                    'Block hinzufügen',
-                                    Icons.add,
-                                    () => showTimetableBlockEditor(
-                                      ctx,
-                                      c,
-                                      table,
-                                      weekday: selected.weekday,
-                                    ),
-                                  ),
-                                  (
-                                    'Stundenzeiten',
-                                    Icons.schedule,
-                                    () => showTimetableHours(ctx, c, table),
-                                  ),
-                                  (
-                                    'Verwalten',
-                                    Icons.edit_calendar_outlined,
-                                    () =>
-                                        showTimetableManagement(ctx, c, table),
-                                  ),
-                                ]
-                              : [
-                                  ('Anlegen', Icons.add, addEntry),
-                                  (
-                                    'Unterlagen',
-                                    Icons.folder_open_outlined,
-                                    () => showPreparedMaterials(
-                                      ctx,
-                                      c,
-                                      date: dateOnly(selected),
-                                    ),
-                                  ),
-                                  (
-                                    'Verwalten',
-                                    Icons.edit_calendar_outlined,
-                                    () => showCalendarManagement(
-                                      ctx,
-                                      c,
-                                      date: dateOnly(selected),
-                                      openTimetable: () => selectSection(true),
-                                      importCalendar: () => run(importIcs),
-                                      exportCalendar: () => run(() async {
-                                        await saveTextFile(
-                                          'FLEX-Kalender-${bounds.from}.ics',
-                                          exportCalendarIcs(items),
-                                          mime: 'text/calendar',
-                                        );
-                                      }),
-                                    ),
-                                  ),
-                                ])
+                      for (final action in [
+                        ('Anlegen', Icons.add, addEntry),
+                        (
+                          'Unterlagen',
+                          Icons.folder_open_outlined,
+                          () => showPreparedMaterials(
+                            ctx,
+                            c,
+                            date: dateOnly(selected),
+                          ),
+                        ),
+                        (
+                          'Verwalten',
+                          Icons.edit_calendar_outlined,
+                          () => showCalendarManagement(
+                            ctx,
+                            c,
+                            date: dateOnly(selected),
+                            importCalendar: () => run(importIcs),
+                            exportCalendar: () => run(() async {
+                              await saveTextFile(
+                                'FLEX-Kalender-${bounds.from}.ics',
+                                exportCalendarIcs(items),
+                                mime: 'text/calendar',
+                              );
+                            }),
+                          ),
+                        ),
+                      ])
                         SizedBox(
                           width:
                               (MediaQuery.sizeOf(ctx).width - 16) /
                               (largeText ? 2 : 3),
                           child: TextButton(
-                            onPressed:
-                                busy ||
-                                    (timetableView &&
-                                        (existingTable == null ||
-                                            table.deleted))
-                                ? null
-                                : action.$3,
+                            onPressed: busy ? null : action.$3,
                             style: TextButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               padding: const EdgeInsets.symmetric(

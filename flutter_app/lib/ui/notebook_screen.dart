@@ -55,8 +55,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   final _calendarPages = PageController();
   final _visited = <int>{1};
   final _dataLayout = SettingsLayoutState()..tab = 2;
-  DateTime? _calendarShortcutDate, _timetableShortcutDate;
-  int _calendarShortcutRevision = 0, _timetableShortcutRevision = 0;
   String? _overviewSection;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
@@ -193,17 +191,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
         );
       }
     });
-  }
-
-  void _calendarShortcut(bool timetable, DateTime date) {
-    if (timetable) {
-      _timetableShortcutDate = date;
-      _timetableShortcutRevision++;
-    } else {
-      _calendarShortcutDate = date;
-      _calendarShortcutRevision++;
-    }
-    _calendarTo(timetable ? 1 : 0);
   }
 
   Widget _generalOrga(String kind) => GeneralOrgaPage(
@@ -694,17 +681,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             CalendarPage(
                               key: const ValueKey('main-calendar'),
                               controller: c,
-                              shortcutDate: _calendarShortcutDate,
-                              shortcutRevision: _calendarShortcutRevision,
-                              onSwitchSection: _calendarShortcut,
-                            ),
-                            CalendarPage(
-                              key: const ValueKey('main-timetable'),
-                              controller: c,
-                              initialTimetable: true,
-                              shortcutDate: _timetableShortcutDate,
-                              shortcutRevision: _timetableShortcutRevision,
-                              onSwitchSection: _calendarShortcut,
                             ),
                             _generalOrga('task'),
                           ],

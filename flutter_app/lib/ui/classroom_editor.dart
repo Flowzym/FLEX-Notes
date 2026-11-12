@@ -4,6 +4,7 @@ import 'material_thumbnail.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
+import '../domain/lesson_series.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'common.dart';
@@ -318,29 +319,15 @@ Future<void> showClassroomEditor(
           if (source == null || source.revision != data['_sourceRevision']) {
             throw const StaleRevision();
           }
-          final before = dateOnly(
-            schoolDay(
+          await c.repository.saveClassroomDocuments(
+            splitLessonSeries(
+              c.classroom,
+              source,
+              value,
               data['_splitFrom'] as String,
-            ).subtract(const Duration(days: 1)),
+            ),
+            draft: buffer,
           );
-          await c.repository.saveClassroomDocuments([
-            source.patch({
-              'repeat': {...source.rule.toJson(), 'until': before},
-              'exceptions': source
-                  .rows('exceptions')
-                  .where((e) => (e['date'] as String).compareTo(before) <= 0)
-                  .toList(),
-            }),
-            value,
-            for (final plan in c.classroom.where(
-              (p) =>
-                  p.kind == ClassroomKind.plan &&
-                  p.strings('lessonIds').contains(source.id),
-            ))
-              plan.patch({
-                'lessonIds': {...plan.strings('lessonIds'), value.id}.toList(),
-              }),
-          ], draft: buffer);
         } else if (kind == ClassroomKind.plan &&
             data['_attachLessonId'] is String) {
           final source = c.classroom
@@ -423,9 +410,9 @@ Future<void> showClassroomEditor(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   data['_occurrenceDate'] != null
-                      ? 'Nur diese Stunde'
+                      ? 'Nur diesen Termin'
                       : data['_splitFrom'] != null
-                      ? 'Diese und folgende Stunden'
+                      ? 'Stundenplan ab ${displayDate(data['_splitFrom'] as String)}'
                       : document?.rule.repeats == true
                       ? 'Gesamte Unterrichtsserie'
                       : 'Unterricht anlegen',

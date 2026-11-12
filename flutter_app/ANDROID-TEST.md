@@ -1,7 +1,7 @@
-# FLEX für Android · Build 62
+# FLEX für Android · Build 63
 
-**0.19.1+62** ist als signierte Universal-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-62/README.md).
+**0.20.0+63** ist als signierte Universal-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-63/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -11,6 +11,10 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 **Vor dem Wechsel die [Umzugsanleitung](../docs/rebuild/ANDROID-UMZUG-62.md)
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
+
+Build 63 kann direkt über die neue FLEX aus Build 62 installiert werden.
+App-Kennung, Signatur und lokaler Speicher bleiben dabei erhalten.
+[Gemeinsamer Kalender und Prüfbericht](../docs/rebuild/CALENDAR-BUILD-63.md).
 
 ## Dauerhafte Signatur
 
@@ -59,13 +63,14 @@ und heißen **FLEX Dev**.
 ## Geprüft und noch offen
 
 Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Fehlender/falscher Schlüssel wird abgewiesen;
-unsignierte CI- und separate Debug-Builds sind möglich. 30 gezielte Tests für
-Sicherung, Zusammenführen und Materialdateien bestanden.
+16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62 überein.
+Alle 514 Flutter-Tests, 11 SQLite-Tests und 3 Vorschau-Servertests bestanden;
+statische Analyse ohne Befunde. Der Release-Webbuild wurde zusätzlich im
+Smartphone-Browser mit Testdaten geprüft.
 
 Installation, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
 der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/ANDROID-BUILD-62.md).
+[Nachweise](../docs/rebuild/CALENDAR-BUILD-63.md).
 
 Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
 beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.
