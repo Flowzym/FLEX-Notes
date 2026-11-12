@@ -10,4 +10,7 @@ flutter_app/macos/Flutter/ephemeral/
 audit/tools/node_modules/
 *.keystore
 *.jks
+*.p12
+*.pfx
 **/key.properties
+**/signing.properties

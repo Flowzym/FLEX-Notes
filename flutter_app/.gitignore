@@ -6,6 +6,9 @@ android/local.properties
 android/key.properties
 *.keystore
 *.jks
+*.p12
+*.pfx
+**/signing.properties
 android/.gradle/
 android/gradlew
 android/gradlew.bat

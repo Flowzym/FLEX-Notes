@@ -1,4 +1,18 @@
-# Aktueller Stand: 0.19.0+61
+# Aktueller Stand: 0.19.1+62
+
+Signierte Android-App **FLEX** mit eigener Kennung neben der vorhandenen FLEX Test.
+Dauerhafter Schlüssel, öffentlich festgeschriebener Zertifikatfingerabdruck und
+Release-Abbruch bei fehlendem oder falschem Schlüssel. GitHub CI baut ausdrücklich
+unsigniert. 30 gezielte Sicherungs-/Materialtests sowie vier Signierprüfungen
+bestanden; Android- und Web-Release gebaut und APK geprüft.
+
+[APK und Prüfberichte](../../releases/android/build-62/README.md) ·
+[Datenumzug](ANDROID-UMZUG-62.md) · [Buildnachweise und Grenzen](ANDROID-BUILD-62.md).
+Physische Installation und Vergleich der persönlichen Daten stehen noch aus.
+
+---
+
+# Vorheriger Stand: 0.19.0+61
 
 Auftragsquellen direkt im Arbeitsverhalten: FLEX-Planungen, Tagesmaterialien,
 DOCX-/PDF-Aufgaben und weitere Materialien. Die HÜ-Abgabeprüfung entfällt;
