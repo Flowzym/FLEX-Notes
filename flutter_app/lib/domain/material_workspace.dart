@@ -169,6 +169,7 @@ bool materialMatches(
     d.text('subject'),
     d.text('topic'),
     d.text('note'),
+    d.text('otherParticipants'),
     d.text('sourcePath'),
     ...d.strings('tags'),
     materialTypes[d.text('documentType', 'other')] ?? '',

@@ -312,25 +312,7 @@ extension _SchoolObservationView on _SchoolEditorState {
           onChanged: (v) => edit({'body': v}),
         ),
         const SizedBox(height: 24),
-        optionalSection(
-          'Beteiligt',
-          participantsOpen,
-          (v) => participantsOpen = v,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PupilTags(
-                pupils: c.pupils
-                    .where((p) => !p.archived && p.id != r.pupilId)
-                    .toList(),
-                selected: r.participantIds.toSet(),
-                onChanged: (v) => edit({'participantIds': v.toList()}),
-              ),
-              const SizedBox(height: 12),
-              field('otherParticipants', 'Weitere Namen'),
-            ],
-          ),
-        ),
+
         optionalSection(
           'Zielbezug',
           goalOpen,
@@ -548,27 +530,7 @@ extension _SchoolObservationView on _SchoolEditorState {
                 edit({'assignmentSources': v.map((s) => s.toJson()).toList()}),
           ),
         ],
-        optionalSection(
-          'Beteiligt',
-          participantsOpen,
-          (v) => participantsOpen = v,
-          Column(
-            children: [
-              PupilTags(
-                pupils: c.pupils
-                    .where(
-                      (p) =>
-                          p.id != r.pupilId &&
-                          (!p.archived || r.participantIds.contains(p.id)),
-                    )
-                    .toList(),
-                selected: r.participantIds.toSet(),
-                onChanged: (v) => edit({'participantIds': v.toList()}),
-              ),
-              field('otherParticipants', 'Weitere Namen', hint: 'Name; Name …'),
-            ],
-          ),
-        ),
+
         ExpansionTile(
           title: const Text('Auswahl bearbeiten'),
           children: [

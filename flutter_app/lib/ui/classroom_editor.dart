@@ -8,6 +8,7 @@ import '../domain/lesson_series.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'common.dart';
+import 'person_assignment.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 import 'repeat_editor.dart';
@@ -425,6 +426,44 @@ Future<void> showClassroomEditor(
                   ? 'Thema / Unterricht'
                   : 'Bezeichnung',
             ),
+            if (data['_occurrenceDate'] == null)
+              PersonAssignmentField(
+                pupils: c.pupils,
+                selected: kind == ClassroomKind.returnList
+                    ? {
+                        for (final row in data['participants'] as List)
+                          row['pupilId'] as String,
+                      }
+                    : Set<String>.from(data['pupilIds'] as List? ?? []),
+                otherNames: data['otherParticipants'] as String? ?? '',
+                onChanged: (ids, names) => change({
+                  'otherParticipants': names,
+                  if (kind == ClassroomKind.returnList)
+                    'participants': [
+                      for (final pupil in c.pupils.where(
+                        (p) => ids.contains(p.id),
+                      ))
+                        (data['participants'] as List)
+                                .where((row) => row['pupilId'] == pupil.id)
+                                .firstOrNull ??
+                            {
+                              'pupilId': pupil.id,
+                              'name': pupil.name,
+                              'status': 'open',
+                              'note': '',
+                              'paid': 0,
+                            },
+                    ]
+                  else
+                    'pupilIds': ids.toList(),
+                  if (kind == ClassroomKind.material &&
+                      data.containsKey('pupilDates'))
+                    'pupilDates': [
+                      for (final row in data['pupilDates'] as List)
+                        if (ids.contains((row as Map)['pupilId'])) row,
+                    ],
+                }),
+              ),
             if (kind == ClassroomKind.lesson) ...[
               if (data['_occurrenceDate'] == null) ...[
                 text('subject', 'Fach'),
@@ -504,30 +543,6 @@ Future<void> showClassroomEditor(
                 text('topic', 'Thema · optional'),
                 text('note', 'Notiz · optional', lines: 2),
               ],
-              OutlinedButton.icon(
-                icon: const Icon(Icons.people_outline),
-                label: Text(
-                  'Schüler zuordnen · ${(data['pupilIds'] as List? ?? []).length}',
-                ),
-                onPressed: () async {
-                  final ids = await chooseMaterialPupils(
-                    ctx,
-                    c,
-                    List<String>.from(data['pupilIds'] as List? ?? []),
-                  );
-                  if (ids != null) {
-                    change({
-                      'pupilIds': ids,
-                      if (kind == ClassroomKind.material &&
-                          data.containsKey('pupilDates'))
-                        'pupilDates': [
-                          for (final row in data['pupilDates'] as List)
-                            if (ids.contains((row as Map)['pupilId'])) row,
-                        ],
-                    });
-                  }
-                },
-              ),
             ],
             if (kind == ClassroomKind.material) ...[
               const SizedBox(height: 10),
@@ -644,35 +659,6 @@ Future<void> showClassroomEditor(
                 onChanged: (v) => change({'remindDays': v}),
               ),
               const SizedBox(height: 12),
-              const Text('Teilnehmer'),
-              for (final p in c.pupils.where(
-                (p) =>
-                    !p.archived ||
-                    (data['participants'] as List).any(
-                      (r) => r['pupilId'] == p.id,
-                    ),
-              ))
-                CheckboxListTile(
-                  title: Text(p.name),
-                  contentPadding: EdgeInsets.zero,
-                  value: (data['participants'] as List).any(
-                    (r) => r['pupilId'] == p.id,
-                  ),
-                  onChanged: (v) => change({
-                    'participants': [
-                      for (final row in data['participants'] as List)
-                        if (row['pupilId'] != p.id) row,
-                      if (v == true)
-                        {
-                          'pupilId': p.id,
-                          'name': p.name,
-                          'status': 'open',
-                          'note': '',
-                          'paid': 0,
-                        },
-                    ],
-                  }),
-                ),
             ],
             if (kind == ClassroomKind.lesson ||
                 kind == ClassroomKind.returnList ||

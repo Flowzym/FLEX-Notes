@@ -1,0 +1,36 @@
+const {chromium}=require('/opt/codex/cua_node/lib/node_modules/playwright');const fs=require('fs');
+(async()=>{
+ const b=await chromium.connectOverCDP('http://127.0.0.1:9223'),ctx=b.contexts()[0],p=await ctx.newPage();
+ // Called after assignment verification has saved and closed its editor.
+ for(const old of ctx.pages())if(old!==p&&old.url().includes('8083'))await old.close();
+ p.setDefaultTimeout(8000);await p.setViewportSize({width:390,height:844});const errors=[];p.on('pageerror',e=>errors.push(e.message));
+ const click=async(name)=>{await p.getByRole('button',{name:new RegExp('^'+name+'(?: '+name+')?$')}).click();await p.waitForTimeout(450)};
+ const input=async(label,text)=>{await p.getByRole('textbox',{name:label}).click();await p.waitForTimeout(250);await p.keyboard.press('Control+A');await p.keyboard.type(text);await p.waitForTimeout(350)};
+ const labels=()=>p.locator('flt-semantics').evaluateAll(els=>els.map(e=>e.getAttribute('aria-label')||e.textContent).join('\n'));
+ const shot=name=>p.screenshot({path:`/workspace/build72/${name}.png`});
+ await p.goto('http://127.0.0.1:8083');await p.waitForTimeout(4500);await p.locator('flt-semantics-placeholder').evaluate(e=>e.click());await p.waitForTimeout(400);
+ await click('Kalender');await p.getByRole('button',{name:'Unterlagen',exact:true}).waitFor({state:'visible'});await p.waitForTimeout(400);
+ if(await p.getByRole('button',{name:'Aufgaben',exact:true}).count())throw Error('Calendar still has tasks');
+ if(await p.getByRole('button',{name:'Kalender',exact:true}).count()>1)throw Error('Calendar still has top page pills');
+ await shot('calendar-390');await p.setViewportSize({width:320,height:844});await p.waitForTimeout(350);await click('Woche');await shot('calendar-week-320');
+ await click('Organisation');await click('Aufgaben');
+ if(await p.getByRole('button',{name:'Rückläufe',exact:true}).count())throw Error('Separate return page remains');
+ await click('Einträge durchsuchen');await input(/Einträge durchsuchen$/,'QA Build72:');await p.keyboard.press('Enter');await p.waitForTimeout(350);
+ if(!(await labels()).includes('QA Build72: Gespräch vorbereiten'))throw Error('Task not retained after reload');
+ if(!(await labels()).includes('Frau Muster'))throw Error('Free name not retained after reload');
+ await shot('task-reloaded-320');await click('Suchtext leeren');
+ await click('Rücklauf anlegen');await input('Bezeichnung','QA Build72: Rücklauf');await click('Speichern');
+ await p.getByRole('button',{name:/Eintragsart filtern/}).click();await p.waitForTimeout(300);await p.getByRole('menuitem',{name:'Rückläufe'}).or(p.getByRole('menuitemcheckbox',{name:'Rückläufe'})).or(p.getByRole('checkbox',{name:'Rückläufe'})).or(p.getByText('Rückläufe',{exact:true})).last().click();await p.waitForTimeout(350);
+ await click('Einträge durchsuchen');await input(/Einträge durchsuchen$/,'QA Build72:');await p.keyboard.press('Enter');await p.waitForTimeout(350);
+ if(!(await labels()).includes('QA Build72: Rücklauf'))throw Error('Return not shown in tasks');
+ if((await labels()).includes('QA Build72: Gespräch vorbereiten'))throw Error('Type filter failed');
+ await shot('returns-in-tasks-320');
+ await click('Orga');await p.getByRole('button',{name:/Eintragsart filtern/}).click();await p.waitForTimeout(300);await p.getByRole('menuitem',{name:'Rückläufe'}).or(p.getByRole('menuitemcheckbox',{name:'Rückläufe'})).or(p.getByRole('checkbox',{name:'Rückläufe'})).or(p.getByText('Rückläufe',{exact:true})).last().click();await p.waitForTimeout(350);
+ await click('Einträge durchsuchen');await input(/Einträge durchsuchen$/,'QA Build72:');await p.keyboard.press('Enter');await p.waitForTimeout(350);
+ if(!(await labels()).includes('QA Build72: Rücklauf'))throw Error('Return not filterable in organisation');
+ await p.setViewportSize({width:390,height:844});await p.waitForTimeout(300);await shot('returns-in-organisation-390');
+ const version=await p.evaluate(async()=>await(await fetch('/version.json')).json());
+ if(version.build_number!=='72')throw Error('Wrong build');
+ fs.writeFileSync('/workspace/build72/browser-check.json',JSON.stringify({version,syntheticData:true,viewports:[390,320],calendarWithoutPagePills:true,tasksInOrganisation:true,assignmentRetainedAfterReload:true,returnsIntegratedInTasks:true,returnsFilterableInOrganisation:true,separateReturnTabRemoved:true,pageErrors:errors},null,2)+'\n');
+ if(errors.length)throw Error(JSON.stringify(errors));await b.close();
+})().catch(e=>{console.error(e);process.exit(1)});

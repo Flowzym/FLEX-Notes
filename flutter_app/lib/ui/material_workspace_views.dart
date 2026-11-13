@@ -299,6 +299,8 @@ Future<void> showMaterialDetails(
                 Text(
                   '${c.pupils.where((p) => p.id == row['pupilId']).firstOrNull?.name ?? 'Schüler'} · Geplant: ${displayDate(row['date'] as String)}',
                 ),
+              if (d.text('otherParticipants').isNotEmpty)
+                Text('Weitere Namen: ${d.text('otherParticipants')}'),
               if (d.strings('tags').isNotEmpty)
                 Text(d.strings('tags').join(' · ')),
               if (d.text('note').isNotEmpty)

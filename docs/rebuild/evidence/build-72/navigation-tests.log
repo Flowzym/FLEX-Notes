@@ -1,0 +1,28 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar has no page pills and retains mode and lesson visibility across organisation visits
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar has no page pills and retains mode and lesson visibility across organisation visits
+00:04 +2: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:04 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:04 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:06 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:06 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:06 +7: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:07 +8: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:08 +9: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:09 +10: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:09 +11: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:12 +12: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:13 +13: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts retain pupil assignments and are resumable at large text
+00:13 +14: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: inline attachments and document access show actual thumbnail widgets
+00:14 +15: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (setUpAll)
+00:14 +15: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:17 +16: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:19 +17: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:26 +18: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: calendar body swipes dates without page pills; creation inherits selected date
+00:27 +19: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:28 +20: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 390.0/1.0
+00:29 +21: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:29 +22: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:31 +23: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:32 +24: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:32 +24: All tests passed!

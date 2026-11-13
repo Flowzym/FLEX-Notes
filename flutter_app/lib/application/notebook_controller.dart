@@ -177,10 +177,17 @@ class NotebookController extends ChangeNotifier {
   }
 
   String owner(OrgaEntry e) {
-    if (e.pupilId == null) return 'Klasse';
+    if (e.pupilId == null) {
+      return e.otherParticipants.trim().isEmpty
+          ? 'Klasse'
+          : e.otherParticipants.trim();
+    }
     final matching = pupils.where((p) => p.id == e.pupilId);
     if (matching.isEmpty) return 'Unbekannte Zuordnung';
-    return '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}';
+    return [
+      '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}',
+      if (e.otherParticipants.trim().isNotEmpty) e.otherParticipants.trim(),
+    ].join(' · ');
   }
 
   List<OrgaEntry> upcoming(Iterable<OrgaEntry> values) =>

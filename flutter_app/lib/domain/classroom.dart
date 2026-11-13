@@ -365,10 +365,17 @@ class ClassroomDocument {
         'deleted',
         'createdAtUtc',
         'updatedAtUtc',
+        'pupilIds',
+        'otherParticipants',
         ...fields,
       }.contains(k),
     )) {
       throw const DomainError('Unbekannte Datenfelder im Klassen-Eintrag.');
+    }
+    if (_json.containsKey('otherParticipants') &&
+        (_json['otherParticipants'] is! String ||
+            text('otherParticipants').length > 2000)) {
+      throw const DomainError('Bitte Namen auf 2000 Zeichen begrenzen.');
     }
     for (final key in ['note', 'subject', 'topic', 'room', 'teacher']) {
       if (text(key).length > (key == 'note' ? 20000 : 200)) {

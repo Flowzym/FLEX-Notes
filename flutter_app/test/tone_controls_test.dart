@@ -445,7 +445,7 @@ void main() {
         ),
       );
       final control = find.descendant(
-        of: find.byKey(const ValueKey('section-Beteiligt')),
+        of: find.byKey(const ValueKey('section-Zielbezug')),
         matching: find.byType(CompactSwitch),
       );
       await t.ensureVisible(control);

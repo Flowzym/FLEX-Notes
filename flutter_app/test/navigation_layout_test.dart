@@ -16,7 +16,7 @@ void main() {
         for (final scale in [1.0, 1.8]) {
           for (final pages in [
             livePages,
-            calendarPages,
+            organisationPages,
             {0: 'Dateien', 1: 'Bereitgelegt', 2: 'Pakete', 3: 'Planungen'},
             {
               0: 'Weitere',

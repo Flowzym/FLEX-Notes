@@ -51,6 +51,9 @@ List<CalendarItem> calendarItems(
           l.document.text('subject'),
           l.document.text('teacher'),
           l.document.text('room'),
+          for (final p in data.pupils)
+            if (l.document.strings('pupilIds').contains(p.id)) p.name,
+          l.document.text('otherParticipants'),
         ].where((s) => s.isNotEmpty).join(' · '),
         lesson: l,
         document: l.document,
@@ -67,9 +70,14 @@ List<CalendarItem> calendarItems(
           category: e.isAppointment ? 'appointment' : 'task',
           done: e.done,
           entry: e,
-          detail: e.pupilId == null
-              ? 'FLEX-Klasse'
-              : data.pupils.firstWhere((p) => p.id == e.pupilId).name,
+          detail: [
+            if (e.pupilId != null)
+              data.pupils.firstWhere((p) => p.id == e.pupilId).name,
+            if (e.otherParticipants.trim().isNotEmpty)
+              e.otherParticipants.trim(),
+            if (e.pupilId == null && e.otherParticipants.trim().isEmpty)
+              'FLEX-Klasse',
+          ].join(' · '),
         ),
     for (final r in data.records.where(
       (r) => !r.deleted && active.contains(r.pupilId),

@@ -66,6 +66,7 @@ String readableRecord(Json value) {
   return [
     'Orga · ${displayDate(e.observedOn)} ${e.observedTime}',
     e.body.isEmpty ? e.title : e.body,
+    if (e.otherParticipants.isNotEmpty) 'Weitere Namen: ${e.otherParticipants}',
     for (final item in e.items) '${item.checked ? '☑' : '☐'} ${item.text}',
     if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
     if (e.dueDate != null) 'Termin: ${displayDate(e.dueDate)}',

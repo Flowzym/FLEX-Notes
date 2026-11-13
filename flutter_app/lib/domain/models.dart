@@ -98,6 +98,7 @@ class OrgaEntry {
     this.pupilId,
     required this.title,
     this.body = '',
+    this.otherParticipants = '',
     this.isTask = false,
     this.done = false,
     this.deleted = false,
@@ -129,6 +130,7 @@ class OrgaEntry {
     );
   }
   final String id, title, body, reminderZone, createdAtUtc, updatedAtUtc;
+  final String otherParticipants;
   final String? pupilId, dueDate, reminderAtUtc, appointmentDate;
   final String appointmentTime;
   final bool isTask, done, needsCompletion, deleted, reminderHasTime;
@@ -166,8 +168,10 @@ class OrgaEntry {
   }
 
   OrgaEntry copyWith({
+    Object? pupilId = _unset,
     String? title,
     String? body,
+    String? otherParticipants,
     bool? isTask,
     bool? done,
     bool? deleted,
@@ -187,9 +191,10 @@ class OrgaEntry {
     List<CheckItem>? items,
   }) => OrgaEntry(
     id: id,
-    pupilId: pupilId,
+    pupilId: identical(pupilId, _unset) ? this.pupilId : pupilId as String?,
     title: title ?? this.title,
     body: body ?? this.body,
+    otherParticipants: otherParticipants ?? this.otherParticipants,
     isTask: isTask ?? this.isTask,
     done: done ?? this.done,
     deleted: deleted ?? this.deleted,
@@ -250,6 +255,9 @@ class OrgaEntry {
     if (id.isEmpty || title.trim().isEmpty || title.trim().length > 160) {
       throw const DomainError('Bitte einen Titel mit 1–160 Zeichen eingeben.');
     }
+    if (otherParticipants.length > 2000) {
+      throw const DomainError('Bitte Namen auf 2000 Zeichen begrenzen.');
+    }
     if ((appointmentDate != null && !validDate(appointmentDate!)) ||
         (appointmentTime.isNotEmpty &&
             (appointmentDate == null ||
@@ -301,6 +309,7 @@ class OrgaEntry {
     'pupilId': pupilId,
     'title': title,
     'body': body,
+    'otherParticipants': otherParticipants,
     'isTask': isTask,
     'done': done,
     'deleted': deleted,
@@ -325,6 +334,7 @@ class OrgaEntry {
     pupilId: j['pupilId'] as String?,
     title: j['title'] as String,
     body: j['body'] as String,
+    otherParticipants: j['otherParticipants'] as String? ?? '',
     isTask: j['isTask'] as bool,
     done: j['done'] as bool,
     deleted: j['deleted'] as bool? ?? false,
@@ -541,6 +551,7 @@ class DialogDraft {
             'endDate',
             'status',
             'followUp',
+            'otherParticipants',
             'documentType',
             'audience',
           ].any((key) => data.containsKey(key) && data[key] is! String) ||
@@ -558,6 +569,8 @@ class DialogDraft {
       }
     } else if (j['type'] == 'bulk') {
       if (!['social', 'work', 'homework', 'orga'].contains(data['kind']) ||
+          (data.containsKey('otherParticipants') &&
+              data['otherParticipants'] is! String) ||
           data['recipients'] is! List ||
           data['observedOn'] is! String ||
           !(data['recipients'] as List).every((v) => v is String) ||

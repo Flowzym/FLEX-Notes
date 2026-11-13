@@ -5,7 +5,7 @@ import 'navigation_icon.dart';
 
 // IDs remain stable when the visual order changes.
 const livePages = {1: 'Notizen', 0: 'Aktuell', 2: 'Ablauf'};
-const calendarPages = {0: 'Kalender', 1: 'Aufgaben'};
+const organisationPages = {0: 'Orga', 3: 'Aufgaben', 2: 'Notizen'};
 
 /// Lets the header and pages without their own pager share tab swipes.
 /// Child pagers, text selection and sliders keep their own horizontal gestures.

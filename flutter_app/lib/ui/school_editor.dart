@@ -7,6 +7,7 @@ import 'draft_actions.dart';
 import 'option_swipe.dart';
 import 'pupil_history.dart';
 import 'entry_navigation.dart';
+import 'person_assignment.dart';
 
 import 'dart:async';
 
@@ -125,7 +126,6 @@ class _SchoolEditorState extends State<SchoolEditor>
   bool busy = false,
       dirty = false,
       canPop = false,
-      participantsOpen = false,
       goalOpen = false,
       supportOpen = false,
       contextOpen = false,

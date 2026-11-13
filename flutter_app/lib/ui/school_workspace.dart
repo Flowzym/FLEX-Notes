@@ -912,6 +912,8 @@ Future<void> showBrief(
               label: 'Orga',
               text: [
                 e.body.isEmpty ? e.title : e.body,
+                if (names && e.otherParticipants.isNotEmpty)
+                  'Weitere Namen: ${e.otherParticipants}',
                 if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
                 if (e.dueDate != null) 'Fällig am: ${displayDate(e.dueDate)}',
                 if (e.appointmentDate != null)

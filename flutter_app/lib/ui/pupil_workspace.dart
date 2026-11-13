@@ -406,7 +406,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               e.pupilId == p.id &&
               matches(
                 e.pending,
-                '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}',
+                '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}',
               ),
         ))
           (

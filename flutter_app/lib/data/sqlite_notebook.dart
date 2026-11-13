@@ -470,6 +470,7 @@ class SqliteNotebook
         final entry = OrgaEntry.empty(pupilId: id).copyWith(
           title: first.substring(0, first.length.clamp(0, 160)),
           body: text,
+          otherParticipants: data['otherParticipants'] as String? ?? '',
           observedOn: data['observedOn'] as String,
           observedTime: data['observedTime'] as String? ?? '',
           isTask: data['isTask'] == true,
@@ -777,6 +778,7 @@ class SqliteNotebook
       pupilId: row['pupil_id'] as String?,
       title: row['title'] as String,
       body: row['body'] as String,
+      otherParticipants: timeMetadata['otherParticipants'] as String? ?? '',
       isTask: row['is_task'] == 1,
       done: row['done'] == 1,
       deleted: row['deleted'] == 1,
@@ -889,6 +891,7 @@ class SqliteNotebook
             'hasTime': saved.reminderHasTime,
             'appointmentDate': saved.appointmentDate,
             'appointmentTime': saved.appointmentTime,
+            'otherParticipants': saved.otherParticipants,
           }),
         ],
       );

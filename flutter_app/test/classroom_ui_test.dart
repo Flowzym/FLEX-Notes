@@ -159,10 +159,11 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Ablauf starten'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-1')));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
       expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
       expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
-      await tap(t, find.byKey(const ValueKey('context-0-0')));
+      await tap(t, find.byKey(const ValueKey('bottom-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
       await capture(t, key, 'calendar-phone');
       await tap(t, find.byKey(const ValueKey('bottom-3')));
@@ -173,14 +174,14 @@ void main() {
     },
   );
   testWidgets(
-    'two calendar page buttons remain visible and usable at large text on phone',
+    'three organisation page buttons remain visible and usable at large text on phone',
     (t) async {
       var selected = -1;
       await host(
         t,
         (_) => FlexPagePills(
           selected: 0,
-          pages: calendarPages,
+          pages: organisationPages,
           onSelected: (v) => selected = v,
         ),
         scale: 2,
@@ -191,7 +192,7 @@ void main() {
       expect(active.top, greaterThanOrEqualTo(track.top));
       expect(active.bottom, lessThanOrEqualTo(track.bottom));
       expect(active.left, greaterThanOrEqualTo(track.left));
-      for (final i in calendarPages.keys) {
+      for (final i in organisationPages.keys) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);
         expect(shell.contains(button.bottomRight), isTrue);

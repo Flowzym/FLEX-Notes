@@ -1,0 +1,76 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: field selections merge appointment date while preserving local body and audit
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: incompatible task fields roll back every change atomically
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:00 +7: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:00 +8: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +9: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +10: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +11: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +12: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +13: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +14: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +15: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +16: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +17: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +18: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:02 +19: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +20: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +21: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +22: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +23: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +24: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +25: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +26: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +27: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +28: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:03 +29: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+00:04 +30: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment date/time survives swipe away and back
+00:04 +31: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment date/time survives swipe away and back
+00:05 +32: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:06 +33: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:06 +34: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment round trip without edits removes its draft
+00:06 +35: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment round trip without edits removes its draft
+00:07 +36: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: lesson editor retains focus through autosave and restores a draft
+00:07 +37: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+00:07 +38: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+00:08 +39: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+00:08 +40: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: return consent rejection counts as answered and bulk status persists
+00:08 +41: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task due date/completion survives swipe away and back
+00:09 +42: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task due date/completion survives swipe away and back
+00:09 +43: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: calendar day week and month work with large text on phone
+00:09 +44: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task values survive closing, backup restore and database restart
+00:09 +45: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task values survive closing, backup restore and database restart
+00:10 +46: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task round trip without edits removes its draft
+00:10 +47: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:11 +48: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:11 +49: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:11 +50: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:11 +51: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:11 +52: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +53: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +54: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +55: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +56: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +57: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +58: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +59: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:12 +60: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:15 +61: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:15 +62: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga saved pupil entry: swipes retain text, checklist and focus across kinds
+00:17 +63: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:18 +64: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:19 +65: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: work: text swipes move once and keep input, tags and keyboard focus
+00:19 +66: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: work: text swipes move once and keep input, tags and keyboard focus
+00:19 +67: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: work: text swipes move once and keep input, tags and keyboard focus
+00:20 +68: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: text selection, mouse, vertical or short drags and multitouch do not switch tone
+00:21 +69: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: compact switches support track, label, drag and keyboard; disabled remains disabled
+00:21 +70: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: dragging a switch in an observation does not navigate the tone
+00:21 +71: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: colors, larger pill and compact switches 390.0/1.0/dark
+00:24 +72: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: colors, larger pill and compact switches 320.0/2.0/light
+00:25 +73: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: (tearDownAll)
+00:25 +73: All tests passed!

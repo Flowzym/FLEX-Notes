@@ -683,6 +683,7 @@ Future<void> showBulk(
                 }),
               ),
             ],
+            text('otherParticipants', 'Andere Person / weitere Namen'),
             if (kind == 'social' || kind == 'work') ...[
               const Text('Gemeinsamer Ablauf'),
               if (kind == 'social')
@@ -725,7 +726,6 @@ Future<void> showBulk(
                 ],
                 onChanged: (v) => change({'context': v}),
               ),
-              if (kind == 'social') text('otherParticipants', 'Weitere Namen'),
               for (final pupil in c.pupils.where((p) => ids.contains(p.id)))
                 Builder(
                   builder: (ctx) {

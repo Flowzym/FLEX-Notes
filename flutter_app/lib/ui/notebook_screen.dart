@@ -54,7 +54,7 @@ class NotebookScreen extends StatefulWidget {
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
-  int _calendarView = 0, _orgaView = 0;
+  int _orgaView = 0;
   final _visited = <int>{1};
   final _dataLayout = SettingsLayoutState()..tab = 2;
   String? _overviewSection;
@@ -62,14 +62,14 @@ class _NotebookScreenState extends State<NotebookScreen> {
   int? _swipeDirection;
   String _creationDate = dateOnly(DateTime.now());
   Map<int, String> get _contextPages => switch (_destination) {
-    0 => calendarPages,
+    0 => const {0: 'Kalender'},
     1 => livePages,
-    2 => const {0: 'Orga', 1: 'Rückläufe', 2: 'Notizen'},
+    2 => organisationPages,
     3 => _materialPages,
     _ => _morePages,
   };
   int get _contextPage => switch (_destination) {
-    0 => _calendarView,
+    0 => 0,
     1 => _primary,
     2 => _orgaView,
     3 => _materialView,
@@ -81,7 +81,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     switch (_destination) {
       case 0:
-        _calendarTo(index);
+        return;
       case 1:
         _main(index);
       case 2:
@@ -211,11 +211,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
     _changeView(() => _primary = index);
   }
 
-  void _calendarTo(int index) {
-    _sectionTo(0);
-    _changeView(() => _calendarView = index);
-  }
-
   Widget _generalOrga(String kind) => GeneralOrgaPage(
     key: ValueKey('general-$kind-page'),
     controller: c,
@@ -272,9 +267,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 .where(
                   (e) =>
                       e.pupilId == null &&
-                      '${e.title} ${e.body}'.toLowerCase().contains(
-                        query.toLowerCase(),
-                      ) &&
+                      '${e.title} ${e.body} ${e.otherParticipants}'
+                          .toLowerCase()
+                          .contains(query.toLowerCase()) &&
                       (filter == 'all' ||
                           (filter == 'appointments'
                               ? e.isAppointment
@@ -638,17 +633,18 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-                child: FlexPagePills(
-                  keyPrefix: _destination == 1
-                      ? 'page'
-                      : 'context-$_destination',
-                  selected: _contextPage,
-                  pages: _contextPages,
-                  onSelected: _contextTo,
+              if (_contextPages.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                  child: FlexPagePills(
+                    keyPrefix: _destination == 1
+                        ? 'page'
+                        : 'context-$_destination',
+                    selected: _contextPage,
+                    pages: _contextPages,
+                    onSelected: _contextTo,
+                  ),
                 ),
-              ),
               Expanded(
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -662,18 +658,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         index: _destination,
                         children: [
                           if (_visited.contains(0))
-                            IndexedStack(
-                              key: const ValueKey('calendar-pages'),
-                              index: _calendarView,
-                              children: [
-                                CalendarPage(
-                                  key: const ValueKey('main-calendar'),
-                                  controller: c,
-                                  onDateChanged: (date) =>
-                                      setState(() => _creationDate = date),
-                                ),
-                                _generalOrga('task'),
-                              ],
+                            CalendarPage(
+                              key: const ValueKey('main-calendar'),
+                              controller: c,
+                              onDateChanged: (date) =>
+                                  setState(() => _creationDate = date),
                             )
                           else
                             const SizedBox(),
@@ -688,10 +677,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
                           ),
                           if (_visited.contains(2))
                             IndexedStack(
-                              index: _orgaView,
+                              key: const ValueKey('organisation-pages'),
+                              index: organisationPages.keys.toList().indexOf(
+                                _orgaView,
+                              ),
                               children: [
                                 _generalOrga('all'),
-                                ReturnLists(controller: c),
+                                _generalOrga('task'),
                                 _generalOrga('note'),
                               ],
                             )
@@ -1399,7 +1391,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final visible = entries
         .where(
           (e) =>
-              '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}'
+              '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}'
                   .toLowerCase()
                   .contains(_entryQuery.toLowerCase()) &&
               (_filter == 'all' ||
@@ -1566,6 +1558,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   Widget _entryCard(OrgaEntry e) {
     final busy = _busyIds.contains(e.id);
     return FlexCard(
+      key: ValueKey('orga-entry-${e.id}'),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

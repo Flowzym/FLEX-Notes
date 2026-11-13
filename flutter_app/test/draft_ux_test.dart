@@ -638,12 +638,20 @@ void main() {
       await tap(t, find.text('Aufgabe hinzufügen'));
       await autosave(t);
       expect(await repo.dialogDrafts(), isEmpty);
-      await t.enterText(find.byType(TextFormField).first, 'Lesen');
+      final taskField = find
+          .byWidgetPredicate(
+            (w) =>
+                w is TextFormField &&
+                w.key is ValueKey<String> &&
+                (w.key! as ValueKey<String>).value.startsWith('task-'),
+          )
+          .first;
+      await t.enterText(taskField, 'Lesen');
       await t.testTextInput.receiveAction(TextInputAction.next);
       await autosave(t);
       final saved = (await repo.dialogDrafts()).single;
       expect((saved.data['tasks'] as List).first['text'], 'Lesen');
-      await t.enterText(find.byType(TextFormField).first, '');
+      await t.enterText(taskField, '');
       await autosave(t);
       expect(await repo.dialogDrafts(), isEmpty);
       await tap(t, find.text('Organisatorisches'));

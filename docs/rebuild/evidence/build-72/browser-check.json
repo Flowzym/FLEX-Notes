@@ -1,0 +1,21 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.24.0",
+    "build_number": "72",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "viewports": [
+    390,
+    320
+  ],
+  "calendarWithoutPagePills": true,
+  "tasksInOrganisation": true,
+  "assignmentRetainedAfterReload": true,
+  "returnsIntegratedInTasks": true,
+  "returnsFilterableInOrganisation": true,
+  "separateReturnTabRemoved": true,
+  "pageErrors": [],
+  "screenshotsVisuallyReviewed": true
+}

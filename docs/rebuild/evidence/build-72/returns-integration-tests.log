@@ -1,0 +1,7 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart
+00:00 +0: calendar has no page pills and retains mode and lesson visibility across organisation visits
+00:04 +1: calendar tasks and organisation notes retain entries and editing
+00:10 +2: tasks integrate return lists with status, kind and search filters in organisation
+00:12 +3: general drafts retain pupil assignments and are resumable at large text
+00:13 +4: inline attachments and document access show actual thumbnail widgets
+00:13 +5: All tests passed!

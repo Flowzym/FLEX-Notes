@@ -171,8 +171,7 @@ void main() {
       await app(t);
       for (final section in [
         (1, [1, 0, 2]),
-        (0, [0, 1]),
-        (2, [0, 1, 2]),
+        (2, [0, 3, 2]),
         (3, [0, 1, 2, 3]),
         (4, [0, 1, 2, 3, 4, 5]),
       ]) {
@@ -200,13 +199,13 @@ void main() {
                   .selected,
               section.$2[index],
             );
-            if (section.$1 == 1 || section.$1 == 0) {
+            if (section.$1 == 1 || section.$1 == 2) {
               expect(
                 t
                     .widget<IndexedStack>(
                       find.byKey(
                         ValueKey(
-                          section.$1 == 1 ? 'main-pages' : 'calendar-pages',
+                          section.$1 == 1 ? 'main-pages' : 'organisation-pages',
                         ),
                       ),
                     )
@@ -223,7 +222,7 @@ void main() {
     },
   );
   testWidgets(
-    'calendar body swipes dates while top pills change section; creation inherits selected date',
+    'calendar body swipes dates without page pills; creation inherits selected date',
     (t) async {
       await c.saveAppearance(const Appearance(calendarDefaultView: 'week'));
       await app(t);
@@ -243,10 +242,7 @@ void main() {
             .widget<CalendarTimeline>(find.byType(CalendarTimeline))
             .selectedDate;
         expect(schoolDay(after).difference(schoolDay(before)).inDays, pair.$2);
-        expect(
-          t.widget<FlexPagePills>(find.byType(FlexPagePills).first).selected,
-          0,
-        );
+        expect(find.byType(FlexPagePills), findsNothing);
         await t.dragFrom(const Offset(80, 420), const Offset(210, 0));
         await t.pumpAndSettle();
         expect(
@@ -350,7 +346,8 @@ void main() {
       await tap(t, find.byKey(const ValueKey('overview-section-overdue')));
       expect(find.text('Ausflug organisieren'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-1')));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
       await tap(t, find.byKey(const ValueKey('subtask-transport')));
       expect(c.entries.single.done, true);
       await tap(t, find.byTooltip('Unteraufgabe hinzufügen'));

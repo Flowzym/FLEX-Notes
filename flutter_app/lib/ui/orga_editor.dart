@@ -19,6 +19,7 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'orga_list_editing.dart';
 import 'entry_navigation.dart';
+import 'person_assignment.dart';
 
 class OrgaEditor extends StatefulWidget {
   const OrgaEditor({
@@ -72,7 +73,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   Timer? debounce;
   Future<void> pending = Future.value();
   NotebookController get c => widget.controller;
-  bool get isClass => entry.pupilId == null;
+  bool get isClass =>
+      entry.pupilId == null && entry.otherParticipants.trim().isEmpty;
   static const kinds = {
     'note': 'Notiz',
     'task': 'Aufgabe',
@@ -631,6 +633,23 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     onChanged: selectKind,
                   ),
                   const SizedBox(height: 12),
+                  PersonAssignmentField(
+                    pupils: c.pupils,
+                    selected: {if (entry.pupilId != null) entry.pupilId!},
+                    locked: {
+                      if (entry.revision > 0 && entry.pupilId != null)
+                        entry.pupilId!,
+                    },
+                    multiple: false,
+                    canChangePupils: entry.revision == 0,
+                    otherNames: entry.otherParticipants,
+                    onChanged: (ids, names) => change(
+                      entry.copyWith(
+                        pupilId: ids.firstOrNull,
+                        otherParticipants: names,
+                      ),
+                    ),
+                  ),
                   if (entry.isAppointment)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),

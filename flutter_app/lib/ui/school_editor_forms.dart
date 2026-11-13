@@ -423,8 +423,6 @@ extension _SchoolEditorForms on _SchoolEditorState {
       (tone) => r.observations(tone).isNotEmpty,
       orElse: () => c.appearance.defaultObservationTone,
     );
-    participantsOpen =
-        r.participantIds.isNotEmpty || r.otherParticipants.isNotEmpty;
     goalOpen = r.goalId != null;
     supportOpen = r.support.isNotEmpty;
     contextOpen = r.context.isNotEmpty || r.source != 'self';

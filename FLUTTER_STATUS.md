@@ -1,9 +1,9 @@
 # Aktueller Flutter-Stand
 
-**Webvorschau 0.23.2+71**, Branch `redesign/cream-olive`.
+**Webvorschau 0.24.0+72**, Branch `redesign/cream-olive`.
 
 Der fortlaufende [Projektstatus](docs/rebuild/STATUS.md) und die
-[Änderungen für Build 71](docs/rebuild/CALENDAR-CLARITY-BUILD-71.md) beschreiben den
+[Änderungen für Build 72](docs/rebuild/PERSON-ASSIGNMENT-BUILD-72.md) beschreiben den
 aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·

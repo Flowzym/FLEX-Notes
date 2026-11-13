@@ -96,6 +96,20 @@ extension _SchoolEditorView on _SchoolEditorState {
                             child: observation(),
                           ),
                   const SizedBox(height: 12),
+                  if (mode == 'entry')
+                    PersonAssignmentField(
+                      pupils: c.pupils,
+                      selected: {r.pupilId, ...r.participantIds},
+                      locked: {r.pupilId},
+                      otherNames: r.otherParticipants,
+                      maxNameLength: null,
+                      onChanged: (ids, names) => edit({
+                        'participantIds': ids
+                            .where((id) => id != r.pupilId)
+                            .toList(),
+                        'otherParticipants': names,
+                      }),
+                    ),
                   attachments(forTask: mode == 'comment' ? taskId : null),
                   if (stale && mode == 'comment')
                     TextButton(

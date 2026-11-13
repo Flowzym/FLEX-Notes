@@ -1,4 +1,23 @@
-# Aktueller Stand: Webvorschau 0.23.2+71
+# Aktueller Stand: Webvorschau 0.24.0+72
+
+Einträge erhalten eine gemeinsame Schüler-/Personenzuordnung: Schüler auswählen
+und/oder andere Namen frei eingeben. Zuordnungen bleiben in Entwürfen,
+Sicherungen und beim Typwechsel erhalten. Zugeordnete Aufgaben bleiben zusätzlich
+in der allgemeinen Liste sichtbar und lassen sich nach Namen durchsuchen.
+
+Aufgaben liegen jetzt unter Organisation und enthalten auch Rückläufe. Der eigene
+Rücklaufreiter entfällt; Aufgaben und Orga bieten einen Artenfilter. Der Kalender hat keine obere
+Seitennavigationspille mehr; Tag/Woche/Monat und Zeitraum-Wischen bleiben erhalten.
+Die Kalenderkorrekturen aus Build 71 sind enthalten.
+
+[Änderungen und Prüfnachweise](PERSON-ASSIGNMENT-BUILD-72.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.2+71
 
 Sa/So bleibt auch bei Wochenendterminen, fälligen HÜ und ausgewähltem Sonntag
 umschaltbar. Eine ausdrückliche Auswahl hat Vorrang vor der automatischen
