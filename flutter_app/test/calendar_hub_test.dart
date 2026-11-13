@@ -166,7 +166,8 @@ void main() {
       expect(find.text('Orga').hitTestable(), findsOneWidget);
       expect(find.text('Kopien vorbereiten'), findsWidgets);
       expect(find.byKey(const ValueKey('context-2-1')), findsNothing);
-      expect(find.byTooltip('Rücklauf anlegen').hitTestable(), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('general-add-all')));
+      expect(find.byKey(const ValueKey('orga-kind-return')), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

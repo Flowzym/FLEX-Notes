@@ -17,8 +17,14 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'school_editor.dart';
 import 'school_workspace.dart';
+import 'entry_navigation.dart';
 
 typedef DraftBody = Widget Function(BuildContext, Json, ValueChanged<Json>);
+typedef DraftNavigation =
+    Widget Function(
+      Widget content,
+      Future<void> Function(ValueChanged<DialogDraft>) navigate,
+    );
 
 class ProtectedDialog extends StatefulWidget {
   const ProtectedDialog({
@@ -33,6 +39,8 @@ class ProtectedDialog extends StatefulWidget {
     this.draft,
     this.accept = 'Speichern',
     this.maxWidth = 760,
+    this.navigation,
+    this.entryOwner,
   });
   final NotebookController controller;
   final String type, ownerId, title, accept;
@@ -41,6 +49,8 @@ class ProtectedDialog extends StatefulWidget {
   final Future<void> Function(Json, DialogDraft) save;
   final DialogDraft? draft;
   final double maxWidth;
+  final DraftNavigation? navigation;
+  final String? entryOwner;
   @override
   State<ProtectedDialog> createState() => _ProtectedDialogState();
 }
@@ -194,6 +204,20 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     if (mounted) setState(() => busy = false);
   }
 
+  Future<void> navigate(ValueChanged<DialogDraft> changePage) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush();
+      await widget.controller.reload();
+      if (mounted) changePage(buffer.draft);
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: canPop,
@@ -208,6 +232,19 @@ class _ProtectedDialogState extends State<ProtectedDialog>
           closeLabel: 'Schließen und Entwurf sichern',
           maxWidth: widget.maxWidth,
           title: Text(widget.title),
+          headerContent: widget.entryOwner == null
+              ? null
+              : EntryPageHeader(
+                  owner: widget.entryOwner!,
+                  title: widget.title,
+                  onClose: busy ? null : close,
+                  titleActions: [
+                    if (buffer.hasContent || buffer.draft.revision > 0)
+                      EditorDraftDeleteButton(
+                        onPressed: busy ? null : deleteDraft,
+                      ),
+                  ],
+                ),
           headerActions: [
             if (buffer.hasContent || buffer.draft.revision > 0)
               EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
@@ -219,7 +256,10 @@ class _ProtectedDialogState extends State<ProtectedDialog>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                widget.body(context, data, change),
+                if (widget.navigation case final navigation?)
+                  navigation(widget.body(context, data, change), navigate)
+                else
+                  widget.body(context, data, change),
                 DraftStatus(buffer: buffer),
                 if (error != null)
                   Padding(

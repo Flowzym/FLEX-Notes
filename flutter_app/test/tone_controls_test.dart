@@ -165,7 +165,7 @@ void main() {
         t.testTextInput.log.clear();
         for (final step in [
           ('appointment', -110.0),
-          ('appointment', -110.0),
+          if (editing) ('appointment', -110.0),
           ('task', 110.0),
           ('note', 110.0),
           ('note', 110.0),

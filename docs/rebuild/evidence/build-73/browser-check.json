@@ -1,0 +1,19 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.24.1",
+    "build_number": "73",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "viewports": [
+    320,
+    390
+  ],
+  "fourEqualButtonsInOnePill": true,
+  "pupilSelectionAfterClear": true,
+  "twoPupilsSaved": true,
+  "taskAndReturnInputsSurviveSwitch": true,
+  "pageErrors": [],
+  "screenshotsVisuallyReviewed": true
+}

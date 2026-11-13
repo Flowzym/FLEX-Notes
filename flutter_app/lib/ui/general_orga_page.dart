@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../domain/classroom.dart';
-import 'classroom_editor.dart';
 import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'flex_modal.dart';
@@ -190,13 +189,6 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                 style: Theme.of(ctx).textTheme.headlineSmall,
               ),
               actions: [
-                if (widget.kind != 'note')
-                  IconButton(
-                    tooltip: 'Rücklauf anlegen',
-                    onPressed: () =>
-                        showClassroomEditor(ctx, c, ClassroomKind.returnList),
-                    icon: const Icon(Icons.add_task),
-                  ),
                 if (drafts > 0)
                   IconButton(
                     tooltip: 'Entwürfe · $drafts',

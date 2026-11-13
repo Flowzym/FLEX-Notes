@@ -1,4 +1,19 @@
-# Aktueller Stand: Webvorschau 0.24.0+72
+# Aktueller Stand: Webvorschau 0.24.1+73
+
+Beim Anlegen steht Rücklauf direkt als vierter Button neben Notiz, Aufgabe und
+Termin in der Eintragspille. Der Rücklauf verwendet das bestehende Formular mit
+klarer Schülerauswahl, Alle auswählen und Auswahl leeren. Beim Wechsel bleiben
+angefangene Eingaben als Entwürfe erhalten; bestehende Teilnehmerstände werden
+für weiterhin ausgewählte Schüler beibehalten.
+
+[Änderungen und Prüfnachweise](RETURN-TAB-BUILD-73.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.0+72
 
 Einträge erhalten eine gemeinsame Schüler-/Personenzuordnung: Schüler auswählen
 und/oder andere Namen frei eingeben. Zuordnungen bleiben in Entwürfen,

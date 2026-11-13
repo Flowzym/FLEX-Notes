@@ -13,13 +13,14 @@ class OptionBar extends StatelessWidget {
     this.icons = const {},
     this.minButtonHeight = 30,
     this.fontSize = 13,
+    this.horizontalPadding = 6,
   });
   final Map<String, String> options;
   final String value, keyPrefix;
   final ValueChanged<String>? onChanged;
   final Map<String, Color> colors;
   final Map<String, IconData> icons;
-  final double minButtonHeight, fontSize;
+  final double minButtonHeight, fontSize, horizontalPadding;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -46,7 +47,10 @@ class OptionBar extends StatelessWidget {
               ),
               minimumSize: Size(0, minButtonHeight),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 5,
+              ),
               textStyle: TextStyle(
                 fontFamily: 'FlexSans',
                 fontSize: fontSize,
@@ -89,7 +93,10 @@ class OptionBar extends StatelessWidget {
           maxLines: 1,
         )..layout();
         final tooWide =
-            painter.width + 16 + (icons.containsKey(entry.key) ? 23 : 0) >
+            painter.width +
+                horizontalPadding * 2 +
+                4 +
+                (icons.containsKey(entry.key) ? 23 : 0) >
             slotWidth;
         painter.dispose();
         return tooWide;

@@ -14,6 +14,7 @@ class PersonAssignmentField extends StatelessWidget {
     this.locked = const {},
     this.canChangePupils = true,
     this.maxNameLength = 2000,
+    this.label,
   });
 
   final List<Pupil> pupils;
@@ -21,6 +22,7 @@ class PersonAssignmentField extends StatelessWidget {
   final String otherNames;
   final bool multiple, canChangePupils;
   final int? maxNameLength;
+  final String? label;
   final void Function(Set<String>, String) onChanged;
 
   @override
@@ -35,7 +37,9 @@ class PersonAssignmentField extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       minLeadingWidth: 20,
       leading: const Icon(Icons.person_outline, size: 21),
-      title: Text(names.isEmpty ? 'Schüler / Person zuordnen' : 'Zuordnung'),
+      title: Text(
+        label ?? (names.isEmpty ? 'Schüler / Person zuordnen' : 'Zuordnung'),
+      ),
       subtitle: names.isEmpty
           ? null
           : Text(
@@ -97,7 +101,29 @@ class PersonAssignmentField extends StatelessWidget {
                           : 'Keine Schüler verfügbar.',
                     ),
                   )
-                else
+                else ...[
+                  if (multiple && canChangePupils)
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          key: const ValueKey('person-assignment-select-all'),
+                          onPressed: () => update(
+                            () => ids.addAll(visible.map((p) => p.id)),
+                          ),
+                          child: Text(
+                            query.isEmpty
+                                ? 'Alle auswählen'
+                                : 'Treffer auswählen',
+                          ),
+                        ),
+                        TextButton(
+                          key: const ValueKey('person-assignment-clear'),
+                          onPressed: () => update(() => ids = {...locked}),
+                          child: const Text('Auswahl leeren'),
+                        ),
+                      ],
+                    ),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 220),
                     child: ListView(
@@ -132,6 +158,7 @@ class PersonAssignmentField extends StatelessWidget {
                       ],
                     ),
                   ),
+                ],
                 const SizedBox(height: 12),
                 TextFormField(
                   key: const ValueKey('person-assignment-names'),

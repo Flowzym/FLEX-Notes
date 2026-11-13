@@ -20,6 +20,8 @@ import 'flex_modal.dart';
 import 'orga_list_editing.dart';
 import 'entry_navigation.dart';
 import 'person_assignment.dart';
+import 'classroom_editor.dart';
+import '../domain/classroom.dart';
 
 class OrgaEditor extends StatefulWidget {
   const OrgaEditor({
@@ -40,6 +42,9 @@ class OrgaEditor extends StatefulWidget {
 class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   late OrgaEntry entry;
   late OrgaTypeDraft typeDraft;
+  Json? returnInitial;
+  DialogDraft? returnDraft;
+  bool returnOpen = false;
   late String draftId;
   late TextEditingController note, reminder;
   final itemText = TextEditingController();
@@ -75,10 +80,11 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   bool get isClass =>
       entry.pupilId == null && entry.otherParticipants.trim().isEmpty;
-  static const kinds = {
+  Map<String, String> get kinds => {
     'note': 'Notiz',
     'task': 'Aufgabe',
     'appointment': 'Termin',
+    if (entry.revision == 0) 'return': 'Rücklauf',
   };
   String get kind => entry.isAppointment
       ? 'appointment'
@@ -87,9 +93,89 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       : 'note';
 
   void selectKind(String next) {
+    if (next == 'return') {
+      openReturn();
+      return;
+    }
     if (next == kind) return;
     change(typeDraft.select(entry, next), false);
   }
+
+  Future<void> openReturn() async {
+    if (busy || returnOpen) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await persist() || !mounted) return;
+      final current = value;
+      returnInitial ??= {
+        ...classroomInitial(ClassroomKind.returnList, c),
+        'title': current.title,
+        'note': current.body == current.title ? '' : current.body,
+        'dueDate': current.dueDate ?? current.appointmentDate ?? '',
+        'otherParticipants': current.otherParticipants,
+        if (current.pupilId != null)
+          'participants': [
+            for (final pupil in c.pupils.where((p) => p.id == current.pupilId))
+              {
+                'pupilId': pupil.id,
+                'name': pupil.name,
+                'status': 'open',
+                'note': '',
+                'paid': 0,
+              },
+          ],
+      };
+      setState(() => returnOpen = true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Widget returnEditor() => classroomEditor(
+    c,
+    ClassroomKind.returnList,
+    fields: returnInitial,
+    draft: returnDraft,
+    entryOwner: 'FLEX-Klasse',
+    navigation: (content, navigate) {
+      void select(String next) {
+        if (next == 'return') return;
+        navigate((draft) {
+          setState(() {
+            returnDraft = draft;
+            returnOpen = false;
+          });
+          selectKind(next);
+        });
+      }
+
+      return OptionSwipe(
+        key: const ValueKey('orga-kind-swipe'),
+        onChanged: (previous) {
+          if (previous) select('appointment');
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OptionBar(
+              key: const ValueKey('orga-kind-bar'),
+              minButtonHeight: 38,
+              fontSize: 12,
+              horizontalPadding: 2,
+              keyPrefix: 'orga-kind',
+              options: kinds,
+              value: 'return',
+              onChanged: select,
+            ),
+            const SizedBox(height: 12),
+            content,
+          ],
+        ),
+      );
+    },
+  );
 
   void swipeKind(bool previous) {
     final options = kinds.keys.toList();
@@ -561,7 +647,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
+  Widget build(BuildContext context) =>
+      returnOpen ? returnEditor() : orgaEditor();
+
+  Widget orgaEditor() => PopScope(
     canPop: canPop,
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) close();
@@ -626,7 +715,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   OptionBar(
                     key: const ValueKey('orga-kind-bar'),
                     minButtonHeight: 38,
-                    fontSize: 14,
+                    fontSize: kinds.length > 3 ? 12 : 14,
+                    horizontalPadding: kinds.length > 3 ? 2 : 6,
                     keyPrefix: 'orga-kind',
                     options: kinds,
                     value: kind,
