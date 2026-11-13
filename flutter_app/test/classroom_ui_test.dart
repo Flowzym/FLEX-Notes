@@ -148,6 +148,9 @@ void main() {
       await tap(t, find.byKey(const ValueKey('page-1')));
       await t.drag(find.byType(PageView), const Offset(-320, 0));
       await t.pumpAndSettle();
+      expect(find.byKey(const PageStorageKey('overview')), findsOneWidget);
+      await t.drag(find.byType(PageView), const Offset(-320, 0));
+      await t.pumpAndSettle();
       expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('context-0-1')));

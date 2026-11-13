@@ -1,9 +1,50 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'surfaces.dart';
+import 'navigation_icon.dart';
 
-const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
+// IDs remain stable when the visual order changes.
+const livePages = {1: 'Notizen', 0: 'Aktuell', 2: 'Ablauf'};
 const calendarPages = {0: 'Kalender', 1: 'Aufgaben'};
+
+/// Lets the header and pages without their own pager share tab swipes.
+/// Child pagers, text selection and sliders keep their own horizontal gestures.
+class FlexNavigationSwipe extends StatefulWidget {
+  const FlexNavigationSwipe({
+    super.key,
+    required this.child,
+    required this.onStep,
+  });
+  final Widget child;
+  final ValueChanged<bool> onStep;
+  @override
+  State<FlexNavigationSwipe> createState() => _FlexNavigationSwipeState();
+}
+
+class _FlexNavigationSwipeState extends State<FlexNavigationSwipe> {
+  double _distance = 0;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.translucent,
+    onHorizontalDragStart: (_) => _distance = 0,
+    onHorizontalDragUpdate: (details) => _distance += details.primaryDelta ?? 0,
+    onHorizontalDragCancel: () => _distance = 0,
+    onHorizontalDragEnd: (details) {
+      final distance = _distance;
+      _distance = 0;
+      if (distance.abs() >= 48 ||
+          (distance.abs() >= 16 &&
+              (details.primaryVelocity ?? 0).abs() > 450)) {
+        final previous = Directionality.of(context) == TextDirection.ltr
+            ? distance > 0
+            : distance < 0;
+        widget.onStep(previous);
+      }
+    },
+    child: widget.child,
+  );
+}
 
 /// A quiet shared capsule. Destinations wrap instead of disappearing at large text.
 class FlexPagePills extends StatelessWidget {
@@ -244,16 +285,16 @@ class FlexBottomNavigation extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final e in const [
-                      (0, 'Kalender', Icons.calendar_today_outlined),
-                      (2, 'Organisation', Icons.layers_outlined),
-                      (1, 'Live', Icons.people_outline_rounded),
-                      (3, 'Material', Icons.folder_outlined),
-                      (4, 'Mehr', Icons.more_horiz),
+                      (0, 'Kalender'),
+                      (2, 'Organisation'),
+                      (1, 'Live'),
+                      (3, 'Material'),
+                      (4, 'Mehr'),
                     ])
                       Expanded(
                         child: Semantics(
@@ -266,42 +307,47 @@ class FlexBottomNavigation extends StatelessWidget {
                               key: ValueKey('bottom-${e.$1}'),
                               onTap: () => onSelected(e.$1),
                               borderRadius: BorderRadius.circular(18),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 160),
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 1,
-                                ),
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 1,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: selected == e.$1
-                                      ? FlexDesign.wash(scheme.primaryContainer)
-                                      : null,
-                                  borderRadius: BorderRadius.circular(18),
+                                  vertical: 4,
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      e.$3,
-                                      size: 25,
+                                    FlexNavigationIcon(
+                                      destination: e.$1,
                                       color: selected == e.$1
-                                          ? scheme.onPrimaryContainer
-                                          : scheme.primary,
+                                          ? scheme.primary
+                                          : scheme.onSurfaceVariant,
                                     ),
-                                    const SizedBox(height: 5),
+                                    const SizedBox(height: 4),
                                     Text(
                                       e.$2,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: selected == e.$1
-                                            ? scheme.onPrimaryContainer
+                                            ? scheme.primary
                                             : scheme.onSurface,
                                         fontSize: 11,
                                         height: 1.2,
-                                        fontWeight: FontWeight.w400,
+                                        fontWeight: selected == e.$1
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 160,
+                                      ),
+                                      width: 20,
+                                      height: 2,
+                                      decoration: BoxDecoration(
+                                        color: selected == e.$1
+                                            ? scheme.primary
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(2),
                                       ),
                                     ),
                                   ],

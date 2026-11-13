@@ -1,7 +1,7 @@
-# FLEX für Android · Build 65
+# FLEX für Android · Build 66
 
-**0.21.1+65** ist als signierte Universal-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-65/README.md).
+**0.21.2+66** ist als signierte Universal-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-66/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -12,9 +12,9 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
 
-Build 65 kann direkt über die neue FLEX aus Build 62–64 installiert werden.
+Build 66 kann direkt über die neue FLEX aus Build 62–65 installiert werden.
 App-Kennung, Signatur und lokaler Speicher bleiben dabei erhalten.
-[Kompaktere Eintragungsseiten und Prüfbericht](../docs/rebuild/SPACING-BUILD-65.md).
+[Navigation und Prüfbericht](../docs/rebuild/NAVIGATION-BUILD-66.md).
 
 ## Dauerhafte Signatur
 
@@ -63,15 +63,16 @@ und heißen **FLEX Dev**.
 ## Geprüft und noch offen
 
 Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–64 überein.
-21 gezielte UI-/Editorprüfungen bestanden; statische Analyse ohne Befunde.
-Der Release-Webbuild wurde zusätzlich im Smartphone-Browser mit Testdaten geprüft.
-Die vollständige Testsuite wurde zuletzt für Build 64 ausgeführt; für diese
-reine Abstandsanpassung wurden die betroffenen UI- und Editorprüfungen wiederholt.
+16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–65 überein.
+Statische Analyse ohne Befunde. UI-Matrix und Navigationstests prüfen die
+Reihenfolge, Wischgesten, Ränder, Scrollpositionen, Suche und Einstellungsregler.
+Der Release-Webbuild wurde im Smartphone-Browser mit Touch-Ereignissen und
+synthetischen Daten geprüft. Umfang und Ergebnisse der vollständigen Testsuite
+stehen im [Buildbericht](../docs/rebuild/NAVIGATION-BUILD-66.md).
 
 Installation, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
 der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/SPACING-BUILD-65.md).
+[Nachweise](../docs/rebuild/NAVIGATION-BUILD-66.md).
 
 Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
 beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.

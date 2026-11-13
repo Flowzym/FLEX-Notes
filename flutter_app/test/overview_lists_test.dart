@@ -689,6 +689,7 @@ void main() {
         final boundary = GlobalKey();
         final size = Size(view.$1, view.$2);
         await app(t, size: size, scale: view.$3, boundary: boundary);
+        await tap(t, find.byKey(const ValueKey('page-0')));
         if (find.byType(OverviewEntry).evaluate().isEmpty) {
           await t.scrollUntilVisible(
             find.byType(OverviewEntry).first,

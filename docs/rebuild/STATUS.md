@@ -1,4 +1,16 @@
-# Aktueller Stand: 0.21.1+65
+# Aktueller Stand: 0.21.2+66
+
+Ruhige untere Navigation mit schmaler Aktivmarkierung und einheitlichen
+Linienicons. Alle fünf Bereiche unterstützen Wischen zwischen den oberen
+Reitern, auch direkt auf der Navigationspille. Live startet mit Notizen;
+die Reihenfolge lautet Notizen, Aktuell, Ablauf.
+
+[Änderungen und Prüfnachweise](NAVIGATION-BUILD-66.md) ·
+[APK](../../releases/android/build-66/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.1+65
 
 Kompaktere Abstände zwischen FLEX., Schülername, Seitentitel und Navigation
 in den gemeinsamen Eintragungsseiten. Im Arbeitsverhalten rücken Auftrag und

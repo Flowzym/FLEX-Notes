@@ -114,6 +114,8 @@ void main() {
       });
       await c.saveRecord(initial);
       await app(tester);
+      await tester.tap(find.byKey(const ValueKey('page-0')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('overview-open-${initial.id}')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('status-task-partial')), findsOneWidget);

@@ -22,6 +22,8 @@ void main() {
       await controller.initialize();
       await tester.pumpWidget(FlexApp(controller: controller));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('page-0')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Klassen-Orga anlegen'));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -72,6 +74,8 @@ void main() {
       final controller = NotebookController(repo);
       await controller.initialize();
       await tester.pumpWidget(FlexApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('page-0')));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Klassen-Orga anlegen'));
       await tester.pumpAndSettle();

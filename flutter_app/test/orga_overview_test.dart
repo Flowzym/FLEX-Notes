@@ -83,6 +83,9 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
+    // These workflows start from Aktuell; Live itself now opens Notizen.
+    await t.tap(find.byKey(const ValueKey('page-0')));
+    await t.pumpAndSettle();
   }
 
   Future<void> tap(WidgetTester t, Finder finder) async {

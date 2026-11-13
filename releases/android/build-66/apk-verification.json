@@ -1,0 +1,25 @@
+{
+  "version": "0.21.2+66",
+  "applicationId": "at.flowzym.flex_notizbuch",
+  "label": "FLEX",
+  "oldApplicationId": "at.flowzym.flex_notizbuch.test",
+  "sameStorageAsOldApp": false,
+  "certificateSha256": "9e50d1e2393e2bf867fc33b11e50383fd066f7b2df5026fd1f2a1d2790fdcd79",
+  "artifact": "FLEX-0.21.2+66-universal.apk",
+  "bytes": 102658100,
+  "sha256": "16a368aead4e44a408887252b07edc74aff5bc0b3b25ccb24e4f6c01db4638aa",
+  "signature": "verified",
+  "zipIntegrity": "verified",
+  "zipAlignment16KB": "verified",
+  "elf64Alignment16KB": "verified",
+  "privateSigningDataInApk": false,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "deviceInstallTested": false,
+  "applicationTree": "e7e3e5f051719d1e791d460550cad76bba975690",
+  "sameSignerAsBuild65": true,
+  "sameStorageAsBuild65": true
+}

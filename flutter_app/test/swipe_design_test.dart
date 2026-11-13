@@ -188,10 +188,16 @@ void main() {
         await c.savePupil(Pupil(id: 'extra-$i', name: 'Zusatzschüler $i'));
       }
       await app(t, size: const Size(390, 844));
-      expect(page(t), 0);
+      expect(page(t), 1);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
         const Offset(-300, 0),
+      );
+      await t.pumpAndSettle();
+      expect(page(t), 0);
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -211,12 +217,12 @@ void main() {
       expect(offset, greaterThan(0));
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(
@@ -232,7 +238,7 @@ void main() {
       await t.enterText(find.byType(TextField).first, 'Anna');
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
@@ -251,10 +257,61 @@ void main() {
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
+      await finish(t);
+    },
+  );
+  testWidgets(
+    'all sections swipe in pill order from content and header, stop at edges and preserve slider gestures',
+    (t) async {
+      await app(t, size: const Size(390, 844));
+      for (final section in [
+        (1, [1, 0, 2]),
+        (0, [0, 1]),
+        (2, [0, 1, 2]),
+        (3, [0, 1, 2, 3]),
+        (4, [0, 1, 2, 3, 4, 5]),
+      ]) {
+        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
+        final pills = find.byKey(ValueKey('$prefix-${section.$2.first}'));
+        await tap(t, find.byKey(ValueKey('$prefix-${section.$2.first}')));
+        expect(page(t), section.$2.first);
+        // The visual sequence, tap targets and swipe sequence must agree.
+        final actual = t.widget<FlexPagePills>(find.byType(FlexPagePills));
+        expect(actual.pages.keys.toList(), section.$2);
+        await t.drag(pills, const Offset(230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        for (final next in section.$2.skip(1)) {
+          await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
+          await t.pumpAndSettle();
+          expect(page(t), next, reason: 'content in section ${section.$1}');
+          expect(t.takeException(), isNull);
+        }
+        await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.last);
+        for (final previous in section.$2.reversed.skip(1)) {
+          await t.drag(pills, const Offset(230, 0));
+          await t.pumpAndSettle();
+          expect(page(t), previous, reason: 'header in section ${section.$1}');
+          expect(t.takeException(), isNull);
+        }
+      }
+      await settings(t);
+      final textSlider = find.byKey(const ValueKey('appearance-text-scale'));
+      await t.ensureVisible(textSlider);
+      await t.pumpAndSettle();
+      final before = c.appearance.textScale;
+      await t.drag(textSlider, const Offset(100, 0));
+      await t.pumpAndSettle();
+      expect(page(t), 4);
+      expect(c.appearance.textScale, isNot(before));
+      await t.runAsync(c.flushAppearance);
       await finish(t);
     },
   );
@@ -317,6 +374,7 @@ void main() {
       );
       await c.reload();
       await app(t, size: const Size(390, 844));
+      await tap(t, find.byKey(const ValueKey('page-0')));
       await tap(t, find.byKey(ValueKey('overview-open-${r.id}')));
       for (final state in [
         TaskState.complete,

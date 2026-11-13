@@ -50,7 +50,7 @@ class NotebookScreen extends StatefulWidget {
 
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
-  int _primary = 0, _destination = 1, _materialView = 0, _moreView = 0;
+  int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
   int _calendarView = 0, _orgaView = 0;
   final _calendarPages = PageController();
   final _visited = <int>{1};
@@ -58,6 +58,43 @@ class _NotebookScreenState extends State<NotebookScreen> {
   String? _overviewSection;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
+  Map<int, String> get _contextPages => switch (_destination) {
+    0 => calendarPages,
+    1 => livePages,
+    2 => const {0: 'Orga', 1: 'Rückläufe', 2: 'Notizen'},
+    3 => _materialPages,
+    _ => _morePages,
+  };
+  int get _contextPage => switch (_destination) {
+    0 => _calendarView,
+    1 => _primary,
+    2 => _orgaView,
+    3 => _materialView,
+    _ => _moreView,
+  };
+
+  void _contextTo(int index) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    switch (_destination) {
+      case 0:
+        _calendarTo(index);
+      case 1:
+        _main(index);
+      case 2:
+        _changeView(() => _orgaView = index);
+      case 3:
+        _changeView(() => _materialView = index);
+      case 4:
+        _changeView(() => _moreView = index);
+    }
+  }
+
+  void _swipeContext(bool previous) {
+    final order = _contextPages.keys.toList();
+    final next = order.indexOf(_contextPage) + (previous ? -1 : 1);
+    if (next >= 0 && next < order.length) _contextTo(order[next]);
+  }
+
   VoidCallback? _refreshPupilDialog;
   void _changeView(VoidCallback action) {
     if (!mounted) return;
@@ -171,7 +208,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _pages.hasClients) {
         _pages.animateToPage(
-          index,
+          livePages.keys.toList().indexOf(index),
           duration: const Duration(milliseconds: 120),
           curve: Curves.linear,
         );
@@ -582,9 +619,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
   };
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: _destination == 1 && _primary == 0,
+    canPop: _destination == 1 && _primary == 1,
     onPopInvokedWithResult: (didPop, result) {
-      if (!didPop) _main(0);
+      if (!didPop) _main(1);
     },
     child: Scaffold(
       bottomNavigationBar: FlexBottomNavigation(
@@ -593,144 +630,127 @@ class _NotebookScreenState extends State<NotebookScreen> {
       ),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            if (c.appearanceError != null)
-              MaterialBanner(
-                content: Text(c.appearanceError!),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      _sectionTo(4);
-                      _changeView(() => _moreView = 4);
-                    },
-                    child: const Text('Einstellungen'),
-                  ),
-                ],
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'FLEX.',
-                  key: const ValueKey('app-wordmark'),
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: .5,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: .55),
+        child: FlexNavigationSwipe(
+          key: const ValueKey('context-page-swipe'),
+          onStep: _swipeContext,
+          child: Column(
+            children: [
+              if (c.appearanceError != null)
+                MaterialBanner(
+                  content: Text(c.appearanceError!),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        _sectionTo(4);
+                        _changeView(() => _moreView = 4);
+                      },
+                      child: const Text('Einstellungen'),
+                    ),
+                  ],
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'FLEX.',
+                    key: const ValueKey('app-wordmark'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: .5,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: .55),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-              child: FlexPagePills(
-                keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
-                selected: switch (_destination) {
-                  0 => _calendarView,
-                  1 => _primary,
-                  2 => _orgaView,
-                  3 => _materialView,
-                  4 => _moreView,
-                  _ => 0,
-                },
-                pages: switch (_destination) {
-                  0 => calendarPages,
-                  1 => livePages,
-                  2 => const {0: 'Orga', 1: 'Rückläufe', 2: 'Notizen'},
-                  3 => _materialPages,
-                  _ => _morePages,
-                },
-                onSelected: (index) {
-                  if (_destination == 0) {
-                    _calendarTo(index);
-                  } else if (_destination == 2) {
-                    _changeView(() => _orgaView = index);
-                  } else if (_destination == 1) {
-                    _main(index);
-                  } else if (_destination == 3) {
-                    _changeView(() => _materialView = index);
-                  } else if (_destination == 4) {
-                    _changeView(() => _moreView = index);
-                  }
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                child: FlexPagePills(
+                  keyPrefix: _destination == 1
+                      ? 'page'
+                      : 'context-$_destination',
+                  selected: _contextPage,
+                  pages: _contextPages,
+                  onSelected: _contextTo,
+                ),
               ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1400),
-                  child: IndexedStack(
-                    index: _destination,
-                    children: [
-                      if (_visited.contains(0))
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: IndexedStack(
+                      index: _destination,
+                      children: [
+                        if (_visited.contains(0))
+                          PageView(
+                            physics: const FlexPageScrollPhysics(
+                              parent: ClampingScrollPhysics(),
+                            ),
+                            key: const ValueKey('calendar-pages'),
+                            controller: _calendarPages,
+                            onPageChanged: (index) =>
+                                _changeView(() => _calendarView = index),
+                            children: [
+                              CalendarPage(
+                                key: const ValueKey('main-calendar'),
+                                controller: c,
+                              ),
+                              _generalOrga('task'),
+                            ],
+                          )
+                        else
+                          const SizedBox(),
                         PageView(
                           physics: const FlexPageScrollPhysics(
                             parent: ClampingScrollPhysics(),
                           ),
-                          key: const ValueKey('calendar-pages'),
-                          controller: _calendarPages,
-                          onPageChanged: (index) =>
-                              _changeView(() => _calendarView = index),
+                          key: const ValueKey('main-pages'),
+                          controller: _pages,
+                          onPageChanged: (index) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            _changeView(
+                              () => _primary = livePages.keys.elementAt(index),
+                            );
+                          },
                           children: [
-                            CalendarPage(
-                              key: const ValueKey('main-calendar'),
-                              controller: c,
-                            ),
-                            _generalOrga('task'),
+                            _pupils(),
+                            _overview(),
+                            _placeholder('Ablauf', Icons.route_outlined),
                           ],
-                        )
-                      else
-                        const SizedBox(),
-                      PageView(
-                        physics: const FlexPageScrollPhysics(
-                          parent: ClampingScrollPhysics(),
                         ),
-                        key: const ValueKey('main-pages'),
-                        controller: _pages,
-                        onPageChanged: (index) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          _changeView(() => _primary = index);
-                        },
-                        children: [
-                          _overview(),
-                          _pupils(),
-                          _placeholder('Ablauf', Icons.route_outlined),
-                        ],
-                      ),
-                      if (_visited.contains(2))
-                        IndexedStack(
-                          index: _orgaView,
-                          children: [
-                            _generalOrga('all'),
-                            ReturnLists(controller: c),
-                            _generalOrga('note'),
-                          ],
-                        )
-                      else
-                        const SizedBox(),
-                      if (_visited.contains(3))
-                        MaterialLibraryPage(
-                          controller: c,
-                          externalView: _materialViews[_materialView],
-                        )
-                      else
-                        const SizedBox(),
-                      if (_visited.contains(4))
-                        _moreBody()
-                      else
-                        const SizedBox(),
-                    ],
+                        if (_visited.contains(2))
+                          IndexedStack(
+                            index: _orgaView,
+                            children: [
+                              _generalOrga('all'),
+                              ReturnLists(controller: c),
+                              _generalOrga('note'),
+                            ],
+                          )
+                        else
+                          const SizedBox(),
+                        if (_visited.contains(3))
+                          MaterialLibraryPage(
+                            controller: c,
+                            externalView: _materialViews[_materialView],
+                          )
+                        else
+                          const SizedBox(),
+                        if (_visited.contains(4))
+                          _moreBody()
+                        else
+                          const SizedBox(),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
