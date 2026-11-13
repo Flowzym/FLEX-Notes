@@ -970,167 +970,85 @@ class _CalendarPageState extends State<CalendarPage>
         final scheme = Theme.of(ctx).colorScheme;
         final weekendEvents = items.any((i) => schoolDay(i.date).weekday > 5);
         final showWeekend = weekends || selected.weekday > 5 || weekendEvents;
-        final largeText =
-            MediaQuery.textScalerOf(ctx).scale(1) > 1.4 &&
-            MediaQuery.sizeOf(ctx).width < 600;
+        Widget action({
+          required String key,
+          required String label,
+          required IconData icon,
+          required VoidCallback? onPressed,
+          bool? selected,
+        }) => Expanded(
+          child: Center(
+            child: IconButton(
+              key: ValueKey(key),
+              tooltip: label,
+              isSelected: selected,
+              onPressed: onPressed,
+              icon: Icon(icon, size: 21),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(40, 44),
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: selected == true
+                    ? scheme.primaryContainer
+                    : Colors.transparent,
+                foregroundColor: selected == true
+                    ? scheme.onPrimaryContainer
+                    : scheme.primary,
+              ),
+            ),
+          ),
+        );
         final content = Column(
           key: const ValueKey('calendar-view'),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+              key: const ValueKey('calendar-toolbar'),
+              padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Vorheriger Zeitraum',
-                    onPressed: () => step(-1),
-                    icon: const Icon(Icons.chevron_left),
+                  action(
+                    key: 'calendar-add',
+                    label: 'Anlegen',
+                    icon: Icons.add,
+                    onPressed: busy ? null : addEntry,
                   ),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: pickDay,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 2,
-                          vertical: 4,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            mode == 'month'
-                                ? '${calendarMonth(selected)} ${selected.year}'
-                                : mode == 'week'
-                                ? MediaQuery.sizeOf(ctx).width < 380
-                                      ? '${schoolDay(bounds.from).day}.${schoolDay(bounds.from).month}.–${schoolDay(bounds.to).day}.${schoolDay(bounds.to).month}. ${schoolDay(bounds.to).year}'
-                                      : calendarRangeLabel(
-                                          schoolDay(bounds.from),
-                                          schoolDay(bounds.to),
-                                        )
-                                : '${calendarWeekday(selected, short: true)}, ${selected.day}. ${calendarMonth(selected)}',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(ctx).textTheme.titleMedium,
+                  action(
+                    key: 'calendar-materials',
+                    label: 'Unterlagen',
+                    icon: Icons.folder_open_outlined,
+                    onPressed: busy
+                        ? null
+                        : () => showPreparedMaterials(
+                            ctx,
+                            c,
+                            date: dateOnly(selected),
                           ),
-                        ],
-                      ),
-                    ),
                   ),
-                  IconButton(
-                    tooltip: 'Nächster Zeitraum',
-                    onPressed: () => step(1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                  const SizedBox(width: 6),
-                  TextButton(
-                    key: const ValueKey('calendar-today'),
-                    onPressed: goToNow,
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                    child: const Text('Heute'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: double.infinity),
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: scheme.surface,
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(
-                              color: scheme.outlineVariant,
-                              width: .7,
-                            ),
+                  action(
+                    key: 'calendar-manage',
+                    label: 'Verwalten',
+                    icon: Icons.settings_outlined,
+                    onPressed: busy
+                        ? null
+                        : () => showCalendarManagement(
+                            ctx,
+                            c,
+                            date: dateOnly(selected),
+                            importCalendar: () => run(importIcs),
+                            exportCalendar: () => run(() async {
+                              await saveTextFile(
+                                'FLEX-Kalender-${bounds.from}.ics',
+                                exportCalendarIcs(items),
+                                mime: 'text/calendar',
+                              );
+                            }),
                           ),
-                          child: Row(
-                            children: [
-                              for (final e in {
-                                'day': 'Tag',
-                                'week': 'Woche',
-                                'month': 'Monat',
-                              }.entries)
-                                Expanded(
-                                  flex: 1,
-                                  child: Semantics(
-                                    selected: mode == e.key,
-                                    child: TextButton(
-                                      key: ValueKey('calendar-mode-${e.key}'),
-                                      style: TextButton.styleFrom(
-                                        minimumSize: const Size(44, 34),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                        ),
-                                        backgroundColor: mode == e.key
-                                            ? scheme.primaryContainer
-                                            : Colors.transparent,
-                                        foregroundColor: scheme.onSurface,
-                                        shape: const StadiumBorder(),
-                                      ),
-                                      onPressed: () =>
-                                          navigate(() => mode = e.key),
-                                      child: Text(
-                                        e.value,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                   ),
-                  ...[
-                    const SizedBox(width: 10),
-                    IconButton(
-                      tooltip: filtered ? 'Filter aktiv' : 'Filter',
-                      onPressed: chooseFilters,
-                      icon: Icon(
-                        filtered ? Icons.filter_alt : Icons.tune,
-                        size: 21,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Padding(
-              key: const ValueKey('calendar-options'),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Wrap(
-                spacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                alignment: WrapAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    key: const ValueKey('calendar-show-lessons'),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: const Size(0, 40),
-                    ),
-                    icon: Icon(
-                      filters.contains('lesson')
-                          ? Icons.check_box_outlined
-                          : Icons.check_box_outline_blank,
-                      size: 18,
-                    ),
-                    label: const Text('Unterricht'),
+                  action(
+                    key: 'calendar-show-lessons',
+                    label: 'Unterricht',
+                    icon: Icons.school_outlined,
+                    selected: filters.contains('lesson'),
                     onPressed: () => setState(() {
                       if (filters.contains('lesson')) {
                         filters.remove('lesson');
@@ -1139,31 +1057,135 @@ class _CalendarPageState extends State<CalendarPage>
                       }
                     }),
                   ),
+                  action(
+                    key: 'calendar-edit-timetable',
+                    label: 'Stundenplan bearbeiten',
+                    icon: Icons.edit_calendar_outlined,
+                    onPressed: () =>
+                        showTimetableSettings(ctx, c, date: dateOnly(selected)),
+                  ),
                   if (mode == 'week')
-                    TextButton.icon(
-                      key: const ValueKey('calendar-weekends'),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        minimumSize: const Size(0, 40),
-                      ),
-                      icon: Icon(
-                        showWeekend
-                            ? Icons.check_box_outlined
-                            : Icons.check_box_outline_blank,
-                        size: 18,
-                      ),
-                      label: const Text('Sa/So'),
+                    action(
+                      key: 'calendar-weekends',
+                      label: showWeekend ? 'Sa/So sichtbar' : 'Sa/So anzeigen',
+                      icon: Icons.weekend_outlined,
+                      selected: showWeekend,
                       onPressed: weekendEvents || selected.weekday > 5
                           ? null
                           : () => setState(() => weekends = !weekends),
                     ),
+                  action(
+                    key: 'calendar-filter',
+                    label: filtered ? 'Filter aktiv' : 'Filter',
+                    icon: Icons.tune,
+                    selected: filtered,
+                    onPressed: chooseFilters,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Container(
+                key: const ValueKey('calendar-mode-navigation'),
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: scheme.outlineVariant, width: .7),
+                ),
+                child: Row(
+                  children: [
+                    for (final e in {
+                      'day': 'Tag',
+                      'week': 'Woche',
+                      'month': 'Monat',
+                    }.entries)
+                      Expanded(
+                        child: Semantics(
+                          selected: mode == e.key,
+                          child: TextButton(
+                            key: ValueKey('calendar-mode-${e.key}'),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(44, 34),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              backgroundColor: mode == e.key
+                                  ? scheme.primaryContainer
+                                  : Colors.transparent,
+                              foregroundColor: scheme.onSurface,
+                              shape: const StadiumBorder(),
+                            ),
+                            onPressed: () => navigate(() => mode = e.key),
+                            child: Text(e.value, textAlign: TextAlign.center),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              key: const ValueKey('calendar-date-navigation'),
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+              child: Row(
+                children: [
                   IconButton(
-                    key: const ValueKey('calendar-edit-timetable'),
-                    tooltip: 'Stundenplan bearbeiten',
-                    onPressed: () =>
-                        showTimetableSettings(ctx, c, date: dateOnly(selected)),
-                    icon: const Icon(Icons.edit_calendar_outlined, size: 21),
+                    tooltip: 'Vorheriger Zeitraum',
+                    onPressed: () => step(-1),
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: TextButton(
+                            key: const ValueKey('calendar-period'),
+                            onPressed: pickDay,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(0, 44),
+                              backgroundColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                                vertical: 4,
+                              ),
+                            ),
+                            child: Text(
+                              mode == 'month'
+                                  ? '${calendarMonth(selected)} ${selected.year}'
+                                  : mode == 'week'
+                                  ? MediaQuery.sizeOf(ctx).width < 380
+                                        ? '${schoolDay(bounds.from).day}.${schoolDay(bounds.from).month}.–${schoolDay(bounds.to).day}.${schoolDay(bounds.to).month}. ${schoolDay(bounds.to).year}'
+                                        : calendarRangeLabel(
+                                            schoolDay(bounds.from),
+                                            schoolDay(bounds.to),
+                                          )
+                                  : '${calendarWeekday(selected, short: true)}, ${selected.day}. ${calendarMonth(selected)}',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(ctx).textTheme.titleMedium,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        TextButton(
+                          key: const ValueKey('calendar-today'),
+                          onPressed: goToNow,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                            backgroundColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          child: const Text('Heute'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Nächster Zeitraum',
+                    onPressed: () => step(1),
+                    icon: const Icon(Icons.chevron_right),
                   ),
                 ],
               ),
@@ -1179,7 +1201,7 @@ class _CalendarPageState extends State<CalendarPage>
                 child: ListView(
                   controller: scroll,
                   key: const PageStorageKey('calendar-page'),
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
                   children: [
                     if (mode == 'day')
                       dayBody(items)
@@ -1202,78 +1224,6 @@ class _CalendarPageState extends State<CalendarPage>
                         onTap: () => showMaterialCollection(ctx, c, plan),
                       ),
                   ],
-                ),
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Material(
-                color: scheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    children: [
-                      for (final action in [
-                        ('Anlegen', Icons.add, addEntry),
-                        (
-                          'Unterlagen',
-                          Icons.folder_open_outlined,
-                          () => showPreparedMaterials(
-                            ctx,
-                            c,
-                            date: dateOnly(selected),
-                          ),
-                        ),
-                        (
-                          'Verwalten',
-                          Icons.edit_calendar_outlined,
-                          () => showCalendarManagement(
-                            ctx,
-                            c,
-                            date: dateOnly(selected),
-                            importCalendar: () => run(importIcs),
-                            exportCalendar: () => run(() async {
-                              await saveTextFile(
-                                'FLEX-Kalender-${bounds.from}.ics',
-                                exportCalendarIcs(items),
-                                mime: 'text/calendar',
-                              );
-                            }),
-                          ),
-                        ),
-                      ])
-                        SizedBox(
-                          width:
-                              (MediaQuery.sizeOf(ctx).width - 16) /
-                              (largeText ? 2 : 3),
-                          child: TextButton(
-                            onPressed: busy ? null : action.$3,
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 6,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!largeText) Icon(action.$2, size: 22),
-                                Text(
-                                  action.$1,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
               ),
             ),

@@ -405,8 +405,48 @@ void main() {
         for (final mode in ['day', 'week', 'month']) {
           await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
           expect(t.takeException(), isNull);
-          expect(find.text('Anlegen').hitTestable(), findsOneWidget);
-          expect(find.text('Verwalten').hitTestable(), findsOneWidget);
+          final toolbar = t.getRect(
+            find.byKey(const ValueKey('calendar-toolbar')),
+          );
+          final modes = t.getRect(
+            find.byKey(const ValueKey('calendar-mode-navigation')),
+          );
+          final dates = t.getRect(
+            find.byKey(const ValueKey('calendar-date-navigation')),
+          );
+          expect(toolbar.bottom, lessThanOrEqualTo(modes.top));
+          expect(modes.bottom, lessThanOrEqualTo(dates.top));
+          for (final action in [
+            'add',
+            'materials',
+            'manage',
+            'show-lessons',
+            'edit-timetable',
+            if (mode == 'week') 'weekends',
+            'filter',
+          ]) {
+            final button = find.byKey(ValueKey('calendar-$action'));
+            expect(button.hitTestable(), findsOneWidget);
+            final rect = t.getRect(button);
+            expect(rect.left, greaterThanOrEqualTo(toolbar.left));
+            expect(rect.right, lessThanOrEqualTo(toolbar.right));
+            expect(rect.top, greaterThanOrEqualTo(toolbar.top));
+            expect(rect.bottom, lessThanOrEqualTo(toolbar.bottom));
+            expect(
+              rect.center.dy,
+              closeTo(t.getCenter(find.byTooltip('Anlegen')).dy, .01),
+            );
+            expect(rect.width, greaterThanOrEqualTo(39.99));
+            expect(rect.height, greaterThanOrEqualTo(43.99));
+          }
+          final period = t.getRect(
+            find.byKey(const ValueKey('calendar-period')),
+          );
+          final today = t.getRect(find.byKey(const ValueKey('calendar-today')));
+          expect(today.left - period.right, closeTo(6, .01));
+          expect(today.center.dy, closeTo(period.center.dy, .01));
+          expect(find.byTooltip('Anlegen').hitTestable(), findsOneWidget);
+          expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
           await capture(
             t,
             key,
@@ -442,7 +482,7 @@ void main() {
       expect(find.text('November 2026'), findsOneWidget);
       await tap(t, find.byTooltip('Tagesansicht öffnen'));
       expect(find.textContaining('Do, 5. November'), findsOneWidget);
-      await tap(t, find.text('Anlegen'));
+      await tap(t, find.byTooltip('Anlegen'));
       expect(find.text('Anlegen · 05.11.2026'), findsOneWidget);
       expect(find.text('Termin'), findsOneWidget);
       expect(find.text('Aufgabe'), findsOneWidget);

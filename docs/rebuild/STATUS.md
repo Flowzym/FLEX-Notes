@@ -1,4 +1,21 @@
-# Aktueller Stand: Webvorschau 0.23.0+69
+# Aktueller Stand: Webvorschau 0.23.1+70
+
+Kalenderaktionen stehen gemeinsam in der obersten Werkzeugzeile. Darunter folgen
+Tag/Woche/Monat und danach der Zeitraum mit unmittelbar benachbartem Heute-Button.
+Die bisherige untere Kalenderleiste entfällt; das schwebende Plus sitzt wieder
+direkt über der Hauptnavigation.
+
+29 unterschiedliche relevante UI-/Integrationstests bestanden; darunter alle
+Kalenderansichten bei 320 Pixel Breite und doppelter Schriftgröße. Statische
+Analyse ohne Befunde. Release-Webbuild und Touch-Browser geprüft.
+Keine neue Android-APK (letzte Fassung Build 67).
+
+[Änderungen und Prüfbericht](CALENDAR-HEADER-BUILD-70.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.0+69
 
 Kalender mit kompakterem Kopf, speicherbarer Standardansicht, Zeitraum-Wischen
 und vollständig erreichbarer Woche auf schmalen Displays. Deutlichere aktive

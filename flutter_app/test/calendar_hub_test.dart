@@ -67,11 +67,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('calendar-show-lessons')),
-          matching: find.byIcon(Icons.check_box_outline_blank),
-        ),
-        findsOneWidget,
+        t
+            .widget<IconButton>(
+              find.byKey(const ValueKey('calendar-show-lessons')),
+            )
+            .isSelected,
+        isFalse,
       );
       expect(c.classroom.map((d) => d.toJson()).toList(), before);
       expect(find.byKey(const ValueKey('main-timetable')), findsNothing);

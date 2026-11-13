@@ -592,14 +592,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (!didPop) _main(1);
     },
     child: Scaffold(
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: _destination == 0 && _calendarView == 0 ? 64 : 0,
-        ),
-        child: QuickAddButton(
-          controller: c,
-          date: _destination == 0 ? _creationDate : null,
-        ),
+      floatingActionButton: QuickAddButton(
+        controller: c,
+        date: _destination == 0 ? _creationDate : null,
       ),
       bottomNavigationBar: FlexBottomNavigation(
         selected: _destination,

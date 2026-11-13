@@ -1,0 +1,43 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.23.1",
+    "build_number": "70",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 320,
+      "height": 844
+    }
+  ],
+  "normalCanvasTouch": true,
+  "periodSwipes": [
+    "day",
+    "week",
+    "month"
+  ],
+  "todayReturnedToCurrentMonth": true,
+  "openedToolbarDialogs": [
+    "Anlegen",
+    "Unterlagen",
+    "Verwalten",
+    "Stundenplan bearbeiten",
+    "Filter"
+  ],
+  "pageErrors": [],
+  "visualReviewPassed": true,
+  "reviewedScreenshots": [
+    "day-390.png",
+    "next-day-390.png",
+    "weekend-320.png",
+    "next-week-320.png",
+    "next-month-320.png",
+    "dialog-5.png"
+  ]
+}
