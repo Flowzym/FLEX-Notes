@@ -422,3 +422,9 @@ ScanContext bulkDraftScanContext(String id, {String? taskId}) => ScanContext(
   includeTasks: taskId == null,
   title: 'Gruppeneintrag',
 );
+
+ScanContext classroomDraftScanContext(DialogDraft draft) => ScanContext(
+  links: [DocumentLink('classroomDraft', draft.id)],
+  title: draft.data['title'] as String? ?? '',
+  category: draft.data['kind'] == 'returnList' ? 'form' : 'other',
+);

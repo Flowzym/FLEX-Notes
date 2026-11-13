@@ -74,6 +74,12 @@ mixin ClassroomStore on SchoolStore {
       if (!scan && (draft.type != 'classroom' || draft.ownerId != value.id)) {
         throw const DomainError('Ungültiger Klassenentwurf.');
       }
+      if (draft.type == 'classroom') {
+        await (this as SqliteNotebook)._rewriteAttachmentLinks(
+          (link) => link.kind == 'classroomDraft' && link.id == draft.id,
+          (_) => [DocumentLink('classroom', draft.ownerId)],
+        );
+      }
       await discardDialogDraft(draft.id, draft.revision);
     }
     final saved = await _writeClassroom(value);
@@ -97,6 +103,12 @@ mixin ClassroomStore on SchoolStore {
           (draft.type != 'classroom' ||
               !values.any((d) => d.id == draft.ownerId))) {
         throw const DomainError('Ungültiger Klassenentwurf.');
+      }
+      if (draft.type == 'classroom') {
+        await (this as SqliteNotebook)._rewriteAttachmentLinks(
+          (link) => link.kind == 'classroomDraft' && link.id == draft.id,
+          (_) => [DocumentLink('classroom', draft.ownerId)],
+        );
       }
       await discardDialogDraft(draft.id, draft.revision);
     }
@@ -147,6 +159,9 @@ mixin ClassroomStore on SchoolStore {
         schoolDrafts.containsKey(link.id) &&
             (link.taskId.isEmpty ||
                 schoolDrafts[link.id]!.tasks.any((t) => t.id == link.taskId)),
+      'classroomDraft' => pending.any(
+        (d) => d.type == 'classroom' && d.id == link.id,
+      ),
       'bulkDraft' =>
         bulkDrafts.containsKey(link.id) &&
             (link.taskId.isEmpty ||

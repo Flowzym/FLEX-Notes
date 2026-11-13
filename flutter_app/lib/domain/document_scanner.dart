@@ -37,6 +37,7 @@ class DocumentLink {
           'orgaDraft',
           'schoolDraft',
           'bulkDraft',
+          'classroomDraft',
           'classroom',
           'lesson',
         }.contains(link.kind) ||

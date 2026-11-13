@@ -440,9 +440,12 @@ mixin BackupMergeStore on SchoolStore {
     ]) {
       final importedRows = (tables[table] as List).cast<Map>().toList();
       if (table == 'context_drafts') {
-        // Resolve bulk owners before comparing linked scan drafts for duplicates.
+        // Resolve owners before comparing linked scan drafts for duplicates.
         int rank(Map row) =>
-            (jsonDecode(row['payload'] as String) as Map)['type'] == 'bulk'
+            {
+              'bulk',
+              'classroom',
+            }.contains((jsonDecode(row['payload'] as String) as Map)['type'])
             ? 0
             : 1;
         importedRows.sort((a, b) => rank(a).compareTo(rank(b)));
@@ -515,7 +518,7 @@ mixin BackupMergeStore on SchoolStore {
         final linkKind = switch (table) {
           'drafts' => 'orgaDraft',
           'school_drafts' => 'schoolDraft',
-          _ => 'bulkDraft',
+          _ => payload['type'] == 'classroom' ? 'classroomDraft' : 'bulkDraft',
         };
         if (duplicate != null) {
           draftLinks['$linkKind:$id'] = duplicate['id'] as String;

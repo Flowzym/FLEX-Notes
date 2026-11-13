@@ -109,6 +109,45 @@ void main() {
   }
 
   testWidgets(
+    'direct import opens picker once and retains imported preview pages',
+    (t) async {
+      final c = await controller();
+      var requests = 0;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: MemoryMaterialFiles(),
+          importOnOpen: true,
+          pickFiles: () async {
+            requests++;
+            return [
+              XFile.fromData(
+                scannerImage(),
+                name: 'Formular.png',
+                mimeType: 'image/png',
+              ),
+            ];
+          },
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            find.text('1 Seite').evaluate().isNotEmpty ||
+            find.text('1 Seiten').evaluate().isNotEmpty,
+      );
+      expect(requests, 1);
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      final draft = (await c.repository.dialogDrafts()).single;
+      expect(draft.type, 'scan');
+      expect(draft.data['pages'], hasLength(1));
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'page editor tools remain reachable with doubled text at 320 pixels',
     (t) async {
       t.platformDispatcher.textScaleFactorTestValue = 2;

@@ -1,0 +1,25 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.24.1",
+    "build_number": "74",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "viewports": [
+    320,
+    390
+  ],
+  "pdfImportedAndSaved": true,
+  "jpgImportedAndSaved": true,
+  "attachmentsSurviveTypeSwitch": true,
+  "savedReturnOpened": true,
+  "savedPreviews": 2,
+  "finalOpenPageErrors": [],
+  "selectorCorrections": [
+    "JPG is a checkbox",
+    "search click must focus input",
+    "anchor return row name to avoid matching search button"
+  ],
+  "screenshotsVisuallyReviewed": true
+}

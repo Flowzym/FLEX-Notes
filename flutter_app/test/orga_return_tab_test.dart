@@ -8,6 +8,10 @@ import 'package:flex_notizbuch/data/database.dart';
 import 'package:flex_notizbuch/data/sqlite_notebook.dart';
 import 'package:flex_notizbuch/domain/classroom.dart';
 import 'package:flex_notizbuch/domain/models.dart';
+import 'package:flex_notizbuch/domain/document_scanner.dart';
+import 'package:flex_notizbuch/ui/scan_editor.dart';
+import 'package:flex_notizbuch/ui/material_thumbnail.dart';
+import 'material_workspace_test.dart' show material;
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
@@ -70,6 +74,7 @@ void main() {
   }
 
   Future<void> tap(WidgetTester t, Finder f) async {
+    await t.pumpAndSettle();
     await t.ensureVisible(f.last);
     await t.pumpAndSettle();
     await t.tap(f.last);
@@ -83,6 +88,80 @@ void main() {
     await t.pumpWidget(const SizedBox());
     await t.pumpAndSettle();
   }
+
+  testWidgets(
+    'return capture keeps blank owner and previews through switch and publication',
+    (t) async {
+      await host(t, scale: 1.8);
+      await tab(t, 'return');
+      await tap(t, find.byKey(const ValueKey('return-scan')));
+      final scanner = t.widget<ScanEditor>(find.byType(ScanEditor));
+      expect(scanner.scope.category, 'form');
+      final draft = (await repo.dialogDrafts()).singleWhere(
+        (d) => d.type == 'classroom',
+      );
+      expect(
+        scanner.scope.links.single.identity,
+        DocumentLink('classroomDraft', draft.id).identity,
+      );
+      final attached = await repo.saveClassroomDocument(
+        material(
+          'Einverständnis.pdf',
+          fields: {
+            'links': scanner.scope.links.map((l) => l.toJson()).toList(),
+          },
+        ),
+      );
+      await c.reload();
+      await tap(t, find.text('Später fortsetzen'));
+      expect(
+        find.byKey(ValueKey('return-file-${attached.id}')),
+        findsOneWidget,
+      );
+      expect(find.byType(MaterialThumbnail), findsOneWidget);
+      await tab(t, 'note');
+      expect(
+        (await repo.dialogDrafts()).where((d) => d.type == 'classroom'),
+        hasLength(1),
+      );
+      await tab(t, 'return');
+      expect(
+        find.byKey(ValueKey('return-file-${attached.id}')),
+        findsOneWidget,
+      );
+      await t.ensureVisible(find.byKey(const ValueKey('classroom-title')));
+      await t.enterText(
+        find.byKey(const ValueKey('classroom-title')),
+        'Ausflug',
+      );
+      await tap(t, find.text('Speichern'));
+      final saved = c.classroom.singleWhere(
+        (d) => d.kind == ClassroomKind.returnList,
+      );
+      expect(
+        c.classroom.singleWhere((d) => d.id == attached.id).rows('links'),
+        [DocumentLink('classroom', saved.id).toJson()],
+      );
+      await finish(t);
+    },
+  );
+
+  testWidgets('failed owner save prevents scanner launch and retries safely', (
+    t,
+  ) async {
+    await host(t);
+    await tab(t, 'return');
+    repo.failDialogWrites = true;
+    await tap(t, find.byKey(const ValueKey('return-scan')));
+    expect(find.byType(ScanEditor), findsNothing);
+    repo.failDialogWrites = false;
+    await tap(t, find.byKey(const ValueKey('return-scan')));
+    expect(find.byType(ScanEditor), findsOneWidget);
+    await tap(t, find.text('Später fortsetzen'));
+    await tap(t, find.text('Abbrechen'));
+    expect(await repo.dialogDrafts(), isEmpty);
+    await finish(t);
+  });
 
   testWidgets(
     'four creation options fit a phone and return pupils save without an extra task',

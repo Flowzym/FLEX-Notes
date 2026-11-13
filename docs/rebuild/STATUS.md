@@ -1,4 +1,18 @@
-# Aktueller Stand: Webvorschau 0.24.1+73
+# Aktueller Stand: Webvorschau 0.24.1+74
+
+Das Rücklaufformular hat eigene Bereiche für Anlass, Schüler, Frist/Erinnerung
+und Anhänge. Scan/Foto, Bilder/PDF und vorhandenes Material sind direkt erreichbar.
+Dateien und Scanentwürfe zeigen Vorschaubilder. Neue Anhänge bleiben zunächst am
+Rücklaufentwurf und werden beim Speichern gemeinsam mit ihm zugeordnet.
+
+[Änderungen und Prüfnachweise](RETURN-ATTACHMENTS-BUILD-74.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.1+73
 
 Beim Anlegen steht Rücklauf direkt als vierter Button neben Notiz, Aufgabe und
 Termin in der Eintragspille. Der Rücklauf verwendet das bestehende Formular mit

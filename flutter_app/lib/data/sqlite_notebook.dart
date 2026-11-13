@@ -625,10 +625,12 @@ class SqliteNotebook
                 Json.from(jsonDecode(rows.single['payload'] as String) as Map),
               ).revision;
         if (actual != revision) throw const StaleRevision();
-        if (rows.isNotEmpty &&
-            (jsonDecode(rows.single['payload'] as String) as Map)['type'] ==
-                'bulk') {
-          await _detachDraftAttachments('bulkDraft', id);
+        if (rows.isNotEmpty) {
+          final type =
+              (jsonDecode(rows.single['payload'] as String) as Map)['type'];
+          if (type == 'bulk' || type == 'classroom') {
+            await _detachDraftAttachments('${type}Draft', id);
+          }
         }
         await db.customStatement('DELETE FROM context_drafts WHERE id=?', [id]);
       });

@@ -1,3 +1,4 @@
+import 'return_editor_form.dart';
 import 'material_tags.dart';
 import 'detail_flow.dart';
 import 'material_thumbnail.dart';
@@ -279,15 +280,15 @@ Widget classroomEditor(
   }
   return ProtectedDialog(
     navigation: navigation,
-    entryOwner: entryOwner,
+    entryOwner:
+        entryOwner ?? (kind == ClassroomKind.returnList ? 'FLEX-Klasse' : null),
     controller: c,
     type: 'classroom',
     ownerId: initial['id'] as String,
     title: switch (kind) {
       ClassroomKind.lesson => 'Unterricht · FLEX-Klasse',
       ClassroomKind.holiday => 'Ferien / Ausfall',
-      ClassroomKind.returnList =>
-        entryOwner == null ? 'Rücklauf · FLEX-Klasse' : 'Rücklauf',
+      ClassroomKind.returnList => 'Rücklauf',
       ClassroomKind.materialSet => 'Unterrichtspaket',
       ClassroomKind.plan => 'Planung',
       _ => 'Material',
@@ -388,6 +389,14 @@ Widget classroomEditor(
       }
     },
     body: (ctx, data, change) {
+      if (kind == ClassroomKind.returnList) {
+        return ReturnEditorForm(
+          controller: c,
+          data: data,
+          onChanged: change,
+          existing: document != null,
+        );
+      }
       Widget text(
         String key,
         String label, {
@@ -450,37 +459,12 @@ Widget classroomEditor(
           ),
           if (data['_occurrenceDate'] == null)
             PersonAssignmentField(
-              label: kind == ClassroomKind.returnList
-                  ? 'Schüler auswählen'
-                  : null,
               pupils: c.pupils,
-              selected: kind == ClassroomKind.returnList
-                  ? {
-                      for (final row in data['participants'] as List)
-                        row['pupilId'] as String,
-                    }
-                  : Set<String>.from(data['pupilIds'] as List? ?? []),
+              selected: Set<String>.from(data['pupilIds'] as List? ?? []),
               otherNames: data['otherParticipants'] as String? ?? '',
               onChanged: (ids, names) => change({
                 'otherParticipants': names,
-                if (kind == ClassroomKind.returnList)
-                  'participants': [
-                    for (final pupil in c.pupils.where(
-                      (p) => ids.contains(p.id),
-                    ))
-                      (data['participants'] as List)
-                              .where((row) => row['pupilId'] == pupil.id)
-                              .firstOrNull ??
-                          {
-                            'pupilId': pupil.id,
-                            'name': pupil.name,
-                            'status': 'open',
-                            'note': '',
-                            'paid': 0,
-                          },
-                  ]
-                else
-                  'pupilIds': ids.toList(),
+                'pupilIds': ids.toList(),
                 if (kind == ClassroomKind.material &&
                     data.containsKey('pupilDates'))
                   'pupilDates': [
@@ -632,60 +616,7 @@ Widget classroomEditor(
             ),
             text('followUp', 'Nachbereitung · optional', lines: 2),
           ],
-          if (kind == ClassroomKind.returnList) ...[
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final type in returnTypes.entries)
-                  ChoiceChip(
-                    label: Text(type.value),
-                    selected: data['type'] == type.key,
-                    onSelected: document == null
-                        ? (_) => change({'type': type.key})
-                        : null,
-                  ),
-              ],
-            ),
-            day('dueDate', 'Frist'),
-            text('note', 'Hinweis', lines: 2),
-            if (data['type'] == 'payment')
-              TextFormField(
-                key: const ValueKey('return-amount'),
-                initialValue: ((data['amountDue'] as int? ?? 0) / 100)
-                    .toStringAsFixed(2),
-                decoration: const InputDecoration(
-                  labelText: 'Betrag pro Schüler · €',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onChanged: (v) {
-                  final n = double.tryParse(v.replaceAll(',', '.'));
-                  change({
-                    'amountDue': n == null || !n.isFinite
-                        ? -1
-                        : (n * 100).round(),
-                  });
-                },
-              ),
-            DropdownButtonFormField<int>(
-              isExpanded: true,
-              itemHeight: null,
-              initialValue: data['remindDays'] as int? ?? 0,
-              decoration: const InputDecoration(labelText: 'Erinnern'),
-              items: const [
-                DropdownMenuItem(value: 0, child: Text('Am Tag der Frist')),
-                DropdownMenuItem(value: 1, child: Text('1 Tag vorher')),
-                DropdownMenuItem(value: 2, child: Text('2 Tage vorher')),
-                DropdownMenuItem(value: 7, child: Text('1 Woche vorher')),
-              ],
-              onChanged: (v) => change({'remindDays': v}),
-            ),
-            const SizedBox(height: 12),
-          ],
           if (kind == ClassroomKind.lesson ||
-              kind == ClassroomKind.returnList ||
               kind == ClassroomKind.materialSet ||
               kind == ClassroomKind.plan) ...[
             const SizedBox(height: 12),

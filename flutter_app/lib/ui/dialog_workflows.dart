@@ -51,11 +51,14 @@ class ProtectedDialog extends StatefulWidget {
   final double maxWidth;
   final DraftNavigation? navigation;
   final String? entryOwner;
+  static ProtectedDialogState of(BuildContext context) =>
+      context.findAncestorStateOfType<ProtectedDialogState>()!;
+
   @override
-  State<ProtectedDialog> createState() => _ProtectedDialogState();
+  State<ProtectedDialog> createState() => ProtectedDialogState();
 }
 
-class _ProtectedDialogState extends State<ProtectedDialog>
+class ProtectedDialogState extends State<ProtectedDialog>
     with WidgetsBindingObserver {
   late DraftBuffer buffer;
   late Json data;
@@ -78,8 +81,10 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       },
       initial: widget.draft,
       retainEmpty: (draft) {
-        if (draft.type != 'bulk') return false;
-        final scope = bulkDraftScanContext(draft.id);
+        if (!{'bulk', 'classroom'}.contains(draft.type)) return false;
+        final scope = draft.type == 'bulk'
+            ? bulkDraftScanContext(draft.id)
+            : classroomDraftScanContext(draft);
         return widget.controller.classroom.any(scope.matchesMaterial) ||
             widget.controller.dialogDrafts.any(scope.matchesDraft);
       },
@@ -157,6 +162,30 @@ class _ProtectedDialogState extends State<ProtectedDialog>
           if (mounted) setState(() => error = friendlyError(discardError));
         }
       }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  /// Persist the owner before capture/import can leave the app. Keep attachment
+  /// links on the draft until its record is successfully published.
+  Future<void> withSavedDraft(Future<void> Function(DialogDraft) action) async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      await action(buffer.draft);
+      await widget.controller.reload();
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -530,7 +559,7 @@ Future<void> showBulk(
   String initialKind = 'social',
   String initialSubject = '',
 }) async {
-  final editorKey = GlobalKey<_ProtectedDialogState>();
+  final editorKey = GlobalKey<ProtectedDialogState>();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;

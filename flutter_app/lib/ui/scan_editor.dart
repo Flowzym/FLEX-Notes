@@ -39,11 +39,17 @@ Future<ClassroomDocument?> showDocumentScanner(
   ScanContext scope = const ScanContext(),
   DialogDraft? draft,
   ClassroomDocument? source,
+  bool importOnOpen = false,
 }) => showFlexDetail<ClassroomDocument>(
   context: context,
   barrierDismissible: false,
-  builder: (_) =>
-      ScanEditor(controller: c, scope: scope, draft: draft, source: source),
+  builder: (_) => ScanEditor(
+    controller: c,
+    scope: scope,
+    draft: draft,
+    source: source,
+    importOnOpen: importOnOpen,
+  ),
 );
 
 String documentLinkLabel(NotebookController c, DocumentLink link) {
@@ -58,6 +64,10 @@ String documentLinkLabel(NotebookController c, DocumentLink link) {
         'Schüler';
     final task = r?.tasks.where((t) => t.id == link.taskId).firstOrNull;
     return 'Entwurf · $owner · ${r?.kind.label ?? 'Eintrag'}${task == null ? '' : ' · ${task.text.isEmpty ? 'Aufgabe' : task.text}'}';
+  }
+  if (link.kind == 'classroomDraft') {
+    final draft = c.dialogDrafts.where((d) => d.id == link.id).firstOrNull;
+    return 'Entwurf · ${draft?.data['title'] ?? 'Rücklauf'}';
   }
   if (link.kind == 'bulkDraft') {
     return 'Entwurf · Gruppeneintrag${link.taskId.isEmpty ? '' : ' · Aufgabe'}';
@@ -164,7 +174,10 @@ Future<List<DocumentLink>?> chooseDocumentLinks(
                 subtitle: Text(switch (l.kind) {
                   'orga' => 'Orga',
                   'school' => 'Schüler',
-                  'orgaDraft' || 'schoolDraft' || 'bulkDraft' => 'Entwurf',
+                  'orgaDraft' ||
+                  'schoolDraft' ||
+                  'bulkDraft' ||
+                  'classroomDraft' => 'Entwurf',
                   'lesson' => 'Unterrichtsstunde',
                   _ => 'Klasse',
                 }),
@@ -205,8 +218,10 @@ class ScanEditor extends StatefulWidget {
     this.pickFiles,
     this.capturePages,
     this.capturePhoto,
+    this.importOnOpen = false,
   });
   final NotebookController controller;
+  final bool importOnOpen;
   final ScanContext scope;
   final DialogDraft? draft;
   final ClassroomDocument? source;
@@ -326,6 +341,14 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             await addImage(image);
           }
         });
+      });
+    }
+    if (widget.importOnOpen &&
+        source == null &&
+        widget.draft == null &&
+        widget.initialImages.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(pick());
       });
     }
     if (data['capturePending'] == true && nativeCamera) {

@@ -29,6 +29,7 @@ Object? _content(Object? value) {
           'orgaDraft',
           'schoolDraft',
           'bulkDraft',
+          'classroomDraft',
           'classroom',
           'lesson',
         }.contains(value['kind']) &&
