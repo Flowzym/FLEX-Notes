@@ -46,6 +46,71 @@ class _FlexNavigationSwipeState extends State<FlexNavigationSwipe> {
   );
 }
 
+/// One quick transition for every top-level tab, independent of its content.
+/// The child stays mounted so searches, scroll positions and inputs survive.
+class FlexTabTransition extends StatefulWidget {
+  const FlexTabTransition({
+    super.key,
+    required this.section,
+    required this.index,
+    required this.child,
+  });
+  final int section, index;
+  final Widget child;
+  static const duration = Duration(milliseconds: 140);
+
+  @override
+  State<FlexTabTransition> createState() => _FlexTabTransitionState();
+}
+
+class _FlexTabTransitionState extends State<FlexTabTransition>
+    with SingleTickerProviderStateMixin {
+  late final _animation = AnimationController(
+    vsync: this,
+    duration: FlexTabTransition.duration,
+    value: 1,
+  );
+  double _direction = 1;
+
+  @override
+  void didUpdateWidget(covariant FlexTabTransition oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.section != widget.section ||
+        MediaQuery.disableAnimationsOf(context)) {
+      _animation.value = 1;
+    } else if (oldWidget.index != widget.index) {
+      _direction = widget.index > oldWidget.index ? 1 : -1;
+      if (Directionality.of(context) == TextDirection.rtl) _direction *= -1;
+      _animation.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animation.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _animation,
+    child: widget.child,
+    builder: (_, child) {
+      final progress = Curves.easeOutCubic.transform(_animation.value);
+      return IgnorePointer(
+        ignoring: _animation.isAnimating,
+        child: Opacity(
+          opacity: progress,
+          child: Transform.translate(
+            offset: Offset(16 * (1 - progress) * _direction, 0),
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}
+
 /// A quiet shared capsule. Destinations wrap instead of disappearing at large text.
 class FlexPagePills extends StatelessWidget {
   const FlexPagePills({
@@ -366,15 +431,4 @@ class FlexBottomNavigation extends StatelessWidget {
       },
     ),
   );
-}
-
-/// A short, critically damped snap without elastic overscroll.
-class FlexPageScrollPhysics extends PageScrollPhysics {
-  const FlexPageScrollPhysics({super.parent});
-  @override
-  FlexPageScrollPhysics applyTo(ScrollPhysics? ancestor) =>
-      FlexPageScrollPhysics(parent: buildParent(ancestor));
-  @override
-  SpringDescription get spring =>
-      SpringDescription.withDampingRatio(mass: .5, stiffness: 900, ratio: 1);
 }

@@ -1,7 +1,7 @@
-# FLEX für Android · Build 66
+# FLEX für Android · Build 67
 
-**0.21.2+66** ist als signierte Universal-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-66/README.md).
+**0.21.3+67** ist als signierte Universal-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-67/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -12,9 +12,9 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
 
-Build 66 kann direkt über die neue FLEX aus Build 62–65 installiert werden.
+Build 67 kann direkt über die neue FLEX aus Build 62–66 installiert werden.
 App-Kennung, Signatur und lokaler Speicher bleiben dabei erhalten.
-[Navigation und Prüfbericht](../docs/rebuild/NAVIGATION-BUILD-66.md).
+[Übergänge, Materialkarten und Prüfbericht](../docs/rebuild/MOTION-MATERIALS-BUILD-67.md).
 
 ## Dauerhafte Signatur
 
@@ -63,16 +63,16 @@ und heißen **FLEX Dev**.
 ## Geprüft und noch offen
 
 Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–65 überein.
-Statische Analyse ohne Befunde. UI-Matrix und Navigationstests prüfen die
-Reihenfolge, Wischgesten, Ränder, Scrollpositionen, Suche und Einstellungsregler.
-Der Release-Webbuild wurde im Smartphone-Browser mit Touch-Ereignissen und
-synthetischen Daten geprüft. Umfang und Ergebnisse der vollständigen Testsuite
-stehen im [Buildbericht](../docs/rebuild/NAVIGATION-BUILD-66.md).
+16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–66 überein.
+Statische Analyse ohne Befunde. 36 Navigations-/Materialprüfungen und 10
+UI-Prüfungen bestanden, einschließlich des gleichen Animationsverlaufs bei
+Tippen und Wischen. Der Release-Webbuild wurde im Smartphone-Browser mit
+Touch-Ereignissen und synthetischen Daten geprüft. Die vollständige Testsuite
+wurde zuletzt für Build 66 ausgeführt; Build 67 prüft gezielt die betroffenen Bereiche.
 
 Installation, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
 der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/NAVIGATION-BUILD-66.md).
+[Nachweise](../docs/rebuild/MOTION-MATERIALS-BUILD-67.md).
 
 Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
 beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.

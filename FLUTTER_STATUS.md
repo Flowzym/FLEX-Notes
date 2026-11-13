@@ -1,9 +1,9 @@
 # Aktueller Flutter-Stand
 
-**0.21.2+66**, Branch `redesign/cream-olive`.
+**0.21.3+67**, Branch `redesign/cream-olive`.
 
 Der fortlaufende [Projektstatus](docs/rebuild/STATUS.md) und die
-[Änderungen für Build 66](docs/rebuild/NAVIGATION-BUILD-66.md) beschreiben den
+[Änderungen für Build 67](docs/rebuild/MOTION-MATERIALS-BUILD-67.md) beschreiben den
 aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
@@ -11,9 +11,9 @@ aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 [Startanweisungen](flutter_app/README.md) ·
 [Android-Bau und Installation](flutter_app/ANDROID-TEST.md).
 
-Build 66 aktualisiert die neue **FLEX** aus Build 62–65 mit gleicher Kennung und
+Build 67 aktualisiert die neue **FLEX** aus Build 62–66 mit gleicher Kennung und
 Signatur. Die ältere **FLEX Test** bleibt separat; deren ursprünglicher
-Testschlüssel fehlt weiterhin. [APK](releases/android/build-66/README.md) und
+Testschlüssel fehlt weiterhin. [APK](releases/android/build-67/README.md) und
 [Umzug mit Notizbuch- und Materialsicherung](docs/rebuild/ANDROID-UMZUG-62.md).
 Die neue dauerhafte Signatur ist im Build festgeschrieben; der private Schlüssel
 bleibt außerhalb GitHubs. CI baut ausdrücklich unsigniert.

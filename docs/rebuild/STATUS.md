@@ -1,4 +1,17 @@
-# Aktueller Stand: 0.21.2+66
+# Aktueller Stand: 0.21.3+67
+
+Einheitlicher 140-ms-Übergang beim Tippen und Wischen zwischen allen oberen
+Reitern. Kompakte Materialkarten mit integrierten Aktionen und kleineren
+Vorschaubildern in der Listenansicht. Große Schrift bleibt unterstützt.
+
+36 Navigations-/Materialprüfungen und 10 UI-Prüfungen bestanden; Analyse ohne Befunde.
+
+[Änderungen und Prüfbericht](MOTION-MATERIALS-BUILD-67.md) ·
+[APK und Prüfnachweise](../../releases/android/build-67/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.2+66
 
 Ruhige untere Navigation mit schmaler Aktivmarkierung und einheitlichen
 Linienicons. Alle fünf Bereiche unterstützen Wischen zwischen den oberen

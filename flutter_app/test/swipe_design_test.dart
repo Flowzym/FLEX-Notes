@@ -265,6 +265,56 @@ void main() {
     },
   );
   testWidgets(
+    'tap and swipe use the same short directional transition in every section',
+    (t) async {
+      await app(t, size: const Size(390, 844));
+      double translation() => t
+          .widget<Transform>(
+            find
+                .descendant(
+                  of: find.byType(FlexTabTransition),
+                  matching: find.byType(Transform),
+                )
+                .first,
+          )
+          .transform
+          .getTranslation()
+          .x;
+      final samples = <double>[];
+      for (final section in [
+        (1, 1, 0),
+        (0, 0, 1),
+        (2, 0, 1),
+        (3, 0, 1),
+        (4, 0, 1),
+      ]) {
+        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
+        await tap(t, find.byKey(ValueKey('$prefix-${section.$2}')));
+        await t.tap(find.byKey(ValueKey('$prefix-${section.$3}')));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 70));
+        expect(translation(), inExclusiveRange(0, 16));
+        samples.add(translation());
+        await t.pump(const Duration(milliseconds: 100));
+        expect(translation(), 0);
+        expect(page(t), section.$3);
+        await t.dragFrom(const Offset(80, 450), const Offset(180, 0));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 70));
+        expect(translation(), inExclusiveRange(-16, 0));
+        expect(translation().abs(), closeTo(samples.last, .01));
+        await t.pumpAndSettle();
+        expect(translation(), 0);
+        expect(page(t), section.$2);
+      }
+      for (final sample in samples) {
+        expect(sample, closeTo(samples.first, .01));
+      }
+      await finish(t);
+    },
+  );
+  testWidgets(
     'all sections swipe in pill order from content and header, stop at edges and preserve slider gestures',
     (t) async {
       await app(t, size: const Size(390, 844));

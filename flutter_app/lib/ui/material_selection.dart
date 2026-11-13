@@ -240,7 +240,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
           key: start == 0
               ? ValueKey(grid ? 'material-grid' : 'material-list')
               : null,
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.only(bottom: grid ? 12 : 8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
