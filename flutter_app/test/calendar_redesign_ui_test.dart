@@ -414,10 +414,13 @@ void main() {
           final dates = t.getRect(
             find.byKey(const ValueKey('calendar-date-navigation')),
           );
+          final options = t.getRect(
+            find.byKey(const ValueKey('calendar-display-options')),
+          );
           expect(toolbar.bottom, lessThanOrEqualTo(modes.top));
           expect(modes.bottom, lessThanOrEqualTo(dates.top));
+          expect(dates.bottom, lessThanOrEqualTo(options.top));
           for (final action in [
-            'add',
             'materials',
             'manage',
             'show-lessons',
@@ -428,16 +431,20 @@ void main() {
             final button = find.byKey(ValueKey('calendar-$action'));
             expect(button.hitTestable(), findsOneWidget);
             final rect = t.getRect(button);
-            expect(rect.left, greaterThanOrEqualTo(toolbar.left));
-            expect(rect.right, lessThanOrEqualTo(toolbar.right));
-            expect(rect.top, greaterThanOrEqualTo(toolbar.top));
-            expect(rect.bottom, lessThanOrEqualTo(toolbar.bottom));
+            final group =
+                ['materials', 'manage', 'edit-timetable'].contains(action)
+                ? toolbar
+                : options;
+            expect(rect.left, greaterThanOrEqualTo(group.left));
+            expect(rect.right, lessThanOrEqualTo(group.right));
+            expect(rect.top, greaterThanOrEqualTo(group.top));
+            expect(rect.bottom, lessThanOrEqualTo(group.bottom));
             expect(
-              rect.center.dy,
-              closeTo(t.getCenter(find.byTooltip('Anlegen')).dy, .01),
+              find.descendant(of: button, matching: find.byType(Text)),
+              findsOneWidget,
             );
             expect(rect.width, greaterThanOrEqualTo(39.99));
-            expect(rect.height, greaterThanOrEqualTo(43.99));
+            expect(rect.height, greaterThanOrEqualTo(39.99));
           }
           final period = t.getRect(
             find.byKey(const ValueKey('calendar-period')),
@@ -445,7 +452,6 @@ void main() {
           final today = t.getRect(find.byKey(const ValueKey('calendar-today')));
           expect(today.left - period.right, closeTo(6, .01));
           expect(today.center.dy, closeTo(period.center.dy, .01));
-          expect(find.byTooltip('Anlegen').hitTestable(), findsOneWidget);
           expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
           await capture(
             t,
@@ -472,24 +478,17 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
-  testWidgets(
-    'month selection keeps month then opens selected day and dated creation',
-    (t) async {
-      final c = await controller(seed: true);
-      await host(t, c);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
-      await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
-      expect(find.text('November 2026'), findsOneWidget);
-      await tap(t, find.byTooltip('Tagesansicht öffnen'));
-      expect(find.textContaining('Do, 5. November'), findsOneWidget);
-      await tap(t, find.byTooltip('Anlegen'));
-      expect(find.text('Anlegen · 05.11.2026'), findsOneWidget);
-      expect(find.text('Termin'), findsOneWidget);
-      expect(find.text('Aufgabe'), findsOneWidget);
-      expect(t.takeException(), isNull);
-      await t.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('month selection keeps month then opens selected day', (t) async {
+    final c = await controller(seed: true);
+    await host(t, c);
+    await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+    await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
+    expect(find.text('November 2026'), findsOneWidget);
+    await tap(t, find.byTooltip('Tagesansicht öffnen'));
+    expect(find.textContaining('Do, 5. November'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'week overlaps open every source and weekends with entries stay visible',
     (t) async {
@@ -521,6 +520,81 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  for (final reason in ['appointment', 'homework', 'selected Sunday']) {
+    testWidgets(
+      'weekends can be hidden despite $reason and stay user controlled',
+      (t) async {
+        final c = await controller();
+        if (reason == 'appointment') {
+          await c.saveEntry(
+            OrgaEntry.empty().copyWith(
+              title: 'Samstagstermin',
+              appointmentDate: '2026-11-07',
+              appointmentTime: '09:00',
+            ),
+          );
+        } else if (reason == 'homework') {
+          await c.savePupil(const Pupil(id: 'weekend-pupil', name: 'Alex'));
+          await c.repository.saveSchoolRecord(
+            SchoolRecord.empty(SchoolKind.homework, 'weekend-pupil').patch({
+              'title': 'Am Samstag fällig',
+              'dueDate': '2026-11-07',
+              'tasks': [
+                {'id': 'weekend-task', 'text': 'Lesen', 'status': 'open'},
+              ],
+            }),
+          );
+          await c.reload();
+        }
+        await host(
+          t,
+          c,
+          builder: (_) => CalendarPage(
+            controller: c,
+            clock: () =>
+                DateTime(2026, 11, reason == 'selected Sunday' ? 8 : 2),
+          ),
+        );
+        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        int dayCount() => t
+            .widget<CalendarTimeline>(find.byType(CalendarTimeline))
+            .days
+            .length;
+        final toggle = find.byKey(const ValueKey('calendar-weekends'));
+        expect(dayCount(), 7);
+        expect(t.widget<TextButton>(toggle).onPressed, isNotNull);
+        await tap(t, toggle);
+        expect(dayCount(), 5);
+        expect(find.text('Sa'), findsNothing);
+        expect(find.text('So'), findsNothing);
+        await c.reload();
+        await t.pumpAndSettle();
+        expect(dayCount(), 5);
+        await tap(t, find.byTooltip('Nächster Zeitraum'));
+        expect(dayCount(), 5);
+        await tap(t, find.byTooltip('Vorheriger Zeitraum'));
+        expect(dayCount(), 5);
+        if (reason != 'selected Sunday') {
+          final hidden = find.byKey(
+            const ValueKey('calendar-hidden-weekend-entries'),
+          );
+          expect(hidden, findsOneWidget);
+          await tap(t, hidden);
+          expect(dayCount(), 7);
+          expect(hidden, findsNothing);
+          await tap(t, toggle);
+          expect(dayCount(), 5);
+        }
+        await tap(t, toggle);
+        expect(dayCount(), 7);
+        await tap(t, toggle);
+        expect(dayCount(), 5);
+        expect(t.takeException(), isNull);
+        await t.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets(
     'single lesson edit past series end retains preparation and inheritance',
     (t) async {

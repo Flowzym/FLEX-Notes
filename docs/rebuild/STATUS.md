@@ -1,4 +1,22 @@
-# Aktueller Stand: Webvorschau 0.23.1+70
+# Aktueller Stand: Webvorschau 0.23.2+71
+
+Sa/So bleibt auch bei Wochenendterminen, fälligen HÜ und ausgewähltem Sonntag
+umschaltbar. Eine ausdrückliche Auswahl hat Vorrang vor der automatischen
+Einblendung und bleibt beim Wochenwechsel erhalten. Ausgeblendete Einträge
+bleiben über einen kleinen Wochenendhinweis erreichbar.
+
+Beschriftete Werkzeuge, getrennte Anzeigeschalter und eine schlanke
+Fälligkeitszeile ersetzen die gemischte Symbolreihe und den großen Hinweisblock.
+Das globale Plus übernimmt auch einen direkt im Monatsraster gewählten Tag.
+
+[Änderungen und Prüfnachweise](CALENDAR-CLARITY-BUILD-71.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.1+70
 
 Kalenderaktionen stehen gemeinsam in der obersten Werkzeugzeile. Darunter folgen
 Tag/Woche/Monat und danach der Zeitraum mit unmittelbar benachbartem Heute-Button.

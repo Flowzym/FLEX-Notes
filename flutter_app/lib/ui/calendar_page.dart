@@ -237,7 +237,13 @@ class _CalendarPageState extends State<CalendarPage>
   final nowMarker = GlobalKey();
   final scroll = ScrollController();
   Timer? ticker;
-  bool weekends = false, showCompleted = false;
+  bool? weekends;
+  bool showCompleted = false;
+
+  bool showWeekends(List<CalendarItem> items) =>
+      weekends ??
+      (selected.weekday > DateTime.friday ||
+          items.any((item) => schoolDay(item.date).weekday > DateTime.friday));
 
   Future<void> openItem(CalendarItem item) =>
       showCalendarItem(context, c, item);
@@ -507,54 +513,6 @@ class _CalendarPageState extends State<CalendarPage>
     }
   }
 
-  Future<void> addEntry() async {
-    final kind = await showDialog<String>(
-      context: context,
-      builder: (ctx) => FlexModal(
-        title: Text('Anlegen · ${displayDate(dateOnly(selected))}'),
-        onClose: () => Navigator.pop(ctx),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final e in const [
-              ('lesson', 'Unterricht', Icons.school_outlined),
-              ('appointment', 'Termin', Icons.event_outlined),
-              ('task', 'Aufgabe', Icons.task_alt),
-              ('return', 'Rücklauf', Icons.fact_check_outlined),
-              ('holiday', 'Ferien / Ausfall', Icons.beach_access_outlined),
-            ])
-              ListTile(
-                leading: Icon(e.$3),
-                title: Text(e.$2),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.pop(ctx, e.$1),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (kind == null || !mounted) return;
-    final date = dateOnly(selected);
-    if (kind == 'appointment' || kind == 'task') {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => OrgaEditor(
-          controller: c,
-          entry: kind == 'appointment'
-              ? OrgaEntry.empty().copyWith(appointmentDate: date)
-              : OrgaEntry.empty().copyWith(isTask: true, dueDate: date),
-        ),
-      );
-    } else {
-      await showClassroomEditor(context, c, switch (kind) {
-        'lesson' => ClassroomKind.lesson,
-        'return' => ClassroomKind.returnList,
-        _ => ClassroomKind.holiday,
-      }, date: date);
-    }
-  }
-
   Future<void> showItems(String title, List<CalendarItem> items) =>
       showDialog<void>(
         context: context,
@@ -585,9 +543,9 @@ class _CalendarPageState extends State<CalendarPage>
         ),
       );
 
-  Widget dueStrip(List<CalendarItem> items, {String? label}) {
+  Widget dueStrip(List<CalendarItem> items, {String? label, Widget? trailing}) {
     final due = items.where(calendarDue).toList();
-    if (due.isEmpty) return const SizedBox.shrink();
+    if (due.isEmpty) return trailing ?? const SizedBox.shrink();
     if (label == null && due.length == 1) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -629,53 +587,37 @@ class _CalendarPageState extends State<CalendarPage>
       );
     }
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .04),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label ??
-                    (dateOnly(selected) == dateOnly(now)
-                        ? 'Heute fällig'
-                        : 'Fällig am ${displayDate(dateOnly(selected))}'),
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 2,
-                children: [
-                  for (final category in const [
-                    'task',
-                    'homework',
-                    'goal',
-                    'return',
-                  ])
-                    if (due.any((i) => i.category == category))
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          minimumSize: const Size(44, 34),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        onPressed: () => showItems(
-                          calendarCategories[category]!,
-                          due.where((i) => i.category == category).toList(),
-                        ),
-                        icon: Icon(calendarIcon(category), size: 17),
-                        label: Text(
-                          '${due.where((i) => i.category == category).length} ${due.where((i) => i.category == category).length == 1 ? const {'task': 'Aufgabe', 'homework': 'HÜ', 'goal': 'Ziel', 'return': 'Rücklauf'}[category] : calendarCategories[category]}',
-                        ),
-                      ),
-                ],
-              ),
-            ],
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            label ??
+                (dateOnly(selected) == dateOnly(now)
+                    ? 'Heute fällig'
+                    : 'Fällig am ${displayDate(dateOnly(selected))}'),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-        ),
+          for (final category in const ['task', 'homework', 'goal', 'return'])
+            if (due.any((i) => i.category == category))
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  minimumSize: const Size(44, 40),
+                  backgroundColor: Colors.transparent,
+                ),
+                onPressed: () => showItems(
+                  calendarCategories[category]!,
+                  due.where((i) => i.category == category).toList(),
+                ),
+                icon: Icon(calendarIcon(category), size: 16),
+                label: Text(
+                  '${due.where((i) => i.category == category).length} ${due.where((i) => i.category == category).length == 1 ? const {'task': 'Aufgabe', 'homework': 'HÜ', 'goal': 'Ziel', 'return': 'Rücklauf'}[category] : calendarCategories[category]}',
+                ),
+              ),
+          ?trailing,
+        ],
       ),
     );
   }
@@ -736,8 +678,7 @@ class _CalendarPageState extends State<CalendarPage>
     final weekendEvents = items
         .where((i) => schoolDay(i.date).weekday > 5)
         .toList();
-    final showWeekend =
-        weekends || selected.weekday > 5 || weekendEvents.isNotEmpty;
+    final showWeekend = showWeekends(items);
     final days = [
       for (var i = 0; i < (showWeekend ? 7 : 5); i++)
         monday.add(Duration(days: i)),
@@ -745,7 +686,23 @@ class _CalendarPageState extends State<CalendarPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        dueStrip(items, label: 'Diese Woche fällig'),
+        dueStrip(
+          items,
+          label: 'Fällig',
+          trailing: !showWeekend && weekendEvents.isNotEmpty
+              ? TextButton.icon(
+                  key: const ValueKey('calendar-hidden-weekend-entries'),
+                  onPressed: () => setState(() => weekends = true),
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: Text('Sa/So · ${weekendEvents.length}'),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    minimumSize: const Size(44, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                )
+              : null,
+        ),
         CalendarTimeline(
           week: true,
           days: days,
@@ -846,7 +803,10 @@ class _CalendarPageState extends State<CalendarPage>
                       ),
                       child: InkWell(
                         key: ValueKey('calendar-month-${dateOnly(day)}'),
-                        onTap: () => setState(() => selected = day),
+                        onTap: () {
+                          setState(() => selected = day);
+                          widget.onDateChanged?.call(dateOnly(day));
+                        },
                         borderRadius: BorderRadius.circular(24),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -968,120 +928,104 @@ class _CalendarPageState extends State<CalendarPage>
         final filtered =
             filters.length != calendarCategories.length || showCompleted;
         final scheme = Theme.of(ctx).colorScheme;
-        final weekendEvents = items.any((i) => schoolDay(i.date).weekday > 5);
-        final showWeekend = weekends || selected.weekday > 5 || weekendEvents;
+        final showWeekend = showWeekends(items);
         Widget action({
           required String key,
           required String label,
           required IconData icon,
           required VoidCallback? onPressed,
+          String? tooltip,
           bool? selected,
-        }) => Expanded(
-          child: Center(
-            child: IconButton(
-              key: ValueKey(key),
-              tooltip: label,
-              isSelected: selected,
-              onPressed: onPressed,
-              icon: Icon(icon, size: 21),
-              style: IconButton.styleFrom(
-                minimumSize: const Size(40, 44),
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                backgroundColor: selected == true
-                    ? scheme.primaryContainer
-                    : Colors.transparent,
-                foregroundColor: selected == true
-                    ? scheme.onPrimaryContainer
-                    : scheme.primary,
+        }) {
+          final button = TextButton(
+            key: ValueKey(key),
+            onPressed: onPressed,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: Colors.transparent,
+              foregroundColor: selected == true
+                  ? scheme.primary
+                  : scheme.onSurfaceVariant,
+              textStyle: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0,
               ),
             ),
-          ),
-        );
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 17),
+                const SizedBox(width: 4),
+                Flexible(child: Text(label)),
+              ],
+            ),
+          );
+          return Semantics(
+            toggled: selected,
+            child: Tooltip(message: tooltip ?? label, child: button),
+          );
+        }
+
         final content = Column(
           key: const ValueKey('calendar-view'),
           children: [
             Padding(
               key: const ValueKey('calendar-toolbar'),
-              padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-              child: Row(
-                children: [
-                  action(
-                    key: 'calendar-add',
-                    label: 'Anlegen',
-                    icon: Icons.add,
-                    onPressed: busy ? null : addEntry,
-                  ),
-                  action(
-                    key: 'calendar-materials',
-                    label: 'Unterlagen',
-                    icon: Icons.folder_open_outlined,
-                    onPressed: busy
-                        ? null
-                        : () => showPreparedMaterials(
-                            ctx,
-                            c,
-                            date: dateOnly(selected),
-                          ),
-                  ),
-                  action(
-                    key: 'calendar-manage',
-                    label: 'Verwalten',
-                    icon: Icons.settings_outlined,
-                    onPressed: busy
-                        ? null
-                        : () => showCalendarManagement(
-                            ctx,
-                            c,
-                            date: dateOnly(selected),
-                            importCalendar: () => run(importIcs),
-                            exportCalendar: () => run(() async {
-                              await saveTextFile(
-                                'FLEX-Kalender-${bounds.from}.ics',
-                                exportCalendarIcs(items),
-                                mime: 'text/calendar',
-                              );
-                            }),
-                          ),
-                  ),
-                  action(
-                    key: 'calendar-show-lessons',
-                    label: 'Unterricht',
-                    icon: Icons.school_outlined,
-                    selected: filters.contains('lesson'),
-                    onPressed: () => setState(() {
-                      if (filters.contains('lesson')) {
-                        filters.remove('lesson');
-                      } else {
-                        filters.add('lesson');
-                      }
-                    }),
-                  ),
-                  action(
-                    key: 'calendar-edit-timetable',
-                    label: 'Stundenplan bearbeiten',
-                    icon: Icons.edit_calendar_outlined,
-                    onPressed: () =>
-                        showTimetableSettings(ctx, c, date: dateOnly(selected)),
-                  ),
-                  if (mode == 'week')
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 2,
+                  children: [
                     action(
-                      key: 'calendar-weekends',
-                      label: showWeekend ? 'Sa/So sichtbar' : 'Sa/So anzeigen',
-                      icon: Icons.weekend_outlined,
-                      selected: showWeekend,
-                      onPressed: weekendEvents || selected.weekday > 5
+                      key: 'calendar-materials',
+                      label: 'Unterlagen',
+                      icon: Icons.folder_open_outlined,
+                      onPressed: busy
                           ? null
-                          : () => setState(() => weekends = !weekends),
+                          : () => showPreparedMaterials(
+                              ctx,
+                              c,
+                              date: dateOnly(selected),
+                            ),
                     ),
-                  action(
-                    key: 'calendar-filter',
-                    label: filtered ? 'Filter aktiv' : 'Filter',
-                    icon: Icons.tune,
-                    selected: filtered,
-                    onPressed: chooseFilters,
-                  ),
-                ],
+                    action(
+                      key: 'calendar-edit-timetable',
+                      label: 'Stundenplan',
+                      tooltip: 'Stundenplan bearbeiten',
+                      icon: Icons.edit_calendar_outlined,
+                      onPressed: () => showTimetableSettings(
+                        ctx,
+                        c,
+                        date: dateOnly(selected),
+                      ),
+                    ),
+                    action(
+                      key: 'calendar-manage',
+                      label: 'Verwalten',
+                      icon: Icons.settings_outlined,
+                      onPressed: busy
+                          ? null
+                          : () => showCalendarManagement(
+                              ctx,
+                              c,
+                              date: dateOnly(selected),
+                              importCalendar: () => run(importIcs),
+                              exportCalendar: () => run(() async {
+                                await saveTextFile(
+                                  'FLEX-Kalender-${bounds.from}.ics',
+                                  exportCalendarIcs(items),
+                                  mime: 'text/calendar',
+                                );
+                              }),
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -1188,6 +1132,55 @@ class _CalendarPageState extends State<CalendarPage>
                     icon: const Icon(Icons.chevron_right),
                   ),
                 ],
+              ),
+            ),
+            Padding(
+              key: const ValueKey('calendar-display-options'),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 8,
+                  children: [
+                    action(
+                      key: 'calendar-show-lessons',
+                      label: 'Unterricht',
+                      icon: filters.contains('lesson')
+                          ? Icons.check_box_outlined
+                          : Icons.check_box_outline_blank,
+                      selected: filters.contains('lesson'),
+                      onPressed: () => setState(() {
+                        if (filters.contains('lesson')) {
+                          filters.remove('lesson');
+                        } else {
+                          filters.add('lesson');
+                        }
+                      }),
+                    ),
+                    if (mode == 'week')
+                      action(
+                        key: 'calendar-weekends',
+                        label: 'Sa/So',
+                        tooltip: showWeekend
+                            ? 'Sa/So ausblenden'
+                            : 'Sa/So anzeigen',
+                        icon: showWeekend
+                            ? Icons.check_box_outlined
+                            : Icons.check_box_outline_blank,
+                        selected: showWeekend,
+                        onPressed: () =>
+                            setState(() => weekends = !showWeekend),
+                      ),
+                    action(
+                      key: 'calendar-filter',
+                      label: filtered ? 'Filter · aktiv' : 'Filter',
+                      icon: Icons.tune,
+                      selected: filtered,
+                      onPressed: chooseFilters,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (busy) const LinearProgressIndicator(),

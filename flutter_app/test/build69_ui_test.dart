@@ -265,11 +265,13 @@ void main() {
         find.byKey(ValueKey('calendar-month-${dateOnly(next)}')),
         findsOneWidget,
       );
+      final chosen = next.add(const Duration(days: 4));
+      await tap(t, find.byKey(ValueKey('calendar-month-${dateOnly(chosen)}')));
       await tap(t, find.byKey(const ValueKey('quick-add')));
       await tap(t, find.byKey(const ValueKey('quick-add-appointment')));
       expect(
         t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.appointmentDate,
-        dateOnly(next),
+        dateOnly(chosen),
       );
       await end(t);
     },
@@ -288,7 +290,7 @@ void main() {
             lessThanOrEqualTo(size.$1),
           );
         }
-        // Current real date may be a weekend; then weekends are already forced on.
+        // Current real date may be a weekend; it is initially shown automatically.
         if (t
                 .widget<CalendarTimeline>(find.byType(CalendarTimeline))
                 .days
@@ -300,6 +302,7 @@ void main() {
           t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).days.length,
           7,
         );
+        await capture(t, 'calendar-${size.$1}-${size.$2}');
         if (size.$2 == 1) {
           expect(
             t.getRect(find.text('So').first).right,
@@ -312,14 +315,13 @@ void main() {
                   find.byKey(const ValueKey('calendar-time-grid-week')),
                 )
                 .dy,
-            lessThan(300),
+            lessThan(330),
           );
         } else {
           await tap(t, find.byTooltip('Wochenende anzeigen'));
           expect(find.text('So').hitTestable(), findsOneWidget);
         }
         expect(t.state(find.byType(CalendarPage)), same(calendar));
-        await capture(t, 'calendar-${size.$1}-${size.$2}');
         await tap(t, find.byKey(const ValueKey('quick-add')));
         await t.scrollUntilVisible(
           find.byKey(const ValueKey('quick-add-holiday')),
