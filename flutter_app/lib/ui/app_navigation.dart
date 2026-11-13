@@ -384,11 +384,25 @@ class FlexBottomNavigation extends StatelessWidget {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    FlexNavigationIcon(
-                                      destination: e.$1,
-                                      color: selected == e.$1
-                                          ? scheme.primary
-                                          : scheme.onSurfaceVariant,
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 140,
+                                      ),
+                                      width: 44,
+                                      height: 32,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: selected == e.$1
+                                            ? scheme.primaryContainer
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: FlexNavigationIcon(
+                                        destination: e.$1,
+                                        color: selected == e.$1
+                                            ? scheme.onPrimaryContainer
+                                            : scheme.onSurfaceVariant,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -401,7 +415,7 @@ class FlexBottomNavigation extends StatelessWidget {
                                         fontSize: 11,
                                         height: 1.2,
                                         fontWeight: selected == e.$1
-                                            ? FontWeight.w600
+                                            ? FontWeight.w700
                                             : FontWeight.w400,
                                       ),
                                     ),
@@ -410,8 +424,8 @@ class FlexBottomNavigation extends StatelessWidget {
                                       duration: const Duration(
                                         milliseconds: 160,
                                       ),
-                                      width: 20,
-                                      height: 2,
+                                      width: 28,
+                                      height: 3,
                                       decoration: BoxDecoration(
                                         color: selected == e.$1
                                             ? scheme.primary

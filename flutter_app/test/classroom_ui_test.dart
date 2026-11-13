@@ -146,12 +146,18 @@ void main() {
       );
       await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-1')));
-      await t.drag(find.byType(PageView), const Offset(-320, 0));
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(-320, 0),
+      );
       await t.pumpAndSettle();
       expect(find.byKey(const PageStorageKey('overview')), findsOneWidget);
-      await t.drag(find.byType(PageView), const Offset(-320, 0));
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(-320, 0),
+      );
       await t.pumpAndSettle();
-      expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
+      expect(find.text('Ablauf starten'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('context-0-1')));
       expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);

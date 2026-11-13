@@ -1,4 +1,5 @@
 import 'material_thumbnail.dart';
+import 'app_navigation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -30,7 +31,6 @@ import 'calendar_timeline.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 import 'timetable.dart';
-import 'surfaces.dart';
 
 part 'calendar_detail.dart';
 
@@ -215,9 +215,15 @@ Future<void> showCalendarManagement(
 );
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key, required this.controller, this.clock});
+  const CalendarPage({
+    super.key,
+    required this.controller,
+    this.clock,
+    this.onDateChanged,
+  });
   final DateTime Function()? clock;
   final NotebookController controller;
+  final ValueChanged<String>? onDateChanged;
   @override
   State<CalendarPage> createState() => _CalendarPageState();
 }
@@ -226,7 +232,8 @@ class _CalendarPageState extends State<CalendarPage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   DateTime get now => widget.clock?.call() ?? DateTime.now();
   late DateTime selected = schoolDay(dateOnly(now));
-  String mode = 'day';
+  late String mode;
+  int? periodDirection;
   final nowMarker = GlobalKey();
   final scroll = ScrollController();
   Timer? ticker;
@@ -238,6 +245,7 @@ class _CalendarPageState extends State<CalendarPage>
   @override
   void initState() {
     super.initState();
+    mode = c.appearance.calendarDefaultView;
     WidgetsBinding.instance.addObserver(this);
     ticker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
@@ -259,6 +267,7 @@ class _CalendarPageState extends State<CalendarPage>
 
   void goToNow() {
     setState(() => selected = schoolDay(dateOnly(now)));
+    widget.onDateChanged?.call(dateOnly(selected));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final target = nowMarker.currentContext;
@@ -280,6 +289,7 @@ class _CalendarPageState extends State<CalendarPage>
 
   void navigate(VoidCallback update) {
     setState(update);
+    widget.onDateChanged?.call(dateOnly(selected));
     if (scroll.hasClients) scroll.jumpTo(0);
   }
 
@@ -302,11 +312,15 @@ class _CalendarPageState extends State<CalendarPage>
     return (from: dateOnly(first), to: dateOnly(last));
   }
 
-  void step(int direction) => navigate(
-    () => selected = mode == 'month'
-        ? DateTime.utc(selected.year, selected.month + direction, 1)
-        : selected.add(Duration(days: direction * (mode == 'week' ? 7 : 1))),
-  );
+  void step(int direction) {
+    periodDirection = direction;
+    navigate(
+      () => selected = mode == 'month'
+          ? DateTime.utc(selected.year, selected.month + direction, 1)
+          : selected.add(Duration(days: direction * (mode == 'week' ? 7 : 1))),
+    );
+  }
+
   Future<void> importIcs() async {
     final file = await openFile(
       acceptedTypeGroups: const [
@@ -645,7 +659,7 @@ class _CalendarPageState extends State<CalendarPage>
                       TextButton.icon(
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
-                          minimumSize: const Size(44, 40),
+                          minimumSize: const Size(44, 34),
                           backgroundColor: Colors.transparent,
                         ),
                         onPressed: () => showItems(
@@ -732,34 +746,6 @@ class _CalendarPageState extends State<CalendarPage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         dueStrip(items, label: 'Diese Woche fällig'),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12,
-          children: [
-            Text(
-              'Stunden & Termine',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            TextButton.icon(
-              icon: Icon(
-                showWeekend
-                    ? Icons.check_box_outlined
-                    : Icons.check_box_outline_blank,
-                size: 18,
-              ),
-              onPressed: weekendEvents.isNotEmpty || selected.weekday > 5
-                  ? null
-                  : () => setState(() => weekends = !weekends),
-              label: Text(showWeekend ? 'Sa/So sichtbar' : 'Sa/So anzeigen'),
-            ),
-          ],
-        ),
-        if (!items.any(calendarTimed))
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text('Keine Stunden oder Termine in dieser Woche.'),
-          ),
         CalendarTimeline(
           week: true,
           days: days,
@@ -982,6 +968,8 @@ class _CalendarPageState extends State<CalendarPage>
         final filtered =
             filters.length != calendarCategories.length || showCompleted;
         final scheme = Theme.of(ctx).colorScheme;
+        final weekendEvents = items.any((i) => schoolDay(i.date).weekday > 5);
+        final showWeekend = weekends || selected.weekday > 5 || weekendEvents;
         final largeText =
             MediaQuery.textScalerOf(ctx).scale(1) > 1.4 &&
             MediaQuery.sizeOf(ctx).width < 600;
@@ -992,7 +980,7 @@ class _CalendarPageState extends State<CalendarPage>
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
               child: Row(
                 children: [
-                  FlexCircleButton(
+                  IconButton(
                     tooltip: 'Vorheriger Zeitraum',
                     onPressed: () => step(-1),
                     icon: const Icon(Icons.chevron_left),
@@ -1014,36 +1002,31 @@ class _CalendarPageState extends State<CalendarPage>
                             mode == 'month'
                                 ? '${calendarMonth(selected)} ${selected.year}'
                                 : mode == 'week'
-                                ? calendarRangeLabel(
-                                    schoolDay(bounds.from),
-                                    schoolDay(bounds.to),
-                                  )
+                                ? MediaQuery.sizeOf(ctx).width < 380
+                                      ? '${schoolDay(bounds.from).day}.${schoolDay(bounds.from).month}.–${schoolDay(bounds.to).day}.${schoolDay(bounds.to).month}. ${schoolDay(bounds.to).year}'
+                                      : calendarRangeLabel(
+                                          schoolDay(bounds.from),
+                                          schoolDay(bounds.to),
+                                        )
                                 : '${calendarWeekday(selected, short: true)}, ${selected.day}. ${calendarMonth(selected)}',
                             textAlign: TextAlign.center,
                             style: Theme.of(ctx).textTheme.titleMedium,
                           ),
-                          if (mode == 'day')
-                            Text(
-                              mode == 'day'
-                                  ? '${selected.year}'
-                                  : '${displayDate(bounds.from)} – ${displayDate(bounds.to)}',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(ctx).textTheme.bodySmall,
-                            ),
                         ],
                       ),
                     ),
                   ),
-                  FlexCircleButton(
+                  IconButton(
                     tooltip: 'Nächster Zeitraum',
                     onPressed: () => step(1),
                     icon: const Icon(Icons.chevron_right),
                   ),
                   const SizedBox(width: 6),
-                  OutlinedButton(
+                  TextButton(
                     key: const ValueKey('calendar-today'),
                     onPressed: goToNow,
-                    style: OutlinedButton.styleFrom(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
                     child: const Text('Heute'),
@@ -1078,15 +1061,13 @@ class _CalendarPageState extends State<CalendarPage>
                                 'month': 'Monat',
                               }.entries)
                                 Expanded(
-                                  flex: largeText
-                                      ? (e.key == 'day' ? 3 : 5)
-                                      : 1,
+                                  flex: 1,
                                   child: Semantics(
                                     selected: mode == e.key,
                                     child: TextButton(
                                       key: ValueKey('calendar-mode-${e.key}'),
                                       style: TextButton.styleFrom(
-                                        minimumSize: const Size(44, 40),
+                                        minimumSize: const Size(44, 34),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 4,
                                         ),
@@ -1113,7 +1094,7 @@ class _CalendarPageState extends State<CalendarPage>
                   ),
                   ...[
                     const SizedBox(width: 10),
-                    IconButton.outlined(
+                    IconButton(
                       tooltip: filtered ? 'Filter aktiv' : 'Filter',
                       onPressed: chooseFilters,
                       icon: Icon(
@@ -1121,8 +1102,7 @@ class _CalendarPageState extends State<CalendarPage>
                         size: 21,
                       ),
                       style: IconButton.styleFrom(
-                        side: BorderSide(color: scheme.outlineVariant),
-                        backgroundColor: scheme.surface,
+                        backgroundColor: Colors.transparent,
                       ),
                     ),
                   ],
@@ -1130,60 +1110,99 @@ class _CalendarPageState extends State<CalendarPage>
               ),
             ),
             Padding(
+              key: const ValueKey('calendar-options'),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Wrap(
-                spacing: 8,
+                spacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: WrapAlignment.spaceBetween,
                 children: [
-                  FilterChip(
+                  TextButton.icon(
                     key: const ValueKey('calendar-show-lessons'),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: const Size(0, 40),
+                    ),
+                    icon: Icon(
+                      filters.contains('lesson')
+                          ? Icons.check_box_outlined
+                          : Icons.check_box_outline_blank,
+                      size: 18,
+                    ),
                     label: const Text('Unterricht'),
-                    selected: filters.contains('lesson'),
-                    onSelected: (value) => setState(() {
-                      if (value) {
-                        filters.add('lesson');
-                      } else {
+                    onPressed: () => setState(() {
+                      if (filters.contains('lesson')) {
                         filters.remove('lesson');
+                      } else {
+                        filters.add('lesson');
                       }
                     }),
                   ),
-                  TextButton.icon(
+                  if (mode == 'week')
+                    TextButton.icon(
+                      key: const ValueKey('calendar-weekends'),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        minimumSize: const Size(0, 40),
+                      ),
+                      icon: Icon(
+                        showWeekend
+                            ? Icons.check_box_outlined
+                            : Icons.check_box_outline_blank,
+                        size: 18,
+                      ),
+                      label: const Text('Sa/So'),
+                      onPressed: weekendEvents || selected.weekday > 5
+                          ? null
+                          : () => setState(() => weekends = !weekends),
+                    ),
+                  IconButton(
                     key: const ValueKey('calendar-edit-timetable'),
+                    tooltip: 'Stundenplan bearbeiten',
                     onPressed: () =>
                         showTimetableSettings(ctx, c, date: dateOnly(selected)),
-                    icon: const Icon(Icons.edit_calendar_outlined, size: 18),
-                    label: const Text('Stundenplan bearbeiten'),
+                    icon: const Icon(Icons.edit_calendar_outlined, size: 21),
                   ),
                 ],
               ),
             ),
             if (busy) const LinearProgressIndicator(),
             Expanded(
-              child: ListView(
-                controller: scroll,
-                key: const PageStorageKey('calendar-page'),
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                children: [
-                  if (mode == 'day')
-                    dayBody(items)
-                  else if (mode == 'week')
-                    weekBody(items)
-                  else
-                    monthBody(items),
-                  for (final plan in c.classroom.where(
-                    (p) => planOnDay(p, dateOnly(selected)),
-                  ))
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.event_note_outlined),
-                      title: Text(plan.title),
-                      subtitle: Text(
-                        planStatuses[plan.text('status', 'planned')]!,
+              child: FlexTabTransition(
+                section: ['day', 'week', 'month'].indexOf(mode),
+                index:
+                    selected.millisecondsSinceEpoch ~/
+                    Duration.millisecondsPerDay,
+                direction: periodDirection,
+                child: ListView(
+                  controller: scroll,
+                  key: const PageStorageKey('calendar-page'),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  children: [
+                    if (mode == 'day')
+                      dayBody(items)
+                    else if (mode == 'week')
+                      weekBody(items)
+                    else
+                      monthBody(items),
+                    for (final plan in c.classroom.where(
+                      (p) =>
+                          planOnDay(p, dateOnly(selected)) &&
+                          p.map('flow').isEmpty,
+                    ))
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event_note_outlined),
+                        title: Text(plan.title),
+                        subtitle: Text(
+                          planStatuses[plan.text('status', 'planned')]!,
+                        ),
+                        onTap: () => showMaterialCollection(ctx, c, plan),
                       ),
-                      onTap: () => showMaterialCollection(ctx, c, plan),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
             SafeArea(
@@ -1260,14 +1279,18 @@ class _CalendarPageState extends State<CalendarPage>
             ),
           ],
         );
-        return LayoutBuilder(
-          builder: (_, constraints) {
-            final minimum = 420 * MediaQuery.textScalerOf(ctx).scale(1);
-            if (constraints.maxHeight >= minimum) return content;
-            return SingleChildScrollView(
-              child: SizedBox(height: minimum, child: content),
-            );
-          },
+        return FlexNavigationSwipe(
+          key: const ValueKey('calendar-period-swipe'),
+          onStep: (previous) => step(previous ? -1 : 1),
+          child: LayoutBuilder(
+            builder: (_, constraints) {
+              final minimum = 420 * MediaQuery.textScalerOf(ctx).scale(1);
+              if (constraints.maxHeight >= minimum) return content;
+              return SingleChildScrollView(
+                child: SizedBox(height: minimum, child: content),
+              );
+            },
+          ),
         );
       },
     );

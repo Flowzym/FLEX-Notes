@@ -1,0 +1,16 @@
+{
+  "syntheticData": true,
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.23.0",
+    "build_number": "69",
+    "package_name": "flex_notizbuch"
+  },
+  "viewport": {
+    "width": 320,
+    "height": 844
+  },
+  "fiveDayAndSevenDayScreenshots": true,
+  "weekHeader": "16.11.–22.11. 2026",
+  "pageErrors": []
+}

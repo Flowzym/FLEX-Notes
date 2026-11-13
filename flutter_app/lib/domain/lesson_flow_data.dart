@@ -127,8 +127,11 @@ class LessonPhase {
 
 void validateLessonFlow(Json data) {
   if (data.keys.any(
-        (k) => !{'template', 'lessonTarget', 'phases'}.contains(k),
+        (k) => !{'template', 'lessonTarget', 'phases', 'pupilId'}.contains(k),
       ) ||
+      (data.containsKey('pupilId') &&
+          (data['pupilId'] is! String ||
+              (data['pupilId'] as String).length > 250)) ||
       data['template'] is! bool ||
       data['lessonTarget'] is! String ||
       (data['lessonTarget'] as String).length > 300 ||
@@ -144,6 +147,7 @@ void validateLessonFlow(Json data) {
       phases.where((p) => p.status == 'active').length > 1 ||
       data['template'] == true &&
           (data['lessonTarget'] != '' ||
+              (data['pupilId'] ?? '') != '' ||
               phases.any(
                 (p) =>
                     p.status != 'open' ||

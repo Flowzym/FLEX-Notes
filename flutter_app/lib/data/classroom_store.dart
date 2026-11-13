@@ -197,6 +197,10 @@ mixin ClassroomStore on SchoolStore {
           );
         }
       }
+      final flowPupil = d.map('flow')['pupilId'] as String? ?? '';
+      if (flowPupil.isNotEmpty && !people.contains(flowPupil)) {
+        throw const DomainError('Der Schüler zum individuellen Ablauf fehlt.');
+      }
       if (!materials.containsAll(d.strings('materialIds')) ||
           (d.map('flow')['phases'] as List? ?? []).any(
             (p) =>

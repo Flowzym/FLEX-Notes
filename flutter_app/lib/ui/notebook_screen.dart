@@ -1,4 +1,6 @@
 import 'detail_flow.dart';
+import 'quick_add.dart';
+import 'subtask_editor.dart';
 import 'material_thumbnail.dart';
 import 'general_orga_page.dart';
 import 'scanner_library.dart';
@@ -53,13 +55,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
   int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
   int _calendarView = 0, _orgaView = 0;
-  final _calendarPages = PageController();
   final _visited = <int>{1};
   final _dataLayout = SettingsLayoutState()..tab = 2;
   String? _overviewSection;
-  final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
   int? _swipeDirection;
+  String _creationDate = dateOnly(DateTime.now());
   Map<int, String> get _contextPages => switch (_destination) {
     0 => calendarPages,
     1 => livePages,
@@ -191,8 +192,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void dispose() {
     c.services?.reminders.removeListener(_notification);
     c.services?.lock.removeListener(_notification);
-    _pages.dispose();
-    _calendarPages.dispose();
     _pupilSearch.dispose();
     _entrySearch.dispose();
     super.dispose();
@@ -210,21 +209,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void _main(int index) {
     _sectionTo(1);
     _changeView(() => _primary = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pages.hasClients) {
-        _pages.jumpToPage(livePages.keys.toList().indexOf(index));
-      }
-    });
   }
 
   void _calendarTo(int index) {
     _sectionTo(0);
     _changeView(() => _calendarView = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _calendarPages.hasClients) {
-        _calendarPages.jumpToPage(index);
-      }
-    });
   }
 
   Widget _generalOrga(String kind) => GeneralOrgaPage(
@@ -478,7 +467,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   };
   static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
   Widget _moreHome() => ListView(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
         (
@@ -603,6 +592,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (!didPop) _main(1);
     },
     child: Scaffold(
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: _destination == 0 && _calendarView == 0 ? 64 : 0,
+        ),
+        child: QuickAddButton(
+          controller: c,
+          date: _destination == 0 ? _creationDate : null,
+        ),
+      ),
       bottomNavigationBar: FlexBottomNavigation(
         selected: _destination,
         onSelected: _sectionTo,
@@ -669,33 +667,24 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         index: _destination,
                         children: [
                           if (_visited.contains(0))
-                            PageView(
-                              physics: const NeverScrollableScrollPhysics(),
+                            IndexedStack(
                               key: const ValueKey('calendar-pages'),
-                              controller: _calendarPages,
-                              onPageChanged: (index) =>
-                                  _changeView(() => _calendarView = index),
+                              index: _calendarView,
                               children: [
                                 CalendarPage(
                                   key: const ValueKey('main-calendar'),
                                   controller: c,
+                                  onDateChanged: (date) =>
+                                      setState(() => _creationDate = date),
                                 ),
                                 _generalOrga('task'),
                               ],
                             )
                           else
                             const SizedBox(),
-                          PageView(
-                            physics: const NeverScrollableScrollPhysics(),
+                          IndexedStack(
                             key: const ValueKey('main-pages'),
-                            controller: _pages,
-                            onPageChanged: (index) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              _changeView(
-                                () =>
-                                    _primary = livePages.keys.elementAt(index),
-                              );
-                            },
+                            index: livePages.keys.toList().indexOf(_primary),
                             children: [
                               _pupils(),
                               _overview(),
@@ -809,8 +798,29 @@ class _NotebookScreenState extends State<NotebookScreen> {
       preparationFor(c.classroom, today).strings('materialIds'),
     );
     final records = c.records.where((r) => !r.deleted).toList();
-    final pendingRecords = records.where((r) => r.pending).toList();
-    final pendingOrga = c.upcoming(c.entries);
+    final overdueRecords = records
+        .where(
+          (r) =>
+              r.pending &&
+              ((r.kind == SchoolKind.goal
+                              ? r.nextReviewDate ?? r.dueDate
+                              : r.dueDate) ??
+                          '9999')
+                      .compareTo(today) <
+                  0,
+        )
+        .toList();
+    final overdueOrga = c
+        .upcoming(c.entries)
+        .where((e) => (e.nextDate ?? '9999').compareTo(today) < 0)
+        .toList();
+    final pendingRecords = records
+        .where((r) => r.pending && !overdueRecords.contains(r))
+        .toList();
+    final pendingOrga = c
+        .upcoming(c.entries)
+        .where((e) => !overdueOrga.any((old) => old.id == e.id))
+        .toList();
     final completeRecords = records
         .where((r) => !r.pending && r.needsCompletion)
         .toList();
@@ -823,14 +833,29 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final recentOrga = c.entries
         .where((e) => !e.pending && !e.needsCompletion)
         .toList();
+    final overdueReturns = c.classroom
+        .where(
+          (d) =>
+              !d.deleted &&
+              d.kind == ClassroomKind.returnList &&
+              !d.flag('closed') &&
+              d.text('dueDate').isNotEmpty &&
+              d.text('dueDate').compareTo(today) < 0 &&
+              d.rows('participants').any(returnPending),
+        )
+        .toList();
     final counts = {
+      'overdue':
+          overdueRecords.length + overdueOrga.length + overdueReturns.length,
       'pending': pendingRecords.length + pendingOrga.length,
       'complete': completeRecords.length + completeOrga.length,
       'recent': recentRecords.length + recentOrga.length,
     };
     final selected =
         _overviewSection ??
-        (counts['pending']! > 0
+        (counts['overdue']! > 0
+            ? 'overdue'
+            : counts['pending']! > 0
             ? 'pending'
             : counts['complete']! > 0
             ? 'complete'
@@ -850,7 +875,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             : width <= 360
             ? 12
             : 24,
-        32,
+        96,
       ),
       children: [
         Row(
@@ -897,6 +922,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           runSpacing: 6,
           children: [
             for (final section in const [
+              ('overdue', 'Überfälliges', Icons.schedule),
               ('pending', 'Anstehend', Icons.schedule_outlined),
               ('complete', 'Ergänzen', Icons.edit_note_outlined),
               ('recent', 'Zuletzt', Icons.history),
@@ -965,7 +991,33 @@ class _NotebookScreenState extends State<NotebookScreen> {
             ),
           ),
         const SizedBox(height: 8),
-        if (selected == 'pending')
+        if (selected == 'overdue')
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (overdueRecords.isNotEmpty ||
+                  overdueOrga.isNotEmpty ||
+                  overdueReturns.isEmpty)
+                _combinedSection(
+                  'Überfälliges',
+                  overdueOrga,
+                  overdueRecords,
+                  'Nichts überfällig.',
+                  upcoming: true,
+                ),
+              for (final d in overdueReturns)
+                ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: Text(d.title),
+                  subtitle: Text(
+                    '${displayDate(d.text('dueDate'))} · ${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showReturnDetail(context, c, d.id),
+                ),
+            ],
+          )
+        else if (selected == 'pending')
           _combinedSection(
             'Anstehend',
             pendingOrga,
@@ -1203,7 +1255,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         : 40.0;
     return ListView(
       key: PageStorageKey('pupils-$archived'),
-      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 40),
+      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 96),
       children: [
         CollapsibleSearch(
           controller: _pupilSearch,
@@ -1510,6 +1562,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
     );
   }
 
+  Future<void> _addSubtask(OrgaEntry entry) => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => SubtaskEditor(controller: c, entry: entry),
+  );
+
   Widget _entryCard(OrgaEntry e) {
     final busy = _busyIds.contains(e.id);
     return FlexCard(
@@ -1588,26 +1646,41 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            for (final item in e.items.take(3))
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      item.checked
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      size: 18,
+            if (e.isTask || e.items.isNotEmpty)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${e.items.where((i) => i.checked).length} / ${e.items.length} ${e.isTask ? 'Unteraufgaben' : 'Listenpunkte'}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(item.text)),
-                  ],
-                ),
+                  ),
+                  if (e.isTask)
+                    IconButton(
+                      tooltip: 'Unteraufgabe hinzufügen',
+                      onPressed: busy ? null : () => _addSubtask(e),
+                      icon: const Icon(Icons.add, size: 20),
+                    ),
+                ],
               ),
-            if (e.items.isNotEmpty)
-              Text(
-                '${e.items.where((i) => i.checked).length} / ${e.items.length} Listenpunkte',
+            for (final item in e.isTask ? e.items : e.items.take(3))
+              CheckboxListTile(
+                key: ValueKey('subtask-${item.id}'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(item.text),
+                value: item.checked,
+                onChanged: busy
+                    ? null
+                    : (checked) => _mutate(
+                        e.withTaskItems([
+                          for (final old in e.items)
+                            old.id == item.id
+                                ? old.copyWith(checked: checked)
+                                : old,
+                        ]),
+                      ),
               ),
             if (e.isAppointment)
               Padding(

@@ -207,6 +207,32 @@ class _SettingsPageState extends State<SettingsPage>
           ),
         ),
       ),
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Kalender · Standardansicht',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              OptionBar(
+                options: const {
+                  'day': 'Tag',
+                  'week': 'Woche',
+                  'month': 'Monat',
+                },
+                value: c.appearance.calendarDefaultView,
+                keyPrefix: 'calendar-default',
+                onChanged: (value) =>
+                    c.previewAppearance({'calendarDefaultView': value}),
+              ),
+            ],
+          ),
+        ),
+      ),
       const SizedBox(height: 18),
       Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
       Align(
@@ -458,7 +484,7 @@ class _SettingsPageState extends State<SettingsPage>
         key: const PageStorageKey('settings'),
         padding: EdgeInsets.all(
           MediaQuery.sizeOf(context).width < 600 ? 14 : 24,
-        ),
+        ).copyWith(bottom: 96),
         children: [
           Text(
             widget.dataOnly ? 'Daten' : 'Einstellungen',

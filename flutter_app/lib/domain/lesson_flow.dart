@@ -8,6 +8,8 @@ bool hasLessonFlow(ClassroomDocument d) =>
     d.kind == ClassroomKind.plan && d.map('flow').isNotEmpty;
 bool isFlowTemplate(ClassroomDocument d) =>
     hasLessonFlow(d) && d.map('flow')['template'] == true;
+String lessonFlowPupil(ClassroomDocument d) =>
+    d.map('flow')['pupilId'] as String? ?? '';
 List<LessonPhase> lessonPhases(ClassroomDocument d) =>
     (d.map('flow')['phases'] as List? ?? [])
         .map((p) => LessonPhase.fromJson(Json.from(p as Map)))
@@ -33,6 +35,8 @@ ClassroomDocument lessonFlowFor(
   String date, {
   LessonOccurrence? lesson,
   String? lessonTarget,
+  String pupilId = '',
+  ClassroomDocument? sharedFlow,
 }) {
   final target = lessonTarget ?? lesson?.target ?? '';
   final existing = docs
@@ -42,38 +46,50 @@ ClassroomDocument lessonFlowFor(
             hasLessonFlow(d) &&
             !isFlowTemplate(d) &&
             d.text('date') == date &&
+            lessonFlowPupil(d) == pupilId &&
             d.map('flow')['lessonTarget'] == target,
       )
       .firstOrNull;
   if (existing != null) return existing;
   final stableId = const Uuid().v5(
     Namespace.url.value,
-    'flex-flow:$date:$target',
+    'flex-flow:$date:$target${pupilId.isEmpty ? '' : ':pupil:$pupilId'}',
   );
+  final shared = pupilId.isEmpty
+      ? null
+      : sharedFlow ??
+            lessonFlowFor(docs, date, lesson: lesson, lessonTarget: target);
   return ClassroomDocument.create(
     ClassroomKind.plan,
-    lesson?.title ?? 'FLEX-Klasse',
+    shared?.title ?? lesson?.title ?? 'FLEX-Klasse',
     {
       'date': date,
       'status': 'planned',
       'flow': {
         'template': false,
         'lessonTarget': target,
-        'phases': [
-          for (final p in [
-            ('Ankommen', 10, 'work'),
-            ('HÜ-Kontrolle', 10, 'homework'),
-            ('Arbeitsphase', 30, 'work'),
-            ('Austausch', 10, 'work'),
-            ('Abschluss', 5, 'work'),
-          ])
-            LessonPhase(
-              id: newId(),
-              title: p.$1,
-              minutes: p.$2,
-              kind: p.$3,
-            ).toJson(),
-        ],
+        if (pupilId.isNotEmpty) 'pupilId': pupilId,
+        'phases': shared != null
+            ? [
+                for (final p in lessonPhases(shared))
+                  if (p.pupilIds.isEmpty || p.pupilIds.contains(pupilId))
+                    p.fresh().patch({'pupilIds': <String>[]}).toJson(),
+              ]
+            : [
+                for (final p in [
+                  ('Ankommen', 10, 'work'),
+                  ('HÜ-Kontrolle', 10, 'homework'),
+                  ('Arbeitsphase', 30, 'work'),
+                  ('Austausch', 10, 'work'),
+                  ('Abschluss', 5, 'work'),
+                ])
+                  LessonPhase(
+                    id: newId(),
+                    title: p.$1,
+                    minutes: p.$2,
+                    kind: p.$3,
+                  ).toJson(),
+              ],
       },
     },
     id: docs.any((d) => d.id == stableId) ? newId() : stableId,
@@ -133,6 +149,11 @@ List<ClassroomDocument> carryLessonPhases(
 ) {
   if (source.id == target.id || source.text('date') == target.text('date')) {
     throw const DomainError('Bitte einen anderen Unterrichtstag wählen.');
+  }
+  if (lessonFlowPupil(source) != lessonFlowPupil(target)) {
+    throw const DomainError(
+      'Offene Phasen müssen beim selben Schüler bleiben.',
+    );
   }
   final pending = lessonPhases(source).where((p) => p.pending).toList();
   if (pending.isEmpty) {

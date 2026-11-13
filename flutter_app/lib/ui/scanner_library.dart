@@ -287,7 +287,7 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                       : documents.length;
                   return ListView.builder(
                     key: const PageStorageKey('scanner-library'),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                     itemCount: 1 + (count == 0 ? 1 : count),
                     itemBuilder: (_, index) {
                       if (index == 0) {

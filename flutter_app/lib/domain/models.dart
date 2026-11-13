@@ -217,10 +217,20 @@ class OrgaEntry {
     if (!isTask) throw const DomainError('Eine Notiz ist keine Aufgabe.');
     return copyWith(
       done: true,
+      items: items.map((i) => i.copyWith(checked: true)).toList(),
       reminderState: reminderState == ReminderState.planned
           ? ReminderState.cancelled
           : reminderState,
     );
+  }
+
+  OrgaEntry withTaskItems(List<CheckItem> next) {
+    final changed = copyWith(items: next);
+    if (!isTask) return changed;
+    if (next.isNotEmpty && next.every((i) => i.checked)) {
+      return changed.complete();
+    }
+    return next.any((i) => !i.checked) ? changed.reopen() : changed;
   }
 
   OrgaEntry reopen() => copyWith(done: false);
@@ -574,11 +584,12 @@ class Appearance {
     this.mode = 'light',
     this.textScale = 1,
     this.defaultObservationTone = 'neutral',
+    this.calendarDefaultView = 'day',
     this.materialGrid = false,
     this.materialSort = 'recent',
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
-  final String mode, defaultObservationTone, materialSort;
+  final String mode, defaultObservationTone, materialSort, calendarDefaultView;
   final double textScale;
   final bool materialGrid;
   final List<String> shortcutOrder;
@@ -593,6 +604,7 @@ class Appearance {
     'mode': mode,
     'textScale': textScale,
     'defaultObservationTone': defaultObservationTone,
+    'calendarDefaultView': calendarDefaultView,
     'materialGrid': materialGrid,
     'materialSort': materialSort,
     'shortcutOrder': shortcutOrder,
@@ -608,6 +620,7 @@ class Appearance {
       textScale: (source['textScale'] as num? ?? 1).toDouble(),
       defaultObservationTone:
           source['defaultObservationTone'] as String? ?? 'neutral',
+      calendarDefaultView: source['calendarDefaultView'] as String? ?? 'day',
       materialGrid: source['materialGrid'] == true,
       materialSort:
           const {
@@ -624,7 +637,8 @@ class Appearance {
             .cast<String>(),
       ),
     );
-    if (!['light', 'dark', 'system'].contains(a.mode) ||
+    if (!['day', 'week', 'month'].contains(a.calendarDefaultView) ||
+        !['light', 'dark', 'system'].contains(a.mode) ||
         !a.textScale.isFinite ||
         a.textScale < .8 ||
         a.textScale > 1.6 ||

@@ -129,52 +129,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     }
   }
 
-  Future<void> importFile() async {
-    final file = await openFile(
-      acceptedTypeGroups: const [
-        XTypeGroup(
-          label: 'DOCX / PDF',
-          extensions: ['docx', 'pdf'],
-          mimeTypes: [
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          ],
-        ),
-      ],
-    );
-    if (file == null) return;
-    if (await file.length() > 20000000) {
-      throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
-    }
-    final bytes = BytesBuilder();
-    await for (final chunk in file.openRead()) {
-      if (bytes.length + chunk.length > 20000000) {
-        throw const DomainError('Die Datei überschreitet 20 MB.');
-      }
-      bytes.add(chunk);
-    }
-    final data = bytes.takeBytes(),
-        ext = file.name.split('.').last.toLowerCase();
-    validateMaterialBytes(data, ext);
-    final key = newId();
-    await files.write(key, data);
-    try {
-      await c.repository.saveClassroomDocument(
-        ClassroomDocument.create(ClassroomKind.material, file.name, {
-          'localKey': key,
-          'name': file.name,
-          'extension': ext,
-          'size': data.length,
-          'sourceModifiedAt': utcNow(),
-          ...suggestMaterialMetadata(file.name),
-        }),
-      );
-    } catch (_) {
-      await files.remove(key);
-      rethrow;
-    }
-    await c.reload();
-  }
+  Future<void> importFile() => importMaterialFile(context, c);
 
   Future<void> exportBundle() async {
     final materials = c.classroom
@@ -460,6 +415,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   .where(
                     (d) =>
                         d.kind == kind &&
+                        (d.map('flow')['pupilId'] as String? ?? '').isEmpty &&
                         d.deleted == trash &&
                         materialMatches(d, query, pupils: c.pupils) &&
                         (view != 'files' ||
@@ -514,7 +470,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
               Expanded(
                 child: ListView(
                   key: const PageStorageKey('materials-library'),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   children: [
                     ActionHeading(
                       leading: Text(switch (view) {
@@ -1124,4 +1080,56 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
       ),
     );
   }
+}
+
+Future<void> importMaterialFile(
+  BuildContext context,
+  NotebookController c, {
+  String? pupilId,
+}) async {
+  final files = const LocalMaterialFiles();
+  final file = await openFile(
+    acceptedTypeGroups: const [
+      XTypeGroup(
+        label: 'DOCX / PDF',
+        extensions: ['docx', 'pdf'],
+        mimeTypes: [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+      ),
+    ],
+  );
+  if (file == null) return;
+  if (await file.length() > 20000000) {
+    throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
+  }
+  final bytes = BytesBuilder();
+  await for (final chunk in file.openRead()) {
+    if (bytes.length + chunk.length > 20000000) {
+      throw const DomainError('Die Datei überschreitet 20 MB.');
+    }
+    bytes.add(chunk);
+  }
+  final data = bytes.takeBytes(), ext = file.name.split('.').last.toLowerCase();
+  validateMaterialBytes(data, ext);
+  final key = newId();
+  await files.write(key, data);
+  try {
+    await c.repository.saveClassroomDocument(
+      ClassroomDocument.create(ClassroomKind.material, file.name, {
+        if (pupilId != null) 'pupilIds': [pupilId],
+        'localKey': key,
+        'name': file.name,
+        'extension': ext,
+        'size': data.length,
+        'sourceModifiedAt': utcNow(),
+        ...suggestMaterialMetadata(file.name),
+      }),
+    );
+  } catch (_) {
+    await files.remove(key);
+    rethrow;
+  }
+  await c.reload();
 }

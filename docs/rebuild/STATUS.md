@@ -1,4 +1,21 @@
-# Aktueller Stand: Webvorschau 0.22.0+68
+# Aktueller Stand: Webvorschau 0.23.0+69
+
+Kalender mit kompakterem Kopf, speicherbarer Standardansicht, Zeitraum-Wischen
+und vollständig erreichbarer Woche auf schmalen Displays. Deutlichere aktive
+Navigation, globales Plus-Menü und kontextgerechtes Anlegen. Individuelle Abläufe
+mit eigenen Zeiten und direktem Materialzugriff. Aufgaben mit Unteraufgaben;
+unter Aktuell ein eigener Bereich Überfälliges.
+
+200 unterschiedliche gezielte Prüfungen bestanden, danach 26 UI-Prüfungen zur
+abschließenden Layoutkorrektur. Statische Analyse ohne Befunde. Release-Webbuild
+und Touch-Browser geprüft; keine neue Android-APK (letzte Fassung Build 67).
+
+[Änderungen und Prüfbericht](CALENDAR-FLOW-BUILD-69.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.22.0+68
 
 Live → Ablauf bietet Unterrichtsphasen, Vorlagen, Material- und Schülerzuordnung,
 Zeitmessung mit Pause sowie Weiterführen offener Phasen. HÜ-Kontrolle verwendet

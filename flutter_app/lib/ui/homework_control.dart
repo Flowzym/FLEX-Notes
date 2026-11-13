@@ -12,10 +12,11 @@ import 'school_workspace.dart';
 Future<void> showHomeworkControl(
   BuildContext context,
   NotebookController c,
-  String date,
-) => showFlexDetail<void>(
+  String date, {
+  String? pupilId,
+}) => showFlexDetail<void>(
   context: context,
-  builder: (_) => HomeworkControl(controller: c, date: date),
+  builder: (_) => HomeworkControl(controller: c, date: date, pupilId: pupilId),
 );
 
 class HomeworkControl extends StatefulWidget {
@@ -23,9 +24,11 @@ class HomeworkControl extends StatefulWidget {
     super.key,
     required this.controller,
     required this.date,
+    this.pupilId,
   });
   final NotebookController controller;
   final String date;
+  final String? pupilId;
   @override
   State<HomeworkControl> createState() => _HomeworkControlState();
 }
@@ -88,6 +91,7 @@ class _HomeworkControlState extends State<HomeworkControl> {
                     !r.deleted &&
                     r.kind == SchoolKind.homework &&
                     pupils.containsKey(r.pupilId) &&
+                    (widget.pupilId == null || r.pupilId == widget.pupilId) &&
                     (all ||
                         (r.pending || reviewed.contains(r.id)) &&
                             r.observedOn.compareTo(widget.date) <= 0 &&

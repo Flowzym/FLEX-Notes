@@ -147,25 +147,37 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     final first = OrgaLine.parse(
       note.text.trimLeft().split('\n').first,
     ).text.trim();
-    return entry.copyWith(
+    final result = entry.copyWith(
       title: first.substring(0, first.length.clamp(0, 160)),
       body: note.text,
       reminderText: reminder.text,
-      items: [
-        ...entry.items,
-        if (itemText.text.trim().isNotEmpty)
-          CheckItem(id: itemId, text: itemText.text.trim()),
-      ],
     );
+    return itemText.text.trim().isEmpty
+        ? result
+        : result.withTaskItems([
+            ...entry.items,
+            CheckItem(id: itemId, text: itemText.text.trim()),
+          ]);
   }
 
   void change([OrgaEntry? next, bool rememberType = true]) {
     if (busy) return;
     setState(() {
       error = null;
-      if (next != null) {
-        if (rememberType) typeDraft = typeDraft.remember(next);
-        entry = next;
+      final candidate = next;
+      if (candidate != null) {
+        final listChanged =
+            candidate.items.length != entry.items.length ||
+            candidate.items.indexed.any(
+              (e) =>
+                  e.$2.id != entry.items[e.$1].id ||
+                  e.$2.checked != entry.items[e.$1].checked,
+            );
+        final updated = listChanged
+            ? candidate.withTaskItems(candidate.items)
+            : candidate;
+        if (rememberType) typeDraft = typeDraft.remember(updated);
+        entry = updated;
       }
       dirty = true;
       editGeneration++;
@@ -648,7 +660,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         children: [
                           FlexSymbolButton(
                             key: const ValueKey('orga-list-check'),
-                            label: 'Checkliste',
+                            label: entry.isTask
+                                ? 'Unteraufgaben'
+                                : 'Checkliste',
                             icon: Icons.checklist,
                             onPressed: () {
                               setState(() => listOpen = true);
@@ -786,8 +800,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                         text: item.text,
                                       ),
                                     ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Listenpunkt',
+                                    decoration: InputDecoration(
+                                      labelText: entry.isTask
+                                          ? 'Unteraufgabe'
+                                          : 'Listenpunkt',
                                     ),
                                     onChanged: (v) => change(
                                       entry.copyWith(
@@ -803,7 +819,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Listenpunkt entfernen',
+                                  tooltip: entry.isTask
+                                      ? 'Unteraufgabe entfernen'
+                                      : 'Listenpunkt entfernen',
                                   onPressed: () => change(
                                     entry.copyWith(
                                       items: entry.items
@@ -815,7 +833,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                 ),
                               ],
                             ),
-                          if (listOpen)
+                          if (listOpen || entry.isTask)
                             Row(
                               children: [
                                 Expanded(
@@ -824,8 +842,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                     textInputAction: TextInputAction.next,
                                     controller: itemText,
                                     focusNode: itemFocus,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Neuer Listenpunkt',
+                                    decoration: InputDecoration(
+                                      labelText: entry.isTask
+                                          ? 'Neue Unteraufgabe'
+                                          : 'Neuer Listenpunkt',
                                     ),
                                     onChanged: (_) => change(),
                                     onSubmitted: (_) =>
@@ -833,7 +853,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Listenpunkt hinzufügen',
+                                  tooltip: entry.isTask
+                                      ? 'Unteraufgabe hinzufügen'
+                                      : 'Listenpunkt hinzufügen',
                                   onPressed: addItem,
                                   icon: const Icon(Icons.add),
                                 ),

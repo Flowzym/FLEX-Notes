@@ -79,11 +79,15 @@ class CalendarTimeline extends StatelessWidget {
             )
           : baseHours;
       final height = (hours.end - hours.start) * pixels;
-      final axis = scale > 1.5 ? 66.0 : 46.0;
+      final axis = scale > 1.5
+          ? 66.0
+          : week && days.length == 7
+          ? 38.0
+          : 46.0;
       final colWidth = week
           ? math.max(
               (constraints.maxWidth - axis) / days.length,
-              scale > 1.5 ? 108.0 : 58.0,
+              scale > 1.5 ? 108.0 : 0.0,
             )
           : constraints.maxWidth - axis;
       final width = axis + colWidth * days.length;
@@ -407,16 +411,85 @@ class CalendarTimeline extends StatelessWidget {
           ],
         ),
       );
-      return SingleChildScrollView(
-        key: ValueKey('calendar-time-grid-${week ? 'week' : 'day'}'),
-        scrollDirection: Axis.horizontal,
-        physics: width > constraints.maxWidth + 1
-            ? const ClampingScrollPhysics()
-            : const NeverScrollableScrollPhysics(),
+      return _TimelineViewport(
+        overflow: width > constraints.maxWidth + 1,
+        gridKey: ValueKey('calendar-time-grid-${week ? 'week' : 'day'}'),
         child: body,
       );
     },
   );
+}
+
+/// Large text retains readable columns and provides visible controls to reach
+/// the weekend. At normal phone text size all seven days fit the viewport.
+class _TimelineViewport extends StatefulWidget {
+  const _TimelineViewport({
+    required this.overflow,
+    required this.gridKey,
+    required this.child,
+  });
+  final bool overflow;
+  final Key gridKey;
+  final Widget child;
+  @override
+  State<_TimelineViewport> createState() => _TimelineViewportState();
+}
+
+class _TimelineViewportState extends State<_TimelineViewport> {
+  final scroll = ScrollController();
+  @override
+  void dispose() {
+    scroll.dispose();
+    super.dispose();
+  }
+
+  void move(bool end) => scroll.animateTo(
+    end ? scroll.position.maxScrollExtent : 0,
+    duration: const Duration(milliseconds: 140),
+    curve: Curves.easeOutCubic,
+  );
+  @override
+  Widget build(BuildContext context) {
+    final grid = SingleChildScrollView(
+      key: widget.gridKey,
+      controller: scroll,
+      scrollDirection: Axis.horizontal,
+      physics: widget.overflow
+          ? const ClampingScrollPhysics()
+          : const NeverScrollableScrollPhysics(),
+      child: widget.child,
+    );
+    if (!widget.overflow) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Wochenanfang anzeigen',
+              onPressed: () => move(false),
+              icon: const Icon(Icons.chevron_left),
+            ),
+            const Expanded(
+              child: Text('Weitere Tage', textAlign: TextAlign.center),
+            ),
+            IconButton(
+              tooltip: 'Wochenende anzeigen',
+              onPressed: () => move(true),
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        Scrollbar(
+          controller: scroll,
+          thumbVisibility: true,
+          scrollbarOrientation: ScrollbarOrientation.top,
+          notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
+          child: grid,
+        ),
+      ],
+    );
+  }
 }
 
 class _TimeBlock extends StatelessWidget {

@@ -337,14 +337,20 @@ void main() {
         await t.pumpAndSettle();
         expect(page(t), section.$2.last);
         expect(
-          t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+          t
+              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
+              .direction,
           -1,
         );
         await t.drag(pills, const Offset(-230, 0));
         await t.pumpAndSettle();
         expect(page(t), section.$2.first);
         for (final next in section.$2.skip(1)) {
-          await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
+          if (section.$1 == 0) {
+            await t.drag(pills, const Offset(-230, 0));
+          } else {
+            await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
+          }
           await t.pumpAndSettle();
           expect(page(t), next, reason: 'content in section ${section.$1}');
           expect(t.takeException(), isNull);
@@ -353,7 +359,9 @@ void main() {
         await t.pumpAndSettle();
         expect(page(t), section.$2.first);
         expect(
-          t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+          t
+              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
+              .direction,
           1,
         );
         await t.drag(pills, const Offset(230, 0));

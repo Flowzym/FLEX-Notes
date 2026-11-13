@@ -67,25 +67,21 @@ void main() {
         findsOneWidget,
       );
       expect(
-        t
-            .widget<FilterChip>(
-              find.byKey(const ValueKey('calendar-show-lessons')),
-            )
-            .selected,
-        isFalse,
+        find.descendant(
+          of: find.byKey(const ValueKey('calendar-show-lessons')),
+          matching: find.byIcon(Icons.check_box_outline_blank),
+        ),
+        findsOneWidget,
       );
       expect(c.classroom.map((d) => d.toJson()).toList(), before);
       expect(find.byKey(const ValueKey('main-timetable')), findsNothing);
       expect(find.byKey(const ValueKey('context-0-2')), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-1')));
       expect(find.text('Stundenplan'), findsNothing);
-      final pages = t.widget<PageView>(
+      final pages = t.widget<IndexedStack>(
         find.byKey(const ValueKey('main-pages')),
       );
-      expect(
-        (pages.childrenDelegate as SliverChildListDelegate).children.length,
-        3,
-      );
+      expect(pages.children.length, 3);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
@@ -124,13 +120,10 @@ void main() {
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       expect(find.byKey(const ValueKey('context-0-3')), findsNothing);
       expect(find.text('Notizen').hitTestable(), findsNothing);
-      final calendar = t.widget<PageView>(
+      final calendar = t.widget<IndexedStack>(
         find.byKey(const ValueKey('calendar-pages')),
       );
-      expect(
-        (calendar.childrenDelegate as SliverChildListDelegate).children.length,
-        2,
-      );
+      expect(calendar.children.length, 2);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-2')));
       expect(find.text('Notizinhalt').hitTestable(), findsOneWidget);

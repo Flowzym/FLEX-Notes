@@ -5,9 +5,11 @@ class _LessonPhaseEditor extends StatefulWidget {
     required this.controller,
     required this.phase,
     required this.onSave,
+    this.individual = false,
   });
   final NotebookController controller;
   final LessonPhase phase;
+  final bool individual;
   final Future<void> Function(LessonPhase) onSave;
   @override
   State<_LessonPhaseEditor> createState() => _LessonPhaseEditorState();
@@ -51,7 +53,7 @@ class _LessonPhaseEditorState extends State<_LessonPhaseEditor> {
           'body': body.text.trim(),
           'minutes': duration,
           'materialIds': materials,
-          'pupilIds': pupils,
+          'pupilIds': widget.individual ? <String>[] : pupils,
           'kind': kind,
         }),
       );
@@ -164,24 +166,25 @@ class _LessonPhaseEditorState extends State<_LessonPhaseEditor> {
                 icon: const Icon(Icons.close, size: 18),
               ),
             ),
-          OutlinedButton.icon(
-            onPressed: busy
-                ? null
-                : () async {
-                    final ids = await chooseMaterialPupils(
-                      context,
-                      widget.controller,
-                      pupils,
-                    );
-                    if (ids != null && mounted) setState(() => pupils = ids);
-                  },
-            icon: const Icon(Icons.people_outline),
-            label: Text(
-              pupils.isEmpty
-                  ? 'Ganze FLEX-Klasse'
-                  : 'Schüler · ${pupils.length}',
+          if (!widget.individual)
+            OutlinedButton.icon(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      final ids = await chooseMaterialPupils(
+                        context,
+                        widget.controller,
+                        pupils,
+                      );
+                      if (ids != null && mounted) setState(() => pupils = ids);
+                    },
+              icon: const Icon(Icons.people_outline),
+              label: Text(
+                pupils.isEmpty
+                    ? 'Ganze FLEX-Klasse'
+                    : 'Schüler · ${pupils.length}',
+              ),
             ),
-          ),
           if (pupils.isNotEmpty)
             Text(
               widget.controller.pupils

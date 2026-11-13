@@ -122,7 +122,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
         final drafts = c.drafts.where((d) => matches(d.entry)).length;
         return ListView(
           key: PageStorageKey('general-${widget.kind}'),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             CollapsibleSearch(
               controller: search,
