@@ -1,0 +1,13 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: quick add chooses pupil once and opens matching existing editor
+00:02 +1: individual phases keep independent time and materials can be assigned without editing mode
+00:03 +2: rapid cyclic header swipes retain order through repeated wraparound
+00:10 +3: calendar body swipes dates while top pills change section; creation inherits selected date
+00:11 +4: weekend and quick add remain reachable at 320.0/1.0
+00:12 +5: weekend and quick add remain reachable at 390.0/1.0
+00:12 +6: weekend and quick add remain reachable at 320.0/1.8
+00:13 +7: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:14 +8: pupil quick capture inherits owner and calendar default can be selected in settings
+00:15 +9: (tearDownAll)
+00:15 +9: All tests passed!

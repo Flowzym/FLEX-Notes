@@ -113,12 +113,18 @@ jobs:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358'
 
       - name: Build the Android release configuration
+        env:
+          ORG_GRADLE_PROJECT_flexUnsignedRelease: 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/flex-android-reports"
           flutter build apk --release --no-pub 2>&1 | tee "$RUNNER_TEMP/flex-android-reports/build.log"
           test -s build/app/outputs/flutter-apk/app-release.apk
-        # This uses an ephemeral runner debug key. Do not publish this APK as
-        # an update to FLEX Test; its installation key stays outside CI.
+          if "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify build/app/outputs/flutter-apk/app-release.apk > "$RUNNER_TEMP/flex-android-reports/signature-check.log" 2>&1; then
+            echo 'CI APK must remain unsigned.' >&2
+            exit 1
+          fi
+        # Compile without the permanent private key. This APK is unsigned and
+        # must not be distributed; the installation key stays outside GitHub.
 
       - name: Save Android build log
         if: always()

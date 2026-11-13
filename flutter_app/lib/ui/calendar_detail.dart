@@ -176,7 +176,7 @@ Future<void> showCalendarItem(
                       occurrenceDate: lesson.originalDate,
                     ),
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Diese Stunde bearbeiten'),
+                    label: const Text('Nur diesen Termin bearbeiten'),
                   ),
                   if (doc.rule.repeats)
                     OutlinedButton.icon(
@@ -189,7 +189,9 @@ Future<void> showCalendarItem(
                         following: true,
                       ),
                       icon: const Icon(Icons.repeat),
-                      label: const Text('Diese und folgende'),
+                      label: Text(
+                        'Stundenplan ab ${displayDate(current.originalDate)} ändern',
+                      ),
                     ),
                   TextButton.icon(
                     onPressed: () => showReminderActions(

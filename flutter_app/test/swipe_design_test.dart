@@ -1,4 +1,5 @@
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'support/app_test_fonts.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'package:flex_notizbuch/ui/settings.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -7,7 +8,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -16,7 +16,6 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DesignNotebook extends SqliteNotebook {
   DesignNotebook(super.db);
@@ -32,28 +31,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late DesignNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = DesignNotebook(
       NotebookDatabase(
@@ -90,12 +68,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -150,14 +122,14 @@ void main() {
       ).writeAsBytesSync(bytes!.buffer.asUint8List());
       picture.dispose();
       File('$directory/manifest.jsonl').writeAsStringSync(
-        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'uiScale': c.appearance.uiScale, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.16.0-rebuild.9 UI audit', 'data': 'synthetic'})}\n',
+        '${jsonEncode({'file': '$name.png', 'width': size.width, 'height': size.height, 'textScale': scale, 'keyboardInset': keyboard, 'textSetting': c.appearance.textScale, 'engine': 'flutter_test RenderRepaintBoundary', 'source': '0.17.1+58 UI audit', 'data': 'synthetic'})}\n',
         mode: FileMode.append,
       );
     });
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
   EditableText input(WidgetTester t, Key key) => t.widget<EditableText>(
     find
         .descendant(of: find.byKey(key), matching: find.byType(EditableText))
@@ -172,7 +144,9 @@ void main() {
   int page(WidgetTester t) =>
       t.widget<FlexPagePills>(find.byType(FlexPagePills)).selected;
   Future<void> slider(WidgetTester t, String name, double fraction) async {
-    final finder = find.byKey(ValueKey('setting-$name'));
+    final finder = find.byKey(
+      ValueKey(name == 'textScale' ? 'appearance-text-scale' : 'setting-$name'),
+    );
     await t.ensureVisible(finder);
     await t.pumpAndSettle();
     final rect = t.getRect(finder);
@@ -191,37 +165,22 @@ void main() {
         .dx;
   }
 
-  test(
-    'new appearance fields default safely and reject invalid dimensions',
-    () {
-      final old = Appearance.fromJson({'textScale': 1.15});
-      expect(old.uiScale, 1);
-      expect(old.textScale, 1.15);
-      expect(old.fieldRadius, 14);
-      expect(old.buttonRadius, 28);
-      expect(old.modalRadius, 24);
-      final custom = old.patch({
-        'uiScale': .8,
-        'textScale': 1.6,
-        'fieldRadius': 0.0,
-        'buttonRadius': 32.0,
-        'modalRadius': 8.0,
-      });
-      expect(Appearance.fromJson(custom.toJson()).toJson(), custom.toJson());
-      for (final change in <Json>[
-        {'uiScale': .79},
-        {'uiScale': 1.21},
-        {'uiScale': double.nan},
-        {'textScale': .79},
-        {'textScale': 1.61},
-        {'fieldRadius': -1},
-        {'buttonRadius': double.infinity},
-        {'modalRadius': 33},
-      ]) {
-        expect(() => old.patch(change), throwsA(isA<DomainError>()));
-      }
-    },
-  );
+  test('reading scale validates independently of retired design options', () {
+    final old = Appearance.fromJson({
+      'textScale': 1.15,
+      'uiScale': .8,
+      'fieldRadius': 0,
+    });
+    expect(old.textScale, 1.15);
+    expect(old.toJson(), isNot(contains('uiScale')));
+    for (final change in <Json>[
+      {'textScale': .79},
+      {'textScale': 1.61},
+      {'textScale': double.nan},
+    ]) {
+      expect(() => old.patch(change), throwsA(isA<DomainError>()));
+    }
+  });
   testWidgets(
     'horizontal swipes change primary page, vertical drags and settings sliders do not; search survives',
     (t) async {
@@ -229,10 +188,16 @@ void main() {
         await c.savePupil(Pupil(id: 'extra-$i', name: 'Zusatzschüler $i'));
       }
       await app(t, size: const Size(390, 844));
-      expect(page(t), 0);
+      expect(page(t), 1);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
         const Offset(-300, 0),
+      );
+      await t.pumpAndSettle();
+      expect(page(t), 0);
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -252,12 +217,12 @@ void main() {
       expect(offset, greaterThan(0));
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(
@@ -273,7 +238,7 @@ void main() {
       await t.enterText(find.byType(TextField).first, 'Anna');
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
@@ -292,7 +257,7 @@ void main() {
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -300,52 +265,157 @@ void main() {
     },
   );
   testWidgets(
-    'scale and text sliders are independent; design controls persist and full reset keeps shortcut order',
+    'tap and swipe use the same short directional transition in every section',
     (t) async {
-      final order = ['orga', 'work', 'social', 'goal', 'homework'];
-      await c.saveAppearance(c.appearance.patch({'shortcutOrder': order}));
-      await app(t, size: const Size(1100, 1000));
-      await settings(t);
-      await slider(t, 'uiScale', .25);
-      expect(c.appearance.uiScale, lessThan(1));
-      expect(c.appearance.textScale, 1);
-      final zoom = c.appearance.uiScale;
-      await slider(t, 'textScale', .7);
-      expect(c.appearance.textScale, greaterThan(1.2));
-      expect(c.appearance.uiScale, zoom);
-
-      await slider(t, 'fieldRadius', .2);
-      await slider(t, 'buttonRadius', .3);
-
-      await slider(t, 'modalRadius', .2);
-      final saved = await repo.appearance();
-      expect(saved.toJson(), c.appearance.toJson());
-      expect(saved.fieldRadius, lessThan(14));
-      expect(saved.buttonRadius, lessThan(28));
-      expect(saved.modalRadius, lessThan(24));
-      await tap(t, find.text('Darstellung zurücksetzen'));
-      await tap(t, find.widgetWithText(FilledButton, 'Zurücksetzen'));
-      expect(c.appearance.uiScale, 1);
-      expect(c.appearance.textScale, 1);
-      expect(c.appearance.fieldRadius, 14);
-      expect(c.appearance.shortcutOrder, order);
+      await app(t, size: const Size(390, 844));
+      double translation() => t
+          .widget<Transform>(
+            find
+                .descendant(
+                  of: find.byType(FlexTabTransition),
+                  matching: find.byType(Transform),
+                )
+                .first,
+          )
+          .transform
+          .getTranslation()
+          .x;
+      final samples = <double>[];
+      for (final section in [
+        (1, 1, 0),
+        (0, 0, 1),
+        (2, 0, 1),
+        (3, 0, 1),
+        (4, 0, 1),
+      ]) {
+        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
+        await tap(t, find.byKey(ValueKey('$prefix-${section.$2}')));
+        await t.tap(find.byKey(ValueKey('$prefix-${section.$3}')));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 70));
+        expect(translation(), inExclusiveRange(0, 16));
+        samples.add(translation());
+        await t.pump(const Duration(milliseconds: 100));
+        expect(translation(), 0);
+        expect(page(t), section.$3);
+        await t.dragFrom(const Offset(80, 450), const Offset(180, 0));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 70));
+        expect(translation(), inExclusiveRange(-16, 0));
+        expect(translation().abs(), closeTo(samples.last, .01));
+        await t.pumpAndSettle();
+        expect(translation(), 0);
+        expect(page(t), section.$2);
+      }
+      for (final sample in samples) {
+        expect(sample, closeTo(samples.first, .01));
+      }
       await finish(t);
     },
   );
+  testWidgets(
+    'all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures',
+    (t) async {
+      await app(t, size: const Size(390, 844));
+      for (final section in [
+        (1, [1, 0, 2]),
+        (0, [0, 1]),
+        (2, [0, 1, 2]),
+        (3, [0, 1, 2, 3]),
+        (4, [0, 1, 2, 3, 4, 5]),
+      ]) {
+        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
+        final pills = find.byKey(ValueKey('$prefix-${section.$2.first}'));
+        await tap(t, find.byKey(ValueKey('$prefix-${section.$2.first}')));
+        expect(page(t), section.$2.first);
+        // The visual sequence, tap targets and swipe sequence must agree.
+        final actual = t.widget<FlexPagePills>(find.byType(FlexPagePills));
+        expect(actual.pages.keys.toList(), section.$2);
+        await t.drag(pills, const Offset(230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.last);
+        expect(
+          t
+              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
+              .direction,
+          -1,
+        );
+        await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        for (final next in section.$2.skip(1)) {
+          if (section.$1 == 0) {
+            await t.drag(pills, const Offset(-230, 0));
+          } else {
+            await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
+          }
+          await t.pumpAndSettle();
+          expect(page(t), next, reason: 'content in section ${section.$1}');
+          expect(t.takeException(), isNull);
+        }
+        await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        expect(
+          t
+              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
+              .direction,
+          1,
+        );
+        await t.drag(pills, const Offset(230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.last);
+        for (final previous in section.$2.reversed.skip(1)) {
+          await t.drag(pills, const Offset(230, 0));
+          await t.pumpAndSettle();
+          expect(page(t), previous, reason: 'header in section ${section.$1}');
+          expect(t.takeException(), isNull);
+        }
+      }
+      await settings(t);
+      final textSlider = find.byKey(const ValueKey('appearance-text-scale'));
+      await t.ensureVisible(textSlider);
+      await t.pumpAndSettle();
+      final before = c.appearance.textScale;
+      await t.drag(textSlider, const Offset(100, 0));
+      await t.pumpAndSettle();
+      expect(page(t), 4);
+      expect(c.appearance.textScale, isNot(before));
+      await t.runAsync(c.flushAppearance);
+      await finish(t);
+    },
+  );
+  testWidgets('text size persists and resetting it keeps shortcut order', (
+    t,
+  ) async {
+    final order = ['orga', 'work', 'social', 'goal', 'homework'];
+    await c.saveAppearance(c.appearance.patch({'shortcutOrder': order}));
+    await app(t, size: const Size(1100, 1000));
+    await settings(t);
+    await slider(t, 'textScale', .7);
+    expect(c.appearance.textScale, greaterThan(1.2));
+    expect((await repo.appearance()).toJson(), c.appearance.toJson());
+    await tap(t, find.text('Standardgröße'));
+    expect(c.appearance.textScale, 1);
+    expect(c.appearance.shortcutOrder, order);
+    await finish(t);
+  });
   testWidgets(
     'failed scale persistence rolls back without losing the settings route',
     (t) async {
       await app(t);
       await settings(t);
       repo.failWrites = true;
-      await slider(t, 'uiScale', 0);
-      expect(c.appearance.uiScale, 1);
+      await slider(t, 'textScale', 0);
+      expect(c.appearance.textScale, 1);
       expect(c.appearanceError, isNotNull);
       expect(find.byType(SettingsPage), findsOneWidget);
       repo.failWrites = false;
-      await slider(t, 'uiScale', .25);
+      await slider(t, 'textScale', .65);
       expect(c.appearanceError, isNull);
-      expect((await repo.appearance()).uiScale, c.appearance.uiScale);
+      expect((await repo.appearance()).textScale, c.appearance.textScale);
       await finish(t);
     },
   );
@@ -376,6 +446,7 @@ void main() {
       );
       await c.reload();
       await app(t, size: const Size(390, 844));
+      await tap(t, find.byKey(const ValueKey('page-0')));
       await tap(t, find.byKey(ValueKey('overview-open-${r.id}')));
       for (final state in [
         TaskState.complete,
@@ -393,6 +464,10 @@ void main() {
           findsNothing,
         );
         await tap(t, target);
+        if (state == TaskState.missing) {
+          expect(find.text('Erneut aufgeben?'), findsOneWidget);
+          await tap(t, find.text('So belassen'));
+        }
         final saved = (await repo.schoolRecords()).single;
         expect(saved.taskState(saved.tasks.first), state);
         expect(saved.taskState(saved.tasks.last), TaskState.partial);
@@ -417,7 +492,7 @@ void main() {
     },
   );
   testWidgets(
-    'app scale transforms touch geometry and keyboard insets while font size only changes text; editor stays mounted',
+    'legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry',
     (t) async {
       await app(t, size: const Size(390, 844));
       await open(
@@ -442,10 +517,10 @@ void main() {
         final toolbarIcon = find.byIcon(Icons.format_list_numbered);
         await t.ensureVisible(toolbarIcon);
         await t.pumpAndSettle();
-        expect(paintedWidth(t, toolbarIcon), closeTo(24 * zoom, .1));
+        expect(paintedWidth(t, toolbarIcon), closeTo(24, .1));
         final media = MediaQuery.of(t.element(find.byType(OrgaEditor)));
-        expect(media.size.width, closeTo(390 / zoom, .01));
-        expect(media.viewInsets.bottom, closeTo(240 / zoom, .01));
+        expect(media.size.width, closeTo(390, .01));
+        expect(media.viewInsets.bottom, closeTo(240, .01));
         expect(t.state(find.byType(OrgaEditor)), same(state));
         expect(
           input(t, const ValueKey('orga-note')).controller.text,
@@ -462,11 +537,11 @@ void main() {
       await t.pumpAndSettle();
       expect(
         paintedWidth(t, find.byIcon(Icons.format_list_numbered)),
-        closeTo(24 * 1.2, .1),
+        closeTo(24, .1),
       );
       expect(
         MediaQuery.textScalerOf(t.element(find.byType(OrgaEditor))).scale(20),
-        closeTo(20 * 1.5 * .95, .01),
+        closeTo(20 * 1.5, .01),
       );
       expect(t.takeException(), isNull);
       await finish(t);
@@ -478,20 +553,12 @@ void main() {
     (1200.0, 1000.0, 1.0, 1.2),
     (320.0, 800.0, 2.0, 1.0),
     (320.0, 800.0, 1.0, 1.2),
-    (320.0, 800.0, 2.0, 1.2),
+    (320.0, 800.0, 2.0, 1.6),
   ]) {
     testWidgets(
-      'design and symbol renderings ${view.$1} font ${view.$3} zoom ${view.$4}',
+      'design and symbol renderings ${view.$1} system font ${view.$3} app font ${view.$4}',
       (t) async {
-        await c.saveAppearance(
-          c.appearance.patch({
-            'uiScale': view.$4,
-            'textScale': view.$3 == 2 && view.$4 == 1.2 ? 1.6 : 1.0,
-            'fieldRadius': 6.0,
-            'buttonRadius': 10.0,
-            'modalRadius': 12.0,
-          }),
-        );
+        await c.saveAppearance(c.appearance.patch({'textScale': view.$4}));
         final boundary = GlobalKey();
         final size = Size(view.$1, view.$2);
         final suffix =

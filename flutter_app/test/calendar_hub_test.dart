@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/domain/models.dart';
+import 'package:flex_notizbuch/domain/classroom.dart';
+import 'package:flex_notizbuch/ui/classroom_editor.dart';
+import 'package:flex_notizbuch/ui/return_lists.dart';
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/calendar_page.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'package:flex_notizbuch/ui/material_thumbnail.dart';
 import 'package:flex_notizbuch/ui/document_attachments.dart';
 import 'package:flex_notizbuch/domain/document_scanner.dart';
@@ -43,7 +46,7 @@ void main() {
   }
 
   testWidgets(
-    'calendar owns timetable without duplicate shortcuts, section callbacks preserve date',
+    'calendar has no page pills and retains mode and lesson visibility across organisation visits',
     (t) async {
       final c = await controller();
       await host(t, c);
@@ -51,40 +54,37 @@ void main() {
       expect(find.text('Übersicht'), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
-      final date = DateTime(2026, 12, 14);
-      t
-          .widget<CalendarPage>(find.byKey(const ValueKey('main-calendar')))
-          .onSwitchSection!(true, date);
-      await t.pumpAndSettle();
-      expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+      expect(find.byType(FlexPagePills), findsNothing);
+      final state = t.state(find.byKey(const ValueKey('main-calendar')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+      final before = c.classroom.map((d) => d.toJson()).toList();
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
+      expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('bottom-0')));
+      expect(find.byType(FlexPagePills), findsNothing);
+      expect(t.state(find.byKey(const ValueKey('main-calendar'))), same(state));
       expect(
-        t
-            .widget<CalendarPage>(find.byKey(const ValueKey('main-timetable')))
-            .shortcutDate,
-        date,
+        find.byKey(const ValueKey('calendar-time-grid-week')),
+        findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
-      expect(find.text('Zum Kalender'), findsNothing);
-      t
-          .widget<CalendarPage>(find.byKey(const ValueKey('main-timetable')))
-          .onSwitchSection!(false, date);
-      await t.pumpAndSettle();
-      expect(find.text('Zum Stundenplan'), findsNothing);
       expect(
-        t
-            .widget<CalendarPage>(find.byKey(const ValueKey('main-calendar')))
-            .shortcutDate,
-        date,
+        find.descendant(
+          of: find.byKey(const ValueKey('calendar-show-lessons')),
+          matching: find.byIcon(Icons.check_box_outline_blank),
+        ),
+        findsOneWidget,
       );
+      expect(c.classroom.map((d) => d.toJson()).toList(), before);
+      expect(find.byKey(const ValueKey('main-timetable')), findsNothing);
+      expect(find.byKey(const ValueKey('context-0-2')), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-1')));
       expect(find.text('Stundenplan'), findsNothing);
-      final pages = t.widget<PageView>(
+      final pages = t.widget<IndexedStack>(
         find.byKey(const ValueKey('main-pages')),
       );
-      expect(
-        (pages.childrenDelegate as SliverChildListDelegate).children.length,
-        3,
-      );
+      expect(pages.children.length, 3);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
@@ -106,30 +106,44 @@ void main() {
       );
       await host(t, c);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
-      expect(find.text('Nur Alex').hitTestable(), findsNothing);
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
+      expect(find.text('Nur Alex').hitTestable(), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('general-add-task')));
       await t.enterText(
         find.byKey(const ValueKey('orga-note')),
         'Kopien vorbereiten',
       );
+      await tap(t, find.byKey(const ValueKey('person-assignment')));
+      await tap(t, find.byKey(const ValueKey('person-assignment-p')));
+      await tap(t, find.byKey(const ValueKey('person-assignment-apply')));
       await tap(t, find.text('Speichern').last);
       final task = c.entries.singleWhere((e) => e.body == 'Kopien vorbereiten');
       expect(task.isTask, true);
-      expect(task.pupilId, isNull);
-      await tap(t, find.byTooltip('Erledigen').hitTestable());
+      expect(task.pupilId, 'p');
+      expect(find.text('Kopien vorbereiten').hitTestable(), findsOneWidget);
+      await tap(
+        t,
+        find.descendant(
+          of: find.byKey(ValueKey('orga-entry-${task.id}')).hitTestable(),
+          matching: find.byTooltip('Erledigen'),
+        ),
+      );
       expect(c.entries.singleWhere((e) => e.id == task.id).done, true);
-      await tap(t, find.text('Offen').hitTestable());
+      await t.drag(
+        find.byKey(const PageStorageKey('general-task')),
+        const Offset(0, 700),
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.text('Offen'));
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       expect(find.byKey(const ValueKey('context-0-3')), findsNothing);
-      expect(find.text('Notizen').hitTestable(), findsNothing);
-      final calendar = t.widget<PageView>(
-        find.byKey(const ValueKey('calendar-pages')),
+      expect(find.text('Notizen').hitTestable(), findsOneWidget);
+      expect(find.byKey(const ValueKey('calendar-pages')), findsNothing);
+      final organisation = t.widget<IndexedStack>(
+        find.byKey(const ValueKey('organisation-pages')),
       );
-      expect(
-        (calendar.childrenDelegate as SliverChildListDelegate).children.length,
-        3,
-      );
+      expect(organisation.children.length, 3);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-2')));
       expect(find.text('Notizinhalt').hitTestable(), findsOneWidget);
@@ -144,20 +158,98 @@ void main() {
       expect(note.isTask, false);
       expect(note.pupilId, isNull);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-0')));
       expect(find.text('Orga').hitTestable(), findsOneWidget);
       expect(find.text('Kopien vorbereiten'), findsWidgets);
-      await tap(t, find.byKey(const ValueKey('context-2-1')));
-      expect(find.byTooltip('Rücklauf anlegen'), findsOneWidget);
+      expect(find.byKey(const ValueKey('context-2-1')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('general-add-all')));
+      expect(find.byKey(const ValueKey('orga-kind-return')), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
   );
   testWidgets(
-    'general drafts exclude pupil entries and are resumable at large text',
+    'tasks integrate return lists with status, kind and search filters in organisation',
+    (t) async {
+      final c = await controller();
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Bus buchen',
+          body: 'Bus buchen',
+          isTask: true,
+        ),
+      );
+      for (final state in ['open', 'closed', 'trash']) {
+        await c.saveClassroom(
+          ClassroomDocument.fromJson({
+            ...classroomInitial(ClassroomKind.returnList, c),
+            'id': 'return-$state',
+            'title': 'Formular $state',
+            'closed': state == 'closed',
+            'deleted': state == 'trash',
+          }),
+        );
+      }
+      await host(t, c, scale: 1.8);
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
+      expect(find.byKey(const ValueKey('context-2-1')), findsNothing);
+      Future<void> type(String page, String value) async {
+        await tap(t, find.byKey(ValueKey('general-type-filter-$page')));
+        await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, value));
+      }
+
+      await tap(t, find.text('Offen').hitTestable());
+      await type('task', 'Rückläufe');
+      expect(find.text('Formular open'), findsOneWidget);
+      expect(find.text('Formular closed'), findsNothing);
+      expect(find.text('Formular trash'), findsNothing);
+      expect(find.text('Bus buchen'), findsNothing);
+      await tap(t, find.text('Formular open'));
+      expect(find.byType(ReturnDetail), findsOneWidget);
+      await tap(t, find.text('Abschließen'));
+      expect(
+        c.classroom.singleWhere((d) => d.id == 'return-open').flag('closed'),
+        isTrue,
+      );
+      Navigator.of(t.element(find.byType(ReturnDetail))).pop();
+      await t.pumpAndSettle();
+      expect(find.text('Formular open'), findsNothing);
+      await type('task', 'Aufgaben');
+      expect(find.text('Bus buchen'), findsWidgets);
+      expect(find.byType(ReturnListCard), findsNothing);
+      await tap(t, find.text('Erledigt').hitTestable());
+      await type('task', 'Rückläufe');
+      expect(find.text('Formular open'), findsOneWidget);
+      expect(find.text('Formular closed'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('context-2-0')));
+      await type('all', 'Rückläufe');
+      await t.drag(
+        find.byKey(const PageStorageKey('general-all')),
+        const Offset(0, 700),
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.byKey(const ValueKey('general-search-button-all')));
+      await t.enterText(
+        find.byKey(const ValueKey('general-search-all')),
+        'closed',
+      );
+      await t.pumpAndSettle();
+      expect(find.text('Formular closed'), findsOneWidget);
+      expect(find.text('Formular open'), findsNothing);
+      expect(find.text('Formular trash'), findsNothing);
+      expect(c.entries, hasLength(1));
+      expect(c.classroom, hasLength(3));
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'general drafts retain pupil assignments and are resumable at large text',
     (t) async {
       final c = await controller();
       for (final pupil in [null, 'p']) {
@@ -175,10 +267,11 @@ void main() {
       await c.reload();
       await host(t, c, scale: 2);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-2')));
-      await tap(t, find.byTooltip('Entwürfe · 1'));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
+      await tap(t, find.byTooltip('Entwürfe · 2'));
       expect(find.text('Allgemeiner Entwurf'), findsOneWidget);
-      expect(find.text('Schülerentwurf'), findsNothing);
+      expect(find.text('Schülerentwurf'), findsOneWidget);
       await tap(t, find.text('Allgemeiner Entwurf'));
       expect(
         t

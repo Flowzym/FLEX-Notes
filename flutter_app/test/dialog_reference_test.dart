@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -46,28 +47,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SqliteNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = SqliteNotebook(
       NotebookDatabase(
@@ -104,12 +84,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -582,7 +556,7 @@ void main() {
         'Clara Entwurf',
       );
       await tap(t, find.byTooltip('#AC5D72'));
-      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
       final draft = (await repo.dialogDrafts()).single;
       expect(await repo.pupils(), hasLength(2));
       await open(t, PupilEditor(controller: c, draft: draft));
@@ -987,17 +961,17 @@ void main() {
           find.widgetWithText(TextField, 'Name'),
           'Nicht verlieren',
         );
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         expect(find.text('Entwurf nicht gesichert'), findsOneWidget);
         expect(await failing.dialogDrafts(), isEmpty);
         await tap(t, find.text('Verwerfen'));
         expect(find.text('Synthetischer Verwerfungsfehler'), findsOneWidget);
         expect(t.takeException(), isNull);
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         await tap(t, find.text('Weiterbearbeiten'));
         expect(find.text('Nicht verlieren'), findsOneWidget);
         failing.failWrites = false;
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         final draft = (await failing.dialogDrafts()).single;
         expect(draft.data['name'], 'Nicht verlieren');
         expect(await failing.pupils(), isEmpty);
@@ -1187,13 +1161,19 @@ void main() {
           'menu-$menu': (ctx) async {
             await t.tap(find.byTooltip('Weitere Bereiche'));
             await t.pumpAndSettle();
-            await t.tap(
-              menu.startsWith('drafts')
-                  ? find.textContaining('Entwürfe (').last
-                  : find
-                        .text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb')
-                        .last,
-            );
+            final target = menu.startsWith('drafts')
+                ? find.textContaining('Entwürfe (')
+                : find.text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb');
+            if (target.evaluate().isEmpty) {
+              await t.scrollUntilVisible(
+                target,
+                100,
+                scrollable: find.byType(Scrollable).last,
+              );
+            }
+            await t.ensureVisible(target.last);
+            await t.pumpAndSettle();
+            await t.tap(target.last);
           },
         'conflicts': (ctx) => showDialog<void>(
           context: ctx,

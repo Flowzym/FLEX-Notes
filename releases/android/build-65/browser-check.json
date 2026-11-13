@@ -1,0 +1,20 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.21.1",
+    "build_number": "65",
+    "package_name": "flex_notizbuch"
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "syntheticData": true,
+  "workEditorOpened": true,
+  "socialEditorOpened": true,
+  "pageErrors": [],
+  "screenshots": [
+    "browser-work.png",
+    "browser-social.png"
+  ]
+}

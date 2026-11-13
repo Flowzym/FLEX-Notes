@@ -163,6 +163,17 @@ String calendarMonth(DateTime day) => const [
   'Dezember',
 ][day.month - 1];
 
+/// Keep the compact heading unambiguous across month and year boundaries.
+String calendarRangeLabel(DateTime from, DateTime to) {
+  if (from.year != to.year) {
+    return '${from.day}. ${calendarMonth(from)} ${from.year} – ${to.day}. ${calendarMonth(to)} ${to.year}';
+  }
+  if (from.month != to.month) {
+    return '${from.day}. ${calendarMonth(from)} – ${to.day}. ${calendarMonth(to)} ${to.year}';
+  }
+  return '${from.day}.–${to.day}. ${calendarMonth(to)} ${to.year}';
+}
+
 List<List<CalendarPlacement>> calendarClusters(
   Iterable<CalendarItem> items, {
   int minimumMinutes = 30,

@@ -1,0 +1,42 @@
+{
+  "version": "0.17.0+57",
+  "source_base": "4e975bb6d08a3575b3863670270f3b71bdb3706f",
+  "date": "2026-11-10",
+  "flutter": "3.47.9",
+  "analysis": "passed",
+  "full_flutter_tests": {
+    "passed": 484,
+    "note": "Full suite followed by affected editor/UI checks for the final header placement."
+  },
+  "schema_tests": 11,
+  "preview_server_tests": 3,
+  "web_release": "passed",
+  "rendering": "actual Flutter widgets, synthetic test data",
+  "screen_matrix": [
+    "390x844 light",
+    "390x844 dark",
+    "320x740 system text 1.8",
+    "768x1024 light",
+    "1280x900 dark"
+  ],
+  "data_compatibility": "legacy appearance + pupils + orga/school drafts + backup restore + database restart tested",
+  "android": "CI build verification; no compatible update APK without original private test signing key; physical device not tested",
+  "final_affected_ui_tests": {
+    "passed": 41,
+    "scope": "final entry header layout, large text, all populated pages, draft/keyboard journeys"
+  },
+  "browser": {
+    "engine": "Chromium / Playwright",
+    "viewport": "390x844",
+    "synthetic_backup_import": "passed",
+    "draft_create_close_resume": "passed; original text and neutral tag restored",
+    "save_resumed_draft": "passed; draft removed after save",
+    "reload": "passed; imported pupils and entries retained",
+    "export_round_trip": "passed; published observation, neutral tag, 12 pupils and new preference format preserved",
+    "dark_and_font_size": "passed; dark and 110% saved to exported preferences"
+  },
+  "final_density_ui_tests": {
+    "passed": 53,
+    "six_pupils_all_five_actions_phone_checks": 2
+  }
+}

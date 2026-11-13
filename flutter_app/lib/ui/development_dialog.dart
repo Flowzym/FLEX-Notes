@@ -155,9 +155,9 @@ class _DevelopmentDialogState extends State<DevelopmentDialog> {
               runSpacing: 6,
               children: [
                 for (final tone in const [
-                  ('positive', 'Positiv', Color(0xff225b35)),
-                  ('neutral', 'Neutral', Color(0xff204f7a)),
-                  ('negative', 'Negativ', Color(0xff7a252b)),
+                  ('positive', 'Positiv', Color(0xff526a50)),
+                  ('neutral', 'Neutral', Color(0xff526c7d)),
+                  ('negative', 'Negativ', Color(0xff955a52)),
                   ('free', 'Freitext ohne Tag', Color(0xff555555)),
                 ])
                   Row(

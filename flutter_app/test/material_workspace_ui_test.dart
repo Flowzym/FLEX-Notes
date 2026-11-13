@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
@@ -16,17 +17,7 @@ import 'classroom_test.dart' show classroomMemory;
 import 'material_workspace_test.dart' show material;
 
 void main() {
-  setUpAll(() async {
-    await (FontLoader(
-      'FlexSans',
-    )..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'))).load();
-    await (FontLoader(
-      'FlexSerif',
-    )..addFont(rootBundle.load('assets/fonts/Gelasio-Regular.ttf'))).load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -87,6 +78,9 @@ void main() {
 
   Future<void> tap(WidgetTester t, Finder f) async {
     await t.ensureVisible(f);
+    // Filtering can change the list extent and schedule a scroll correction.
+    // Wait for that layout before choosing the real touch position.
+    await t.pumpAndSettle();
     await t.tap(f);
     await t.pumpAndSettle();
   }
@@ -136,6 +130,18 @@ void main() {
       await c.saveClassroom(material('Brüche'));
       await c.saveClassroom(material('Englisch'));
       await host(t, (_) => MaterialLibraryPage(controller: c));
+      t
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byKey(const PageStorageKey('materials-library')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position
+          .jumpTo(0);
+      await t.pumpAndSettle();
       await tap(t, find.byTooltip('Materialien suchen'));
       await t.enterText(find.byType(TextField), 'Brüche');
       await t.pumpAndSettle();
@@ -203,6 +209,18 @@ void main() {
     await tap(t, find.byKey(const ValueKey('material-format-docx')));
     expect(find.byKey(ValueKey(pdf.id)), findsNothing);
     expect(find.byKey(ValueKey(docx.id)), findsOneWidget);
+    t
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byKey(const PageStorageKey('materials-library')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position
+        .jumpTo(0);
+    await t.pumpAndSettle();
     await tap(t, find.byTooltip('Materialien suchen'));
     await t.enterText(find.byType(TextField), 'Kein Treffer');
     await t.pumpAndSettle();
@@ -380,6 +398,57 @@ void main() {
   );
 
   testWidgets(
+    'pupil assignment plans files, cancels atomically and clears only personal dates',
+    (t) async {
+      final c = await controller();
+      const pupil = Pupil(id: 'p', name: 'Anna Beispiel');
+      await c.repository.savePupil(pupil);
+      await c.repository.savePupil(const Pupil(id: 'q', name: 'Emil Beispiel'));
+      final today = dateOnly(DateTime.now());
+      final m = planPupilMaterial(material('Brüche üben'), 'q', today);
+      await c.repository.saveClassroomDocument(m);
+      await c.reload();
+      final imageKey = GlobalKey();
+      await host(
+        t,
+        (ctx) => RepaintBoundary(
+          key: imageKey,
+          child: TextButton(
+            onPressed: () => showPupilMaterials(ctx, c, pupil),
+            child: const Text('Open'),
+          ),
+        ),
+      );
+      await tap(t, find.text('Open'));
+      Future<void> select() async {
+        await tap(t, find.byKey(const ValueKey('pupil-assign-materials')));
+        await tap(t, find.text('Brüche üben'));
+        await tap(t, find.text('Übernehmen'));
+        expect(find.text('Im Unterricht geplant'), findsOneWidget);
+      }
+
+      await select();
+      await tap(t, find.byTooltip('Schließen').last);
+      expect(c.classroom.single.strings('pupilIds'), ['q']);
+      await select();
+      await tap(t, find.text('Übernehmen'));
+      expect(c.classroom.single.strings('pupilIds'), containsAll(['q', 'p']));
+      expect(pupilMaterialDates(c.classroom.single, 'p'), [today]);
+      expect(pupilMaterialDates(c.classroom.single, 'q'), [today]);
+      expect(find.byType(MaterialThumbnail), findsOneWidget);
+      await tap(t, find.byKey(ValueKey('pupil-material-date-${m.id}-$today')));
+      await tap(t, find.text('Datum entfernen'));
+      expect(pupilMaterialDates(c.classroom.single, 'p'), isEmpty);
+      expect(pupilMaterialDates(c.classroom.single, 'q'), [today]);
+      expect(c.classroom.single.strings('pupilIds'), contains('p'));
+      await tap(t, find.byTooltip('Schülerzuordnung entfernen'));
+      expect(c.classroom.single.strings('pupilIds'), ['q']);
+      expect(c.classroom.single.deleted, isFalse);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'pupil unlink keeps shared material and package accessible elsewhere',
     (t) async {
       final c = await controller();
@@ -467,9 +536,9 @@ void main() {
     );
     await tap(t, find.text('Open'));
     expect(find.text('Bereitgelegt'), findsOneWidget);
-    expect(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')), findsOneWidget);
+    expect(find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')), findsOneWidget);
     expect(t.takeException(), isNull);
-    await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+    await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
     expect(find.text('Bereitgelegt'), findsNothing);
   });
 

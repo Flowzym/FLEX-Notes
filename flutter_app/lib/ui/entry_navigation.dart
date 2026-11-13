@@ -10,6 +10,85 @@ import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
 
+/// Shared context and heading for the school and organisation editors.
+class EntryPageHeader extends StatelessWidget {
+  const EntryPageHeader({
+    super.key,
+    required this.owner,
+    required this.title,
+    required this.onClose,
+    this.actions = const [],
+    this.titleActions = const [],
+  });
+  final String owner, title;
+  final VoidCallback? onClose;
+  final List<Widget> actions, titleActions;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final headingStyle = const TextStyle(
+        fontFamily: 'FlexSans',
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+      );
+      final heading = Text(title, style: headingStyle);
+      final tools = [...actions, ...titleActions];
+      final painter = TextPainter(
+        text: TextSpan(text: title, style: headingStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final separateTools =
+          painter.width + tools.length * 48 + 8 > constraints.maxWidth;
+      painter.dispose();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                key: const ValueKey('entry-back'),
+                tooltip: 'Zurück und Eingaben sichern',
+                iconSize: 20,
+                onPressed: onClose,
+                icon: const Icon(Icons.arrow_back),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  owner,
+                  key: const ValueKey('entry-owner'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (separateTools) ...[
+            heading,
+            if (tools.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(children: tools),
+              ),
+          ] else
+            Row(
+              children: [
+                Expanded(child: heading),
+                ...tools,
+              ],
+            ),
+        ],
+      );
+    },
+  );
+}
+
 int entryDraftCount(
   NotebookController c, {
   required String? pupilId,
@@ -272,8 +351,8 @@ Future<void> showAssignedHomework(
             const Text(
               'Hausübungen',
               style: TextStyle(
-                fontFamily: 'FlexSerif',
-                fontSize: 20,
+                fontFamily: 'FlexSans',
+                fontSize: 18,
                 height: 1.3,
               ),
             ),

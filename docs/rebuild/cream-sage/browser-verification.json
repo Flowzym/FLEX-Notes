@@ -1,0 +1,13 @@
+{
+  "viewport": "390x844",
+  "importedPupils": 12,
+  "import": true,
+  "draftResume": true,
+  "publishedObservationPreserved": true,
+  "appearance": [
+    {
+      "key": "appearance",
+      "payload": "{\"designVersion\":1,\"mode\":\"dark\",\"textScale\":1.1,\"defaultObservationTone\":\"neutral\",\"materialGrid\":false,\"materialSort\":\"recent\",\"shortcutOrder\":[\"goal\",\"social\",\"work\",\"homework\",\"orga\"]}"
+    }
+  ]
+}

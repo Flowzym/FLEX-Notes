@@ -428,10 +428,160 @@ mixin BackupMergeStore on SchoolStore {
         await saveSchoolRecord(SchoolRecord.fromJson(resolved));
       }
     }
+    final draftLinks = <String, String>{};
+    final importedScans = <String>[];
+    // Draft IDs are deduplicated; a divergent draft is kept as a second draft.
+    for (final table in [
+      'drafts',
+      'school_drafts',
+      'pupil_drafts',
+      'context_drafts',
+      'group_drafts',
+    ]) {
+      final importedRows = (tables[table] as List).cast<Map>().toList();
+      if (table == 'context_drafts') {
+        // Resolve owners before comparing linked scan drafts for duplicates.
+        int rank(Map row) =>
+            {
+              'bulk',
+              'classroom',
+            }.contains((jsonDecode(row['payload'] as String) as Map)['type'])
+            ? 0
+            : 1;
+        importedRows.sort((a, b) => rank(a).compareTo(rank(b)));
+      }
+      for (final raw in importedRows) {
+        final row = Json.from(raw), id = raw['id'] as String;
+        final old = await _rows('SELECT * FROM $table WHERE id=?', [id]);
+        String draftSignature(Json row) {
+          final payload = Json.from(
+            jsonDecode(row['payload'] as String) as Map,
+          );
+          if (payload['format'] == 'flex-dialog-draft-1') payload.remove('id');
+          return canonical({...row, 'id': '', 'payload': payload});
+        }
+
+        final payload = _references(
+          Json.from(jsonDecode(row['payload'] as String) as Map),
+          checked.pupilLinks,
+        );
+        if (table == 'drafts') {
+          for (final item in (payload['items'] as List? ?? [])) {
+            item['id'] = checklistLinks[item['id']] ?? item['id'];
+          }
+        }
+        if (table == 'school_drafts') {
+          final record = payload['record'] as Map;
+          record['situationId'] =
+              contextLinks[record['situationId']] ?? record['situationId'];
+        }
+        if (payload['format'] == 'flex-dialog-draft-1') {
+          if (payload['type'] == 'pupil') {
+            final target =
+                checked.pupilLinks[payload['ownerId']] ?? payload['ownerId'];
+            payload['ownerId'] = target;
+            (payload['data'] as Map)['id'] = target;
+            row['entity_id'] = target;
+          } else if (payload['type'] == 'context') {
+            final target =
+                contextLinks[payload['ownerId']] ?? payload['ownerId'];
+            payload['ownerId'] = target;
+            row['entity_id'] = target;
+          } else if (payload['type'] == 'bulk') {
+            final data = payload['data'] as Map;
+            final individual = data['individual'] as Map;
+            data['individual'] = {
+              for (final entry in individual.entries)
+                checked.pupilLinks[entry.key] ?? entry.key: entry.value,
+            };
+          }
+        }
+        if (payload['format'] == 'flex-dialog-draft-1' &&
+            payload['type'] == 'scan') {
+          final data = payload['data'] as Map;
+          data['links'] = [
+            for (final rawLink in data['links'] as List)
+              {
+                ...Json.from(rawLink as Map),
+                'id':
+                    draftLinks['${rawLink['kind']}:${rawLink['id']}'] ??
+                    rawLink['id'],
+              },
+          ];
+        }
+        row['payload'] = jsonEncode(payload);
+        final duplicate = (await _rows('SELECT * FROM $table'))
+            .where(
+              (existing) => draftSignature(existing) == draftSignature(row),
+            )
+            .firstOrNull;
+        final linkKind = switch (table) {
+          'drafts' => 'orgaDraft',
+          'school_drafts' => 'schoolDraft',
+          _ => payload['type'] == 'classroom' ? 'classroomDraft' : 'bulkDraft',
+        };
+        if (duplicate != null) {
+          draftLinks['$linkKind:$id'] = duplicate['id'] as String;
+          continue;
+        }
+        if (old.isNotEmpty) {
+          row['id'] = newId();
+          if (payload['format'] == 'flex-dialog-draft-1') {
+            payload['id'] = row['id'];
+          }
+        }
+        row['payload'] = jsonEncode(payload);
+        draftLinks['$linkKind:$id'] = row['id'] as String;
+        if (table == 'context_drafts' && payload['type'] == 'scan') {
+          importedScans.add(row['id'] as String);
+        }
+        await _insertRow(table, row);
+      }
+    }
+    List<Json> remapDraftLinks(Object? rows) => [
+      for (final raw in rows as List? ?? [])
+        {
+          ...Json.from(raw as Map),
+          'id': draftLinks['${raw['kind']}:${raw['id']}'] ?? raw['id'],
+        },
+    ];
+    // A scan may appear before its owner in the imported table. Resolve links
+    // only after every imported draft has a final (possibly deduplicated) ID.
+    for (final id in importedScans) {
+      final row = (await _rows(
+        'SELECT payload FROM context_drafts WHERE id=?',
+        [id],
+      )).single;
+      final payload = Json.from(jsonDecode(row['payload'] as String) as Map);
+      final data = Json.from(payload['data'] as Map);
+      payload['data'] = {...data, 'links': remapDraftLinks(data['links'])};
+      await db.customStatement(
+        'UPDATE context_drafts SET payload=? WHERE id=?',
+        [jsonEncode(payload), id],
+      );
+    }
     // Import all classroom documents before checking their cross-links; lessons
     // can refer to material appearing later in the same backup.
     for (final item in checked.items.where((i) => i.kind == 'classroom')) {
       final resolved = item.resolve(incomingFields[item.key] ?? {});
+      if (resolved.containsKey('links') &&
+          (item.isNew || (incomingFields[item.key] ?? {}).contains('links'))) {
+        resolved['links'] = remapDraftLinks(resolved['links']);
+      } else if (resolved.containsKey('links') &&
+          canonical(item.incoming['links']) ==
+              canonical(item.local?['links'])) {
+        // An unchanged shared file can belong to both diverged owner drafts.
+        final incomingLinks = remapDraftLinks(item.incoming['links']);
+        if (canonical(incomingLinks) != canonical(resolved['links'] ?? [])) {
+          resolved['links'] = {
+            for (final row in [
+              ...(resolved['links'] as List? ?? []),
+              ...incomingLinks,
+            ])
+              DocumentLink.fromJson(Json.from(row as Map)).identity: row,
+          }.values.toList();
+        }
+      }
       final doc = ClassroomDocument.fromJson(resolved);
       if (item.isNew) {
         await db.customStatement(
@@ -478,76 +628,6 @@ mixin BackupMergeStore on SchoolStore {
         row['id'] = newId();
       }
       await _insertRow('revisions', row);
-    }
-    // Draft IDs are deduplicated; a divergent draft is kept as a second draft.
-    for (final table in [
-      'drafts',
-      'school_drafts',
-      'pupil_drafts',
-      'context_drafts',
-      'group_drafts',
-    ]) {
-      for (final raw in (tables[table] as List).cast<Map>()) {
-        final row = Json.from(raw), id = raw['id'] as String;
-        final old = await _rows('SELECT * FROM $table WHERE id=?', [id]);
-        String draftSignature(Json row) {
-          final payload = Json.from(
-            jsonDecode(row['payload'] as String) as Map,
-          );
-          if (payload['format'] == 'flex-dialog-draft-1') payload.remove('id');
-          return canonical({...row, 'id': '', 'payload': payload});
-        }
-
-        final payload = _references(
-          Json.from(jsonDecode(row['payload'] as String) as Map),
-          checked.pupilLinks,
-        );
-        if (table == 'drafts') {
-          for (final item in (payload['items'] as List? ?? [])) {
-            item['id'] = checklistLinks[item['id']] ?? item['id'];
-          }
-        }
-        if (table == 'school_drafts') {
-          final record = payload['record'] as Map;
-          record['situationId'] =
-              contextLinks[record['situationId']] ?? record['situationId'];
-        }
-        if (payload['format'] == 'flex-dialog-draft-1') {
-          if (payload['type'] == 'pupil') {
-            final target =
-                checked.pupilLinks[payload['ownerId']] ?? payload['ownerId'];
-            payload['ownerId'] = target;
-            (payload['data'] as Map)['id'] = target;
-            row['entity_id'] = target;
-          } else if (payload['type'] == 'context') {
-            final target =
-                contextLinks[payload['ownerId']] ?? payload['ownerId'];
-            payload['ownerId'] = target;
-            row['entity_id'] = target;
-          } else if (payload['type'] == 'bulk') {
-            final data = payload['data'] as Map;
-            final individual = data['individual'] as Map;
-            data['individual'] = {
-              for (final entry in individual.entries)
-                checked.pupilLinks[entry.key] ?? entry.key: entry.value,
-            };
-          }
-        }
-        row['payload'] = jsonEncode(payload);
-        if ((await _rows(
-          'SELECT * FROM $table',
-        )).any((existing) => draftSignature(existing) == draftSignature(row))) {
-          continue;
-        }
-        if (old.isNotEmpty) {
-          row['id'] = newId();
-          if (payload['format'] == 'flex-dialog-draft-1') {
-            payload['id'] = row['id'];
-          }
-        }
-        row['payload'] = jsonEncode(payload);
-        await _insertRow(table, row);
-      }
     }
     for (final value in (tables['legacy_backups'] as List).cast<Map>()) {
       if ((await _rows('SELECT id FROM legacy_backups WHERE id=?', [

@@ -1,4 +1,5 @@
 import 'detail_flow.dart';
+import 'quick_add.dart';
 import 'package:flutter/material.dart';
 
 import '../application/notebook_controller.dart';
@@ -405,7 +406,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               e.pupilId == p.id &&
               matches(
                 e.pending,
-                '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}',
+                '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}',
               ),
         ))
           (
@@ -443,8 +444,8 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontFamily: 'FlexSerif',
-            fontSize: 20,
+            fontFamily: 'FlexSans',
+            fontSize: 18,
             height: 1.15,
           ),
         ),
@@ -493,7 +494,6 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     ];
     return FlexModal(
       maxWidth: 1120,
-      accentColor: Color(p.color),
       title: title,
       headerContent: LayoutBuilder(
         builder: (context, constraints) {
@@ -561,106 +561,118 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       scrollable: false,
       content: SizedBox(
         height: MediaQuery.sizeOf(context).height * .7,
-        child: workspace(
-          ListView(
-            key: const PageStorageKey('pupil-workspace'),
-            padding: EdgeInsets.zero,
-            children: [
-              navigation(),
-              const SizedBox(height: 8),
-              CollapsibleSearch(
-                fieldKey: const ValueKey('pupil-entry-search'),
-                buttonKey: const ValueKey('pupil-search-button'),
-                controller: search,
-                label: 'Einträge durchsuchen',
-                iconOnly: true,
-                leading: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => showPupilMaterials(context, c, p),
-                    icon: const Icon(Icons.folder_open_outlined),
-                    label: const Text('Dokumente'),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-                onChanged: (v) => setState(() => query = v),
-                actions: [
-                  if (!p.archived && area == FlexSymbol.orga)
-                    IconButton(
-                      tooltip: 'Termin anlegen',
-                      onPressed: widget.newAppointment,
-                      icon: const Icon(Icons.event_outlined),
-                    ),
-                  if (!p.archived) ...[
-                    const SizedBox(width: 8),
-                    if (area != null)
-                      IconButton(
-                        tooltip: '${fullLabel(area!)} anlegen',
-                        onPressed: () => create(area!),
-                        icon: const Icon(Icons.add),
-                      )
-                    else
-                      PopupMenuButton<FlexSymbol>(
-                        tooltip: 'Eintrag anlegen',
-                        icon: const Icon(Icons.add),
-                        onSelected: create,
-                        itemBuilder: (_) => [
-                          for (final s in FlexSymbol.values)
-                            PopupMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  FlexIcon(s, size: 20),
-                                  const SizedBox(width: 10),
-                                  Flexible(child: Text(fullLabel(s))),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                  ],
-                ],
-              ),
-              Wrap(
-                key: const ValueKey('pupil-entry-filter'),
-                spacing: 6,
-                runSpacing: 4,
+        child: Stack(
+          children: [
+            workspace(
+              ListView(
+                key: const PageStorageKey('pupil-workspace'),
+                padding: const EdgeInsets.only(bottom: 84),
                 children: [
-                  for (final option in const {
-                    'all': 'Alle',
-                    'open': 'Noch offen',
-                    'closed': 'Abgeschlossen',
-                  }.entries)
-                    transparentChip(
-                      ChoiceChip(
-                        key: ValueKey('pupil-filter-${option.key}'),
-                        label: Text(option.value),
-                        selected: filter == option.key,
-                        onSelected: (_) => setState(() => filter = option.key),
-                        backgroundColor: Colors.transparent,
-                        side: BorderSide.none,
-                        showCheckmark: false,
+                  navigation(),
+                  const SizedBox(height: 8),
+                  CollapsibleSearch(
+                    fieldKey: const ValueKey('pupil-entry-search'),
+                    buttonKey: const ValueKey('pupil-search-button'),
+                    controller: search,
+                    label: 'Einträge durchsuchen',
+                    iconOnly: true,
+                    leading: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => showPupilMaterials(context, c, p),
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: const Text('Materialien'),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                        ),
                       ),
+                    ),
+                    onChanged: (v) => setState(() => query = v),
+                    actions: [
+                      if (!p.archived && area == FlexSymbol.orga)
+                        IconButton(
+                          tooltip: 'Termin anlegen',
+                          onPressed: widget.newAppointment,
+                          icon: const Icon(Icons.event_outlined),
+                        ),
+                      if (!p.archived) ...[
+                        const SizedBox(width: 8),
+                        if (area != null)
+                          IconButton(
+                            tooltip: '${fullLabel(area!)} anlegen',
+                            onPressed: () => create(area!),
+                            icon: const Icon(Icons.add),
+                          )
+                        else
+                          PopupMenuButton<FlexSymbol>(
+                            tooltip: 'Eintrag anlegen',
+                            icon: const Icon(Icons.add),
+                            onSelected: create,
+                            itemBuilder: (_) => [
+                              for (final s in FlexSymbol.values)
+                                PopupMenuItem(
+                                  value: s,
+                                  child: Row(
+                                    children: [
+                                      FlexIcon(s, size: 20),
+                                      const SizedBox(width: 10),
+                                      Flexible(child: Text(fullLabel(s))),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ],
+                  ),
+                  Wrap(
+                    key: const ValueKey('pupil-entry-filter'),
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final option in const {
+                        'all': 'Alle',
+                        'open': 'Noch offen',
+                        'closed': 'Abgeschlossen',
+                      }.entries)
+                        transparentChip(
+                          ChoiceChip(
+                            key: ValueKey('pupil-filter-${option.key}'),
+                            label: Text(option.value),
+                            selected: filter == option.key,
+                            onSelected: (_) =>
+                                setState(() => filter = option.key),
+                            backgroundColor: Colors.transparent,
+                            side: BorderSide.none,
+                            showCheckmark: false,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'} · ${rows.where((r) => r.pending).length} offen',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (p.archived) const Text('Archiviert'),
+                  const SizedBox(height: 6),
+                  if (rows.isEmpty)
+                    const EmptyState('Keine passenden Einträge.'),
+                  for (final row in rows)
+                    KeyedSubtree(
+                      key: ValueKey('pupil-entry-${row.id}'),
+                      child: row.card,
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'} · ${rows.where((r) => r.pending).length} offen',
-                style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (!p.archived)
+              Positioned(
+                right: 4,
+                bottom: 8,
+                child: QuickAddButton(controller: c, pupil: p),
               ),
-              if (p.archived) const Text('Archiviert'),
-              const SizedBox(height: 6),
-              if (rows.isEmpty) const EmptyState('Keine passenden Einträge.'),
-              for (final row in rows)
-                KeyedSubtree(
-                  key: ValueKey('pupil-entry-${row.id}'),
-                  child: row.card,
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );

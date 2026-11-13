@@ -5,6 +5,7 @@ import 'classroom.dart';
 
 abstract interface class NotebookRepository {
   Future<List<ClassroomDocument>> classroomDocuments();
+  Future<void> renameMaterialTag(String oldTag, String? newTag);
   Future<ClassroomDocument> saveClassroomDocument(
     ClassroomDocument document, {
     DialogDraft? draft,
@@ -73,6 +74,11 @@ abstract interface class NotebookRepository {
     DialogDraft? draft,
   );
   Future<List<SchoolRecord>> schoolRecords();
+  Future<SchoolRecord> reassignHomeworkTask(
+    SchoolRecord source,
+    String taskId, {
+    String? dueDate,
+  });
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
     String? draftId,

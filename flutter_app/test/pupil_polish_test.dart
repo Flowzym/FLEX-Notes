@@ -1,10 +1,10 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/entry_navigation.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
 import 'package:flex_notizbuch/ui/pupil_workspace.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DeleteStore extends SqliteNotebook {
   DeleteStore(super.db);
@@ -38,23 +37,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late DeleteStore repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = DeleteStore(
       NotebookDatabase(
@@ -141,17 +124,11 @@ void main() {
     t.platformDispatcher.textScaleFactorTestValue = font;
     addTearDown(t.view.reset);
     addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
-    await c.saveAppearance(c.appearance.patch({'uiScale': scale}));
+    await c.saveAppearance(c.appearance.patch({'textScale': scale}));
     await t.pumpWidget(
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();
@@ -165,7 +142,7 @@ void main() {
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')).last);
   Future<void> finish(WidgetTester t) async {
     await t.pumpWidget(const SizedBox());
     await t.pumpAndSettle();
@@ -219,7 +196,7 @@ void main() {
             matching: find.byType(FlexIcon),
           );
           expect(t.getCenter(icon).dx, closeTo(t.getCenter(target).dx, .1));
-          expect(t.widget<FlexIcon>(icon).size, 32);
+          expect(t.widget<FlexIcon>(icon).size, 27);
           final labelFinder = find
               .descendant(of: target, matching: find.byType(Text))
               .last;
@@ -234,7 +211,7 @@ void main() {
             .getCenter(find.byKey(const ValueKey('pupil-open-a')))
             .dx;
         final order = c.appearance.shortcutOrder;
-        for (final row in [order.take(3), order.skip(3)]) {
+        for (final row in [order]) {
           final centers = row
               .map(
                 (name) =>

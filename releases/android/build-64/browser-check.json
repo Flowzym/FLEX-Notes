@@ -1,0 +1,16 @@
+{
+  "version": "0.21.0+64",
+  "viewport": "390x844",
+  "syntheticData": true,
+  "pupilMaterialAssignment": true,
+  "teachingDateChanged": "2026-11-13 → 2026-11-16",
+  "persistsAfterReload": true,
+  "equalNavigationWidths": [
+    114.65625,
+    114.65625,
+    114.65623474121094
+  ],
+  "oneScannerAccess": true,
+  "compactEntryHeader": true,
+  "pageErrors": []
+}

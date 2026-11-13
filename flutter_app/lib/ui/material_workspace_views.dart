@@ -228,6 +228,13 @@ Future<void> showMaterialDetails(
                     ),
                   if (d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => shareMaterials(ctx, [d])),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Teilen'),
+                    ),
+                  if (d.text('localKey').isNotEmpty)
+                    OutlinedButton.icon(
                       onPressed: () => guarded(ctx, () async {
                         final bytes = await const LocalMaterialFiles().read(
                           d.text('localKey'),
@@ -242,8 +249,14 @@ Future<void> showMaterialDetails(
                               : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                         );
                       }),
-                      icon: const Icon(Icons.ios_share),
-                      label: const Text('Teilen / Exportieren'),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Exportieren'),
+                    ),
+                  if (d.rows('versions').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => showMaterialVersions(ctx, c, d),
+                      icon: const Icon(Icons.history),
+                      label: Text('Versionen · ${d.rows('versions').length}'),
                     ),
                   OutlinedButton.icon(
                     onPressed: () => showClassroomEditor(
@@ -282,6 +295,12 @@ Future<void> showMaterialDetails(
                       .map((p) => p.name)
                       .join(', '),
                 ),
+              for (final row in d.rows('pupilDates'))
+                Text(
+                  '${c.pupils.where((p) => p.id == row['pupilId']).firstOrNull?.name ?? 'Schüler'} · Geplant: ${displayDate(row['date'] as String)}',
+                ),
+              if (d.text('otherParticipants').isNotEmpty)
+                Text('Weitere Namen: ${d.text('otherParticipants')}'),
               if (d.strings('tags').isNotEmpty)
                 Text(d.strings('tags').join(' · ')),
               if (d.text('note').isNotEmpty)
@@ -387,7 +406,11 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
       final doc = preparationFor(c.classroom, date);
       final ids = doc.strings('materialIds');
       final materials = resolveMaterials(c.classroom, ids);
-      final suggestions = suggestedMaterials(c.classroom, date);
+      final scheduled = pupilMaterialsOnDay(c.classroom, date);
+      final suggestions = suggestedMaterials(
+        c.classroom,
+        date,
+      ).where((m) => !scheduled.any((d) => d.id == m.id)).toList();
       return FlexModal(
         title: const Text('Bereitgelegt'),
         onClose: () => Navigator.pop(ctx),
@@ -469,7 +492,7 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
               ],
             ),
             if (busy) const LinearProgressIndicator(),
-            if (materials.isEmpty)
+            if (materials.isEmpty && scheduled.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
                 child: Text('Für diesen Tag ist noch nichts bereitgelegt.'),
@@ -527,6 +550,37 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
             ),
             if (ids.length > materials.length)
               const Text('Dateien im Papierkorb werden hier ausgeblendet.'),
+            if (scheduled.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(
+                'Für Schüler geplant',
+                style: Theme.of(ctx).textTheme.titleSmall,
+              ),
+              for (final m in scheduled)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    MaterialRow(
+                      material: m,
+                      onOpen: () => run(() => openMaterial(ctx, c, m)),
+                    ),
+                    Wrap(
+                      children: [
+                        for (final p in c.pupils.where(
+                          (p) => pupilMaterialDates(m, p.id).contains(date),
+                        ))
+                          TextButton.icon(
+                            onPressed: busy
+                                ? null
+                                : () => showPupilMaterials(ctx, c, p),
+                            icon: const Icon(Icons.person_outline, size: 18),
+                            label: Text(p.name),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
             if (suggestions.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text(
@@ -725,148 +779,6 @@ Future<void> showMaterialCollection(
   ),
 );
 
-Future<void> showPupilMaterials(
-  BuildContext context,
-  NotebookController c,
-  Pupil pupil,
-) => showDialog<void>(
-  context: context,
-  builder: (ctx) => AnimatedBuilder(
-    animation: c,
-    builder: (ctx, _) {
-      final direct = c.classroom.where(
-        (d) =>
-            !d.deleted &&
-            d.kind == ClassroomKind.material &&
-            d.strings('pupilIds').contains(pupil.id),
-      );
-      final collections = c.classroom.where(
-        (d) =>
-            !d.deleted &&
-            (d.kind == ClassroomKind.materialSet ||
-                d.kind == ClassroomKind.plan) &&
-            d.strings('pupilIds').contains(pupil.id),
-      );
-      return FlexModal(
-        title: Text('${pupil.name} · Unterlagen'),
-        onClose: () => Navigator.pop(ctx),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              spacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => scanAndShow(
-                    ctx,
-                    c,
-                    ScanContext(
-                      pupilIds: [pupil.id],
-                      title: pupil.name,
-                      category: 'pupilWork',
-                    ),
-                  ),
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scannen'),
-                ),
-                DocumentAttachmentsButton(
-                  showPreviews: false,
-                  controller: c,
-                  scope: ScanContext(
-                    pupilIds: [pupil.id],
-                    title: pupil.name,
-                    category: 'pupilWork',
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () => guarded(ctx, () async {
-                    final baseline = c.classroom
-                        .where(
-                          (d) => !d.deleted && d.kind == ClassroomKind.material,
-                        )
-                        .toList();
-                    final ids = await chooseMaterials(
-                      ctx,
-                      c,
-                      direct.map((d) => d.id).toList(),
-                    );
-                    if (ids == null) return;
-                    final changes = <ClassroomDocument>[];
-                    for (final d in baseline) {
-                      final pupils = d.strings('pupilIds').toSet();
-                      if (ids.contains(d.id) != pupils.contains(pupil.id)) {
-                        if (ids.contains(d.id)) {
-                          pupils.add(pupil.id);
-                        } else {
-                          pupils.remove(pupil.id);
-                        }
-                        changes.add(d.patch({'pupilIds': pupils.toList()}));
-                      }
-                    }
-                    await c.repository.saveClassroomDocuments(changes);
-                    await c.reload();
-                  }),
-                  icon: const Icon(Icons.attach_file),
-                  label: const Text('Dateien zuordnen'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => showClassroomEditor(
-                    ctx,
-                    c,
-                    ClassroomKind.plan,
-                    fields: {
-                      'pupilIds': [pupil.id],
-                    },
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Planung'),
-                ),
-              ],
-            ),
-            if (direct.isEmpty && collections.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Noch keine Unterlagen zugeordnet.'),
-              ),
-            for (final d in direct)
-              MaterialRow(
-                material: d,
-                onOpen: () => guarded(ctx, () => openMaterial(ctx, c, d)),
-                trailing: IconButton(
-                  tooltip: 'Schülerzuordnung entfernen',
-                  icon: const Icon(Icons.link_off),
-                  onPressed: () => guarded(
-                    ctx,
-                    () => c.saveClassroom(
-                      d.patch({
-                        'pupilIds': d
-                            .strings('pupilIds')
-                            .where((id) => id != pupil.id)
-                            .toList(),
-                      }),
-                    ),
-                  ),
-                ),
-              ),
-            for (final d in collections)
-              ListTile(
-                leading: Icon(
-                  d.kind == ClassroomKind.plan
-                      ? Icons.event_note_outlined
-                      : Icons.folder_copy_outlined,
-                ),
-                title: Text(d.title),
-                subtitle: Text(d.label),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => showMaterialCollection(ctx, c, d),
-              ),
-          ],
-        ),
-      );
-    },
-  ),
-);
-
 class PreparedMaterialsTile extends StatelessWidget {
   const PreparedMaterialsTile({
     super.key,
@@ -877,10 +789,14 @@ class PreparedMaterialsTile extends StatelessWidget {
   final String date;
   @override
   Widget build(BuildContext context) {
-    final count = resolveMaterials(
-      controller.classroom,
-      preparationFor(controller.classroom, date).strings('materialIds'),
-    ).length;
+    final prepared = preparationFor(controller.classroom, date);
+    final count = {
+      ...resolveMaterials(
+        controller.classroom,
+        prepared.deleted ? [] : prepared.strings('materialIds'),
+      ).map((m) => m.id),
+      ...pupilMaterialsOnDay(controller.classroom, date).map((m) => m.id),
+    }.length;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.folder_open_outlined),

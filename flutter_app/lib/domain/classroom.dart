@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
+import 'lesson_flow_data.dart';
+import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
 
 enum ClassroomKind {
@@ -221,8 +223,20 @@ class ClassroomDocument {
       (_json[key] as List? ?? []).map((r) => Json.from(r as Map)).toList();
   Json map(String key) => Json.from(_json[key] as Map? ?? {});
   Json toJson() => Json.from(jsonDecode(jsonEncode(_json)) as Map);
-  ClassroomDocument patch(Json fields) =>
-      ClassroomDocument.fromJson({...toJson(), ...fields});
+  ClassroomDocument patch(Json fields) {
+    final next = {...toJson(), ...fields};
+    // Removing a pupil assignment also removes only that pupil's teaching dates.
+    if (kind == ClassroomKind.material &&
+        fields.containsKey('pupilIds') &&
+        next.containsKey('pupilDates')) {
+      final pupils = List<String>.from(next['pupilIds'] as List);
+      next['pupilDates'] = (next['pupilDates'] as List)
+          .where((row) => pupils.contains((row as Map)['pupilId']))
+          .toList();
+    }
+    return ClassroomDocument.fromJson(next);
+  }
+
   RepeatRule get rule => RepeatRule.fromJson(map('repeat'));
   String get label => switch (kind) {
     ClassroomKind.timetable => 'Stundenplan',
@@ -289,12 +303,14 @@ class ClassroomDocument {
         'documentType',
         'audience',
         'pupilIds',
+        'pupilDates',
         'tags',
         'favorite',
         'sourcePath',
         'links',
         'scan',
         'scanner',
+        'versions',
         'pageCount',
       },
       ClassroomKind.materialSet => {
@@ -306,6 +322,7 @@ class ClassroomDocument {
       },
       ClassroomKind.preparation => {'date', 'materialIds'},
       ClassroomKind.plan => {
+        'flow',
         'materialIds',
         'pupilIds',
         'lessonIds',
@@ -348,10 +365,17 @@ class ClassroomDocument {
         'deleted',
         'createdAtUtc',
         'updatedAtUtc',
+        'pupilIds',
+        'otherParticipants',
         ...fields,
       }.contains(k),
     )) {
       throw const DomainError('Unbekannte Datenfelder im Klassen-Eintrag.');
+    }
+    if (_json.containsKey('otherParticipants') &&
+        (_json['otherParticipants'] is! String ||
+            text('otherParticipants').length > 2000)) {
+      throw const DomainError('Bitte Namen auf 2000 Zeichen begrenzen.');
     }
     for (final key in ['note', 'subject', 'topic', 'room', 'teacher']) {
       if (text(key).length > (key == 'note' ? 20000 : 200)) {
@@ -436,7 +460,35 @@ class ClassroomDocument {
             text('followUp').length > 20000)) {
       throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
     }
+    if (kind == ClassroomKind.plan && _json.containsKey('flow')) {
+      if (_json['flow'] is! Map) throw const DomainError('Ungültiger Ablauf.');
+      final flow = map('flow');
+      validateLessonFlow(flow);
+      if (flow['template'] == false && !validDate(text('date'))) {
+        throw const DomainError('Ein Unterrichtsablauf benötigt ein Datum.');
+      }
+    }
     if (kind == ClassroomKind.material) {
+      final dates = rows('pupilDates');
+      final pupils = strings('pupilIds');
+      if (dates.length > 5000 ||
+          dates.any(
+            (row) =>
+                row.keys.any((key) => !{'pupilId', 'date'}.contains(key)) ||
+                !pupils.contains(row['pupilId']) ||
+                row['date'] is! String ||
+                !validDate(row['date'] as String),
+          ) ||
+          dates
+                  .map((row) => '${row['pupilId']}:${row['date']}')
+                  .toSet()
+                  .length !=
+              dates.length) {
+        throw const DomainError(
+          'Bitte die Unterrichtsdaten und Schülerzuordnung prüfen.',
+        );
+      }
+      materialVersions(_json);
       final links = rows('links').map(DocumentLink.fromJson).toList();
       if (links.length > 100 ||
           links.map((l) => l.identity).toSet().length != links.length ||

@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -20,15 +21,7 @@ import 'material_workspace_test.dart' show material;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(font.key)..addFont(rootBundle.load(font.value))).load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() {
     for (final channel in [
       'plugins.it_nomads.com/flutter_secure_storage',
@@ -283,7 +276,7 @@ void main() {
     final line = find.byKey(const ValueKey('calendar-now-line'));
     final rect = t.getRect(line);
     expect(rect.width, greaterThan(300));
-    expect(rect.height, 3);
+    expect(rect.height, 2);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('calendar-now-label')),
@@ -306,7 +299,19 @@ void main() {
         rgba.getUint8(pixel + 1),
         rgba.getUint8(pixel + 2),
       );
-      expect(color, Theme.of(t.element(line)).colorScheme.error);
+      expect(
+        color,
+        (t
+                    .widget<DecoratedBox>(
+                      find.descendant(
+                        of: line,
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .decoration
+                as BoxDecoration)
+            .color,
+      );
       image.dispose();
     });
     await t.tapAt(rect.center);
@@ -317,7 +322,7 @@ void main() {
   });
 
   testWidgets(
-    'both day subpages update current time and omit it on other dates',
+    'shared day updates current time with and without lessons and omits it on other dates',
     (t) async {
       final c = await controller(seed: true);
       var now = DateTime(2026, 11, 9, 8, 20);
@@ -328,13 +333,21 @@ void main() {
       );
       final line = find.byKey(const ValueKey('calendar-now-line'));
       final label = find.byKey(const ValueKey('calendar-now-label'));
-      for (final section in ['calendar', 'timetable']) {
-        await tap(t, find.byKey(ValueKey('calendar-section-$section')));
-        await tap(t, find.byKey(ValueKey('$section-mode-day')));
+      for (final showLessons in [true, false]) {
+        if (!showLessons) {
+          await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+        }
+        await tap(t, find.byKey(const ValueKey('calendar-mode-day')));
         final oldY = t.getTopLeft(line).dy;
+        final minuteHeight =
+            (t.getTopLeft(find.byKey(const ValueKey('calendar-hour-540'))).dy -
+                t
+                    .getTopLeft(find.byKey(const ValueKey('calendar-hour-480')))
+                    .dy) /
+            60;
         now = now.add(const Duration(minutes: 1));
         await t.pump(const Duration(minutes: 1));
-        expect(t.getTopLeft(line).dy - oldY, closeTo(1.1, .01));
+        expect(t.getTopLeft(line).dy - oldY, closeTo(minuteHeight, .01));
         expect(
           find.descendant(of: label, matching: find.text('08:${now.minute}')),
           findsOneWidget,
@@ -392,8 +405,54 @@ void main() {
         for (final mode in ['day', 'week', 'month']) {
           await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
           expect(t.takeException(), isNull);
-          expect(find.text('Anlegen').hitTestable(), findsOneWidget);
-          expect(find.text('Verwalten').hitTestable(), findsOneWidget);
+          final toolbar = t.getRect(
+            find.byKey(const ValueKey('calendar-toolbar')),
+          );
+          final modes = t.getRect(
+            find.byKey(const ValueKey('calendar-mode-navigation')),
+          );
+          final dates = t.getRect(
+            find.byKey(const ValueKey('calendar-date-navigation')),
+          );
+          final options = t.getRect(
+            find.byKey(const ValueKey('calendar-display-options')),
+          );
+          expect(toolbar.bottom, lessThanOrEqualTo(modes.top));
+          expect(modes.bottom, lessThanOrEqualTo(dates.top));
+          expect(dates.bottom, lessThanOrEqualTo(options.top));
+          for (final action in [
+            'materials',
+            'manage',
+            'show-lessons',
+            'edit-timetable',
+            if (mode == 'week') 'weekends',
+            'filter',
+          ]) {
+            final button = find.byKey(ValueKey('calendar-$action'));
+            expect(button.hitTestable(), findsOneWidget);
+            final rect = t.getRect(button);
+            final group =
+                ['materials', 'manage', 'edit-timetable'].contains(action)
+                ? toolbar
+                : options;
+            expect(rect.left, greaterThanOrEqualTo(group.left));
+            expect(rect.right, lessThanOrEqualTo(group.right));
+            expect(rect.top, greaterThanOrEqualTo(group.top));
+            expect(rect.bottom, lessThanOrEqualTo(group.bottom));
+            expect(
+              find.descendant(of: button, matching: find.byType(Text)),
+              findsOneWidget,
+            );
+            expect(rect.width, greaterThanOrEqualTo(39.99));
+            expect(rect.height, greaterThanOrEqualTo(39.99));
+          }
+          final period = t.getRect(
+            find.byKey(const ValueKey('calendar-period')),
+          );
+          final today = t.getRect(find.byKey(const ValueKey('calendar-today')));
+          expect(today.left - period.right, closeTo(6, .01));
+          expect(today.center.dy, closeTo(period.center.dy, .01));
+          expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
           await capture(
             t,
             key,
@@ -419,24 +478,17 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
-  testWidgets(
-    'month selection keeps month then opens selected day and dated creation',
-    (t) async {
-      final c = await controller(seed: true);
-      await host(t, c);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
-      await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
-      expect(find.text('November 2026'), findsOneWidget);
-      await tap(t, find.byTooltip('Tagesansicht öffnen'));
-      expect(find.text('Donnerstag'), findsOneWidget);
-      await tap(t, find.text('Anlegen'));
-      expect(find.text('Anlegen · 05.11.2026'), findsOneWidget);
-      expect(find.text('Termin'), findsOneWidget);
-      expect(find.text('Aufgabe'), findsOneWidget);
-      expect(t.takeException(), isNull);
-      await t.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('month selection keeps month then opens selected day', (t) async {
+    final c = await controller(seed: true);
+    await host(t, c);
+    await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+    await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
+    expect(find.text('November 2026'), findsOneWidget);
+    await tap(t, find.byTooltip('Tagesansicht öffnen'));
+    expect(find.textContaining('Do, 5. November'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'week overlaps open every source and weekends with entries stay visible',
     (t) async {
@@ -453,13 +505,96 @@ void main() {
       await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
       expect(find.text('Sa'), findsOneWidget);
       expect(find.text('So'), findsOneWidget);
-      await tap(t, find.text('Einträge').first);
+      await tap(
+        t,
+        find
+            .ancestor(
+              of: find.text('Elterngespräch').first,
+              matching: find.byType(InkWell),
+            )
+            .last,
+      );
       expect(find.text('2 Einträge'), findsOneWidget);
-      expect(find.text('Elterngespräch'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Elterngespräch'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
   );
+  for (final reason in ['appointment', 'homework', 'selected Sunday']) {
+    testWidgets(
+      'weekends can be hidden despite $reason and stay user controlled',
+      (t) async {
+        final c = await controller();
+        if (reason == 'appointment') {
+          await c.saveEntry(
+            OrgaEntry.empty().copyWith(
+              title: 'Samstagstermin',
+              appointmentDate: '2026-11-07',
+              appointmentTime: '09:00',
+            ),
+          );
+        } else if (reason == 'homework') {
+          await c.savePupil(const Pupil(id: 'weekend-pupil', name: 'Alex'));
+          await c.repository.saveSchoolRecord(
+            SchoolRecord.empty(SchoolKind.homework, 'weekend-pupil').patch({
+              'title': 'Am Samstag fällig',
+              'dueDate': '2026-11-07',
+              'tasks': [
+                {'id': 'weekend-task', 'text': 'Lesen', 'status': 'open'},
+              ],
+            }),
+          );
+          await c.reload();
+        }
+        await host(
+          t,
+          c,
+          builder: (_) => CalendarPage(
+            controller: c,
+            clock: () =>
+                DateTime(2026, 11, reason == 'selected Sunday' ? 8 : 2),
+          ),
+        );
+        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        int dayCount() => t
+            .widget<CalendarTimeline>(find.byType(CalendarTimeline))
+            .days
+            .length;
+        final toggle = find.byKey(const ValueKey('calendar-weekends'));
+        expect(dayCount(), 7);
+        expect(t.widget<TextButton>(toggle).onPressed, isNotNull);
+        await tap(t, toggle);
+        expect(dayCount(), 5);
+        expect(find.text('Sa'), findsNothing);
+        expect(find.text('So'), findsNothing);
+        await c.reload();
+        await t.pumpAndSettle();
+        expect(dayCount(), 5);
+        await tap(t, find.byTooltip('Nächster Zeitraum'));
+        expect(dayCount(), 5);
+        await tap(t, find.byTooltip('Vorheriger Zeitraum'));
+        expect(dayCount(), 5);
+        if (reason != 'selected Sunday') {
+          final hidden = find.byKey(
+            const ValueKey('calendar-hidden-weekend-entries'),
+          );
+          expect(hidden, findsOneWidget);
+          await tap(t, hidden);
+          expect(dayCount(), 7);
+          expect(hidden, findsNothing);
+          await tap(t, toggle);
+          expect(dayCount(), 5);
+        }
+        await tap(t, toggle);
+        expect(dayCount(), 7);
+        await tap(t, toggle);
+        expect(dayCount(), 5);
+        expect(t.takeException(), isNull);
+        await t.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets(
     'single lesson edit past series end retains preparation and inheritance',
     (t) async {
@@ -651,6 +786,42 @@ void main() {
         isTrue,
       );
       expect(await c.repository.dialogDrafts(), isEmpty);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'week keeps a conversation visible inside Flexk and both entries reachable',
+    (t) async {
+      final c = await controller();
+      await c.saveClassroom(
+        lesson(
+          date: '2026-11-02',
+        ).patch({'title': 'Flexk', 'start': '07:45', 'end': '11:30'}),
+      );
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Gespräch',
+          appointmentDate: '2026-11-02',
+          appointmentTime: '09:00',
+        ),
+      );
+      final key = await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      expect(find.text('Flexk'), findsOneWidget);
+      expect(find.text('Gespräch'), findsOneWidget);
+      await capture(t, key, 'calendar-week-overlap');
+      await tap(
+        t,
+        find
+            .ancestor(of: find.text('Gespräch'), matching: find.byType(InkWell))
+            .last,
+      );
+      expect(find.text('2 Einträge'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Flexk'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Gespräch'), findsOneWidget);
+      await tap(t, find.widgetWithText(ListTile, 'Flexk'));
+      expect(find.text('Nur diesen Termin bearbeiten'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },

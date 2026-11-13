@@ -1,3 +1,4 @@
+import 'material_tags.dart';
 import 'classroom.dart';
 import 'models.dart';
 
@@ -30,13 +31,23 @@ class DocumentLink {
       date: j['date'] as String? ?? '',
       taskId: j['taskId'] as String? ?? '',
     );
-    if (!{'orga', 'school', 'classroom', 'lesson'}.contains(link.kind) ||
+    if (!{
+          'orga',
+          'school',
+          'orgaDraft',
+          'schoolDraft',
+          'bulkDraft',
+          'classroomDraft',
+          'classroom',
+          'lesson',
+        }.contains(link.kind) ||
         link.id.isEmpty ||
         link.id.length > 250 ||
         (link.kind == 'lesson'
             ? !validDate(link.date)
             : link.date.isNotEmpty) ||
-        (link.taskId.isNotEmpty && link.kind != 'school') ||
+        (link.taskId.isNotEmpty &&
+            !{'school', 'schoolDraft', 'bulkDraft'}.contains(link.kind)) ||
         link.taskId.length > 250 ||
         j.keys.any((k) => !{'kind', 'id', 'date', 'taskId'}.contains(k))) {
       throw const DomainError('Ungültige Dokumentzuordnung.');
@@ -49,7 +60,7 @@ class DocumentLink {
   bool includes(DocumentLink other, {bool includeTasks = true}) =>
       identity == other.identity ||
       includeTasks &&
-          kind == 'school' &&
+          {'school', 'schoolDraft', 'bulkDraft'}.contains(kind) &&
           taskId.isEmpty &&
           other.kind == kind &&
           other.id == id;
@@ -182,6 +193,18 @@ void validateScanData(Json j) {
       )) {
     throw const DomainError('Ungültiger Scanentwurf.');
   }
+  final undo = j['filterUndo'] ?? const {};
+  if (undo is! Map || undo.length > scanPageLimit) {
+    throw const DomainError('Ungültiger Filterverlauf.');
+  }
+  for (final e in undo.entries) {
+    if (e.key is! String ||
+        !RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(e.key as String) ||
+        e.value is! Map) {
+      throw const DomainError('Ungültiger Filterverlauf.');
+    }
+    ScanPage.fromJson(Json.from(e.value as Map));
+  }
   final pages = (j['pages'] as List)
       .map((p) => ScanPage.fromJson(Json.from(p as Map)))
       .toList();
@@ -200,14 +223,7 @@ void validateScanData(Json j) {
   }
 }
 
-List<String> scanTags(String text) {
-  final values = <String, String>{};
-  for (var tag in text.split(',')) {
-    tag = tag.trim().replaceFirst(RegExp(r'^#+'), '');
-    if (tag.isNotEmpty) values.putIfAbsent(tag.toLowerCase(), () => tag);
-  }
-  return values.values.toList();
-}
+List<String> scanTags(String text) => normalizeMaterialTags(text.split(','));
 
 String scanFilename(String title, {String extension = 'pdf'}) {
   var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');

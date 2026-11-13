@@ -1,3 +1,6 @@
+import 'share_documents.dart';
+import 'material_tags.dart';
+import '../domain/material_tags.dart';
 import 'collapsible_search.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -28,7 +31,8 @@ class ScannerLibrary extends StatefulWidget {
 
 class _ScannerLibraryState extends State<ScannerLibrary>
     with AutomaticKeepAliveClientMixin {
-  String query = '', format = 'all', sort = 'recent', tag = '';
+  String query = '', format = 'all', sort = 'recent';
+  final tagFilter = <String>{};
   bool trash = false,
       draftsOnly = false,
       grid = true,
@@ -81,42 +85,18 @@ class _ScannerLibraryState extends State<ScannerLibrary>
   }
 
   Future<void> tagFiles(List<ClassroomDocument> documents) async {
-    final text = TextEditingController();
-    final tags = await showDialog<List<String>>(
-      context: context,
-      builder: (ctx) => FlexModal(
-        title: Text('${documents.length} Dateien taggen'),
-        content: TextField(
-          controller: text,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Tags hinzufügen',
-            hintText: 'Mit Komma trennen',
-          ),
-        ),
-        onClose: () => Navigator.pop(ctx),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, scanTags(text.text)),
-            child: const Text('Hinzufügen'),
-          ),
-        ],
-      ),
+    final choice = await chooseMaterialTags(
+      context,
+      c,
+      count: documents.length,
     );
-    // The closing route still owns the field during its reverse animation.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    text.dispose();
-    if (!mounted || tags == null || tags.isEmpty) return;
+    if (!mounted || choice == null) return;
     setState(() => busy = true);
     await guarded(context, () async {
       await c.saveClassroomBatch([
         for (final d in documents)
           d.patch({
-            'tags': {...d.strings('tags'), ...tags}.toList(),
+            'tags': changeMaterialTags(d.strings('tags'), choice.$2, choice.$1),
           }),
       ]);
       if (mounted) setState(resetSelection);
@@ -127,6 +107,14 @@ class _ScannerLibraryState extends State<ScannerLibrary>
   Widget fileActions(ClassroomDocument d) => Wrap(
     alignment: WrapAlignment.end,
     children: [
+      if (!trash)
+        IconButton(
+          tooltip: 'Teilen',
+          onPressed: busy
+              ? null
+              : () => guarded(context, () => shareMaterials(context, [d])),
+          icon: const Icon(Icons.ios_share, size: 20),
+        ),
       if (!trash)
         IconButton(
           tooltip: 'Datei bearbeiten',
@@ -245,6 +233,9 @@ class _ScannerLibraryState extends State<ScannerLibrary>
         final tags = {
           for (final d in all.where((d) => d.deleted == trash))
             ...d.strings('tags'),
+          if (draftsOnly)
+            for (final d in c.dialogDrafts.where((d) => d.type == 'scan'))
+              ...List<String>.from(d.data['tags'] as List? ?? []),
         }.toList()..sort();
         final documents =
             all
@@ -252,7 +243,7 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                   (d) =>
                       d.deleted == trash &&
                       (format == 'all' || d.text('extension') == format) &&
-                      (tag.isEmpty || d.strings('tags').contains(tag)) &&
+                      matchesMaterialTags(d.strings('tags'), tagFilter) &&
                       materialMatches(d, query, pupils: c.pupils),
                 )
                 .toList()
@@ -266,6 +257,10 @@ class _ScannerLibraryState extends State<ScannerLibrary>
             .where(
               (d) =>
                   d.type == 'scan' &&
+                  matchesMaterialTags(
+                    List<String>.from(d.data['tags'] as List? ?? []),
+                    tagFilter,
+                  ) &&
                   '${d.data['title']} ${(d.data['tags'] as List? ?? []).join(' ')}'
                       .toLowerCase()
                       .contains(query.toLowerCase()),
@@ -292,7 +287,7 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                       : documents.length;
                   return ListView.builder(
                     key: const PageStorageKey('scanner-library'),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                     itemCount: 1 + (count == 0 ? 1 : count),
                     itemBuilder: (_, index) {
                       if (index == 0) {
@@ -318,6 +313,13 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                                 style: Theme.of(ctx).textTheme.headlineSmall,
                               ),
                               actions: [
+                                IconButton(
+                                  tooltip: 'Tags verwalten',
+                                  onPressed: busy
+                                      ? null
+                                      : () => showMaterialTagManager(ctx, c),
+                                  icon: const Icon(Icons.sell_outlined),
+                                ),
                                 if (!draftsOnly)
                                   IconButton(
                                     tooltip: selecting
@@ -381,7 +383,7 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                                   onSelected: (v) => setState(() {
                                     trash = v;
                                     draftsOnly = false;
-                                    tag = '';
+                                    tagFilter.clear();
                                     resetSelection();
                                   }),
                                 ),
@@ -441,48 +443,44 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                                   ),
                                 ],
                               ),
-                              if (tags.isNotEmpty || tag.isNotEmpty)
-                                SizedBox(
-                                  height:
-                                      36 +
-                                      MediaQuery.textScalerOf(ctx).scale(14),
-                                  child: ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    children: [
+                            ],
+                            if (tags.isNotEmpty || tagFilter.isNotEmpty)
+                              SizedBox(
+                                height:
+                                    36 + MediaQuery.textScalerOf(ctx).scale(14),
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: ChoiceChip(
+                                        label: const Text('Alle Tags'),
+                                        selected: tagFilter.isEmpty,
+                                        onSelected: (_) => setState(() {
+                                          tagFilter.clear();
+                                          resetSelection();
+                                        }),
+                                      ),
+                                    ),
+                                    for (final t in {...tags, ...tagFilter})
                                       Padding(
                                         padding: const EdgeInsets.only(
                                           right: 6,
                                         ),
                                         child: ChoiceChip(
-                                          label: const Text('Alle Tags'),
-                                          selected: tag.isEmpty,
+                                          label: Text(t),
+                                          selected: tagFilter.contains(t),
                                           onSelected: (_) => setState(() {
-                                            tag = '';
+                                            if (!tagFilter.add(t)) {
+                                              tagFilter.remove(t);
+                                            }
                                             resetSelection();
                                           }),
                                         ),
                                       ),
-                                      for (final t in {
-                                        ...tags,
-                                        if (tag.isNotEmpty) tag,
-                                      })
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 6,
-                                          ),
-                                          child: ChoiceChip(
-                                            label: Text(t),
-                                            selected: tag == t,
-                                            onSelected: (_) => setState(() {
-                                              tag = t;
-                                              resetSelection();
-                                            }),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
-                            ],
+                              ),
                             if (busy) const LinearProgressIndicator(),
                             const SizedBox(height: 8),
                           ],
@@ -604,6 +602,17 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                               : 'Alle auswählen',
                         ),
                       ),
+                      if (!trash)
+                        TextButton.icon(
+                          onPressed: busy || chosen.isEmpty
+                              ? null
+                              : () => guarded(
+                                  ctx,
+                                  () => shareMaterials(ctx, chosen),
+                                ),
+                          icon: const Icon(Icons.ios_share),
+                          label: const Text('Teilen'),
+                        ),
                       if (!trash)
                         TextButton.icon(
                           onPressed: busy || chosen.isEmpty

@@ -48,10 +48,11 @@ class NotebookController extends ChangeNotifier {
   }
 
   Future<void> reload() async {
+    if (_disposed) return;
     final generation = ++_loadGeneration;
     final appearanceGeneration = _appearanceGeneration;
     final next = await repository.snapshot();
-    if (generation != _loadGeneration) return;
+    if (_disposed || generation != _loadGeneration) return;
     pupils = next.pupils;
     entries = next.entries.where((e) => !e.deleted).toList();
     trashedEntries = next.entries.where((e) => e.deleted).toList();
@@ -176,10 +177,17 @@ class NotebookController extends ChangeNotifier {
   }
 
   String owner(OrgaEntry e) {
-    if (e.pupilId == null) return 'Klasse';
+    if (e.pupilId == null) {
+      return e.otherParticipants.trim().isEmpty
+          ? 'Klasse'
+          : e.otherParticipants.trim();
+    }
     final matching = pupils.where((p) => p.id == e.pupilId);
     if (matching.isEmpty) return 'Unbekannte Zuordnung';
-    return '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}';
+    return [
+      '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}',
+      if (e.otherParticipants.trim().isNotEmpty) e.otherParticipants.trim(),
+    ].join(' · ');
   }
 
   List<OrgaEntry> upcoming(Iterable<OrgaEntry> values) =>

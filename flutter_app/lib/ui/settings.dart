@@ -207,6 +207,32 @@ class _SettingsPageState extends State<SettingsPage>
           ),
         ),
       ),
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Kalender · Standardansicht',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              OptionBar(
+                options: const {
+                  'day': 'Tag',
+                  'week': 'Woche',
+                  'month': 'Monat',
+                },
+                value: c.appearance.calendarDefaultView,
+                keyPrefix: 'calendar-default',
+                onChanged: (value) =>
+                    c.previewAppearance({'calendarDefaultView': value}),
+              ),
+            ],
+          ),
+        ),
+      ),
       const SizedBox(height: 18),
       Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
       Align(
@@ -399,7 +425,7 @@ class _SettingsPageState extends State<SettingsPage>
           style: TextButton.styleFrom(
             minimumSize: const Size(0, 42),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(24),
             ),
             textStyle: const TextStyle(
               fontFamily: 'FlexSans',
@@ -430,15 +456,7 @@ class _SettingsPageState extends State<SettingsPage>
       child: LayoutBuilder(
         builder: (context, constraints) => Container(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).extension<FlexSurfaces>()?.palette?.workspace,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(15),
-          ),
+          decoration: FlexDesign.capsule(context),
           child:
               tabCount > 2 &&
                   constraints.maxWidth < 500 &&
@@ -466,7 +484,7 @@ class _SettingsPageState extends State<SettingsPage>
         key: const PageStorageKey('settings'),
         padding: EdgeInsets.all(
           MediaQuery.sizeOf(context).width < 600 ? 14 : 24,
-        ),
+        ).copyWith(bottom: 96),
         children: [
           Text(
             widget.dataOnly ? 'Daten' : 'Einstellungen',

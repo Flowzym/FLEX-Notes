@@ -7,6 +7,8 @@ class BackupCodec {
   static const maxPlainBytes = 20000000,
       maxEnvelopeBytes = 28000000,
       iterations = 310000;
+  static const maxCompletePlainBytes = 160000000,
+      maxCompleteEnvelopeBytes = 220000000;
   static final _cipher = AesGcm.with256bits();
   static final _kdf = Pbkdf2(
     macAlgorithm: Hmac.sha256(),
@@ -22,7 +24,8 @@ class BackupCodec {
       _kdf.deriveKey(secretKey: SecretKey(utf8.encode(password)), nonce: salt);
   static bool isEncrypted(String text) {
     final value = jsonDecode(text);
-    return value is Map && value['format'] == 'FLEX-Encrypted';
+    return value is Map &&
+        {'FLEX-Encrypted', 'FLEX-Complete-Encrypted'}.contains(value['format']);
   }
 
   static Future<String> encrypt(String text, String password) async {
@@ -31,11 +34,16 @@ class BackupCodec {
         'Bitte mindestens 12 Zeichen als Sicherungspasswort verwenden.',
       );
     }
+    final decoded = jsonDecode(text);
+    final complete =
+        decoded is Map && decoded['format'] == 'FLEX-Complete-Backup';
     final data = utf8.encode(text);
-    if (data.length > maxPlainBytes) {
-      throw const DomainError('Die Sicherung überschreitet 20 MB.');
+    if (data.length > (complete ? maxCompletePlainBytes : maxPlainBytes)) {
+      throw DomainError(
+        'Die Sicherung überschreitet ${complete ? 160 : 20} MB.',
+      );
     }
-    if (jsonDecode(text) is! Map) {
+    if (decoded is! Map) {
       throw const DomainError('Die Sicherung ist kein JSON-Objekt.');
     }
     final salt = _random(16), nonce = _random(12);
@@ -43,10 +51,12 @@ class BackupCodec {
       data,
       secretKey: await _key(password, salt),
       nonce: nonce,
-      aad: utf8.encode('FLEX-Encrypted-1'),
+      aad: utf8.encode(
+        complete ? 'FLEX-Complete-Encrypted-1' : 'FLEX-Encrypted-1',
+      ),
     );
     return jsonEncode({
-      'format': 'FLEX-Encrypted',
+      'format': complete ? 'FLEX-Complete-Encrypted' : 'FLEX-Encrypted',
       'version': 1,
       'kdf': 'PBKDF2-SHA256',
       'iterations': iterations,
@@ -57,12 +67,13 @@ class BackupCodec {
   }
 
   static Future<String> decrypt(String text, String password) async {
-    if (utf8.encode(text).length > maxEnvelopeBytes) {
-      throw const DomainError('Die Sicherungsdatei überschreitet 28 MB.');
+    if (utf8.encode(text).length > maxCompleteEnvelopeBytes) {
+      throw const DomainError('Die Sicherungsdatei überschreitet 220 MB.');
     }
     try {
       final value = jsonDecode(text) as Map<String, dynamic>;
-      if (value['format'] != 'FLEX-Encrypted' ||
+      final complete = value['format'] == 'FLEX-Complete-Encrypted';
+      if (!complete && value['format'] != 'FLEX-Encrypted' ||
           value['version'] != 1 ||
           value['kdf'] != 'PBKDF2-SHA256' ||
           value['iterations'] != iterations) {
@@ -74,7 +85,8 @@ class BackupCodec {
       if (salt.length != 16 ||
           nonce.length != 12 ||
           bytes.length < 16 ||
-          bytes.length > maxPlainBytes + 16) {
+          bytes.length >
+              (complete ? maxCompletePlainBytes : maxPlainBytes) + 16) {
         throw const DomainError('Ungültige Sicherungsdaten.');
       }
       final box = SecretBox(
@@ -85,7 +97,9 @@ class BackupCodec {
       final plain = await _cipher.decrypt(
         box,
         secretKey: await _key(password, salt),
-        aad: utf8.encode('FLEX-Encrypted-1'),
+        aad: utf8.encode(
+          complete ? 'FLEX-Complete-Encrypted-1' : 'FLEX-Encrypted-1',
+        ),
       );
       final decoded = utf8.decode(plain);
       if (jsonDecode(decoded) is! Map) {

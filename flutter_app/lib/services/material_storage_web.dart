@@ -41,7 +41,7 @@ class _BrowserMaterials implements MaterialFiles {
     final value = results[1];
     if (value is! Uint8List) {
       throw const DomainError(
-        'Die lokale Datei fehlt. Bitte die Materialsicherung wiederherstellen.',
+        'Die lokale Datei fehlt. Bitte die vollständige Sicherung wiederherstellen.',
       );
     }
     return value;

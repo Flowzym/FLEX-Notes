@@ -39,7 +39,7 @@ class DocumentAttachmentsButton extends StatelessWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              TextButton.icon(
+              OutlinedButton.icon(
                 onPressed: () => scanAndShow(ctx, controller, scope),
                 icon: const Icon(Icons.document_scanner_outlined),
                 label: const Text('Scannen / Foto'),
@@ -95,7 +95,7 @@ class DocumentAttachmentsButton extends StatelessWidget {
 }
 
 /// A direct capture action and visible files at the point where they belong.
-/// Editors can persist their draft (or save a new owner) before opening capture.
+/// Editors persist a draft before opening capture; publishing remains explicit.
 class DocumentAttachmentSection extends StatelessWidget {
   const DocumentAttachmentSection({
     super.key,
@@ -103,7 +103,7 @@ class DocumentAttachmentSection extends StatelessWidget {
     required this.scope,
     this.onScan,
     this.onDocuments,
-    this.saveFirst = false,
+    this.additionalScopes = const [],
     this.readOnly = false,
     this.compact = false,
     this.showActions = true,
@@ -114,7 +114,8 @@ class DocumentAttachmentSection extends StatelessWidget {
   final NotebookController controller;
   final ScanContext scope;
   final VoidCallback? onScan, onDocuments;
-  final bool saveFirst, readOnly;
+  final List<ScanContext> additionalScopes;
+  final bool readOnly;
   final bool compact, showActions, showFiles;
 
   /// Always-visible record actions sharing the attachment toolbar.
@@ -124,8 +125,15 @@ class DocumentAttachmentSection extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
     builder: (ctx, _) {
-      final docs = controller.classroom.where(scope.matchesMaterial).toList()
-        ..sort((a, b) => a.title.compareTo(b.title));
+      final docs =
+          controller.classroom
+              .where(
+                (d) =>
+                    scope.matchesMaterial(d) ||
+                    additionalScopes.any((s) => s.matchesMaterial(d)),
+              )
+              .toList()
+            ..sort((a, b) => a.title.compareTo(b.title));
       final drafts = controller.dialogDrafts.where(scope.matchesDraft).length;
       return Column(
         crossAxisAlignment: compact && !showFiles
@@ -146,18 +154,15 @@ class DocumentAttachmentSection extends StatelessWidget {
                     children: [
                       IconButton(
                         key: const ValueKey('attachment-scan'),
-                        tooltip: saveFirst
-                            ? 'Speichern & scannen'
-                            : 'Scannen / Foto',
+                        tooltip: 'Scannen / Foto',
                         onPressed:
                             onScan ?? () => scanAndShow(ctx, controller, scope),
                         icon: const Icon(Icons.document_scanner_outlined),
                       ),
                       IconButton(
                         key: const ValueKey('attachment-documents'),
-                        tooltip: saveFirst
-                            ? 'Speichern & Dokumente'
-                            : 'Dokumente · ${docs.length}${drafts == 0 ? '' : ' · $drafts Entwürfe'}',
+                        tooltip:
+                            'Dateien · ${docs.length}${drafts == 0 ? '' : ' · $drafts Entwürfe'}',
                         onPressed:
                             onDocuments ??
                             () => showContextDocuments(ctx, controller, scope),
@@ -170,25 +175,21 @@ class DocumentAttachmentSection extends StatelessWidget {
                     ],
                   )
                 else if (!readOnly) ...[
-                  TextButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('attachment-scan'),
                     onPressed:
                         onScan ?? () => scanAndShow(ctx, controller, scope),
                     icon: const Icon(Icons.document_scanner_outlined, size: 20),
-                    label: Text(
-                      saveFirst ? 'Speichern & scannen' : 'Scannen / Foto',
-                    ),
+                    label: const Text('Scannen / Foto'),
                   ),
-                  TextButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('attachment-documents'),
                     onPressed:
                         onDocuments ??
                         () => showContextDocuments(ctx, controller, scope),
                     icon: const Icon(Icons.attach_file, size: 20),
                     label: Text(
-                      saveFirst
-                          ? 'Speichern & Dokumente'
-                          : 'Dokumente${docs.isEmpty ? '' : ' · ${docs.length}'}${drafts == 0 ? '' : ' · $drafts Entw.'}',
+                      'Dateien${docs.isEmpty ? '' : ' · ${docs.length}'}${drafts == 0 ? '' : ' · $drafts Entw.'}',
                     ),
                   ),
                 ],
@@ -238,16 +239,25 @@ Future<void> scanAndShow(
 Future<void> showContextDocuments(
   BuildContext context,
   NotebookController c,
-  ScanContext scope,
-) => showFlexDetail<void>(
+  ScanContext scope, {
+  List<ScanContext> additionalScopes = const [],
+}) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
     builder: (ctx, _) {
-      final docs = c.classroom.where(scope.matchesMaterial).toList()
-        ..sort(
-          (a, b) => b.text('updatedAtUtc').compareTo(a.text('updatedAtUtc')),
-        );
+      final docs =
+          c.classroom
+              .where(
+                (d) =>
+                    scope.matchesMaterial(d) ||
+                    additionalScopes.any((s) => s.matchesMaterial(d)),
+              )
+              .toList()
+            ..sort(
+              (a, b) =>
+                  b.text('updatedAtUtc').compareTo(a.text('updatedAtUtc')),
+            );
       final drafts = c.dialogDrafts.where(scope.matchesDraft).toList();
       return FlexModal(
         maxWidth: 800,
@@ -375,4 +385,46 @@ ScanContext schoolScanContext(
   category: records.isNotEmpty && records.first.kind == SchoolKind.homework
       ? 'pupilWork'
       : 'other',
+);
+
+// Draft links carry the assignment until publication. Direct pupil assignment
+// is added atomically from the final recipients, so changing a HÜ group cannot
+// leave a scan assigned to a pupil who was deselected before publication.
+ScanContext schoolDraftScanContext(
+  NotebookController c,
+  String draftId,
+  SchoolRecord r, {
+  String? taskId,
+  bool includeTasks = false,
+}) {
+  final original = schoolScanContext(c, [r], taskIds: {r.id: ?taskId});
+  return ScanContext(
+    links: [DocumentLink('schoolDraft', draftId, taskId: taskId ?? '')],
+    title: original.title,
+    category: original.category,
+    subject: original.subject,
+    includeTasks: includeTasks,
+  );
+}
+
+ScanContext orgaDraftScanContext(
+  NotebookController c,
+  String draftId,
+  OrgaEntry e,
+) => ScanContext(
+  links: [DocumentLink('orgaDraft', draftId)],
+  title: '${c.owner(e)} · Orga',
+  category: e.isAppointment ? 'protocol' : 'form',
+);
+
+ScanContext bulkDraftScanContext(String id, {String? taskId}) => ScanContext(
+  links: [DocumentLink('bulkDraft', id, taskId: taskId ?? '')],
+  includeTasks: taskId == null,
+  title: 'Gruppeneintrag',
+);
+
+ScanContext classroomDraftScanContext(DialogDraft draft) => ScanContext(
+  links: [DocumentLink('classroomDraft', draft.id)],
+  title: draft.data['title'] as String? ?? '',
+  category: draft.data['kind'] == 'returnList' ? 'form' : 'other',
 );

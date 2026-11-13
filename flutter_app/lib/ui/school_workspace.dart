@@ -1,3 +1,4 @@
+import 'work_assignment_sources.dart';
 import 'detail_flow.dart';
 import 'document_attachments.dart';
 import 'collapsible_search.dart';
@@ -5,6 +6,7 @@ import '../domain/document_scanner.dart';
 import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
 import 'homework_record_view.dart';
+import 'homework_reassign.dart';
 import 'pupil_history.dart';
 import 'reminder_actions.dart';
 import 'draft_buffer.dart';
@@ -27,7 +29,6 @@ Future<void> editSchool(
   String mode = 'entry',
   String? taskId,
   String? feedbackId,
-  bool focusDelivery = false,
 }) async {
   await showFlexDetail<void>(
     context: context,
@@ -39,7 +40,6 @@ Future<void> editSchool(
       mode: mode,
       taskId: taskId,
       feedbackId: feedbackId,
-      focusDelivery: focusDelivery,
     ),
   );
   await c.reload();
@@ -255,8 +255,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   SchoolRecord? retryValue;
   SchoolRecord get r => widget.record;
   NotebookController get c => widget.controller;
-  Future<void> mutate(SchoolRecord value) async {
-    if (busy) return;
+  Future<bool> mutate(SchoolRecord value) async {
+    if (busy) return false;
     setState(() {
       busy = true;
       saveError = null;
@@ -273,10 +273,17 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
       }
     }
     if (mounted) setState(() => busy = false);
+    return retryValue == null;
   }
 
   Future<void> setTask(HomeworkTask task, TaskState state) async {
-    if (busy || r.taskState(task) == state) return;
+    if (busy) return;
+    if (r.taskState(task) == state) {
+      if (state == TaskState.missing) {
+        await suggestHomeworkReassignment(context, c, r, task.id);
+      }
+      return;
+    }
     final now = DateTime.now();
     final f = SchoolFeedback(
       id: newId(),
@@ -312,11 +319,17 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
       );
       return;
     }
-    await mutate(
+    final saved = await mutate(
       r.patch({
         'feedback': [...r.feedback.map((f) => f.toJson()), f.toJson()],
       }),
     );
+    if (saved && mounted && state == TaskState.missing) {
+      final current = c.records.where((v) => v.id == r.id).firstOrNull;
+      if (current != null) {
+        await suggestHomeworkReassignment(context, c, current, task.id);
+      }
+    }
   }
 
   Widget homeworkView(BuildContext context) => HomeworkRecordView(
@@ -328,8 +341,6 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
     onEdit: () => editSchool(context, c, r),
     onTaskState: setTask,
-    onDelivery: () =>
-        editSchool(context, c, r, mode: 'comment', focusDelivery: true),
     onComment: (taskId) =>
         editSchool(context, c, r, mode: 'comment', taskId: taskId),
     onReminder: () => showReminderActions(
@@ -587,6 +598,12 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               },
             ),
             ...[
+              if (r.kind == SchoolKind.work && r.assignmentSources.isNotEmpty)
+                WorkAssignmentSources(
+                  controller: c,
+                  date: r.observedOn,
+                  values: r.assignmentSources,
+                ),
               if (r.body.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -895,6 +912,8 @@ Future<void> showBrief(
               label: 'Orga',
               text: [
                 e.body.isEmpty ? e.title : e.body,
+                if (names && e.otherParticipants.isNotEmpty)
+                  'Weitere Namen: ${e.otherParticipants}',
                 if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
                 if (e.dueDate != null) 'Fällig am: ${displayDate(e.dueDate)}',
                 if (e.appointmentDate != null)
@@ -1049,10 +1068,10 @@ Future<void> showBrief(
                       final bytes = await briefPdf(
                         text: preview,
                         regularFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Regular.ttf',
+                          'assets/fonts/Inter-Regular.ttf',
                         ),
                         boldFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Bold.ttf',
+                          'assets/fonts/Inter-Bold.ttf',
                         ),
                       );
                       await saveBytesFile(

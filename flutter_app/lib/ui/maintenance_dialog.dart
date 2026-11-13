@@ -1,9 +1,18 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../security/backup_codec.dart';
+import '../services/complete_backup.dart';
+import '../services/material_storage.dart';
+import 'backup_dialog.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
 import 'flex_modal.dart';
+
+Future<String> _protectMaintenanceBackup(Map<String, String> args) =>
+    BackupCodec.encrypt(args['text']!, args['password']!);
 
 class MaintenanceDialog extends StatefulWidget {
   const MaintenanceDialog({
@@ -63,16 +72,27 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
             onPressed: busy
                 ? null
                 : () => action(() async {
-                    final captured = await widget.controller.repository
-                        .exportBackup();
+                    final password = await backupPassword(
+                      context,
+                      opening: false,
+                    );
+                    if (password == null) return;
+                    final captured = await CompleteBackup.capture(
+                      widget.controller.repository,
+                      const LocalMaterialFiles(),
+                    );
+                    final encrypted = await compute(_protectMaintenanceBackup, {
+                      'text': captured,
+                      'password': password,
+                    });
                     if (await saveTextFile(
                       'FLEX-Vollstaendige-Sicherung-${dateOnly(DateTime.now())}.json',
-                      captured,
+                      encrypted,
                       mime: 'application/json',
                     )) {
                       if (mounted) {
                         setState(() {
-                          backup = captured;
+                          backup = jsonEncode(jsonDecode(captured)['notebook']);
                           confirmed = false;
                         });
                       }

@@ -7,6 +7,7 @@ import 'package:archive/archive.dart' show ZipDecoder;
 import 'package:flex_device/flex_device.dart';
 import '../domain/classroom.dart';
 import '../domain/models.dart';
+import '../domain/material_versions.dart';
 
 abstract interface class MaterialFiles {
   Future<void> write(String key, Uint8List bytes);
@@ -76,8 +77,8 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   }
 }
 
-/// A separate encrypted bundle keeps binary materials out of the 20-MB notebook
-/// backup. Bounded JSON/base64 avoids ZIP path traversal and decompression bombs.
+/// Optional exchange package for selected materials. The complete notebook
+/// backup includes all referenced binaries through CompleteBackup.
 class MaterialBundle {
   static const maxPlain = 60000000, maxFileTotal = 40000000;
   static final cipher = AesGcm.with256bits();
@@ -182,17 +183,24 @@ class MaterialBundle {
                 entry.value['sha256']) {
           throw const FormatException();
         }
-        final matching = docs.where((d) => d.text('localKey') == key).toList();
+        final matching = docs
+            .where((d) => materialFileKeys(d.toJson()).contains(key))
+            .toList();
         if (matching.isEmpty) throw const FormatException();
         for (final d in matching) {
-          validateMaterialBytes(data, d.text('extension'));
+          final v = materialVersions(
+            d.toJson(),
+          ).where((v) => v['localKey'] == key).firstOrNull;
+          validateMaterialBytes(
+            data,
+            v?['extension'] as String? ?? d.text('extension'),
+          );
         }
         files[key] = data;
       }
       if (docs.any(
         (d) =>
-            d.text('localKey').isNotEmpty &&
-            !files.containsKey(d.text('localKey')),
+            materialFileKeys(d.toJson()).any((key) => !files.containsKey(key)),
       )) {
         throw const FormatException();
       }

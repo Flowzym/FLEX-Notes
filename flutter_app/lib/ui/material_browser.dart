@@ -55,10 +55,6 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
   @override
   Widget build(BuildContext context) {
     final d = widget.document, theme = Theme.of(context);
-    final stacked =
-        widget.grid ||
-        MediaQuery.sizeOf(context).width < 480 &&
-            MediaQuery.textScalerOf(context).scale(1) > 1.4;
     final names = [
       for (final p in widget.pupils)
         if (d.strings('pupilIds').contains(p.id)) p.name,
@@ -67,6 +63,7 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
       d.text('subject'),
       if (d.text('documentType', 'other') != 'other')
         materialTypes[d.text('documentType')] ?? '',
+      if (names.isNotEmpty) names.join(', '),
     ].where((text) => text.isNotEmpty).join(' · ');
     Widget smallText(String text, {int lines = 1}) => Tooltip(
       message: text,
@@ -92,30 +89,93 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
         const SizedBox(height: 4),
         if (details.isNotEmpty) smallText(details, lines: 2),
         if (d.text('topic').isNotEmpty) smallText(d.text('topic')),
-        if (names.isNotEmpty) smallText(names.join(', ')),
         if (d.strings('tags').isNotEmpty)
           smallText(d.strings('tags').map((tag) => '#$tag').join(' ')),
-        const SizedBox(height: 6),
-        FutureBuilder<bool>(
-          future: available,
-          builder: (_, snapshot) => smallText(
-            [
-              d.text('extension') == 'jpg'
-                  ? 'Foto'
-                  : d.text('extension').toUpperCase(),
-              if (snapshot.connectionState != ConnectionState.done)
-                'Verfügbarkeit prüfen …'
-              else if (snapshot.data == true)
-                'Offline'
-              else if (d.text('url').isNotEmpty)
-                'Online'
-              else
-                'Datei fehlt',
-            ].where((text) => text.isNotEmpty).join(' · '),
-            lines: 2,
-          ),
-        ),
       ],
+    );
+    final availability = FutureBuilder<bool>(
+      future: available,
+      builder: (_, snapshot) => smallText(
+        [
+          d.text('extension') == 'jpg'
+              ? 'Foto'
+              : d.text('extension').toUpperCase(),
+          if (snapshot.connectionState != ConnectionState.done)
+            'Verfügbarkeit prüfen …'
+          else if (snapshot.data == true)
+            'Offline'
+          else if (d.text('url').isNotEmpty)
+            'Online'
+          else
+            'Datei fehlt',
+        ].where((text) => text.isNotEmpty).join(' · '),
+        lines: 2,
+      ),
+    );
+    final actions = IconButtonTheme(
+      data: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size.square(44),
+          maximumSize: const Size.square(44),
+          padding: const EdgeInsets.all(10),
+          iconSize: 22,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+      child: widget.selected != null
+          ? SizedBox.square(
+              dimension: 44,
+              child: Tooltip(
+                message: 'Auswählen',
+                child: Checkbox(
+                  value: widget.selected,
+                  onChanged: (v) => widget.onSelect?.call(v == true),
+                  semanticLabel: 'Material auswählen',
+                ),
+              ),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onFavorite != null)
+                  IconButton(
+                    tooltip: d.flag('favorite')
+                        ? 'Favorit entfernen'
+                        : 'Als Favorit merken',
+                    onPressed: widget.onFavorite,
+                    icon: Icon(
+                      d.flag('favorite') ? Icons.star : Icons.star_border,
+                      color: d.flag('favorite')
+                          ? theme.colorScheme.primary
+                          : null,
+                    ),
+                  ),
+                if (widget.onPrepare != null)
+                  IconButton(
+                    tooltip: widget.prepared
+                        ? 'Von heute entfernen'
+                        : 'Für heute bereitlegen',
+                    onPressed: widget.onPrepare,
+                    isSelected: widget.prepared,
+                    icon: const Icon(Icons.today_outlined),
+                    selectedIcon: Icon(
+                      Icons.event_available,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                IconButton(
+                  tooltip: 'Materialangaben und Aktionen',
+                  onPressed: widget.onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                if (widget.onRestore != null)
+                  IconButton(
+                    tooltip: 'Wiederherstellen',
+                    onPressed: widget.onRestore,
+                    icon: const Icon(Icons.restore),
+                  ),
+              ],
+            ),
     );
     return Material(
       color: theme.colorScheme.surfaceContainer.withValues(alpha: .8),
@@ -128,101 +188,74 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InkWell(
-            onTap: widget.selected == null
-                ? widget.onOpen
-                : () => widget.onSelect?.call(!widget.selected!),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: stacked
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: InkWell(
+        onTap: widget.selected == null
+            ? widget.onOpen
+            : () => widget.onSelect?.call(!widget.selected!),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: LayoutBuilder(
+            builder: (_, constraints) {
+              if (widget.grid) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MaterialThumbnail(
+                      material: d,
+                      files: widget.files,
+                      width: double.infinity,
+                      height: 140,
+                    ),
+                    const SizedBox(height: 8),
+                    description,
+                    const SizedBox(height: 4),
+                    availability,
+                    Align(alignment: Alignment.centerRight, child: actions),
+                  ],
+                );
+              }
+              final wide =
+                  constraints.maxWidth >= 540 &&
+                  MediaQuery.textScalerOf(context).scale(1) <= 1.3;
+              return Row(
+                crossAxisAlignment: wide
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.start,
+                children: [
+                  MaterialThumbnail(
+                    material: d,
+                    files: widget.files,
+                    width: 48,
+                    height: 64,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: MaterialThumbnail(
-                            material: d,
-                            files: widget.files,
-                            width: widget.grid ? double.infinity : 64,
-                            height: widget.grid ? 140 : 82,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
                         description,
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        MaterialThumbnail(
-                          material: d,
-                          files: widget.files,
-                          width: 64,
-                          height: 82,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: description),
+                        const SizedBox(height: 4),
+                        if (wide)
+                          availability
+                        else
+                          Row(
+                            children: [
+                              Expanded(child: availability),
+                              const SizedBox(width: 4),
+                              actions,
+                            ],
+                          ),
                       ],
                     ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-            child: widget.selected != null
-                ? CheckboxListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    visualDensity: VisualDensity.compact,
-                    title: const Text('Auswählen'),
-                    value: widget.selected,
-                    onChanged: (value) => widget.onSelect?.call(value == true),
-                  )
-                : Wrap(
-                    alignment: WrapAlignment.end,
-                    children: [
-                      if (widget.onFavorite != null)
-                        IconButton(
-                          tooltip: d.flag('favorite')
-                              ? 'Favorit entfernen'
-                              : 'Als Favorit merken',
-                          onPressed: widget.onFavorite,
-                          icon: Icon(
-                            d.flag('favorite') ? Icons.star : Icons.star_border,
-                            color: d.flag('favorite')
-                                ? theme.colorScheme.primary
-                                : null,
-                          ),
-                        ),
-                      if (widget.onPrepare != null)
-                        IconButton(
-                          tooltip: widget.prepared
-                              ? 'Von heute entfernen'
-                              : 'Für heute bereitlegen',
-                          onPressed: widget.onPrepare,
-                          isSelected: widget.prepared,
-                          icon: const Icon(Icons.today_outlined),
-                          selectedIcon: Icon(
-                            Icons.event_available,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      IconButton(
-                        tooltip: 'Materialangaben und Aktionen',
-                        onPressed: widget.onEdit,
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                      if (widget.onRestore != null)
-                        IconButton(
-                          tooltip: 'Wiederherstellen',
-                          onPressed: widget.onRestore,
-                          icon: const Icon(Icons.restore),
-                        ),
-                    ],
                   ),
+                  if (wide) ...[const SizedBox(width: 8), actions],
+                ],
+              );
+            },
           ),
-        ],
+        ),
       ),
     );
   }

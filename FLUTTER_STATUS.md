@@ -1,13 +1,20 @@
 # Aktueller Flutter-Stand
 
-Aktive Rekonstruktion: **0.16.0-rebuild.12+32**, Branch `fix/dialog-reference-audit`.
+**Webvorschau 0.24.1+74**, Branch `redesign/cream-olive`.
 
-Android-Testapp: [Installation und Bau](flutter_app/ANDROID-TEST.md),
-[Tastaturkorrektur](audit/ANDROID_TASTATUR_FIX.md). Der UI-Prüfbericht steht unter
-[audit/ORGA_UEBERSICHT_ABGLEICH.md](audit/ORGA_UEBERSICHT_ABGLEICH.md), Startanweisungen unter
-[flutter_app/README.md](flutter_app/README.md).
+Der fortlaufende [Projektstatus](docs/rebuild/STATUS.md) und die
+[Änderungen für Build 74](docs/rebuild/RETURN-ATTACHMENTS-BUILD-74.md) beschreiben den
+aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
 
-Die ursprünglichen Quellen von 0.15.3+19 und 0.16.0+20 fehlen. Die erhaltene
-Web-App bleibt unverändert. Historische Statusberichte sind unter `reference/`
-und in den Originalarchiven erhalten. Keine Browsertests, keine Veröffentlichung
-der Cloud-Umgebung.
+[Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
+[GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
+[Startanweisungen](flutter_app/README.md) ·
+[Android-Bau und Installation](flutter_app/ANDROID-TEST.md).
+
+Die letzte Android-APK ist weiterhin Build 67. Sie aktualisiert die neue **FLEX** aus Build 62–66 mit gleicher Kennung und
+Signatur. Die ältere **FLEX Test** bleibt separat; deren ursprünglicher
+Testschlüssel fehlt weiterhin. [APK](releases/android/build-67/README.md) und
+[Umzug mit Notizbuch- und Materialsicherung](docs/rebuild/ANDROID-UMZUG-62.md).
+Die neue dauerhafte Signatur ist im Build festgeschrieben; der private Schlüssel
+bleibt außerhalb GitHubs. CI baut ausdrücklich unsigniert.
+Historische Rekonstruktionsstände stehen im Projektstatus und unter `reference/`.

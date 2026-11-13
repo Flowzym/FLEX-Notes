@@ -8,12 +8,14 @@ import 'flex_modal.dart';
 import 'draft_buffer.dart';
 import 'backup_dialog.dart';
 import '../security/backup_codec.dart';
+import '../services/complete_backup.dart';
 
 Future<void> showMergeReview(
   BuildContext context,
   NotebookController c,
   String text, {
   bool catalogs = true,
+  CompleteRestore? complete,
 }) async {
   final repository = c.repository as BackupMergeRepository;
   var plan = await repository.prepareBackupMerge(text, catalogs: catalogs);
@@ -35,6 +37,10 @@ Future<void> showMergeReview(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (complete != null)
+                Text(
+                  '${complete.fileCount} geprüfte Dateien werden mit übernommen.',
+                ),
               Text(
                 '${plan.newCount} neu · ${plan.duplicates} identisch · ${plan.conflicts} mit Unterschieden · ${plan.draftCount} Entwürfe in der Sicherung',
               ),
@@ -251,7 +257,13 @@ Future<void> showMergeReview(
                         error = null;
                       });
                       try {
-                        await repository.applyBackupMerge(plan, choices);
+                        Future<void> apply() =>
+                            repository.applyBackupMerge(plan, choices);
+                        if (complete == null) {
+                          await apply();
+                        } else {
+                          await complete.commit(apply);
+                        }
                         await c.reload();
                         if (ctx.mounted) Navigator.pop(ctx);
                       } catch (e) {

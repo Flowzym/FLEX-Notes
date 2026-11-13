@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../domain/calendar.dart';
+import '../domain/classroom.dart' show validClock;
 import '../domain/calendar_layout.dart';
 import '../domain/models.dart';
 import 'flex_modal.dart';
@@ -45,10 +46,23 @@ class CalendarTimeline extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (ctx, constraints) {
       final scale = MediaQuery.textScalerOf(ctx).scale(1).clamp(1.0, 2.5);
-      final pixels = (week ? 1.0 : 1.1) * scale;
       // Keep the existing week overlap boundaries: making short blocks longer
       // would incorrectly pull a following lesson into the same group.
       final minMinutes = week ? 36 : 44;
+      // Fit ordinary teaching days compactly, but retain touch-sized slots when
+      // short appointments are present. Real overlap boundaries stay unchanged.
+      final shortest = items.where(calendarTimed).fold<double>(
+        double.infinity,
+        (shortest, item) {
+          final duration = validClock(item.end)
+              ? clockMinutes(item.end) - clockMinutes(item.time)
+              : 0;
+          return math.min(shortest, math.max(minMinutes, duration).toDouble());
+        },
+      );
+      final pixels =
+          math.max(week ? .80 : .88, (week ? 36.0 : 48.0) / shortest) * scale;
+
       final baseHours = calendarHours(items, minimumMinutes: minMinutes);
       final todayIndex = highlightNow
           ? days.indexWhere((day) => dateOnly(day) == dateOnly(now))
@@ -65,11 +79,15 @@ class CalendarTimeline extends StatelessWidget {
             )
           : baseHours;
       final height = (hours.end - hours.start) * pixels;
-      final axis = scale > 1.5 ? 66.0 : 46.0;
+      final axis = scale > 1.5
+          ? 66.0
+          : week && days.length == 7
+          ? 38.0
+          : 46.0;
       final colWidth = week
           ? math.max(
               (constraints.maxWidth - axis) / days.length,
-              scale > 1.5 ? 108.0 : 58.0,
+              scale > 1.5 ? 108.0 : 0.0,
             )
           : constraints.maxWidth - axis;
       final width = axis + colWidth * days.length;
@@ -79,6 +97,9 @@ class CalendarTimeline extends StatelessWidget {
       );
       final headHeight = week ? 48.0 * scale : 0.0;
       final scheme = Theme.of(ctx).colorScheme;
+      final nowColor = Theme.of(ctx).brightness == Brightness.dark
+          ? const Color(0xffe0a08a)
+          : const Color(0xffb46449);
       final current = highlightNow ? currentCalendarItem(items, now) : null,
           next = highlightNow ? nextCalendarItem(items, now) : null;
       final body = SizedBox(
@@ -86,12 +107,25 @@ class CalendarTimeline extends StatelessWidget {
         height: height + headHeight + 20,
         child: Stack(
           children: [
+            if (week && todayIndex >= 0)
+              Positioned(
+                top: headHeight,
+                bottom: 20,
+                left: axis + todayIndex * colWidth,
+                width: colWidth,
+                child: IgnorePointer(
+                  child: ColoredBox(
+                    color: scheme.primaryContainer.withValues(alpha: .14),
+                  ),
+                ),
+              ),
             for (
               var minute = hours.start;
               minute <= hours.end;
-              minute += 60
+              minute += week ? 60 : 30
             ) ...[
               Positioned(
+                key: ValueKey('calendar-hour-$minute'),
                 top: headHeight + (minute - hours.start) * pixels,
                 left: 0,
                 width: axis - 6,
@@ -204,26 +238,74 @@ class CalendarTimeline extends StatelessWidget {
                             ),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${cluster.length}',
-                                style: Theme.of(ctx).textTheme.labelLarge
-                                    ?.copyWith(fontSize: 12, height: 1.15),
+                        child:
+                            cluster
+                                        .where(
+                                          (p) => p.item.category == 'lesson',
+                                        )
+                                        .length ==
+                                    1 &&
+                                cluster.any(
+                                  (p) => p.item.category == 'appointment',
+                                )
+                            ? Stack(
+                                children: [
+                                  for (final p in [
+                                    ...cluster.where(
+                                      (p) => p.item.category == 'lesson',
+                                    ),
+                                    ...cluster.where(
+                                      (p) => p.item.category != 'lesson',
+                                    ),
+                                  ])
+                                    Positioned(
+                                      key: ValueKey(
+                                        'calendar-overlap-${p.item.id}',
+                                      ),
+                                      top:
+                                          (p.start - cluster.first.start) *
+                                          pixels,
+                                      left: p.item.category == 'lesson' ? 0 : 4,
+                                      right: 0,
+                                      height: (p.finish - p.start) * pixels - 4,
+                                      child: IgnorePointer(
+                                        child: _TimeBlock(
+                                          item: p.item,
+                                          compact: true,
+                                          details: false,
+                                          current: false,
+                                          next: false,
+                                          onTap: () {},
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${cluster.length} Einträge',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(ctx).textTheme.labelSmall,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        cluster
+                                            .map((p) => p.item.title)
+                                            .join(' · '),
+                                        overflow: TextOverflow.fade,
+                                        style: Theme.of(
+                                          ctx,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                'Einträge',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(ctx).textTheme.bodySmall
-                                    ?.copyWith(fontSize: 11, height: 1.15),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   )
@@ -261,14 +343,14 @@ class CalendarTimeline extends StatelessWidget {
                 top: headHeight + (nowMinutes - hours.start) * pixels,
                 left: axis + todayIndex * colWidth,
                 width: colWidth,
-                height: 3,
+                height: 2,
                 child: IgnorePointer(
                   child: Semantics(
                     key: nowMarkerKey,
                     label: 'Jetzt ${minuteClock(nowMinutes)}',
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: scheme.error,
+                        color: nowColor,
                         boxShadow: [
                           BoxShadow(
                             color: scheme.surface,
@@ -289,59 +371,125 @@ class CalendarTimeline extends StatelessWidget {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: scheme.error,
+                      color: nowColor,
                       shape: BoxShape.circle,
                     ),
                   ),
                 ),
               ),
-              if (!week)
-                Positioned(
-                  key: const ValueKey('calendar-now-label'),
-                  top: math.max(
-                    0,
-                    headHeight +
-                        (nowMinutes - hours.start) * pixels -
-                        9 * scale,
-                  ),
-                  left: 0,
-                  width: axis - 6,
-                  child: IgnorePointer(
-                    child: ExcludeSemantics(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        decoration: BoxDecoration(
-                          color: scheme.error,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          minuteClock(nowMinutes),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            height: 1.2,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onError,
-                          ),
+              Positioned(
+                key: const ValueKey('calendar-now-label'),
+                top: math.max(
+                  0,
+                  headHeight + (nowMinutes - hours.start) * pixels - 9 * scale,
+                ),
+                left: 0,
+                width: axis - 6,
+                child: IgnorePointer(
+                  child: ExcludeSemantics(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      decoration: BoxDecoration(
+                        color: nowColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        minuteClock(nowMinutes),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onError,
                         ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           ],
         ),
       );
-      return SingleChildScrollView(
-        key: ValueKey('calendar-time-grid-${week ? 'week' : 'day'}'),
-        scrollDirection: Axis.horizontal,
-        physics: width > constraints.maxWidth + 1
-            ? const ClampingScrollPhysics()
-            : const NeverScrollableScrollPhysics(),
+      return _TimelineViewport(
+        overflow: width > constraints.maxWidth + 1,
+        gridKey: ValueKey('calendar-time-grid-${week ? 'week' : 'day'}'),
         child: body,
       );
     },
   );
+}
+
+/// Large text retains readable columns and provides visible controls to reach
+/// the weekend. At normal phone text size all seven days fit the viewport.
+class _TimelineViewport extends StatefulWidget {
+  const _TimelineViewport({
+    required this.overflow,
+    required this.gridKey,
+    required this.child,
+  });
+  final bool overflow;
+  final Key gridKey;
+  final Widget child;
+  @override
+  State<_TimelineViewport> createState() => _TimelineViewportState();
+}
+
+class _TimelineViewportState extends State<_TimelineViewport> {
+  final scroll = ScrollController();
+  @override
+  void dispose() {
+    scroll.dispose();
+    super.dispose();
+  }
+
+  void move(bool end) => scroll.animateTo(
+    end ? scroll.position.maxScrollExtent : 0,
+    duration: const Duration(milliseconds: 140),
+    curve: Curves.easeOutCubic,
+  );
+  @override
+  Widget build(BuildContext context) {
+    final grid = SingleChildScrollView(
+      key: widget.gridKey,
+      controller: scroll,
+      scrollDirection: Axis.horizontal,
+      physics: widget.overflow
+          ? const ClampingScrollPhysics()
+          : const NeverScrollableScrollPhysics(),
+      child: widget.child,
+    );
+    if (!widget.overflow) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Wochenanfang anzeigen',
+              onPressed: () => move(false),
+              icon: const Icon(Icons.chevron_left),
+            ),
+            const Expanded(
+              child: Text('Weitere Tage', textAlign: TextAlign.center),
+            ),
+            IconButton(
+              tooltip: 'Wochenende anzeigen',
+              onPressed: () => move(true),
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        Scrollbar(
+          controller: scroll,
+          thumbVisibility: true,
+          scrollbarOrientation: ScrollbarOrientation.top,
+          notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
+          child: grid,
+        ),
+      ],
+    );
+  }
 }
 
 class _TimeBlock extends StatelessWidget {
@@ -367,80 +515,87 @@ class _TimeBlock extends StatelessWidget {
       button: true,
       label:
           '${item.title}, $time${current ? ', jetzt' : ''}${next ? ', als Nächstes' : ''}',
-      child: Material(
-        color: Color.alphaBlend(
-          tint.withValues(alpha: current ? .20 : .06),
-          scheme.surface,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(9),
-          side: BorderSide(
-            color: current ? scheme.primary : tint.withValues(alpha: .35),
-            width: current ? 2 : 1,
+      child: Tooltip(
+        message: '${item.title} · $time',
+        child: Material(
+          color: Color.alphaBlend(
+            tint.withValues(alpha: item.category == 'lesson' ? .10 : .24),
+            scheme.surface,
           ),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(9),
-          child: LayoutBuilder(
-            builder: (ctx, box) {
-              final scale = MediaQuery.textScalerOf(ctx).scale(1);
-              final narrow = box.maxWidth < 100;
-              final titleStyle = Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                fontSize: compact && narrow ? 11 : 14,
-                fontWeight: FontWeight.w600,
-                height: 1.15,
-              );
-              return Padding(
-                padding: EdgeInsets.all(
-                  narrow || box.maxHeight < 60 * scale ? 4 : 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!compact &&
-                        box.maxHeight > 90 * scale &&
-                        (current || next))
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+            side: BorderSide(
+              color: tint.withValues(alpha: current ? .6 : .25),
+              width: .8,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(9),
+            child: LayoutBuilder(
+              builder: (ctx, box) {
+                final scale = MediaQuery.textScalerOf(ctx).scale(1);
+                final narrow = box.maxWidth < 100;
+                final titleStyle = Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                  fontSize: compact && narrow ? 11 : 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.15,
+                );
+                final rangeOnTwoLines =
+                    compact &&
+                    narrow &&
+                    item.end.isNotEmpty &&
+                    box.maxHeight >= 36 * scale;
+                return Padding(
+                  padding: EdgeInsets.all(
+                    narrow
+                        ? 2
+                        : box.maxHeight < 60 * scale
+                        ? 4
+                        : 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        current ? 'Jetzt' : 'Als Nächstes',
-                        maxLines: 1,
+                        item.title,
+                        maxLines:
+                            (compact && box.maxHeight > 50 * scale) ||
+                                (!compact && box.maxHeight > 85 * scale)
+                            ? 2
+                            : 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(ctx).textTheme.bodySmall,
+                        style: titleStyle,
                       ),
-                    Text(
-                      item.title,
-                      maxLines:
-                          (compact && box.maxHeight > 50 * scale) ||
-                              (!compact && box.maxHeight > 85 * scale)
-                          ? 2
-                          : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
-                    ),
-                    if (box.maxHeight > (compact && narrow ? 32 : 40) * scale)
-                      Text(
-                        compact && !details ? item.time : time,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                          fontSize: compact && narrow ? 10 : 12,
-                          height: 1.2,
+                      if (box.maxHeight > (compact && narrow ? 25 : 40) * scale)
+                        Text(
+                          rangeOnTwoLines
+                              ? '${item.time}–\n${item.end}'
+                              : compact && narrow
+                              ? item.time
+                              : time,
+                          maxLines: rangeOnTwoLines ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                            fontSize: compact && narrow ? 9 : 12,
+                            height: compact && narrow ? 1.05 : 1.2,
+                          ),
                         ),
-                      ),
-                    if ((!compact || details) &&
-                        !narrow &&
-                        box.maxHeight > 65 * scale &&
-                        item.detail.isNotEmpty)
-                      Text(
-                        item.detail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(ctx).textTheme.bodySmall,
-                      ),
-                  ],
-                ),
-              );
-            },
+                      if ((!compact || details) &&
+                          !narrow &&
+                          box.maxHeight > 65 * scale &&
+                          item.detail.isNotEmpty)
+                        Text(
+                          item.detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(ctx).textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

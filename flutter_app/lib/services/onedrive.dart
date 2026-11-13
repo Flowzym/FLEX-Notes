@@ -29,12 +29,14 @@ class OneDriveClient extends ChangeNotifier {
     DateTime Function()? now,
   }) : store = store ?? DeviceSecretStore(),
        client = client ?? http.Client(),
-       clientId =
+       _clientId =
            clientId ?? const String.fromEnvironment('FLEX_ONEDRIVE_CLIENT_ID'),
        now = now ?? DateTime.now;
   final SecretStore store;
   final http.Client client;
-  final String clientId;
+  String _clientId;
+  String get clientId => _clientId;
+  static const configurationKey = 'flex.onedrive.client.v1';
   final DateTime Function() now;
   static const _key = 'flex.onedrive.tokens.v1';
   static int _sessionEpoch = 0;
@@ -56,12 +58,30 @@ class OneDriveClient extends ChangeNotifier {
   Future<void> load() async {
     final epoch = _sessionEpoch;
     await _writes.catchError((Object _) {});
+    final configuredId = await store.read(configurationKey);
+    if (configuredId != null) _clientId = configuredId;
     final raw = await store.read(_key);
     if (epoch != _sessionEpoch || _disposed) return;
     _tokens = raw == null ? null : Json.from(jsonDecode(raw) as Map);
     if (_tokens?['clientId'] != clientId) _tokens = null;
     _epoch = _sessionEpoch;
     if (!_disposed) notifyListeners();
+  }
+
+  Future<void> configure(String value) async {
+    final id = value.trim();
+    if (!RegExp(
+      r'^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$',
+    ).hasMatch(id)) {
+      throw const DomainError(
+        'Bitte die Anwendungs-/Client-ID aus der Appregistrierung einfügen.',
+      );
+    }
+    if (id == clientId) return;
+    await disconnect();
+    await store.write(configurationKey, id);
+    _clientId = id;
+    await load();
   }
 
   Future<void> disconnect() async {
@@ -100,7 +120,7 @@ class OneDriveClient extends ChangeNotifier {
     final flow = ++_flow;
     if (!configured) {
       throw const DomainError(
-        'Die OneDrive-Anmeldung ist für diese App-Ausgabe noch nicht eingerichtet. Dateien und OneDrive-Links können bereits hinzugefügt werden.',
+        'Bitte die Microsoft-Client-ID in der OneDrive-Einrichtung hinterlegen.',
       );
     }
     final response = await _post('devicecode', {

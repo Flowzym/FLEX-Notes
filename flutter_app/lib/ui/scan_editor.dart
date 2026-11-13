@@ -1,3 +1,6 @@
+import 'scan_batch_filter.dart';
+import 'share_documents.dart';
+import '../services/material_sharing.dart';
 import 'detail_flow.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -13,6 +16,7 @@ import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
 import '../domain/models.dart';
+import '../domain/material_versions.dart';
 import '../services/material_files.dart';
 import '../services/material_storage.dart';
 import '../services/scan_images.dart';
@@ -25,6 +29,9 @@ import 'flex_modal.dart';
 import 'scan_page_editor.dart';
 import 'scan_tools.dart';
 import 'material_thumbnail.dart';
+import 'material_tags.dart';
+
+part 'scan_editor_view.dart';
 
 Future<ClassroomDocument?> showDocumentScanner(
   BuildContext context,
@@ -32,14 +39,39 @@ Future<ClassroomDocument?> showDocumentScanner(
   ScanContext scope = const ScanContext(),
   DialogDraft? draft,
   ClassroomDocument? source,
+  bool importOnOpen = false,
 }) => showFlexDetail<ClassroomDocument>(
   context: context,
   barrierDismissible: false,
-  builder: (_) =>
-      ScanEditor(controller: c, scope: scope, draft: draft, source: source),
+  builder: (_) => ScanEditor(
+    controller: c,
+    scope: scope,
+    draft: draft,
+    source: source,
+    importOnOpen: importOnOpen,
+  ),
 );
 
 String documentLinkLabel(NotebookController c, DocumentLink link) {
+  if (link.kind == 'orgaDraft') {
+    final draft = c.drafts.where((d) => d.id == link.id).firstOrNull;
+    return 'Entwurf · ${draft == null ? 'Orga' : c.owner(draft.entry)} · ${draft?.entry.title ?? ''}';
+  }
+  if (link.kind == 'schoolDraft') {
+    final r = c.schoolDrafts.where((d) => d.id == link.id).firstOrNull?.record;
+    final owner =
+        c.pupils.where((p) => p.id == r?.pupilId).firstOrNull?.name ??
+        'Schüler';
+    final task = r?.tasks.where((t) => t.id == link.taskId).firstOrNull;
+    return 'Entwurf · $owner · ${r?.kind.label ?? 'Eintrag'}${task == null ? '' : ' · ${task.text.isEmpty ? 'Aufgabe' : task.text}'}';
+  }
+  if (link.kind == 'classroomDraft') {
+    final draft = c.dialogDrafts.where((d) => d.id == link.id).firstOrNull;
+    return 'Entwurf · ${draft?.data['title'] ?? 'Rücklauf'}';
+  }
+  if (link.kind == 'bulkDraft') {
+    return 'Entwurf · Gruppeneintrag${link.taskId.isEmpty ? '' : ' · Aufgabe'}';
+  }
   if (link.kind == 'school' && link.taskId.isNotEmpty) {
     final record = c.records.where((r) => r.id == link.id).firstOrNull;
     final task = record?.tasks.where((t) => t.id == link.taskId).firstOrNull;
@@ -142,6 +174,10 @@ Future<List<DocumentLink>?> chooseDocumentLinks(
                 subtitle: Text(switch (l.kind) {
                   'orga' => 'Orga',
                   'school' => 'Schüler',
+                  'orgaDraft' ||
+                  'schoolDraft' ||
+                  'bulkDraft' ||
+                  'classroomDraft' => 'Entwurf',
                   'lesson' => 'Unterrichtsstunde',
                   _ => 'Klasse',
                 }),
@@ -182,8 +218,10 @@ class ScanEditor extends StatefulWidget {
     this.pickFiles,
     this.capturePages,
     this.capturePhoto,
+    this.importOnOpen = false,
   });
   final NotebookController controller;
+  final bool importOnOpen;
   final ScanContext scope;
   final DialogDraft? draft;
   final ClassroomDocument? source;
@@ -200,7 +238,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   late Json data;
   late DraftBuffer buffer;
-  late TextEditingController title, tags;
+  late TextEditingController title;
   bool pageEditorOpen = false, pageGrid = true;
   String? sourceSignature;
   bool loadingSource = false;
@@ -212,6 +250,10 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   String progress = '';
   String? cameraNotice;
   ScanPage? removedPage;
+  Map<String, ScanPage> get filterUndo => {
+    for (final e in (data['filterUndo'] as Map? ?? {}).entries)
+      e.key as String: ScanPage.fromJson(Json.from(e.value as Map)),
+  };
   int removedIndex = 0;
   String scanError(Object e) {
     if (e is PlatformException &&
@@ -263,11 +305,8 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'sourceRevision': source.revision,
       };
     }
-    tags = TextEditingController(
-      text: (data['tags'] as List? ?? []).join(', '),
-    );
     title = TextEditingController(text: data['title'] as String);
-    knownKeys.addAll(pages.map((p) => p.key));
+    knownKeys.addAll(scanFileKeys(data));
     buffer = DraftBuffer(
       c.repository,
       type: 'scan',
@@ -304,6 +343,14 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         });
       });
     }
+    if (widget.importOnOpen &&
+        source == null &&
+        widget.draft == null &&
+        widget.initialImages.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(pick());
+      });
+    }
     if (data['capturePending'] == true && nativeCamera) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         action(recoverPhoto);
@@ -327,12 +374,18 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     buffer.dispose();
     title.dispose();
-    tags.dispose();
     super.dispose();
   }
 
   void change(Json patch) {
     data = {...data, ...patch};
+    if (data['filterUndo'] is Map) {
+      final keys = pages.map((p) => p.key).toSet();
+      data['filterUndo'] = {
+        for (final e in (data['filterUndo'] as Map).entries)
+          if (keys.contains(e.key)) e.key: e.value,
+      };
+    }
     if (!loadingSource) buffer.change(data);
     if (mounted) setState(() {});
   }
@@ -448,13 +501,17 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     // the next flush can safely retry without creating a dangling file reference.
     if (!loadingSource) await buffer.flush();
     if (replaceKey != null) {
-      await removeUnusedScanFiles(c.repository, widget.files, [replaceKey]);
+      await cleanupPages([replaceKey]);
     }
   }
 
-  Future<void> cleanupPages() async {
+  Future<void> cleanupPages([Iterable<String>? keys]) async {
     try {
-      await removeUnusedScanFiles(c.repository, widget.files, knownKeys);
+      await removeUnusedScanFiles(
+        c.repository,
+        widget.files,
+        keys ?? knownKeys,
+      );
     } catch (_) {
       // Cleanup must not turn a successful save into a reported failure.
     }
@@ -728,7 +785,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     );
     change({'pages': next.map((p) => p.toJson()).toList()});
     await buffer.flush();
-    await removeUnusedScanFiles(c.repository, widget.files, [page.key]);
+    await cleanupPages([page.key]);
   });
   Future<void> deletePage(int index) => action(() async {
     final next = pages;
@@ -761,41 +818,21 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   Future<void> filterPages() => action(() async {
     final originals = pages;
     if (originals.isEmpty) return;
-    final first = await widget.files.read(originals.first.key);
-    final bundle = await compute(scanPreviewBundle, first);
-    if (!mounted) return;
-    var selected = 'document';
-    final filter = await showDialog<String>(
+    final choice = await showDialog<(String, Set<String>)>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => FlexModal(
-          title: Text('Filter für ${originals.length} Seiten'),
-          onClose: () => Navigator.pop(ctx),
-          content: ScanFilterStrip(
-            thumbnails: Map<String, Uint8List>.from(
-              bundle['thumbnails'] as Map,
-            ),
-            selected: selected,
-            onSelected: (v) => update(() => selected = v),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, selected),
-              child: const Text('Auf alle anwenden'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => ScanBatchFilter(pages: originals, files: widget.files),
     );
-    if (filter == null || !mounted) return;
+    if (choice == null || !mounted) return;
+    final (filter, selected) = choice;
+    final undo = <String, ScanPage>{};
     // Stage all new pixels before switching the ordered draft references. A
     // failure retains the old pages; failed metadata writes remain retryable.
     final next = <ScanPage>[];
     for (final page in originals) {
+      if (!selected.contains(page.key)) {
+        next.add(page);
+        continue;
+      }
       setState(
         () => progress = 'Seite ${next.length + 1} von ${originals.length} …',
       );
@@ -806,6 +843,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       final key = newId();
       await widget.files.write(key, result['bytes'] as Uint8List);
       knownKeys.add(key);
+      undo[key] = page;
       next.add(
         ScanPage(
           key,
@@ -816,137 +854,49 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         ),
       );
     }
-    change({'pages': next.map((p) => p.toJson()).toList()});
+    change({
+      'pages': next.map((p) => p.toJson()).toList(),
+      'filterUndo': {for (final e in undo.entries) e.key: e.value.toJson()},
+    });
     await buffer.flush();
-    await removeUnusedScanFiles(
-      c.repository,
-      widget.files,
-      originals.map((p) => p.key),
-    );
+    await cleanupPages();
+  });
+  Future<void> undoFilter() => action(() async {
+    change({
+      'pages': [
+        for (final page in pages) (filterUndo[page.key] ?? page).toJson(),
+      ],
+      'filterUndo': <String, dynamic>{},
+    });
+    await buffer.flush();
+    await cleanupPages();
   });
 
-  Widget pageTiles() => LayoutBuilder(
-    builder: (_, box) {
-      final columns = pages.length == 1
-          ? 1
-          : (box.maxWidth /
-                    (MediaQuery.textScalerOf(context).scale(1) > 1.5
-                        ? 220
-                        : 145))
-                .floor()
-                .clamp(1, 4);
-      final width = (box.maxWidth - 10 * (columns - 1)) / columns;
-      return Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          for (final item in pages.indexed)
-            DragTarget<int>(
-              onWillAcceptWithDetails: (d) => !busy && d.data != item.$1,
-              onAcceptWithDetails: (d) => reorderPage(d.data, item.$1),
-              builder: (ctx, candidates, _) => LongPressDraggable<int>(
-                data: item.$1,
-                maxSimultaneousDrags: busy ? 0 : 1,
-                feedback: Material(
-                  elevation: 8,
-                  child: SizedBox(
-                    width: 100,
-                    height: 130,
-                    child: pagePreview(item.$2, item.$1, 100, 130),
-                  ),
+  Future<void> shareCurrent() => action(() async {
+    await buffer.flush();
+    final bytes = [for (final p in pages) await widget.files.read(p.key)];
+    final name = title.text.trim().isEmpty ? 'Scan' : title.text.trim();
+    final documents = photoOutput
+        ? [
+            for (final page in bytes.indexed)
+              SharedDocument(
+                scanFilename(
+                  '$name${bytes.length == 1 ? '' : ' · ${page.$1 + 1}'}',
+                  extension: 'jpg',
                 ),
-                child: SizedBox(
-                  width: width,
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    color: candidates.isEmpty
-                        ? null
-                        : Theme.of(ctx).colorScheme.primaryContainer,
-                    child: Column(
-                      children: [
-                        InkWell(
-                          key: ValueKey('scan-edit-page-${item.$1}'),
-                          onTap: busy ? null : () => editPage(item.$1),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              children: [
-                                pagePreview(
-                                  item.$2,
-                                  item.$1,
-                                  width - 16,
-                                  pages.length == 1
-                                      ? (MediaQuery.sizeOf(context).height *
-                                                .38)
-                                            .clamp(200, 440)
-                                      : 160,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1} · Bearbeiten',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          children: [
-                            IconButton(
-                              tooltip: 'Seite nach vorne',
-                              onPressed: busy || item.$1 == 0
-                                  ? null
-                                  : () => movePage(item.$1, -1),
-                              icon: const Icon(Icons.arrow_back, size: 20),
-                            ),
-                            IconButton(
-                              tooltip: 'Seite nach hinten',
-                              onPressed: busy || item.$1 == pages.length - 1
-                                  ? null
-                                  : () => movePage(item.$1, 1),
-                              icon: const Icon(Icons.arrow_forward, size: 20),
-                            ),
-                            IconButton(
-                              key: ValueKey('scan-replace-page-${item.$1}'),
-                              tooltip: 'Bild ersetzen',
-                              onPressed: busy
-                                  ? null
-                                  : () => replacePage(item.$1),
-                              icon: const Icon(Icons.find_replace, size: 20),
-                            ),
-                            IconButton(
-                              tooltip: 'Seite entfernen',
-                              onPressed: busy
-                                  ? null
-                                  : () => deletePage(item.$1),
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                page.$2,
+                'image/jpeg',
               ),
+          ]
+        : [
+            SharedDocument(
+              scanFilename(name),
+              await compute(scanPdf, bytes),
+              'application/pdf',
             ),
-        ],
-      );
-    },
-  );
-
-  Widget pagePreview(ScanPage page, int index, double width, double height) =>
-      DocumentThumbnailView(
-        identity: 'draft-page:${page.key}',
-        title: '${page.photo ? 'Foto' : 'Seite'} ${index + 1}',
-        fileKey: page.key,
-        extension: 'jpg',
-        files: widget.files,
-        width: width,
-        height: height,
-      );
+          ];
+    if (mounted) await sharePreparedDocuments(context, documents);
+  });
 
   Future<void> save() => action(() async {
     await retainSourceCopy();
@@ -976,418 +926,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     });
   }
 
+  void updateScanView(VoidCallback work) => setState(work);
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: canPop,
-    onPopInvokedWithResult: (didPop, result) {
-      if (!didPop && !busy) close();
-    },
-    child: FlexModal(
-      maxWidth: 900,
-      closeLabel: 'Schließen · Änderungen als Entwurf sichern',
-      title: const Text('Scan & Foto'),
-      onClose: busy ? null : close,
-      headerActions: [
-        if (buffer.hasContent || buffer.draft.revision > 0)
-          IconButton(
-            tooltip: 'Scanentwurf löschen',
-            onPressed: busy ? null : deleteDraft,
-            icon: const Icon(Icons.delete_outline),
-          ),
-      ],
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (busy && !pageEditorOpen) const LinearProgressIndicator(),
-          if (progress.isNotEmpty) Text(progress),
-          if (cameraNotice != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(cameraNotice!),
-            ),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          if (removedPage != null)
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              children: [
-                const Text('Seite entfernt'),
-                TextButton.icon(
-                  key: const ValueKey('scan-undo-remove'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : undoRemoval,
-                  icon: const Icon(Icons.undo),
-                  label: const Text('Rückgängig'),
-                ),
-              ],
-            ),
-          const SizedBox(height: 8),
-          TextField(
-            key: const ValueKey('scan-title'),
-            controller: title,
-            enabled: !busy,
-            maxLength: 200,
-            decoration: InputDecoration(
-              labelText: 'Dateiname',
-              counterText: '',
-              suffixText: photoOutput ? '.jpg' : '.pdf',
-            ),
-            onChanged: (v) => change({'title': v}),
-          ),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final format in const [
-                ('pdf', 'PDF'),
-                ('jpg', 'Fotos (JPG)'),
-              ])
-                ChoiceChip(
-                  key: ValueKey('scan-format-${format.$1}'),
-                  label: Text(format.$2),
-                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
-                  onSelected: busy
-                      ? null
-                      : (_) => change({'outputFormat': format.$1}),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${pages.length} ${pages.length == 1 ? 'Seite' : 'Seiten'}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              if (pages.length > 1)
-                IconButton(
-                  key: const ValueKey('scan-batch-filter'),
-                  tooltip: 'Filter für alle Seiten',
-                  onPressed: busy ? null : filterPages,
-                  icon: const Icon(Icons.auto_fix_high),
-                ),
-              IconButton(
-                tooltip: pageGrid ? 'Seiten als Liste' : 'Seiten als Raster',
-                onPressed: () => setState(() => pageGrid = !pageGrid),
-                icon: Icon(
-                  pageGrid ? Icons.view_list_outlined : Icons.grid_view,
-                ),
-              ),
-            ],
-          ),
-          if (pages.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                children: [
-                  Icon(Icons.document_scanner_outlined, size: 44),
-                  SizedBox(height: 12),
-                  Text(
-                    'Dein Dokument beginnt hier',
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Scannen, fotografieren oder eine Datei importieren.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          if (pageGrid)
-            pageTiles()
-          else
-            ReorderableListView(
-              key: const ValueKey('scan-page-order'),
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              onReorderItem: busy ? (_, _) {} : reorderPage,
-              children: [
-                for (final item in pages.indexed)
-                  Card(
-                    key: ValueKey('scan-row-${item.$2.key}'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              pagePreview(item.$2, item.$1, 88, 120),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${item.$2.photo ? 'Foto' : 'Seite'} ${item.$1 + 1}',
-                                    ),
-                                    Wrap(
-                                      children: [
-                                        ReorderableDragStartListener(
-                                          index: item.$1,
-                                          enabled: !busy,
-                                          child: const Tooltip(
-                                            message: 'Zum Umsortieren ziehen',
-                                            child: Padding(
-                                              padding: EdgeInsets.all(12),
-                                              child: Icon(Icons.drag_handle),
-                                            ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Seite nach vorne',
-                                          onPressed: busy || item.$1 == 0
-                                              ? null
-                                              : () => movePage(item.$1, -1),
-                                          icon: const Icon(Icons.arrow_upward),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Seite nach hinten',
-                                          onPressed:
-                                              busy ||
-                                                  item.$1 == pages.length - 1
-                                              ? null
-                                              : () => movePage(item.$1, 1),
-                                          icon: const Icon(
-                                            Icons.arrow_downward,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          key: ValueKey(
-                                            'scan-replace-page-${item.$1}',
-                                          ),
-                                          tooltip: 'Bild ersetzen',
-                                          onPressed: busy
-                                              ? null
-                                              : () => replacePage(item.$1),
-                                          icon: const Icon(Icons.find_replace),
-                                        ),
-                                        IconButton(
-                                          tooltip: 'Seite entfernen',
-                                          onPressed: busy
-                                              ? null
-                                              : () => deletePage(item.$1),
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    OutlinedButton.icon(
-                                      key: ValueKey(
-                                        'scan-edit-page-${item.$1}',
-                                      ),
-                                      onPressed: busy
-                                          ? null
-                                          : () => editPage(item.$1),
-                                      icon: const Icon(Icons.edit_outlined),
-                                      label: const Text('Bearbeiten'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const Text(
-            'Zuordnung & Tags',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            key: const ValueKey('scan-tags'),
-            controller: tags,
-            enabled: !busy,
-            decoration: const InputDecoration(
-              labelText: 'Tags (mit Komma trennen)',
-              prefixIcon: Icon(Icons.sell_outlined),
-            ),
-            onChanged: (v) => change({'tags': scanTags(v)}),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: data['documentType'] as String,
-            decoration: const InputDecoration(labelText: 'Kategorie'),
-            items: scanTypes.entries
-                .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
-                )
-                .toList(),
-            onChanged: busy ? null : (v) => change({'documentType': v}),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final ids = await chooseMaterialPupils(
-                          context,
-                          c,
-                          pupilIds,
-                        );
-                        if (ids != null && mounted) {
-                          change({
-                            'pupilIds': {
-                              ...ids,
-                              ...documentLinkPupils(c, links),
-                            }.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.people_outline),
-                label: Text(
-                  pupilIds.isEmpty
-                      ? 'FLEX-Klasse'
-                      : '${pupilIds.length} Schüler',
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final next = await chooseDocumentLinks(
-                          context,
-                          c,
-                          links,
-                        );
-                        if (next != null && mounted) {
-                          final owners = {
-                            ...pupilIds,
-                            ...documentLinkPupils(c, next),
-                          };
-                          change({
-                            'links': next.map((l) => l.toJson()).toList(),
-                            'pupilIds': owners.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.link),
-                label: Text('Einträge · ${links.length}'),
-              ),
-            ],
-          ),
-          if (pupilIds.isNotEmpty)
-            Text(
-              c.pupils
-                  .where((p) => pupilIds.contains(p.id))
-                  .map((p) => p.name)
-                  .join(', '),
-            ),
-          for (final link in links)
-            Text(
-              documentLinkLabel(c, link),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          const SizedBox(height: 16),
-          if (data['sourceId'] != null)
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Vorhandene Datei ersetzen'),
-              subtitle: Text(
-                replace
-                    ? 'Die lokale Fassung wird ersetzt. Bereits exportierte Kopien bleiben erhalten.'
-                    : 'Es wird eine neue Kopie gespeichert.',
-              ),
-              value: replace,
-              onChanged: busy
-                  ? null
-                  : (v) => setState(() => replace = v ?? false),
-            ),
-          DraftStatus(buffer: buffer),
-        ],
-      ),
-      footerContent: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (widget.capturePages != null ||
-                  !kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-                ScanTool(
-                  key: const ValueKey('scanner-camera'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : capture,
-                  icon: Icons.document_scanner_outlined,
-                  label: 'Scannen',
-                ),
-              if (widget.capturePhoto != null || nativeCamera)
-                ScanTool(
-                  key: const ValueKey('scanner-batch'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : captureSeries,
-                  icon: Icons.burst_mode_outlined,
-                  label: 'Serie',
-                ),
-              if (widget.capturePhoto != null || nativeCamera)
-                ScanTool(
-                  key: const ValueKey('scanner-photo'),
-                  onPressed: busy || pages.length >= scanPageLimit
-                      ? null
-                      : takePhoto,
-                  icon: Icons.photo_camera_outlined,
-                  label: data['capturePending'] == true ? 'Fortsetzen' : 'Foto',
-                ),
-              ScanTool(
-                key: const ValueKey('scanner-import'),
-                onPressed: busy || pages.length >= scanPageLimit ? null : pick,
-                icon: Icons.add_photo_alternate_outlined,
-                label: 'Import',
-              ),
-            ],
-          ),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              TextButton(
-                onPressed: busy ? null : () => close(keepDraft: true),
-                child: const Text('Später fortsetzen'),
-              ),
-              FilledButton.icon(
-                key: const ValueKey('save-scan'),
-                onPressed: busy || pages.isEmpty ? null : save,
-                icon: Icon(photoOutput ? Icons.photo : Icons.picture_as_pdf),
-                label: Text(
-                  photoOutput
-                      ? (replace ? 'Foto ersetzen' : 'Fotos speichern')
-                      : (replace ? 'PDF ersetzen' : 'PDF speichern'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => scannerView(context);
 }

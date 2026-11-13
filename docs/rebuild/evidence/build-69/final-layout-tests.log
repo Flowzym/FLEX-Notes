@@ -1,0 +1,30 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:02 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:02 +2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:03 +3: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:03 +4: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:04 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: shared day updates current time with and without lessons and omits it on other dates
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:04 +7: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:05 +8: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:05 +9: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:06 +10: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:06 +11: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:07 +12: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:07 +13: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:08 +14: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:09 +15: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:09 +16: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:10 +17: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:10 +18: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:10 +19: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: calendar body swipes dates while top pills change section; creation inherits selected date
+00:11 +20: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:12 +21: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:12 +22: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 390.0/1.0
+00:12 +23: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:13 +24: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:14 +25: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:15 +26: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:15 +26: All tests passed!

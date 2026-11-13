@@ -1,4 +1,6 @@
 import 'detail_flow.dart';
+import 'quick_add.dart';
+import 'subtask_editor.dart';
 import 'material_thumbnail.dart';
 import 'general_orga_page.dart';
 import 'scanner_library.dart';
@@ -15,7 +17,7 @@ import 'pupil_editor.dart';
 import 'dialog_workflows.dart';
 import 'surfaces.dart';
 import 'overview_entry.dart';
-import 'prototype_navigation.dart';
+import 'app_navigation.dart';
 import 'pupil_card.dart';
 
 import 'package:flutter/material.dart';
@@ -40,6 +42,7 @@ import 'material_library.dart';
 import 'return_lists.dart';
 import 'repeat_editor.dart';
 import 'reminder_actions.dart';
+import 'lesson_flow_page.dart';
 
 class NotebookScreen extends StatefulWidget {
   const NotebookScreen({super.key, required this.controller});
@@ -50,16 +53,54 @@ class NotebookScreen extends StatefulWidget {
 
 class _NotebookScreenState extends State<NotebookScreen> {
   NotebookController get c => widget.controller;
-  int _primary = 0, _destination = 1, _materialView = 0, _moreView = 0;
-  int _calendarView = 0, _orgaView = 0;
-  final _calendarPages = PageController();
+  int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
+  int _orgaView = 0;
   final _visited = <int>{1};
   final _dataLayout = SettingsLayoutState()..tab = 2;
-  DateTime? _calendarShortcutDate, _timetableShortcutDate;
-  int _calendarShortcutRevision = 0, _timetableShortcutRevision = 0;
   String? _overviewSection;
-  final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
+  int? _swipeDirection;
+  String _creationDate = dateOnly(DateTime.now());
+  Map<int, String> get _contextPages => switch (_destination) {
+    0 => const {0: 'Kalender'},
+    1 => livePages,
+    2 => organisationPages,
+    3 => _materialPages,
+    _ => _morePages,
+  };
+  int get _contextPage => switch (_destination) {
+    0 => 0,
+    1 => _primary,
+    2 => _orgaView,
+    3 => _materialView,
+    _ => _moreView,
+  };
+
+  void _contextTo(int index, {int? swipeDirection}) {
+    _swipeDirection = swipeDirection;
+    FocusManager.instance.primaryFocus?.unfocus();
+    switch (_destination) {
+      case 0:
+        return;
+      case 1:
+        _main(index);
+      case 2:
+        _changeView(() => _orgaView = index);
+      case 3:
+        _changeView(() => _materialView = index);
+      case 4:
+        _changeView(() => _moreView = index);
+    }
+  }
+
+  void _swipeContext(bool previous) {
+    final order = _contextPages.keys.toList();
+    if (order.length < 2) return;
+    final step = previous ? -1 : 1;
+    final next = (order.indexOf(_contextPage) + step) % order.length;
+    _contextTo(order[next], swipeDirection: step);
+  }
+
   VoidCallback? _refreshPupilDialog;
   void _changeView(VoidCallback action) {
     if (!mounted) return;
@@ -151,8 +192,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void dispose() {
     c.services?.reminders.removeListener(_notification);
     c.services?.lock.removeListener(_notification);
-    _pages.dispose();
-    _calendarPages.dispose();
     _pupilSearch.dispose();
     _entrySearch.dispose();
     super.dispose();
@@ -170,40 +209,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void _main(int index) {
     _sectionTo(1);
     _changeView(() => _primary = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pages.hasClients) {
-        _pages.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
-  }
-
-  void _calendarTo(int index) {
-    _sectionTo(0);
-    _changeView(() => _calendarView = index);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _calendarPages.hasClients) {
-        _calendarPages.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
-  }
-
-  void _calendarShortcut(bool timetable, DateTime date) {
-    if (timetable) {
-      _timetableShortcutDate = date;
-      _timetableShortcutRevision++;
-    } else {
-      _calendarShortcutDate = date;
-      _calendarShortcutRevision++;
-    }
-    _calendarTo(timetable ? 1 : 0);
   }
 
   Widget _generalOrga(String kind) => GeneralOrgaPage(
@@ -262,9 +267,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 .where(
                   (e) =>
                       e.pupilId == null &&
-                      '${e.title} ${e.body}'.toLowerCase().contains(
-                        query.toLowerCase(),
-                      ) &&
+                      '${e.title} ${e.body} ${e.otherParticipants}'
+                          .toLowerCase()
+                          .contains(query.toLowerCase()) &&
                       (filter == 'all' ||
                           (filter == 'appointments'
                               ? e.isAppointment
@@ -456,26 +461,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
     3: 'Planungen',
   };
   static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
-  Widget _placeholder(String title, IconData icon) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 40),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          const Text(
-            'Dieser Bereich wird noch gestaltet.',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
   Widget _moreHome() => ListView(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
         (
@@ -595,160 +582,132 @@ class _NotebookScreenState extends State<NotebookScreen> {
   };
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: _destination == 1 && _primary == 0,
+    canPop: _destination == 1 && _primary == 1,
     onPopInvokedWithResult: (didPop, result) {
-      if (!didPop) _main(0);
+      if (!didPop) _main(1);
     },
     child: Scaffold(
+      floatingActionButton: QuickAddButton(
+        controller: c,
+        date: _destination == 0 ? _creationDate : null,
+      ),
       bottomNavigationBar: FlexBottomNavigation(
         selected: _destination,
         onSelected: _sectionTo,
       ),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            if (c.appearanceError != null)
-              MaterialBanner(
-                content: Text(c.appearanceError!),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      _sectionTo(4);
-                      _changeView(() => _moreView = 4);
-                    },
-                    child: const Text('Einstellungen'),
-                  ),
-                ],
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'FLEX.',
-                  key: const ValueKey('app-wordmark'),
-                  style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 1.8,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: .55),
+        child: FlexNavigationSwipe(
+          key: const ValueKey('context-page-swipe'),
+          onStep: _swipeContext,
+          child: Column(
+            children: [
+              if (c.appearanceError != null)
+                MaterialBanner(
+                  content: Text(c.appearanceError!),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        _sectionTo(4);
+                        _changeView(() => _moreView = 4);
+                      },
+                      child: const Text('Einstellungen'),
+                    ),
+                  ],
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'FLEX.',
+                    key: const ValueKey('app-wordmark'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: .5,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: .55),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
-              child: FlexPagePills(
-                keyPrefix: _destination == 1 ? 'page' : 'context-$_destination',
-                selected: switch (_destination) {
-                  0 => _calendarView,
-                  1 => _primary,
-                  2 => _orgaView,
-                  3 => _materialView,
-                  4 => _moreView,
-                  _ => 0,
-                },
-                pages: switch (_destination) {
-                  0 => calendarPages,
-                  1 => livePages,
-                  2 => const {0: 'Orga', 1: 'Rückläufe', 2: 'Notizen'},
-                  3 => _materialPages,
-                  _ => _morePages,
-                },
-                onSelected: (index) {
-                  if (_destination == 0) {
-                    _calendarTo(index);
-                  } else if (_destination == 2) {
-                    _changeView(() => _orgaView = index);
-                  } else if (_destination == 1) {
-                    _main(index);
-                  } else if (_destination == 3) {
-                    _changeView(() => _materialView = index);
-                  } else if (_destination == 4) {
-                    _changeView(() => _moreView = index);
-                  }
-                },
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1400),
-                  child: IndexedStack(
-                    index: _destination,
-                    children: [
-                      if (_visited.contains(0))
-                        PageView(
-                          key: const ValueKey('calendar-pages'),
-                          controller: _calendarPages,
-                          onPageChanged: (index) =>
-                              _changeView(() => _calendarView = index),
-                          children: [
+              if (_contextPages.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                  child: FlexPagePills(
+                    keyPrefix: _destination == 1
+                        ? 'page'
+                        : 'context-$_destination',
+                    selected: _contextPage,
+                    pages: _contextPages,
+                    onSelected: _contextTo,
+                  ),
+                ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: FlexTabTransition(
+                      section: _destination,
+                      index: _contextPages.keys.toList().indexOf(_contextPage),
+                      direction: _swipeDirection,
+                      child: IndexedStack(
+                        index: _destination,
+                        children: [
+                          if (_visited.contains(0))
                             CalendarPage(
                               key: const ValueKey('main-calendar'),
                               controller: c,
-                              shortcutDate: _calendarShortcutDate,
-                              shortcutRevision: _calendarShortcutRevision,
-                              onSwitchSection: _calendarShortcut,
-                            ),
-                            CalendarPage(
-                              key: const ValueKey('main-timetable'),
+                              onDateChanged: (date) =>
+                                  setState(() => _creationDate = date),
+                            )
+                          else
+                            const SizedBox(),
+                          IndexedStack(
+                            key: const ValueKey('main-pages'),
+                            index: livePages.keys.toList().indexOf(_primary),
+                            children: [
+                              _pupils(),
+                              _overview(),
+                              LessonFlowPage(controller: c),
+                            ],
+                          ),
+                          if (_visited.contains(2))
+                            IndexedStack(
+                              key: const ValueKey('organisation-pages'),
+                              index: organisationPages.keys.toList().indexOf(
+                                _orgaView,
+                              ),
+                              children: [
+                                _generalOrga('all'),
+                                _generalOrga('task'),
+                                _generalOrga('note'),
+                              ],
+                            )
+                          else
+                            const SizedBox(),
+                          if (_visited.contains(3))
+                            MaterialLibraryPage(
                               controller: c,
-                              initialTimetable: true,
-                              shortcutDate: _timetableShortcutDate,
-                              shortcutRevision: _timetableShortcutRevision,
-                              onSwitchSection: _calendarShortcut,
-                            ),
-                            _generalOrga('task'),
-                          ],
-                        )
-                      else
-                        const SizedBox(),
-                      PageView(
-                        key: const ValueKey('main-pages'),
-                        controller: _pages,
-                        onPageChanged: (index) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          _changeView(() => _primary = index);
-                        },
-                        children: [
-                          _overview(),
-                          _pupils(),
-                          _placeholder('Ablauf', Icons.route_outlined),
+                              externalView: _materialViews[_materialView],
+                            )
+                          else
+                            const SizedBox(),
+                          if (_visited.contains(4))
+                            _moreBody()
+                          else
+                            const SizedBox(),
                         ],
                       ),
-                      if (_visited.contains(2))
-                        IndexedStack(
-                          index: _orgaView,
-                          children: [
-                            _generalOrga('all'),
-                            ReturnLists(controller: c),
-                            _generalOrga('note'),
-                          ],
-                        )
-                      else
-                        const SizedBox(),
-                      if (_visited.contains(3))
-                        MaterialLibraryPage(
-                          controller: c,
-                          externalView: _materialViews[_materialView],
-                        )
-                      else
-                        const SizedBox(),
-                      if (_visited.contains(4))
-                        _moreBody()
-                      else
-                        const SizedBox(),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -826,8 +785,29 @@ class _NotebookScreenState extends State<NotebookScreen> {
       preparationFor(c.classroom, today).strings('materialIds'),
     );
     final records = c.records.where((r) => !r.deleted).toList();
-    final pendingRecords = records.where((r) => r.pending).toList();
-    final pendingOrga = c.upcoming(c.entries);
+    final overdueRecords = records
+        .where(
+          (r) =>
+              r.pending &&
+              ((r.kind == SchoolKind.goal
+                              ? r.nextReviewDate ?? r.dueDate
+                              : r.dueDate) ??
+                          '9999')
+                      .compareTo(today) <
+                  0,
+        )
+        .toList();
+    final overdueOrga = c
+        .upcoming(c.entries)
+        .where((e) => (e.nextDate ?? '9999').compareTo(today) < 0)
+        .toList();
+    final pendingRecords = records
+        .where((r) => r.pending && !overdueRecords.contains(r))
+        .toList();
+    final pendingOrga = c
+        .upcoming(c.entries)
+        .where((e) => !overdueOrga.any((old) => old.id == e.id))
+        .toList();
     final completeRecords = records
         .where((r) => !r.pending && r.needsCompletion)
         .toList();
@@ -840,14 +820,29 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final recentOrga = c.entries
         .where((e) => !e.pending && !e.needsCompletion)
         .toList();
+    final overdueReturns = c.classroom
+        .where(
+          (d) =>
+              !d.deleted &&
+              d.kind == ClassroomKind.returnList &&
+              !d.flag('closed') &&
+              d.text('dueDate').isNotEmpty &&
+              d.text('dueDate').compareTo(today) < 0 &&
+              d.rows('participants').any(returnPending),
+        )
+        .toList();
     final counts = {
+      'overdue':
+          overdueRecords.length + overdueOrga.length + overdueReturns.length,
       'pending': pendingRecords.length + pendingOrga.length,
       'complete': completeRecords.length + completeOrga.length,
       'recent': recentRecords.length + recentOrga.length,
     };
     final selected =
         _overviewSection ??
-        (counts['pending']! > 0
+        (counts['overdue']! > 0
+            ? 'overdue'
+            : counts['pending']! > 0
             ? 'pending'
             : counts['complete']! > 0
             ? 'complete'
@@ -867,7 +862,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             : width <= 360
             ? 12
             : 24,
-        32,
+        96,
       ),
       children: [
         Row(
@@ -878,7 +873,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 'Überblick',
                 style: Theme.of(
                   context,
-                ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSerif'),
+                ).textTheme.headlineSmall?.copyWith(fontFamily: 'FlexSans'),
               ),
             ),
             IconButton(
@@ -914,6 +909,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
           runSpacing: 6,
           children: [
             for (final section in const [
+              ('overdue', 'Überfälliges', Icons.schedule),
               ('pending', 'Anstehend', Icons.schedule_outlined),
               ('complete', 'Ergänzen', Icons.edit_note_outlined),
               ('recent', 'Zuletzt', Icons.history),
@@ -982,7 +978,33 @@ class _NotebookScreenState extends State<NotebookScreen> {
             ),
           ),
         const SizedBox(height: 8),
-        if (selected == 'pending')
+        if (selected == 'overdue')
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (overdueRecords.isNotEmpty ||
+                  overdueOrga.isNotEmpty ||
+                  overdueReturns.isEmpty)
+                _combinedSection(
+                  'Überfälliges',
+                  overdueOrga,
+                  overdueRecords,
+                  'Nichts überfällig.',
+                  upcoming: true,
+                ),
+              for (final d in overdueReturns)
+                ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: Text(d.title),
+                  subtitle: Text(
+                    '${displayDate(d.text('dueDate'))} · ${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showReturnDetail(context, c, d.id),
+                ),
+            ],
+          )
+        else if (selected == 'pending')
           _combinedSection(
             'Anstehend',
             pendingOrga,
@@ -1220,7 +1242,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         : 40.0;
     return ListView(
       key: PageStorageKey('pupils-$archived'),
-      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 40),
+      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 96),
       children: [
         CollapsibleSearch(
           controller: _pupilSearch,
@@ -1229,35 +1251,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
           label: 'Schüler suchen',
           iconOnly: true,
           leading: Text(
-            '${archived ? 'Archiv' : 'Schülernotizen'} · ${all.length} Schüler',
-            style: Theme.of(context).textTheme.bodySmall,
+            archived ? 'Archiv' : 'Notizen',
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
           actions: [
             if (!archived)
-              IconButton(
+              FlexCircleButton(
                 tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
-                icon: const Icon(Icons.person_add),
+                icon: const Icon(Icons.person_add_alt_1_outlined),
               ),
-            IconButton(
-              key: const ValueKey('pupil-layout'),
-              tooltip: c.appearance.pupilCompact
-                  ? 'Schüler als Karten'
-                  : 'Schüler als kompakte Liste',
-              onPressed: () => guarded(
-                context,
-                () => c.saveAppearance(
-                  c.appearance.patch({
-                    'pupilCompact': !c.appearance.pupilCompact,
-                  }),
-                ),
-              ),
-              icon: Icon(
-                c.appearance.pupilCompact
-                    ? Icons.grid_view_outlined
-                    : Icons.view_list_outlined,
-              ),
-            ),
           ],
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
@@ -1269,41 +1272,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 : 'Noch keine passenden Schüler.',
             icon: Icons.people,
           ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = c.appearance.pupilCompact
-                ? 1
-                : ((constraints.maxWidth + 20) / 310).floor().clamp(1, 4);
-            final cardWidth = c.appearance.pupilCompact
-                ? constraints.maxWidth
-                : ((constraints.maxWidth - (columns - 1) * 20) / columns).clamp(
-                    0.0,
-                    420.0,
-                  );
-            return Wrap(
-              spacing: 20,
-              runSpacing: c.appearance.pupilCompact ? 8 : 20,
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
+            child: Column(
               children: [
                 for (final pupil in pupils)
-                  SizedBox(
-                    width: cardWidth,
-                    child: PupilCard(
-                      key: ValueKey('pupil-card-${pupil.id}'),
-                      compact: c.appearance.pupilCompact,
-                      pupil: pupil,
-                      onOpen: () => _openPupil(pupil),
-                      onShortcut: (symbol) => _entryShortcut(pupil, symbol),
-                      counts: _shortcutCounts(pupil),
-                      draftCounts: {
-                        for (final symbol in FlexSymbol.values)
-                          symbol: _pupilDraftCount(pupil.id, symbol),
-                      },
-                      due: _dueShortcuts(pupil),
-                    ),
+                  PupilCard(
+                    key: ValueKey('pupil-card-${pupil.id}'),
+                    pupil: pupil,
+                    onOpen: () => _openPupil(pupil),
+                    onShortcut: (symbol) => _entryShortcut(pupil, symbol),
+                    counts: _shortcutCounts(pupil),
+                    draftCounts: {
+                      for (final symbol in FlexSymbol.values)
+                        symbol: _pupilDraftCount(pupil.id, symbol),
+                    },
+                    due: _dueShortcuts(pupil),
                   ),
               ],
-            );
-          },
+            ),
+          ),
         ),
       ],
     );
@@ -1402,7 +1391,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     final visible = entries
         .where(
           (e) =>
-              '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}'
+              '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}'
                   .toLowerCase()
                   .contains(_entryQuery.toLowerCase()) &&
               (_filter == 'all' ||
@@ -1560,9 +1549,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
     );
   }
 
+  Future<void> _addSubtask(OrgaEntry entry) => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => SubtaskEditor(controller: c, entry: entry),
+  );
+
   Widget _entryCard(OrgaEntry e) {
     final busy = _busyIds.contains(e.id);
     return FlexCard(
+      key: ValueKey('orga-entry-${e.id}'),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -1638,26 +1634,41 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            for (final item in e.items.take(3))
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      item.checked
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      size: 18,
+            if (e.isTask || e.items.isNotEmpty)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${e.items.where((i) => i.checked).length} / ${e.items.length} ${e.isTask ? 'Unteraufgaben' : 'Listenpunkte'}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(item.text)),
-                  ],
-                ),
+                  ),
+                  if (e.isTask)
+                    IconButton(
+                      tooltip: 'Unteraufgabe hinzufügen',
+                      onPressed: busy ? null : () => _addSubtask(e),
+                      icon: const Icon(Icons.add, size: 20),
+                    ),
+                ],
               ),
-            if (e.items.isNotEmpty)
-              Text(
-                '${e.items.where((i) => i.checked).length} / ${e.items.length} Listenpunkte',
+            for (final item in e.isTask ? e.items : e.items.take(3))
+              CheckboxListTile(
+                key: ValueKey('subtask-${item.id}'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(item.text),
+                value: item.checked,
+                onChanged: busy
+                    ? null
+                    : (checked) => _mutate(
+                        e.withTaskItems([
+                          for (final old in e.items)
+                            old.id == item.id
+                                ? old.copyWith(checked: checked)
+                                : old,
+                        ]),
+                      ),
               ),
             if (e.isAppointment)
               Padding(

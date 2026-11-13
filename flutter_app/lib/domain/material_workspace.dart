@@ -3,6 +3,46 @@ import 'classroom.dart';
 import 'models.dart';
 import 'document_scanner.dart';
 
+List<String> pupilMaterialDates(ClassroomDocument material, String pupilId) =>
+    (material
+        .rows('pupilDates')
+        .where((row) => row['pupilId'] == pupilId)
+        .map((row) => row['date'] as String)
+        .toList()
+      ..sort());
+
+/// Assign without duplicating the file or changing another pupil's schedule.
+ClassroomDocument planPupilMaterial(
+  ClassroomDocument material,
+  String pupilId,
+  String date, {
+  String? replaceDate,
+}) {
+  final dates = [
+    for (final row in material.rows('pupilDates'))
+      if (!(row['pupilId'] == pupilId &&
+          (row['date'] == replaceDate || row['date'] == date)))
+        row,
+    {'pupilId': pupilId, 'date': date},
+  ];
+  return material.patch({
+    'pupilIds': {...material.strings('pupilIds'), pupilId}.toList(),
+    'pupilDates': dates,
+  });
+}
+
+List<ClassroomDocument> pupilMaterialsOnDay(
+  Iterable<ClassroomDocument> docs,
+  String date,
+) => docs
+    .where(
+      (d) =>
+          !d.deleted &&
+          d.kind == ClassroomKind.material &&
+          d.rows('pupilDates').any((row) => row['date'] == date),
+    )
+    .toList();
+
 String preparationId(String date) =>
     const Uuid().v5(Namespace.url.value, 'flex-preparation:$date');
 
@@ -71,6 +111,7 @@ List<ClassroomDocument> suggestedMaterials(
   final day = schoolDay(date);
   final monday = day.subtract(Duration(days: day.weekday - 1));
   final ids = <String>{
+    ...pupilMaterialsOnDay(docs, date).map((m) => m.id),
     for (final l in lessons) ...l.materialIds,
     for (final l in lessons)
       ...linkedMaterials(docs, l.document.id, date: l.date).map((d) => d.id),
@@ -128,6 +169,7 @@ bool materialMatches(
     d.text('subject'),
     d.text('topic'),
     d.text('note'),
+    d.text('otherParticipants'),
     d.text('sourcePath'),
     ...d.strings('tags'),
     materialTypes[d.text('documentType', 'other')] ?? '',

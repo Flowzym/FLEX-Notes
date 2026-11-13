@@ -8,7 +8,7 @@
         android:allowBackup="false"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:label="FLEX Test"
+        android:label="${flexAppLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

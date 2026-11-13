@@ -1,0 +1,10 @@
+{
+  "viewport": "390x844",
+  "version": "0.20.0+63",
+  "calendarAndTasks": true,
+  "lessonsVisibleTogether": true,
+  "lessonToggle": true,
+  "timetableManagement": true,
+  "monthPreservedAcrossTasks": true,
+  "pageErrors": []
+}

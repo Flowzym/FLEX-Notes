@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 
@@ -9,117 +8,101 @@ Color legibleOn(Color background) {
       : Colors.black;
 }
 
-/// Shared by the app, every modal and the settings preview. Alpha only affects paint.
+/// Fixed tokens shared by every page, editor, sheet and preview.
+class FlexDesign {
+  static const fieldRadius = 14.0;
+  static const buttonRadius = 24.0;
+  static const modalRadius = 24.0;
+  static const cardRadius = 16.0;
+
+  static List<BoxShadow> shadows(BuildContext context) => [
+    BoxShadow(
+      color: Theme.of(context).colorScheme.shadow.withValues(
+        alpha: Theme.of(context).brightness == Brightness.dark ? .18 : .065,
+      ),
+      blurRadius: 12,
+      offset: const Offset(0, 3),
+    ),
+    BoxShadow(
+      color: Theme.of(context).colorScheme.shadow.withValues(alpha: .035),
+      blurRadius: 2,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
+  static LinearGradient wash(Color color) => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color.lerp(color, Colors.white, .07)!, color],
+  );
+
+  static BoxDecoration capsule(BuildContext context) => BoxDecoration(
+    gradient: wash(Theme.of(context).colorScheme.surface),
+    border: Border.all(
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .7),
+      width: .7,
+    ),
+    borderRadius: BorderRadius.circular(28),
+    boxShadow: shadows(context),
+  );
+}
+
+/// Raised, quiet icon controls for page headings and date navigation.
+class FlexCircleButton extends StatelessWidget {
+  const FlexCircleButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: FlexDesign.capsule(context),
+    child: IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(shape: const CircleBorder()),
+      icon: icon,
+    ),
+  );
+}
+
 class FlexPalette {
-  FlexPalette(this.appearance, this.brightness);
-  final Appearance appearance;
+  const FlexPalette(this.brightness);
   final Brightness brightness;
-  bool get protected =>
-      appearance.imageActive && appearance.readabilityProtection;
-  Color get backdrop => appearance.imageActive
-      ? appearance.defaultTexture && !appearance.hasImage
-            ? const Color(0xff17191c)
-            : Color.alphaBlend(
-                Colors.black.withValues(alpha: appearance.backgroundDim),
-                Color(appearance.backgroundTint),
-              )
-      : Color(appearance.backgroundColor);
-  Color get panel => Color.lerp(
-    Color(appearance.backgroundColor),
-    brightness == Brightness.dark ? Colors.black : Colors.white,
-    .16,
-  )!;
-  Color base(int value) => value == 0 ? panel : Color(value);
-  Color paint(
-    int value,
-    double opacity, {
-    bool reading = false,
-    Color? fallback,
-  }) => (value == 0 ? fallback ?? panel : Color(value)).withValues(
-    alpha: protected && reading ? 1 : opacity,
-  );
-  Color get workspace => paint(
-    appearance.workspaceColor,
-    appearance.workspaceOpacity,
-    reading: true,
-    fallback: Colors.white,
-  );
-  Color get card => paint(
-    appearance.cardColor,
-    appearance.cardOpacity,
-    reading: true,
-    fallback: Colors.black,
-  );
-  Color get modal => paint(
-    appearance.modalColor,
-    appearance.modalOpacity,
-    reading: true,
-    fallback: brightness == Brightness.dark
-        ? const Color(0xff17191c)
-        : const Color(0xfff4f5f0),
-  );
-  Color get modalPerceived => Color.alphaBlend(modal, backdrop);
-  Color get header => paint(
-    appearance.dialogColor,
-    appearance.headerOpacity,
-    reading: true,
-    fallback: Colors.white,
-  );
-  Color get footer => paint(
-    appearance.dialogColor,
-    appearance.footerOpacity,
-    reading: true,
-    fallback: Colors.white,
-  );
-  Color get button => paint(
-    appearance.buttonColor,
-    appearance.buttonOpacity,
-    fallback: Colors.white,
-  );
-  Color get field => paint(
-    appearance.fieldColor,
-    appearance.fieldOpacity,
-    fallback: Colors.black,
-  );
-  Color get buttonInk => legibleOn(Color.alphaBlend(button, modalPerceived));
-  Color get fieldInk => legibleOn(Color.alphaBlend(field, modalPerceived));
-  Color get modalInk => legibleOn(modalPerceived);
-  Color get cardInk => legibleOn(Color.alphaBlend(card, backdrop));
-  Color get workspaceInk => legibleOn(Color.alphaBlend(workspace, backdrop));
+  bool get dark => brightness == Brightness.dark;
+  Color get backdrop =>
+      dark ? const Color(0xff20231f) : const Color(0xfff8f4ef);
+  Color get panel => dark ? const Color(0xff282c26) : const Color(0xfffcf9f5);
+  Color get primary => dark ? const Color(0xffb6c29c) : const Color(0xff606d48);
+  Color get selection =>
+      dark ? const Color(0xff4a563c) : const Color(0xffb2b89b);
+  Color get line => dark ? const Color(0xff44493d) : const Color(0xffdedbd2);
+  Color get ink => dark ? const Color(0xfff1eee6) : const Color(0xff292c27);
+  Color get secondaryInk =>
+      dark ? const Color(0xffc4c9bb) : const Color(0xff606655);
+  Color get card => panel;
+  Color get button => dark ? const Color(0xff343a2f) : const Color(0xfff8f5ef);
+  Color get field => dark ? const Color(0xff252923) : const Color(0xfffdfbf7);
 }
 
 class FlexSurfaces extends ThemeExtension<FlexSurfaces> {
-  const FlexSurfaces({
-    required this.header,
-    required this.footer,
-    required this.foreground,
-    this.appearance,
-    this.palette,
-  });
-  final Color header, footer, foreground;
-  final Appearance? appearance;
-  final FlexPalette? palette;
+  const FlexSurfaces({required this.appearance, required this.palette});
+  final Appearance appearance;
+  final FlexPalette palette;
   @override
-  FlexSurfaces copyWith({Color? header, Color? footer, Color? foreground}) =>
+  FlexSurfaces copyWith({Appearance? appearance, FlexPalette? palette}) =>
       FlexSurfaces(
-        header: header ?? this.header,
-        footer: footer ?? this.footer,
-        foreground: foreground ?? this.foreground,
-        appearance: appearance,
-        palette: palette,
+        appearance: appearance ?? this.appearance,
+        palette: palette ?? this.palette,
       );
   @override
   FlexSurfaces lerp(covariant FlexSurfaces? other, double t) => other ?? this;
 }
-
-BoxFit backgroundFit(String value) => switch (value) {
-  'contain' => BoxFit.contain,
-  'fitWidth' => BoxFit.fitWidth,
-  'fitHeight' => BoxFit.fitHeight,
-  'fill' => BoxFit.fill,
-  'none' || 'tile' => BoxFit.none,
-  _ => BoxFit.cover,
-};
 
 // RawChip's Material defaults to canvasColor, which otherwise paints an opaque
 // green layer below translucent chip colors. Scope this override to chips only.
@@ -136,107 +119,25 @@ class FlexCard extends StatelessWidget {
   final Widget? child;
   final WidgetBuilder? builder;
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final foreground =
-        theme.extension<FlexSurfaces>()?.palette?.cardInk ??
-        theme.colorScheme.onSurface;
-    return Card(
-      child: Theme(
-        data: theme.copyWith(
-          colorScheme: theme.colorScheme.copyWith(
-            onSurface: foreground,
-            onSurfaceVariant: foreground,
-          ),
-          textTheme: theme.textTheme.apply(
-            bodyColor: foreground,
-            displayColor: foreground,
-          ),
-        ),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(color: foreground),
-          child: IconTheme.merge(
-            data: IconThemeData(color: foreground),
-            child: builder == null ? child! : Builder(builder: builder!),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Retain only the two selected image providers; unrelated sliders never decode again.
-final _images = <String, MemoryImage>{};
-ImageProvider backgroundProvider(String data) {
-  if (!_images.containsKey(data)) {
-    if (_images.length >= 2) _images.remove(_images.keys.first);
-    _images[data] = MemoryImage(base64Decode(data));
-  }
-  return _images[data]!;
+  Widget build(BuildContext context) =>
+      Card(child: builder == null ? child! : Builder(builder: builder!));
 }
 
 class FlexBackground extends StatelessWidget {
-  static const defaultDarkImage = 'assets/backgrounds/dark-texture.png';
-  const FlexBackground({
-    super.key,
-    required this.appearance,
-    required this.child,
-    this.previewWidth,
-  });
-  final Appearance appearance;
+  const FlexBackground({super.key, required this.child});
   final Widget child;
-  final double? previewWidth;
   @override
   Widget build(BuildContext context) {
-    final width = previewWidth ?? MediaQuery.sizeOf(context).width;
-    final data = appearance.imageForWidth(width);
-    final mode = appearance.fitForWidth(width);
-    final showDefault =
-        data.isEmpty &&
-        appearance.defaultTexture &&
-        Theme.of(context).brightness == Brightness.dark;
-    final active = appearance.imageEnabled && (data.isNotEmpty || showDefault);
-    return ColoredBox(
-      color: Color(appearance.backgroundColor),
-      child: Stack(
-        fit: StackFit.passthrough,
-        children: [
-          if (active)
-            Positioned.fill(
-              child: Opacity(
-                opacity: data.isEmpty ? 1 : appearance.backgroundOpacity,
-                child: Image(
-                  image: data.isEmpty
-                      ? const AssetImage(defaultDarkImage)
-                      : backgroundProvider(data),
-                  fit: backgroundFit(mode),
-                  repeat: mode == 'tile'
-                      ? ImageRepeat.repeat
-                      : ImageRepeat.noRepeat,
-                  alignment: Alignment.center,
-                  gaplessPlayback: true,
-                  excludeFromSemantics: true,
-                  errorBuilder: (_, _, _) => const SizedBox(),
-                ),
-              ),
-            ),
-          if (active && appearance.backgroundTintStrength > 0)
-            Positioned.fill(
-              child: ColoredBox(
-                color: Color(
-                  appearance.backgroundTint,
-                ).withValues(alpha: appearance.backgroundTintStrength),
-              ),
-            ),
-          if (active && appearance.backgroundDim > 0)
-            Positioned.fill(
-              child: ColoredBox(
-                color: Colors.black.withValues(alpha: appearance.backgroundDim),
-              ),
-            ),
-          child,
-        ],
+    final p = FlexPalette(Theme.of(context).brightness);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: const Alignment(-.85, -.7),
+          radius: 1.5,
+          colors: [p.panel, p.backdrop],
+        ),
       ),
+      child: child,
     );
   }
 }

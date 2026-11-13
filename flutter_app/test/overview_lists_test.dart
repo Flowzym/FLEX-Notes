@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -36,28 +37,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late ControlledDraftNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = ControlledDraftNotebook(
       NotebookDatabase(
@@ -94,12 +74,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -161,7 +135,7 @@ void main() {
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
   Future<void> settleDraft(WidgetTester t) async {
     await t.pump(const Duration(milliseconds: 500));
     await t.pumpAndSettle();
@@ -172,44 +146,25 @@ void main() {
         .descendant(of: find.byKey(key), matching: find.byType(EditableText))
         .last,
   );
-  test(
-    'automatic surfaces use neutral role colors and migrate only unchanged old defaults',
-    () {
-      final a = const Appearance();
-      final palette = FlexPalette(a, Brightness.dark);
-      for (final color in [palette.card, palette.field]) {
-        expect(color.toARGB32() & 0xffffff, 0);
-        expect(color.a, lessThan(.5));
+  test('fixed surfaces ignore legacy colors and remain opaque', () {
+    final migrated = Appearance.fromJson({
+      'mode': 'dark',
+      'cardColor': 0xffff0000,
+      'headerOpacity': .1,
+    });
+    expect(migrated.mode, 'light');
+    for (final b in Brightness.values) {
+      final palette = FlexPalette(b);
+      for (final color in [
+        palette.card,
+        palette.field,
+        palette.backdrop,
+        palette.button,
+      ]) {
+        expect(color.a, 1);
       }
-      for (final color in [palette.header, palette.footer, palette.button]) {
-        expect(color.toARGB32() & 0xffffff, 0xffffff);
-        expect(color.a, lessThan(.5));
-      }
-      final old = {...a.toJson()}..remove('surfaceDefaultsVersion');
-      old.addAll({
-        'headerOpacity': .65,
-        'footerOpacity': .65,
-        'cardOpacity': .82,
-        'buttonOpacity': .94,
-        'fieldOpacity': .94,
-        'workspaceOpacity': .88,
-      });
-      expect(Appearance.fromJson(old).toJson(), a.toJson());
-      final custom = Appearance.fromJson({
-        ...old,
-        'fieldColor': 0xff123456,
-        'headerOpacity': .47,
-      });
-      expect(custom.fieldColor, 0xff123456);
-      expect(custom.headerOpacity, .47);
-      expect(custom.cardOpacity, .82);
-      expect(
-        FlexPalette(custom, Brightness.dark).field.toARGB32() & 0xffffff,
-        0x123456,
-      );
-    },
-  );
-
+    }
+  });
   test(
     'list styling replaces and toggles prefixes across selected lines; Enter renumbers following items',
     () {
@@ -734,6 +689,7 @@ void main() {
         final boundary = GlobalKey();
         final size = Size(view.$1, view.$2);
         await app(t, size: size, scale: view.$3, boundary: boundary);
+        await tap(t, find.byKey(const ValueKey('page-0')));
         if (find.byType(OverviewEntry).evaluate().isEmpty) {
           await t.scrollUntilVisible(
             find.byType(OverviewEntry).first,

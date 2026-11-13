@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:drift/native.dart';
@@ -18,28 +19,7 @@ import 'package:flex_notizbuch/ui/school_workspace.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async {
-    for (final pair in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(pair.key);
-      for (final asset in pair.value) {
-        loader.addFont(rootBundle.load(asset));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
 
   late SqliteNotebook repo;
   late NotebookController c;
@@ -134,6 +114,8 @@ void main() {
       });
       await c.saveRecord(initial);
       await app(tester);
+      await tester.tap(find.byKey(const ValueKey('page-0')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('overview-open-${initial.id}')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('status-task-partial')), findsOneWidget);
@@ -156,6 +138,11 @@ void main() {
           (await repo.schoolRecords()).single.taskState(initial.tasks.single),
           state,
         );
+        if (state == TaskState.missing) {
+          expect(find.text('Erneut aufgeben?'), findsOneWidget);
+          await tester.tap(find.text('So belassen'));
+          await tester.pumpAndSettle();
+        }
       }
       await tester.ensureVisible(
         find.byKey(const ValueKey('homework-task-details-task')),

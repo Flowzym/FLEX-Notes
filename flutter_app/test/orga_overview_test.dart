@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DelayedDraftStore extends SqliteNotebook {
   DelayedDraftStore(super.db);
@@ -45,23 +44,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late DelayedDraftStore repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = DelayedDraftStore(
       NotebookDatabase(
@@ -99,12 +82,9 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
-      ),
-    );
+    await t.pumpAndSettle();
+    // These workflows start from Aktuell; Live itself now opens Notizen.
+    await t.tap(find.byKey(const ValueKey('page-0')));
     await t.pumpAndSettle();
   }
 
@@ -376,7 +356,7 @@ void main() {
           isNot(Colors.transparent),
         );
         expect(find.byKey(ValueKey('observation-$positive')), findsNothing);
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         final saved = (await repo.schoolDrafts()).single.record;
         expect(saved.positive, contains(positive));
         expect(saved.negative, contains(negativeLabel));
@@ -688,7 +668,7 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-open-a')));
         expect(find.byKey(const ValueKey('pupil-entry-search')), findsNothing);
         await capture(t, key, 'pupil-dialog-$suffix');
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         await open(
           t,
           OrgaEditor(

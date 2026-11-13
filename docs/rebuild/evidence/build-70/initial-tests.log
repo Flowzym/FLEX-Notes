@@ -1,0 +1,61 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:01 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:02 +2: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:02 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:03 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: shared day updates current time with and without lessons and omits it on other dates
+00:03 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:04 +7: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:05 +8: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:06 +9: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:07 +10: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:07 +11: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value greater than or equal to <40>
+  Actual: <39.99999999999997>
+   Which: is not a value greater than or equal to <40>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart:434:13)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart line 434
+The test description was:
+  populated day week month remain usable at width 1100.0 scale 1.0
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:07 +11 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0 [E]
+  Test failed. See exception logs above.
+  The test description was: populated day week month remain usable at width 1100.0 scale 1.0
+  
+00:07 +11 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: calendar groups due pupils without losing the original entries
+00:07 +12 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day and dated creation
+00:08 +13 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:08 +14 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:09 +15 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:10 +16 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: lesson planning is created and linked atomically to this occurrence
+00:10 +17 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:10 +18 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:11 +19 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:11 +20 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:11 +21 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:18 +22 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: calendar body swipes dates while top pills change section; creation inherits selected date
+00:19 +23 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:20 +24 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 390.0/1.0
+00:21 +25 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:22 +26 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:23 +27 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:25 +28 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:25 +28 -1: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0

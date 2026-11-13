@@ -1,0 +1,73 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:03 +1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:04 +2: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:05 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:05 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: shared day updates current time with and without lessons and omits it on other dates
+00:07 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:08 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:09 +7: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:10 +8: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:11 +9: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:11 +10: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts exclude pupil entries and are resumable at large text
+00:11 +11: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: calendar groups due pupils without losing the original entries
+00:11 +12: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: calendar groups due pupils without losing the original entries
+00:12 +13: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day
+00:12 +14: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:13 +15: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:14 +16: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:15 +17: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:16 +18: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:16 +19: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:17 +20: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:18 +21: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:19 +22: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:19 +23: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: splitting a series preserves occurrence files and linked planning
+00:19 +24: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:20 +25: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:25 +26: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:25 +27: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:26 +28: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:28 +29: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:29 +30: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:30 +31: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:31 +32: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:33 +33: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value less than <330>
+  Actual: <332.4>
+   Which: is not a value less than <330>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart:312:11)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart line 312
+The test description was:
+  weekend and quick add remain reachable at 320.0/1.0
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:33 +33 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: adding a block leaves existing PDF blocks intact
+00:33 +33 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0 [E]
+  Test failed. See exception logs above.
+  The test description was: weekend and quick add remain reachable at 320.0/1.0
+  
+00:34 +34 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: adding a block leaves existing PDF blocks intact
+00:34 +35 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:34 +36 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:34 +37 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: lesson tap offers explicit single and future changes
+00:35 +38 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:36 +39 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:37 +40 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:37 +40 -1: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0

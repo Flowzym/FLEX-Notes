@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -18,7 +18,6 @@ import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/draft_buffer.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'package:flex_notizbuch/domain/drafts.dart';
 import 'package:flex_notizbuch/ui/pupil_card.dart';
 import 'package:flex_notizbuch/ui/flex_icons.dart';
@@ -39,28 +38,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late ControlledDraftNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = ControlledDraftNotebook(
       NotebookDatabase(
@@ -97,12 +75,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -164,7 +136,7 @@ void main() {
   }
 
   Future<void> close(WidgetTester t) =>
-      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
   Future<void> autosave(WidgetTester t) async {
     await t.pump(const Duration(milliseconds: 500));
     await t.pumpAndSettle();
@@ -666,12 +638,20 @@ void main() {
       await tap(t, find.text('Aufgabe hinzufügen'));
       await autosave(t);
       expect(await repo.dialogDrafts(), isEmpty);
-      await t.enterText(find.byType(TextFormField).first, 'Lesen');
+      final taskField = find
+          .byWidgetPredicate(
+            (w) =>
+                w is TextFormField &&
+                w.key is ValueKey<String> &&
+                (w.key! as ValueKey<String>).value.startsWith('task-'),
+          )
+          .first;
+      await t.enterText(taskField, 'Lesen');
       await t.testTextInput.receiveAction(TextInputAction.next);
       await autosave(t);
       final saved = (await repo.dialogDrafts()).single;
       expect((saved.data['tasks'] as List).first['text'], 'Lesen');
-      await t.enterText(find.byType(TextFormField).first, '');
+      await t.enterText(taskField, '');
       await autosave(t);
       expect(await repo.dialogDrafts(), isEmpty);
       await tap(t, find.text('Organisatorisches'));
@@ -821,7 +801,22 @@ void main() {
           of: find.byKey(const ValueKey('shortcut-a-social')),
           matching: find.byType(FlexIcon),
         );
-        expect(t.getRect(icon).overlaps(t.getRect(badge)), isFalse);
+        // The approved design places the count on the icon's lower-right
+        // edge. Keep it clear of the action label and within the touch target.
+        final badgeRect = t.getRect(badge);
+        final iconRect = t.getRect(icon);
+        final action = find.byKey(const ValueKey('shortcut-a-social'));
+        expect(badgeRect.center.dx, greaterThan(iconRect.center.dx));
+        expect(badgeRect.center.dy, greaterThan(iconRect.center.dy));
+        expect(badgeRect.right, lessThanOrEqualTo(t.getRect(action).right));
+        expect(
+          badgeRect.overlaps(
+            t.getRect(
+              find.descendant(of: action, matching: find.text('Sozial')),
+            ),
+          ),
+          isFalse,
+        );
         await capture(
           t,
           boundary,
@@ -926,7 +921,8 @@ void main() {
             );
             expect(
               t.getSize(find.byKey(const ValueKey('modal-header'))).height,
-              lessThan(110),
+              // The full pupil name and HÜ actions occupy two clear rows.
+              lessThan(144),
             );
           }
           await capture(

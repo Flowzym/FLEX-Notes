@@ -24,10 +24,7 @@ class OverviewEntry extends StatelessWidget {
     builder: (context) => InkWell(
       key: ValueKey('overview-open-$id'),
       onTap: onOpen,
-      borderRadius: BorderRadius.circular(
-        Theme.of(context).extension<FlexSurfaces>()?.appearance?.cardRadius ??
-            22,
-      ),
+      borderRadius: BorderRadius.circular(FlexDesign.cardRadius),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         child: Row(

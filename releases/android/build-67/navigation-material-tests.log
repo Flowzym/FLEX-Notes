@@ -1,0 +1,40 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: reading scale validates independently of retired design options
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:02 +2: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:03 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:05 +4: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:05 +5: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts exclude pupil entries and are resumable at large text
+00:05 +6: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:05 +7: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:07 +8: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:08 +9: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+00:09 +10: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:09 +11: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+00:09 +12: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+00:09 +13: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+00:10 +14: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material format, sort, layout and reset work together
+00:10 +15: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:11 +16: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:11 +17: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material trash can restore a file without exposing preparation actions
+00:11 +18: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 0.8
+00:12 +19: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+00:13 +20: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:13 +21: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:13 +22: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:13 +23: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+00:14 +24: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+00:14 +25: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:14 +26: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:14 +27: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:15 +28: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:15 +29: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:15 +30: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:15 +31: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:16 +32: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:16 +33: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:17 +34: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 320.0/2.0
+00:17 +35: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+00:17 +36: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: (tearDownAll)
+00:17 +36: All tests passed!

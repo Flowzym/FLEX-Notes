@@ -75,7 +75,7 @@ class _ReturnListsState extends State<ReturnLists> {
                   .compareTo(b.text('dueDate', '9999')),
             );
       return ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
         children: [
           CollapsibleSearch(
             controller: search,
@@ -117,21 +117,41 @@ class _ReturnListsState extends State<ReturnLists> {
               'Keine passenden Rückläufe.',
               icon: Icons.fact_check_outlined,
             ),
-          for (final d in docs)
-            FlexCard(
-              child: ListTile(
-                title: Text(d.title),
-                subtitle: Text(
-                  '${displayDate(d.text('dueDate').isEmpty ? null : d.text('dueDate'))} · ${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => showReturnDetail(ctx, c, d.id),
-              ),
-            ),
+          for (final d in docs) ReturnListCard(controller: c, document: d),
         ],
       );
     },
   );
+}
+
+class ReturnListCard extends StatelessWidget {
+  const ReturnListCard({
+    super.key,
+    required this.controller,
+    required this.document,
+  });
+  final NotebookController controller;
+  final ClassroomDocument document;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = document;
+    return FlexCard(
+      key: ValueKey('return-entry-${d.id}'),
+      child: ListTile(
+        leading: const Icon(Icons.fact_check_outlined),
+        title: Text(d.title),
+        subtitle: Text(
+          [
+            'Rücklauf · ${d.flag('closed') ? 'Abgeschlossen' : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
+            if (d.text('dueDate').isNotEmpty) displayDate(d.text('dueDate')),
+          ].join('\n'),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showReturnDetail(context, controller, d.id),
+      ),
+    );
+  }
 }
 
 Future<void> showReturnDetail(
@@ -345,8 +365,8 @@ class _ReturnDetailState extends State<ReturnDetail> {
     ].join('\n');
     final bytes = await briefPdf(
       text: text,
-      regularFont: await rootBundle.load('assets/fonts/Selawik-Regular.ttf'),
-      boldFont: await rootBundle.load('assets/fonts/Selawik-Bold.ttf'),
+      regularFont: await rootBundle.load('assets/fonts/Inter-Regular.ttf'),
+      boldFont: await rootBundle.load('assets/fonts/Inter-Bold.ttf'),
     );
     await saveBytesFile(
       'FLEX-Ruecklauf-${dateOnly(DateTime.now())}.pdf',

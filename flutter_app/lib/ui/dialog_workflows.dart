@@ -1,5 +1,3 @@
-import 'dart:convert';
-import '../domain/document_scanner.dart';
 import 'document_attachments.dart';
 import 'compact_switch.dart';
 import 'draft_actions.dart';
@@ -19,8 +17,14 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'school_editor.dart';
 import 'school_workspace.dart';
+import 'entry_navigation.dart';
 
 typedef DraftBody = Widget Function(BuildContext, Json, ValueChanged<Json>);
+typedef DraftNavigation =
+    Widget Function(
+      Widget content,
+      Future<void> Function(ValueChanged<DialogDraft>) navigate,
+    );
 
 class ProtectedDialog extends StatefulWidget {
   const ProtectedDialog({
@@ -35,6 +39,8 @@ class ProtectedDialog extends StatefulWidget {
     this.draft,
     this.accept = 'Speichern',
     this.maxWidth = 760,
+    this.navigation,
+    this.entryOwner,
   });
   final NotebookController controller;
   final String type, ownerId, title, accept;
@@ -43,11 +49,16 @@ class ProtectedDialog extends StatefulWidget {
   final Future<void> Function(Json, DialogDraft) save;
   final DialogDraft? draft;
   final double maxWidth;
+  final DraftNavigation? navigation;
+  final String? entryOwner;
+  static ProtectedDialogState of(BuildContext context) =>
+      context.findAncestorStateOfType<ProtectedDialogState>()!;
+
   @override
-  State<ProtectedDialog> createState() => _ProtectedDialogState();
+  State<ProtectedDialog> createState() => ProtectedDialogState();
 }
 
-class _ProtectedDialogState extends State<ProtectedDialog>
+class ProtectedDialogState extends State<ProtectedDialog>
     with WidgetsBindingObserver {
   late DraftBuffer buffer;
   late Json data;
@@ -69,6 +80,14 @@ class _ProtectedDialogState extends State<ProtectedDialog>
         if (mounted) setState(() {});
       },
       initial: widget.draft,
+      retainEmpty: (draft) {
+        if (!{'bulk', 'classroom'}.contains(draft.type)) return false;
+        final scope = draft.type == 'bulk'
+            ? bulkDraftScanContext(draft.id)
+            : classroomDraftScanContext(draft);
+        return widget.controller.classroom.any(scope.matchesMaterial) ||
+            widget.controller.dialogDrafts.any(scope.matchesDraft);
+      },
     );
   }
 
@@ -148,9 +167,54 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     }
   }
 
-  Future<void> save({
-    Future<void> Function(BuildContext, DialogDraft)? afterSave,
-  }) async {
+  /// Persist the owner before capture/import can leave the app. Keep attachment
+  /// links on the draft until its record is successfully published.
+  Future<void> withSavedDraft(Future<void> Function(DialogDraft) action) async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      await action(buffer.draft);
+      await widget.controller.reload();
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> openAttachment(bool scan, {String? taskId}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      final scope = bulkDraftScanContext(buffer.draft.id, taskId: taskId);
+      if (scan) {
+        await scanAndShow(context, widget.controller, scope);
+      } else {
+        await showContextDocuments(context, widget.controller, scope);
+      }
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> save() async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -161,16 +225,26 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       await widget.save(data, buffer.draft);
       await widget.controller.reload();
       if (mounted) {
-        final host = Navigator.of(context).context;
         await pop();
-        if (afterSave != null && host.mounted) {
-          await afterSave(host, buffer.draft);
-        }
       }
     } catch (e) {
       if (mounted) setState(() => error = friendlyError(e));
     }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> navigate(ValueChanged<DialogDraft> changePage) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush();
+      await widget.controller.reload();
+      if (mounted) changePage(buffer.draft);
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -187,6 +261,19 @@ class _ProtectedDialogState extends State<ProtectedDialog>
           closeLabel: 'Schließen und Entwurf sichern',
           maxWidth: widget.maxWidth,
           title: Text(widget.title),
+          headerContent: widget.entryOwner == null
+              ? null
+              : EntryPageHeader(
+                  owner: widget.entryOwner!,
+                  title: widget.title,
+                  onClose: busy ? null : close,
+                  titleActions: [
+                    if (buffer.hasContent || buffer.draft.revision > 0)
+                      EditorDraftDeleteButton(
+                        onPressed: busy ? null : deleteDraft,
+                      ),
+                  ],
+                ),
           headerActions: [
             if (buffer.hasContent || buffer.draft.revision > 0)
               EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
@@ -198,7 +285,10 @@ class _ProtectedDialogState extends State<ProtectedDialog>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                widget.body(context, data, change),
+                if (widget.navigation case final navigation?)
+                  navigation(widget.body(context, data, change), navigate)
+                else
+                  widget.body(context, data, change),
                 DraftStatus(buffer: buffer),
                 if (error != null)
                   Padding(
@@ -469,8 +559,7 @@ Future<void> showBulk(
   String initialKind = 'social',
   String initialSubject = '',
 }) async {
-  final editorKey = GlobalKey<_ProtectedDialogState>();
-  final attachmentOwner = newId();
+  final editorKey = GlobalKey<ProtectedDialogState>();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;
@@ -514,71 +603,22 @@ Future<void> showBulk(
         final kind = data['kind'] as String,
             ids = List<String>.from(data['recipients'] as List);
         final individuals = Json.from(data['individual'] as Map);
-        Future<void> openDocuments(
+        Widget attachments({
           HomeworkTask? task,
-          bool scan,
-        ) => guarded(ctx, () async {
-          final tasks = (data['tasks'] as List? ?? [])
-              .map((t) => HomeworkTask.fromJson(Json.from(t as Map)))
-              .where((t) => t.text.trim().isNotEmpty)
-              .toList();
-          final index = task == null
-              ? -1
-              : tasks.indexWhere((t) => t.id == task.id);
-          if (task != null && index < 0) {
-            throw const DomainError(
-              'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
-            );
-          }
-          await editorKey.currentState?.save(
-            afterSave: (host, saved) async {
-              final group = (await c.repository.schoolGroups()).firstWhere(
-                (g) => g['id'] == saved.id,
-              );
-              final request = Json.from(
-                jsonDecode(group['request'] as String) as Map,
-              );
-              final records = (request['school'] as List)
-                  .map((r) => SchoolRecord.fromJson(Json.from(r as Map)))
-                  .toList();
-              final entries = (request['orga'] as List)
-                  .map((e) => OrgaEntry.fromJson(Json.from(e as Map)))
-                  .toList();
-              final scope = records.isNotEmpty
-                  ? schoolScanContext(
-                      c,
-                      records,
-                      taskIds: {
-                        if (index >= 0)
-                          for (final r in records) r.id: r.tasks[index].id,
-                      },
-                    )
-                  : ScanContext(
-                      pupilIds: ids,
-                      links: entries
-                          .map((e) => DocumentLink('orga', e.id))
-                          .toList(),
-                      title: 'FLEX-Klasse · Orga',
-                      category: 'form',
-                    );
-              if (!host.mounted) return;
-              if (scan) {
-                await scanAndShow(host, c, scope);
-              } else {
-                await showContextDocuments(host, c, scope);
-              }
-            },
-          );
-        });
-        Widget attachments({HomeworkTask? task}) => DocumentAttachmentSection(
+          bool showActions = true,
+        }) => DocumentAttachmentSection(
           controller: c,
-          // This context is deliberately unique until the group has been saved.
-          scope: ScanContext(links: [DocumentLink('school', attachmentOwner)]),
-          saveFirst: true,
+          scope: bulkDraftScanContext(
+            editorKey.currentState!.buffer.draft.id,
+            taskId: task?.id,
+          ),
           compact: task != null,
-          showFiles: task == null,
-          onScan: () => openDocuments(task, true),
-          onDocuments: () => openDocuments(task, false),
+          showActions: showActions,
+          showFiles: task == null || !showActions,
+          onScan: () =>
+              editorKey.currentState?.openAttachment(true, taskId: task?.id),
+          onDocuments: () =>
+              editorKey.currentState?.openAttachment(false, taskId: task?.id),
         );
         Widget text(String key, String label, {int lines = 1}) => TextFormField(
           key: ValueKey('bulk-$kind-$key'),
@@ -712,6 +752,7 @@ Future<void> showBulk(
                 }),
               ),
             ],
+            text('otherParticipants', 'Andere Person / weitere Namen'),
             if (kind == 'social' || kind == 'work') ...[
               const Text('Gemeinsamer Ablauf'),
               if (kind == 'social')
@@ -754,7 +795,6 @@ Future<void> showBulk(
                 ],
                 onChanged: (v) => change({'context': v}),
               ),
-              if (kind == 'social') text('otherParticipants', 'Weitere Namen'),
               for (final pupil in c.pupils.where((p) => ids.contains(p.id)))
                 Builder(
                   builder: (ctx) {
@@ -845,6 +885,8 @@ Future<void> showBulk(
             if (kind == 'homework') ...[
               HomeworkTaskEditor(
                 attachmentActionsBuilder: (task) => attachments(task: task),
+                attachmentBuilder: (task) =>
+                    attachments(task: task, showActions: false),
                 tasks: (data['tasks'] as List)
                     .map((v) => HomeworkTask.fromJson(Json.from(v as Map)))
                     .toList(),

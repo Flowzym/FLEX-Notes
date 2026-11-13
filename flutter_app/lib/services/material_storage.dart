@@ -6,7 +6,7 @@ import 'material_storage_io.dart'
     if (dart.library.js_interop) 'material_storage_web.dart'
     as platform;
 
-/// Binary documents live outside the notebook backup, on the current device.
+/// Binary storage on this device; complete backups include referenced files.
 class LocalMaterialFiles implements MaterialFiles {
   const LocalMaterialFiles();
   static final MaterialFiles _store = platform.createMaterialFiles();

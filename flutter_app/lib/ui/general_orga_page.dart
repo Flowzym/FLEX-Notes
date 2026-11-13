@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
 import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'flex_modal.dart';
+import 'return_lists.dart';
 
-/// Shared class entries, exposed as focused task/note views without copying data.
+/// Entries by kind, including pupil assignments, without copying data.
 class GeneralOrgaPage extends StatefulWidget {
   const GeneralOrgaPage({
     super.key,
@@ -28,7 +30,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-  String query = '', filter = 'all';
+  String query = '', filter = 'all', typeFilter = 'all';
   final search = TextEditingController();
   @override
   void dispose() {
@@ -41,7 +43,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
     builder: (ctx) => AnimatedBuilder(
       animation: widget.controller,
       builder: (ctx, _) => FlexModal(
-        title: const Text('Allgemeine Entwürfe'),
+        title: const Text('Entwürfe'),
         onClose: () => Navigator.pop(ctx),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -57,6 +59,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
+                subtitle: Text(widget.controller.owner(draft.entry)),
                 onTap: () => widget.onEditDraft(draft),
                 trailing: DraftDeleteButton(
                   onDelete: () async {
@@ -69,7 +72,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                 ),
               ),
             if (!widget.controller.drafts.any((d) => matches(d.entry)))
-              const Text('Keine allgemeinen Entwürfe.'),
+              const Text('Keine Entwürfe.'),
           ],
         ),
       ),
@@ -77,7 +80,10 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
   );
 
   bool matches(OrgaEntry e) =>
-      e.pupilId == null &&
+      (e.pupilId == null ||
+          widget.controller.pupils.any(
+            (p) => p.id == e.pupilId && !p.archived,
+          )) &&
       !e.deleted &&
       switch (widget.kind) {
         'task' => e.isTask,
@@ -95,34 +101,81 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
             .where(
               (e) =>
                   matches(e) &&
-                  '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}'
+                  typeFilter != 'returns' &&
+                  (typeFilter == 'all' ||
+                      typeFilter == 'tasks' && e.isTask ||
+                      typeFilter == 'appointments' && e.isAppointment ||
+                      typeFilter == 'notes' && !e.isTask && !e.isAppointment) &&
+                  '${e.title} ${e.body} ${c.owner(e)} ${e.items.map((i) => i.text).join(' ')}'
                       .toLowerCase()
                       .contains(query.toLowerCase()) &&
-                  (filter == 'all' ||
-                      (filter == 'appointments'
-                          ? e.isAppointment
-                          : filter == 'notes'
-                          ? !e.isTask && !e.isAppointment
-                          : e.isTask && e.done == (filter == 'done'))),
+                  (filter == 'all' || e.isTask && e.done == (filter == 'done')),
             )
             .toList();
-        values.sort((a, b) {
+        final returns = c.classroom.where(
+          (d) =>
+              widget.kind != 'note' &&
+              (typeFilter == 'all' || typeFilter == 'returns') &&
+              d.kind == ClassroomKind.returnList &&
+              !d.deleted &&
+              '${d.title} ${d.text('note')} ${d.text('otherParticipants')} ${d.rows('participants').map((r) => r['name']).join(' ')}'
+                  .toLowerCase()
+                  .contains(query.toLowerCase()) &&
+              (filter == 'all' || d.flag('closed') == (filter == 'done')),
+        );
+        final items =
+            <
+              ({
+                OrgaEntry? entry,
+                ClassroomDocument? document,
+                bool done,
+                String due,
+                String updated,
+              })
+            >[
+              for (final e in values)
+                (
+                  entry: e,
+                  document: null,
+                  done: e.done,
+                  due: e.dueDate ?? '9999',
+                  updated: e.updatedAtUtc,
+                ),
+              for (final d in returns)
+                (
+                  entry: null,
+                  document: d,
+                  done: d.flag('closed'),
+                  due: d.text('dueDate').isEmpty ? '9999' : d.text('dueDate'),
+                  updated: d.text('updatedAtUtc'),
+                ),
+            ];
+        items.sort((a, b) {
           if (widget.kind == 'task') {
             if (a.done != b.done) return a.done ? 1 : -1;
-            final date = (a.dueDate ?? '9999').compareTo(b.dueDate ?? '9999');
+            final date = a.due.compareTo(b.due);
             if (date != 0) return date;
           }
-          return b.updatedAtUtc.compareTo(a.updatedAtUtc);
+          return b.updated.compareTo(a.updated);
         });
         final title = switch (widget.kind) {
           'task' => 'Aufgaben',
-          'note' => 'Allgemeine Notizen',
+          'note' => 'Notizen',
           _ => 'Organisation',
         };
         final drafts = c.drafts.where((d) => matches(d.entry)).length;
+        final types = {
+          'all': 'Alle Arten',
+          'tasks': 'Aufgaben',
+          'returns': 'Rückläufe',
+          if (widget.kind == 'all') ...{
+            'notes': 'Notizen',
+            'appointments': 'Termine',
+          },
+        };
         return ListView(
           key: PageStorageKey('general-${widget.kind}'),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             CollapsibleSearch(
               controller: search,
@@ -168,28 +221,61 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                     'all': 'Alle',
                     'open': 'Offen',
                     'done': 'Erledigt',
-                    if (widget.kind == 'all') ...{
-                      'notes': 'Notizen',
-                      'appointments': 'Termine',
-                    },
                   }.entries)
                     ChoiceChip(
                       label: Text(option.value),
                       selected: filter == option.key,
                       onSelected: (_) => setState(() => filter = option.key),
                     ),
+                  Semantics(
+                    container: true,
+                    button: true,
+                    child: PopupMenuButton<String>(
+                      key: ValueKey('general-type-filter-${widget.kind}'),
+                      tooltip: 'Eintragsart filtern',
+                      initialValue: typeFilter,
+                      onSelected: (value) => setState(() => typeFilter = value),
+                      itemBuilder: (_) => [
+                        for (final type in types.entries)
+                          CheckedPopupMenuItem(
+                            value: type.key,
+                            checked: type.key == typeFilter,
+                            child: Text(type.value),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.filter_list, size: 18),
+                            const SizedBox(width: 6),
+                            Text(types[typeFilter]!),
+                            const Icon(Icons.expand_more, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             const SizedBox(height: 12),
-            if (values.isEmpty)
+            if (items.isEmpty)
               Text(
                 widget.kind == 'task'
-                    ? 'Keine passenden allgemeinen Aufgaben.'
+                    ? 'Keine passenden Aufgaben.'
                     : widget.kind == 'note'
-                    ? 'Keine passenden allgemeinen Notizen.'
+                    ? 'Keine passenden Notizen.'
                     : 'Keine passenden Orga-Einträge.',
               ),
-            for (final entry in values) widget.entryBuilder(entry),
+            for (final item in items)
+              if (item.entry != null)
+                widget.entryBuilder(item.entry!)
+              else
+                ReturnListCard(controller: c, document: item.document!),
           ],
         );
       },

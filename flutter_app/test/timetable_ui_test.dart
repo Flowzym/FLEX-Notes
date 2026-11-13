@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -16,15 +17,7 @@ import 'classroom_test.dart' show classroomMemory;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(font.key)..addFont(rootBundle.load(font.value))).load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() {
     for (final channel in [
       'plugins.it_nomads.com/flutter_secure_storage',
@@ -118,123 +111,102 @@ void main() {
     });
   }
 
+  Future<void> manage(WidgetTester t) =>
+      tap(t, find.byKey(const ValueKey('calendar-edit-timetable')));
+  Future<void> editFirst(WidgetTester t) =>
+      tap(t, find.byTooltip('Block bearbeiten').first);
+
   for (final setting in [(390.0, 1.0), (320.0, 2.0), (1100.0, 1.0)]) {
     testWidgets(
-      'timetable direct access, readable blocks and editor at ${setting.$1}/${setting.$2}',
+      'unified calendar and editable base plan at ${setting.$1}/${setting.$2}',
       (t) async {
         final c = await controller(),
             key = await host(t, c, width: setting.$1, scale: setting.$2);
-        expect(find.text('Stundenplan').hitTestable(), findsOneWidget);
-        await tap(t, find.text('Stundenplan'));
-        expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
-        expect(find.byType(Dialog), findsNothing);
-        expect(t.takeException(), isNull);
-        await screenshot(
-          t,
-          key,
-          'timetable-${setting.$1.toInt()}-${setting.$2.toInt()}',
-        );
-        await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-        await screenshot(
-          t,
-          key,
-          'timetable-day-${setting.$1.toInt()}-${setting.$2.toInt()}',
-        );
         expect(find.text('07:45–11:30'), findsOneWidget);
-        await tap(
+        await screenshot(
           t,
-          find.descendant(
-            of: find.byKey(const ValueKey('timetable-view')),
-            matching: find.text('Flexk'),
-          ),
+          key,
+          'unified-day-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
-        expect(find.text('Unterrichtsblock'), findsOneWidget);
+        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        await screenshot(
+          t,
+          key,
+          'unified-week-${setting.$1.toInt()}-${setting.$2.toInt()}',
+        );
+        await manage(t);
+        expect(find.text('Stundenzeiten'), findsOneWidget);
+        await editFirst(t);
         expect(find.byKey(const ValueKey('timetable-title')), findsOneWidget);
-        expect(t.takeException(), isNull);
         await screenshot(
           t,
           key,
           'timetable-editor-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
-        await tap(t, find.text('Abbrechen'));
+        expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox());
       },
     );
   }
-
+  testWidgets('base plan editing retains keyboard focus and custom times', (
+    t,
+  ) async {
+    final c = await controller();
+    await host(t, c);
+    await manage(t);
+    await editFirst(t);
+    final title = find.byKey(const ValueKey('timetable-title'));
+    await enter(t, title, 'Lernatelier');
+    await t.pump(const Duration(seconds: 2));
+    await t.pumpAndSettle();
+    expect(
+      t
+          .widget<EditableText>(
+            find.descendant(of: title, matching: find.byType(EditableText)),
+          )
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+    expect(t.testTextInput.isVisible, isTrue);
+    await enter(
+      t,
+      find.byKey(const ValueKey('timetable-clock-start-p1-p2-p3-p4')),
+      '08:00',
+    );
+    await tap(t, find.byKey(const ValueKey('timetable-weekday')));
+    await tap(t, find.text('Dienstag').last);
+    await tap(t, find.text('Speichern'));
+    final saved = c.classroom.singleWhere((d) => d.title == 'Lernatelier');
+    expect(saved.text('date'), '2026-11-10');
+    expect(saved.strings('slotIds'), ['p1', 'p2', 'p3', 'p4']);
+    expect(
+      lessonOccurrences(
+        c.classroom,
+        '2026-11-10',
+        '2026-11-10',
+      ).singleWhere((l) => l.title == 'Lernatelier').start,
+      '08:00',
+    );
+    expect(c.dialogDrafts, isEmpty);
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
   testWidgets(
-    'edit retains keyboard focus through autosave and updates the actual calendar',
+    'span deletion restoration and shared period hours stay editable',
     (t) async {
       final c = await controller();
       await host(t, c);
-      await tap(t, find.text('Stundenplan'));
-      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-      await tap(
-        t,
-        find.descendant(
-          of: find.byKey(const ValueKey('timetable-view')),
-          matching: find.text('Flexk'),
-        ),
-      );
-      final title = find.byKey(const ValueKey('timetable-title'));
-      await enter(t, title, 'Lernatelier');
-      await t.pump(const Duration(seconds: 2));
-      await t.pumpAndSettle();
-      final editable = t.widget<EditableText>(
-        find.descendant(of: title, matching: find.byType(EditableText)),
-      );
-      expect(editable.focusNode.hasFocus, isTrue);
-      expect(t.testTextInput.isVisible, isTrue);
-      await enter(
-        t,
-        find.byKey(const ValueKey('timetable-clock-start-p1-p2-p3-p4')),
-        '08:00',
-      );
-      await tap(t, find.byKey(const ValueKey('timetable-weekday')));
-      await tap(t, find.text('Dienstag').last);
-      await tap(t, find.text('Speichern'));
-      final saved = c.classroom.singleWhere((d) => d.title == 'Lernatelier');
-      expect(saved.text('date'), '2026-11-10');
-      expect(saved.strings('slotIds'), ['p1', 'p2', 'p3', 'p4']);
-      expect(
-        lessonOccurrences(
-          c.classroom,
-          '2026-11-10',
-          '2026-11-10',
-        ).singleWhere((l) => l.title == 'Lernatelier').start,
-        '08:00',
-      );
-      expect(c.dialogDrafts, isEmpty);
-      expect(t.takeException(), isNull);
-      await t.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets(
-    'period span, deletion, restore and general time changes persist',
-    (t) async {
-      final c = await controller();
-      await host(t, c);
-      await tap(t, find.text('Stundenplan'));
-      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-      await tap(
-        t,
-        find.descendant(
-          of: find.byKey(const ValueKey('timetable-view')),
-          matching: find.text('Flexk'),
-        ),
-      );
+      await manage(t);
+      await editFirst(t);
       await tap(t, find.byKey(const ValueKey('timetable-last-p4')));
       await tap(t, find.text('5. · 12:25').last);
       await tap(t, find.text('Speichern'));
-      expect(find.text('07:45–12:25'), findsOneWidget);
-      await tap(
-        t,
-        find.descendant(
-          of: find.byKey(const ValueKey('timetable-view')),
-          matching: find.text('Flexk'),
-        ),
+      expect(
+        lessonOccurrences(c.classroom, '2026-11-09', '2026-11-09').first.end,
+        '12:25',
       );
+      await editFirst(t);
       await tap(t, find.text('Block entfernen'));
       await tap(t, find.text('Speichern'));
       expect(
@@ -245,9 +217,7 @@ void main() {
         ).where((l) => l.title == 'Flexk'),
         isEmpty,
       );
-      await tap(t, find.text('Verwalten'));
       await tap(t, find.byTooltip('Block wiederherstellen'));
-      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
       expect(
         lessonOccurrences(
           c.classroom,
@@ -271,161 +241,115 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
-
-  testWidgets(
-    'cancelled block draft reopens with span, teacher and removal action',
-    (t) async {
-      final c = await controller();
-      await host(t, c);
-      await tap(t, find.text('Stundenplan'));
-      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-      await tap(
-        t,
-        find.descendant(
-          of: find.byKey(const ValueKey('timetable-view')),
-          matching: find.text('Flexk'),
-        ),
-      );
-      await enter(t, find.byKey(const ValueKey('timetable-title')), 'Entwurf');
-      await tap(t, find.text('Abbrechen'));
-      expect(c.dialogDrafts, hasLength(1));
-      final ctx = t.element(find.byKey(const ValueKey('timetable-view')));
-      resumeTimetableDraft(ctx, c, c.dialogDrafts.single);
-      await t.pumpAndSettle();
-      expect(
-        t
-            .widget<TextFormField>(
-              find.byKey(const ValueKey('timetable-title')),
-            )
-            .initialValue,
-        'Entwurf',
-      );
-      await t.ensureVisible(find.text('Block entfernen'));
-      expect(find.text('Block entfernen'), findsOneWidget);
-      await tap(t, find.text('Speichern'));
-      expect(c.dialogDrafts, isEmpty);
-      expect(c.classroom.any((d) => d.title == 'Entwurf'), isTrue);
-      expect(t.takeException(), isNull);
-      await t.pumpWidget(const SizedBox());
-    },
-  );
-  testWidgets(
-    'adding a block saves its custom name and time without altering the PDF blocks',
-    (t) async {
-      final c = await controller();
-      await host(t, c);
-      await tap(t, find.text('Stundenplan'));
-      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-      await tap(t, find.text('Block hinzufügen'));
-      await enter(t, find.byKey(const ValueKey('timetable-title')), 'Lernzeit');
-      await enter(
-        t,
-        find.byKey(const ValueKey('timetable-clock-start-p1')),
-        '16:10',
-      );
-      await enter(
-        t,
-        find.byKey(const ValueKey('timetable-clock-end-p1')),
-        '17:00',
-      );
-      await tap(t, find.text('Speichern'));
-      final blocks = c.classroom
-          .where((d) => d.kind == ClassroomKind.lesson)
-          .toList();
-      expect(blocks, hasLength(13));
-      expect(
-        blocks.singleWhere((d) => d.title == 'Lernzeit').text('start'),
-        '16:10',
-      );
-      expect(blocks.where((d) => d.title == 'Flexk'), hasLength(5));
-      expect(t.takeException(), isNull);
-      await t.pumpWidget(const SizedBox());
-    },
-  );
-  testWidgets('subpages retain independent dates, modes and scroll positions', (
+  testWidgets('cancelled block draft resumes without losing its controls', (
     t,
   ) async {
     final c = await controller();
     await host(t, c);
-    await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
-    await tap(t, find.byTooltip('Nächster Zeitraum'));
-    expect(find.text('Dezember 2026'), findsOneWidget);
-    await tap(t, find.byKey(const ValueKey('calendar-section-timetable')));
-    expect(
-      find.byKey(const ValueKey('calendar-time-grid-week')),
-      findsOneWidget,
+    await manage(t);
+    await editFirst(t);
+    await enter(t, find.byKey(const ValueKey('timetable-title')), 'Entwurf');
+    await tap(t, find.text('Abbrechen'));
+    expect(c.dialogDrafts, hasLength(1));
+    resumeTimetableDraft(
+      t.element(find.text('Stundenplan verwalten')),
+      c,
+      c.dialogDrafts.single,
     );
-    expect(find.text('Monat'), findsNothing);
-    await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
-    await tap(t, find.byTooltip('Nächster Zeitraum'));
-    expect(find.text('02.12.2026'), findsOneWidget);
-    final scroll = find.byKey(const PageStorageKey('timetable-page'));
-    await t.drag(scroll, const Offset(0, -250));
     await t.pumpAndSettle();
-    final offset = t
-        .state<ScrollableState>(
-          find.descendant(of: scroll, matching: find.byType(Scrollable)).first,
-        )
-        .position
-        .pixels;
-    expect(offset, greaterThan(0));
-    await tap(t, find.byKey(const ValueKey('calendar-section-calendar')));
-    expect(find.text('Dezember 2026'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('calendar-month-2026-12-01')),
-      findsOneWidget,
-    );
-    await tap(t, find.byKey(const ValueKey('calendar-section-timetable')));
-    expect(find.text('02.12.2026'), findsOneWidget);
     expect(
       t
-          .state<ScrollableState>(
-            find
-                .descendant(of: scroll, matching: find.byType(Scrollable))
-                .first,
-          )
-          .position
-          .pixels,
-      offset,
+          .widget<TextFormField>(find.byKey(const ValueKey('timetable-title')))
+          .initialValue,
+      'Entwurf',
     );
+    await t.ensureVisible(find.text('Block entfernen'));
+    await tap(t, find.text('Speichern'));
+    expect(c.dialogDrafts, isEmpty);
+    expect(c.classroom.any((d) => d.title == 'Entwurf'), isTrue);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
   });
-
+  testWidgets('adding a block leaves existing PDF blocks intact', (t) async {
+    final c = await controller();
+    await host(t, c);
+    await manage(t);
+    await tap(t, find.text('Block hinzufügen'));
+    await enter(t, find.byKey(const ValueKey('timetable-title')), 'Lernzeit');
+    await enter(
+      t,
+      find.byKey(const ValueKey('timetable-clock-start-p1')),
+      '16:10',
+    );
+    await enter(
+      t,
+      find.byKey(const ValueKey('timetable-clock-end-p1')),
+      '17:00',
+    );
+    await tap(t, find.text('Speichern'));
+    expect(
+      c.classroom.where((d) => d.kind == ClassroomKind.lesson),
+      hasLength(13),
+    );
+    expect(c.classroom.where((d) => d.title == 'Flexk'), hasLength(5));
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
   testWidgets(
-    'timetable day and week use dated occurrences and preserve calendar appointments',
+    'lesson switch preserves selected day, appointments and stored data',
     (t) async {
       final c = await controller();
-      await c.repository.saveEntry(
+      await c.saveEntry(
         OrgaEntry.empty().copyWith(
           title: 'Gespräch',
-          appointmentDate: '2026-11-09',
-          appointmentTime: '09:00',
+          appointmentDate: '2026-11-10',
+          appointmentTime: '12:45',
         ),
       );
       final block = c.classroom.singleWhere(
         (d) => d.title == 'Flexk' && d.text('date') == '2026-11-09',
       );
       await c.saveClassroom(
-        patchLessonOccurrence(block, '2026-11-09', {
-          'movedTo': '2026-11-10',
-          'start': '08:00',
-          'end': '11:00',
-        }),
+        patchLessonOccurrence(block, '2026-11-09', {'cancelled': true}),
       );
       await host(t, c);
-      await tap(t, find.text('Stundenplan'));
-      expect(find.text('Gespräch'), findsNothing);
-      await tap(t, find.byKey(const ValueKey('timetable-mode-day')));
       expect(find.text('Flexk'), findsNothing);
       await tap(t, find.byTooltip('Nächster Zeitraum'));
-      expect(find.text('10.11.2026'), findsOneWidget);
-      expect(find.text('Flexk'), findsNWidgets(2));
-      expect(find.text('08:00–11:00'), findsOneWidget);
-      await tap(t, find.byKey(const ValueKey('calendar-section-calendar')));
       expect(find.text('Gespräch'), findsOneWidget);
+      expect(find.text('Flexk'), findsOneWidget);
+      final before = c.classroom.map((d) => d.toJson()).toList();
+      await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+      expect(find.text('Flexk'), findsNothing);
+      expect(find.text('Gespräch'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+      expect(find.text('Gespräch'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
+      expect(find.text('Flexk'), findsOneWidget);
+      expect(c.classroom.map((d) => d.toJson()).toList(), before);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('lesson tap offers explicit single and future changes', (
+    t,
+  ) async {
+    final c = await controller();
+    await host(t, c);
+    await tap(t, find.text('Flexk'));
+    expect(find.text('Nur diesen Termin bearbeiten'), findsOneWidget);
+    expect(find.text('Stundenplan ab 09.11.2026 ändern'), findsOneWidget);
+    await tap(t, find.text('Nur diesen Termin bearbeiten'));
+    await enter(t, find.byKey(const ValueKey('classroom-title')), 'Nur heute');
+    await tap(t, find.text('Speichern'));
+    expect(
+      lessonOccurrences(c.classroom, '2026-11-09', '2026-11-09').first.title,
+      'Nur heute',
+    );
+    expect(
+      lessonOccurrences(c.classroom, '2026-11-16', '2026-11-16').first.title,
+      'Flexk',
+    );
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
 }

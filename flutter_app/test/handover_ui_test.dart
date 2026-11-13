@@ -1,12 +1,11 @@
+import 'support/app_test_fonts.dart';
 import 'package:flex_notizbuch/ui/detail_flow.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -46,28 +45,7 @@ class ControlledNotebook extends SqliteNotebook {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async {
-    for (final item in const {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(item.key);
-      for (final asset in item.value) {
-        loader.addFont(rootBundle.load(asset));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   late ControlledNotebook repo;
   late NotebookController c;
   setUp(() async {
@@ -105,12 +83,6 @@ void main() {
               child: FlexApp(controller: c),
             ),
     );
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        tester.element(find.byType(FlexBackground)),
-      ),
-    );
     await tester.pumpAndSettle();
   }
 
@@ -130,9 +102,9 @@ void main() {
 
   Future<void> closeModal(WidgetTester tester) async {
     await tester.ensureVisible(
-      find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last,
+      find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')).last,
     );
-    await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')).last);
+    await tester.tap(find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')).last);
     await tester.pumpAndSettle();
   }
 
@@ -186,7 +158,7 @@ void main() {
   }
 
   testWidgets(
-    'reference navigation, 3+2 pupil cards and search focus replace the old page layout',
+    'open pupil rows retain all five aligned actions and search focus',
     (tester) async {
       await app(tester, const Size(1100, 900));
       expect(find.byType(NavigationRail), findsNothing);
@@ -210,13 +182,13 @@ void main() {
       expect(shortcut(FlexSymbol.homework).top, shortcut(FlexSymbol.orga).top);
       expect(
         shortcut(FlexSymbol.homework).top,
-        greaterThan(shortcut(FlexSymbol.goal).bottom),
+        equals(shortcut(FlexSymbol.goal).top),
       );
       expect(
-        (shortcut(FlexSymbol.homework).center.dx +
+        (shortcut(FlexSymbol.goal).center.dx +
                 shortcut(FlexSymbol.orga).center.dx) /
             2,
-        closeTo(shortcut(FlexSymbol.social).center.dx, .1),
+        closeTo(shortcut(FlexSymbol.work).center.dx, .1),
       );
       await tester.tap(find.byTooltip('Schüler suchen'));
       await tester.pumpAndSettle();
@@ -311,6 +283,8 @@ void main() {
       await c.reload();
       repo.attempts = 0;
       await app(tester, const Size(1100, 1000));
+      await tester.tap(find.byKey(const ValueKey('page-0')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('overview-open-${record.id}')));
       await tester.pumpAndSettle();
       final button = find.byKey(const ValueKey('status-task-complete'));
@@ -522,11 +496,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('observation-date')));
       await tester.pumpAndSettle();
       await capture(tester, boundary, 'reference-calendar-date');
-      expect(find.byKey(const ValueKey('calendar-hour')), findsNothing);
+      expect(find.byKey(const ValueKey('calendar-time')), findsNothing);
       await tester.tap(find.text('Uhrzeit hinzufügen'));
       await tester.pumpAndSettle();
       await capture(tester, boundary, 'reference-calendar-time');
-      expect(find.byKey(const ValueKey('calendar-hour')), findsOneWidget);
+      expect(find.byKey(const ValueKey('calendar-time')), findsOneWidget);
       await tester.tap(find.byTooltip('Uhrzeit entfernen'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('calendar-day-2026-11-02')));
