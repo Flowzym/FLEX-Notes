@@ -315,7 +315,7 @@ void main() {
     },
   );
   testWidgets(
-    'all sections swipe in pill order from content and header, stop at edges and preserve slider gestures',
+    'all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures',
     (t) async {
       await app(t, size: const Size(390, 844));
       for (final section in [
@@ -335,6 +335,13 @@ void main() {
         expect(actual.pages.keys.toList(), section.$2);
         await t.drag(pills, const Offset(230, 0));
         await t.pumpAndSettle();
+        expect(page(t), section.$2.last);
+        expect(
+          t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+          -1,
+        );
+        await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
         expect(page(t), section.$2.first);
         for (final next in section.$2.skip(1)) {
           await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
@@ -343,6 +350,13 @@ void main() {
           expect(t.takeException(), isNull);
         }
         await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        expect(
+          t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+          1,
+        );
+        await t.drag(pills, const Offset(230, 0));
         await t.pumpAndSettle();
         expect(page(t), section.$2.last);
         for (final previous in section.$2.reversed.skip(1)) {

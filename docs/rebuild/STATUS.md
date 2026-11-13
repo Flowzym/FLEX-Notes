@@ -1,4 +1,20 @@
-# Aktueller Stand: 0.21.3+67
+# Aktueller Stand: Webvorschau 0.22.0+68
+
+Live → Ablauf bietet Unterrichtsphasen, Vorlagen, Material- und Schülerzuordnung,
+Zeitmessung mit Pause sowie Weiterführen offener Phasen. HÜ-Kontrolle verwendet
+die bestehenden Hausübungen und Rückmeldungen. Die obere Navigation läuft beim
+Wischen in beiden Richtungen zyklisch weiter, mit demselben kurzen Übergang.
+
+104 gezielte Prüfungen bestanden; anschließend 9 Domänentests einschließlich
+zweier zusätzlicher Grenzfälle bestanden (106 unterschiedliche Prüfungen).
+Analyse ohne Befunde. Release-Webbuild; keine neue Android-APK in diesem Schritt.
+
+[Änderungen und Prüfbericht](LESSON-FLOW-BUILD-68.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: 0.21.3+67
 
 Einheitlicher 140-ms-Übergang beim Tippen und Wischen zwischen allen oberen
 Reitern. Kompakte Materialkarten mit integrierten Aktionen und kleineren

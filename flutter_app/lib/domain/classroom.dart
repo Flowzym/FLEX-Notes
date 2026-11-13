@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
+import 'lesson_flow_data.dart';
 import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
 
@@ -321,6 +322,7 @@ class ClassroomDocument {
       },
       ClassroomKind.preparation => {'date', 'materialIds'},
       ClassroomKind.plan => {
+        'flow',
         'materialIds',
         'pupilIds',
         'lessonIds',
@@ -450,6 +452,14 @@ class ClassroomDocument {
                     text('endDate').compareTo(text('date')) < 0) ||
             text('followUp').length > 20000)) {
       throw const DomainError('Bitte Zeitraum und Stand der Planung prüfen.');
+    }
+    if (kind == ClassroomKind.plan && _json.containsKey('flow')) {
+      if (_json['flow'] is! Map) throw const DomainError('Ungültiger Ablauf.');
+      final flow = map('flow');
+      validateLessonFlow(flow);
+      if (flow['template'] == false && !validDate(text('date'))) {
+        throw const DomainError('Ein Unterrichtsablauf benötigt ein Datum.');
+      }
     }
     if (kind == ClassroomKind.material) {
       final dates = rows('pupilDates');

@@ -53,9 +53,11 @@ class FlexTabTransition extends StatefulWidget {
     super.key,
     required this.section,
     required this.index,
+    this.direction,
     required this.child,
   });
   final int section, index;
+  final int? direction;
   final Widget child;
   static const duration = Duration(milliseconds: 140);
 
@@ -79,7 +81,9 @@ class _FlexTabTransitionState extends State<FlexTabTransition>
         MediaQuery.disableAnimationsOf(context)) {
       _animation.value = 1;
     } else if (oldWidget.index != widget.index) {
-      _direction = widget.index > oldWidget.index ? 1 : -1;
+      _direction =
+          widget.direction?.toDouble() ??
+          (widget.index > oldWidget.index ? 1 : -1);
       if (Directionality.of(context) == TextDirection.rtl) _direction *= -1;
       _animation.forward(from: 0);
     }

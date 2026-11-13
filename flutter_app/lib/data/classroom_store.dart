@@ -198,6 +198,13 @@ mixin ClassroomStore on SchoolStore {
         }
       }
       if (!materials.containsAll(d.strings('materialIds')) ||
+          (d.map('flow')['phases'] as List? ?? []).any(
+            (p) =>
+                !materials.containsAll(
+                  List<String>.from(p['materialIds'] as List),
+                ) ||
+                !people.containsAll(List<String>.from(p['pupilIds'] as List)),
+          ) ||
           d
               .rows('exceptions')
               .any(

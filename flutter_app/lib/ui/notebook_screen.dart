@@ -40,6 +40,7 @@ import 'material_library.dart';
 import 'return_lists.dart';
 import 'repeat_editor.dart';
 import 'reminder_actions.dart';
+import 'lesson_flow_page.dart';
 
 class NotebookScreen extends StatefulWidget {
   const NotebookScreen({super.key, required this.controller});
@@ -58,6 +59,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   String? _overviewSection;
   final _pages = PageController();
   final _settingsLayout = SettingsLayoutState();
+  int? _swipeDirection;
   Map<int, String> get _contextPages => switch (_destination) {
     0 => calendarPages,
     1 => livePages,
@@ -73,7 +75,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
     _ => _moreView,
   };
 
-  void _contextTo(int index) {
+  void _contextTo(int index, {int? swipeDirection}) {
+    _swipeDirection = swipeDirection;
     FocusManager.instance.primaryFocus?.unfocus();
     switch (_destination) {
       case 0:
@@ -91,8 +94,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   void _swipeContext(bool previous) {
     final order = _contextPages.keys.toList();
-    final next = order.indexOf(_contextPage) + (previous ? -1 : 1);
-    if (next >= 0 && next < order.length) _contextTo(order[next]);
+    if (order.length < 2) return;
+    final step = previous ? -1 : 1;
+    final next = (order.indexOf(_contextPage) + step) % order.length;
+    _contextTo(order[next], swipeDirection: step);
   }
 
   VoidCallback? _refreshPupilDialog;
@@ -472,24 +477,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
     3: 'Planungen',
   };
   static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
-  Widget _placeholder(String title, IconData icon) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 40),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          const Text(
-            'Dieser Bereich wird noch gestaltet.',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
   Widget _moreHome() => ListView(
     padding: const EdgeInsets.all(16),
     children: [
@@ -677,6 +664,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                     child: FlexTabTransition(
                       section: _destination,
                       index: _contextPages.keys.toList().indexOf(_contextPage),
+                      direction: _swipeDirection,
                       child: IndexedStack(
                         index: _destination,
                         children: [
@@ -711,7 +699,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             children: [
                               _pupils(),
                               _overview(),
-                              _placeholder('Ablauf', Icons.route_outlined),
+                              LessonFlowPage(controller: c),
                             ],
                           ),
                           if (_visited.contains(2))
