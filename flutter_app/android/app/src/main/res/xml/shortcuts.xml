@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="notes" android:enabled="true" android:icon="@drawable/ic_quick" android:shortcutShortLabel="@string/shortcut_notes">
+        <intent android:action="at.flowzym.flex_notizbuch.QUICK_ACCESS" android:targetPackage="@string/quick_package" android:targetClass="at.flowzym.flex_notizbuch.MainActivity">
+            <extra android:name="target" android:value="notes"/>
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="calendar" android:enabled="true" android:icon="@drawable/ic_quick" android:shortcutShortLabel="@string/shortcut_calendar">
+        <intent android:action="at.flowzym.flex_notizbuch.QUICK_ACCESS" android:targetPackage="@string/quick_package" android:targetClass="at.flowzym.flex_notizbuch.MainActivity">
+            <extra android:name="target" android:value="calendar"/>
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="scan" android:enabled="true" android:icon="@drawable/ic_quick" android:shortcutShortLabel="@string/shortcut_scan">
+        <intent android:action="at.flowzym.flex_notizbuch.QUICK_ACCESS" android:targetPackage="@string/quick_package" android:targetClass="at.flowzym.flex_notizbuch.MainActivity">
+            <extra android:name="target" android:value="scan"/>
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="homework" android:enabled="true" android:icon="@drawable/ic_quick" android:shortcutShortLabel="@string/shortcut_homework">
+        <intent android:action="at.flowzym.flex_notizbuch.QUICK_ACCESS" android:targetPackage="@string/quick_package" android:targetClass="at.flowzym.flex_notizbuch.MainActivity">
+            <extra android:name="target" android:value="homework"/>
+        </intent>
+    </shortcut>
+</shortcuts>

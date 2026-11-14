@@ -114,7 +114,7 @@ extension _SchoolEditorView on _SchoolEditorState {
                   if (stale && mode == 'comment')
                     TextButton(
                       onPressed: rebaseComment,
-                      child: const Text('Aktuelle Fassung übernehmen'),
+                      child: const Text('Aktuelle Version übernehmen'),
                     ),
                   if (error != null)
                     Padding(

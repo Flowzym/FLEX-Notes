@@ -48,6 +48,9 @@ val releaseStore: File? = signingFile?.let { config ->
 }
 
 android {
+    buildFeatures {
+        resValues = true
+    }
     namespace = "at.flowzym.flex_notizbuch"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -62,6 +65,7 @@ android {
         // Separate from the old FLEX Test app, which keeps its existing data.
         applicationId = "at.flowzym.flex_notizbuch"
         manifestPlaceholders["flexAppLabel"] = "FLEX"
+        resValue("string", "quick_package", "at.flowzym.flex_notizbuch")
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -81,16 +85,28 @@ android {
                 storePassword = signingValue("storePassword")
                 keyAlias = signingValue("keyAlias")
                 keyPassword = signingValue("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = false
             }
         }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildTypes {
         debug {
             applicationIdSuffix = ".dev"
             manifestPlaceholders["flexAppLabel"] = "FLEX Dev"
+            resValue("string", "quick_package", "at.flowzym.flex_notizbuch.dev")
         }
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (releaseStore == null) null else signingConfigs.getByName("permanentRelease")
         }
     }

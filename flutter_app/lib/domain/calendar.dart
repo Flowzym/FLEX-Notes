@@ -31,6 +31,7 @@ List<CalendarItem> calendarItems(
   String from,
   String to,
 ) {
+  data = data.active();
   final first = schoolDay(from), last = schoolDay(to);
   if (last.isBefore(first) || last.difference(first).inDays > 740) {
     throw const DomainError('Bitte einen Zeitraum bis zu zwei Jahren wählen.');
@@ -66,6 +67,7 @@ List<CalendarItem> calendarItems(
           id: 'orga:${e.id}',
           date: (e.appointmentDate ?? e.dueDate)!,
           time: e.appointmentTime,
+          end: e.appointmentEndTime,
           title: e.title,
           category: e.isAppointment ? 'appointment' : 'task',
           done: e.done,

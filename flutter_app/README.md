@@ -1,9 +1,9 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Aktuell: **0.28.0+78**, Branch `redesign/cream-olive`.
-[Prüfbericht](../docs/rebuild/BACKUP-SHARING-BUILD-78.md) ·
+Aktuell: **0.29.0+79**, Branch `redesign/cream-olive`.
+[Prüfbericht](../docs/rebuild/REVIEW-CALENDAR-BUILD-79.md) ·
 [Projektstatus](../docs/rebuild/STATUS.md) ·
-[Android-APKs](../releases/android/build-78/README.md) ·
+[Android-APKs](../releases/android/build-79/README.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
 
 Die App verwendet Flutter-Widgets und direkt gezeichnete Symbole; sie bettet den
@@ -12,7 +12,7 @@ weiter. Historische Quellen und Prüfungen bleiben im Repository erhalten.
 Nutzerdaten liegen im jeweiligen Browser bzw. Gerät. Android schützt die Datenbank
 mit SQLCipher und Materialdateien mit AES-GCM/Keystore; Webspeicher erhält dadurch
 keine zusätzliche Geräteverschlüsselung. Automatisierte Tests ersetzen keine
-[physische Android-Abnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-78.md).
+[physische Android-Abnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md).
 
 ## Neue Funktionen einrichten
 

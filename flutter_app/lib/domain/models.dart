@@ -23,7 +23,7 @@ class DomainError implements Exception {
 class StaleRevision extends DomainError {
   const StaleRevision()
     : super(
-        'Dieser Eintrag wurde inzwischen geändert. Dein Entwurf bleibt erhalten. Öffne die aktuelle Fassung, bevor du die Änderungen übernimmst.',
+        'Dieser Eintrag wurde inzwischen geändert. Dein Entwurf bleibt erhalten. Öffne die aktuelle Version, bevor du die Änderungen übernimmst.',
       );
 }
 
@@ -33,22 +33,47 @@ class Pupil {
     required this.name,
     this.color = 0xffa8bb80,
     this.archived = false,
+    this.deleted = false,
+    this.createdAtUtc,
+    this.updatedAtUtc,
+    this.deletedAtUtc,
     this.revision = 0,
   });
   final String id, name;
   final int color, revision;
-  final bool archived;
-  Pupil copyWith({String? name, int? color, bool? archived, int? revision}) =>
-      Pupil(
-        id: id,
-        name: name ?? this.name,
-        color: color ?? this.color,
-        archived: archived ?? this.archived,
-        revision: revision ?? this.revision,
-      );
+  final bool archived, deleted;
+  final String? createdAtUtc, updatedAtUtc, deletedAtUtc;
+  Pupil copyWith({
+    String? name,
+    int? color,
+    bool? archived,
+    bool? deleted,
+    int? revision,
+    String? createdAtUtc,
+    String? updatedAtUtc,
+    Object? deletedAtUtc = _unset,
+  }) => Pupil(
+    id: id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    archived: archived ?? this.archived,
+    revision: revision ?? this.revision,
+    deleted: deleted ?? this.deleted,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    deletedAtUtc: identical(deletedAtUtc, _unset)
+        ? this.deletedAtUtc
+        : deletedAtUtc as String?,
+  );
   void validate() {
     if (id.isEmpty || name.trim().isEmpty || name.trim().length > 80) {
       throw const DomainError('Bitte einen Namen mit 1–80 Zeichen eingeben.');
+    }
+    if (deleted && !archived ||
+        [createdAtUtc, updatedAtUtc, deletedAtUtc].whereType<String>().any(
+          (s) => !s.endsWith('Z') || DateTime.tryParse(s) == null,
+        )) {
+      throw const DomainError('Ungültiger Schülerstatus oder Zeitpunkt.');
     }
     if (color < 0 || color > 0xffffffff || revision < 0) {
       throw const DomainError('Ungültige Schülerdaten.');
@@ -60,6 +85,10 @@ class Pupil {
     'name': name,
     'color': color,
     'archived': archived,
+    'deleted': deleted,
+    'createdAtUtc': createdAtUtc,
+    'updatedAtUtc': updatedAtUtc,
+    'deletedAtUtc': deletedAtUtc,
     'revision': revision,
   };
   factory Pupil.fromJson(Json j) => Pupil(
@@ -67,6 +96,10 @@ class Pupil {
     name: j['name'] as String,
     color: j['color'] as int,
     archived: j['archived'] as bool,
+    deleted: j['deleted'] as bool? ?? false,
+    createdAtUtc: j['createdAtUtc'] as String?,
+    updatedAtUtc: j['updatedAtUtc'] as String?,
+    deletedAtUtc: j['deletedAtUtc'] as String?,
     revision: j['revision'] as int,
   );
 }
@@ -108,6 +141,7 @@ class OrgaEntry {
     this.reminderHasTime = true,
     this.appointmentDate,
     this.appointmentTime = '',
+    this.appointmentEndTime = '',
     this.dueDate,
     this.reminderAtUtc,
     this.reminderZone = 'UTC',
@@ -132,7 +166,7 @@ class OrgaEntry {
   final String id, title, body, reminderZone, createdAtUtc, updatedAtUtc;
   final String otherParticipants;
   final String? pupilId, dueDate, reminderAtUtc, appointmentDate;
-  final String appointmentTime;
+  final String appointmentTime, appointmentEndTime;
   final bool isTask, done, needsCompletion, deleted, reminderHasTime;
   final String observedOn, observedTime, reminderText;
   final int revision;
@@ -181,6 +215,7 @@ class OrgaEntry {
     bool? reminderHasTime,
     Object? appointmentDate = _unset,
     String? appointmentTime,
+    String? appointmentEndTime,
     Object? dueDate = _unset,
     Object? reminderAtUtc = _unset,
     String? reminderZone,
@@ -206,6 +241,7 @@ class OrgaEntry {
         ? this.appointmentDate
         : appointmentDate as String?,
     appointmentTime: appointmentTime ?? this.appointmentTime,
+    appointmentEndTime: appointmentEndTime ?? this.appointmentEndTime,
     dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as String?,
     reminderAtUtc: identical(reminderAtUtc, _unset)
         ? this.reminderAtUtc
@@ -267,6 +303,14 @@ class OrgaEntry {
         (isAppointment && isTask)) {
       throw const DomainError('Bitte einen gültigen Termin wählen.');
     }
+    if (appointmentEndTime.isNotEmpty &&
+        (appointmentTime.isEmpty ||
+            !RegExp(
+              r'^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$',
+            ).hasMatch(appointmentEndTime) ||
+            appointmentEndTime.compareTo(appointmentTime) <= 0)) {
+      throw const DomainError('Das Terminende muss nach dem Beginn liegen.');
+    }
     if (!isTask && (done || dueDate != null)) {
       throw const DomainError(
         'Nur Aufgaben haben einen Aufgabentermin oder Erledigtstatus.',
@@ -319,6 +363,7 @@ class OrgaEntry {
     'reminderHasTime': reminderHasTime,
     'appointmentDate': appointmentDate,
     'appointmentTime': appointmentTime,
+    'appointmentEndTime': appointmentEndTime,
     'dueDate': dueDate,
     'reminderAtUtc': reminderAtUtc,
     'reminderZone': reminderZone,
@@ -344,6 +389,7 @@ class OrgaEntry {
     reminderHasTime: j['reminderHasTime'] as bool? ?? true,
     appointmentDate: j['appointmentDate'] as String?,
     appointmentTime: j['appointmentTime'] as String? ?? '',
+    appointmentEndTime: j['appointmentEndTime'] as String? ?? '',
     dueDate: j['dueDate'] as String?,
     reminderAtUtc: j['reminderAtUtc'] as String?,
     reminderZone: j['reminderZone'] as String,
@@ -366,10 +412,11 @@ class OrgaTypeDraft {
     this.done = false,
     this.appointmentDate,
     this.appointmentTime = '',
+    this.appointmentEndTime = '',
   });
   final String? dueDate, appointmentDate;
   final bool done;
-  final String appointmentTime;
+  final String appointmentTime, appointmentEndTime;
 
   OrgaTypeDraft remember(OrgaEntry entry) => OrgaTypeDraft(
     dueDate: entry.isTask ? entry.dueDate : dueDate,
@@ -380,6 +427,9 @@ class OrgaTypeDraft {
     appointmentTime: entry.isAppointment
         ? entry.appointmentTime
         : appointmentTime,
+    appointmentEndTime: entry.isAppointment
+        ? entry.appointmentEndTime
+        : appointmentEndTime,
   );
 
   OrgaEntry select(OrgaEntry entry, String kind) {
@@ -394,6 +444,7 @@ class OrgaTypeDraft {
           ? appointmentDate ?? dateOnly(DateTime.now())
           : null,
       appointmentTime: kind == 'appointment' ? appointmentTime : '',
+      appointmentEndTime: kind == 'appointment' ? appointmentEndTime : '',
       reminderState:
           kind == 'task' && done && entry.reminderState == ReminderState.planned
           ? ReminderState.cancelled
@@ -406,6 +457,7 @@ class OrgaTypeDraft {
     if (excluding?.isAppointment != true) ...{
       'appointmentDate': appointmentDate,
       'appointmentTime': appointmentTime,
+      'appointmentEndTime': appointmentEndTime,
     },
   };
 
@@ -415,6 +467,7 @@ class OrgaTypeDraft {
       done: json['done'] as bool? ?? false,
       appointmentDate: json['appointmentDate'] as String?,
       appointmentTime: json['appointmentTime'] as String? ?? '',
+      appointmentEndTime: json['appointmentEndTime'] as String? ?? '',
     );
     if (result.dueDate != null && !validDate(result.dueDate!) ||
         result.appointmentDate != null && !validDate(result.appointmentDate!) ||
@@ -424,6 +477,14 @@ class OrgaTypeDraft {
                   r'^([01]\d|2[0-3]):[0-5]\d$',
                 ).hasMatch(result.appointmentTime))) {
       throw const DomainError('Ungültige Datumsangaben im Orga-Entwurf.');
+    }
+    if (result.appointmentEndTime.isNotEmpty &&
+        (result.appointmentTime.isEmpty ||
+            !RegExp(
+              r'^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$',
+            ).hasMatch(result.appointmentEndTime) ||
+            result.appointmentEndTime.compareTo(result.appointmentTime) <= 0)) {
+      throw const DomainError('Ungültiges Terminende im Entwurf.');
     }
     return result;
   }

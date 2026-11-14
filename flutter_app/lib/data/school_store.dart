@@ -218,7 +218,7 @@ mixin SchoolStore {
     if (existing.isNotEmpty) {
       if (existing.single['undone_at_utc'] != null) {
         throw const DomainError(
-          'Diese Gruppenerfassung wurde bereits zurückgenommen.',
+          'Diese Einträge wurden bereits gemeinsam zurückgenommen.',
         );
       }
       final request = Json.from(

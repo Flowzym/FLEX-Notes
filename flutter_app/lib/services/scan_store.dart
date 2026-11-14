@@ -40,6 +40,13 @@ Future<void> discardScan(
       'draftId': draft.id,
     });
   }
+  if (!kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      draft.data['scanPending'] == true) {
+    await FlexDevice.channel.invokeMethod<void>('discardScanCapture', {
+      'draftId': draft.id,
+    });
+  }
   await repo.discardDialogDraft(draft.id, draft.revision);
   await removeUnusedScanFiles(repo, files, scanFileKeys(draft.data));
 }

@@ -218,7 +218,7 @@ extension _ScanEditorView on _ScanEditorState {
               ),
               if (pages.any((p) => filterUndo.containsKey(p.key)))
                 IconButton(
-                  tooltip: 'Stapelfilter rückgängig',
+                  tooltip: 'Bearbeitung zurücknehmen',
                   onPressed: busy ? null : undoFilter,
                   icon: const Icon(Icons.undo),
                 ),

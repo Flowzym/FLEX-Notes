@@ -247,7 +247,10 @@ void main() {
     (tester) async {
       await app(tester);
       await editor(tester, SchoolRecord.empty(SchoolKind.goal, 'alpha'));
-      expect(find.byType(FlexModal), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.byKey(const ValueKey('record-title')),
         'Synthetisches Lernziel',
@@ -389,7 +392,10 @@ void main() {
       });
     }
     await editor(tester, saved, mode: 'comment', taskId: 'task');
-    expect(find.byType(FlexModal), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+      findsOneWidget,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     tester.view.resetPhysicalSize();

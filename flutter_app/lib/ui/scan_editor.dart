@@ -351,6 +351,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         if (mounted) unawaited(pick());
       });
     }
+    if (data['scanPending'] == true && nativeCamera) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        action(recoverScan);
+      });
+    }
     if (data['capturePending'] == true && nativeCamera) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         action(recoverPhoto);
@@ -463,6 +468,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     Uint8List bytes, {
     bool photo = false,
     String? captureToken,
+    List<dynamic>? nativeCorners,
     String? replaceKey,
   }) async {
     final replacement = replaceKey == null
@@ -480,13 +486,34 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     final key = newId();
     await widget.files.write(key, image['bytes'] as Uint8List);
     knownKeys.add(key);
-    final page = ScanPage(
+    var page = ScanPage(
       key,
       image['width'] as int,
       image['height'] as int,
       photo: photo,
       captureToken: captureToken,
     );
+    final undo = filterUndo;
+    if (nativeCorners?.length == 4) {
+      try {
+        final cropped = await compute(transformScanPixels, {
+          'bytes': image['bytes'],
+          'corners': nativeCorners,
+        });
+        final croppedKey = newId();
+        await widget.files.write(croppedKey, cropped['bytes'] as Uint8List);
+        knownKeys.add(croppedKey);
+        undo[croppedKey] = page;
+        page = ScanPage(
+          croppedKey,
+          cropped['width'] as int,
+          cropped['height'] as int,
+          captureToken: captureToken,
+        );
+      } on DomainError {
+        /* An uncertain outline keeps the complete original. */
+      }
+    }
     final next = pages;
     if (replacement < 0) {
       next.add(page);
@@ -495,6 +522,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
     change({
       'pages': next.map((p) => p.toJson()).toList(),
+      'filterUndo': {for (final e in undo.entries) e.key: e.value.toJson()},
       if (replaceKey != null) 'captureReplaceKey': null,
     });
     // A failed metadata write must retain both the buffered page and its bytes:
@@ -584,12 +612,18 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
     List<Uint8List>? values;
     try {
-      values = widget.capturePages != null
-          ? await widget.capturePages!(remaining)
-          : await FlexDevice.channel.invokeListMethod<Uint8List>(
-              'scanDocument',
-              {'limit': remaining},
-            );
+      if (widget.capturePages != null) {
+        values = await widget.capturePages!(remaining);
+      } else {
+        change({'scanPending': true, 'scanReplaceKey': replaceKey});
+        await buffer.flush(force: true);
+        final captured = await FlexDevice.channel.invokeListMethod<dynamic>(
+          'scanDocument',
+          {'limit': remaining, 'draftId': buffer.draft.id},
+        );
+        await acceptNativeScans(captured);
+        return;
+      }
     } on PlatformException catch (e) {
       if (e.code != 'scanner_unavailable' || !nativeCamera) rethrow;
       if (!mounted) return;
@@ -599,7 +633,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
           title: const Text('Live-Randerkennung nicht verfügbar'),
           onClose: () => Navigator.pop(ctx, false),
           content: const Text(
-            'Die Dokumentkamera konnte nicht starten. Prüfe die Google Play-Dienste und versuche es erneut. Alternativ kannst du ein Foto aufnehmen und die Ränder anschließend anpassen.',
+            'Die Dokumentkamera konnte nicht starten. Prüfe den Kamerazugriff in den Android-App-Einstellungen und versuche es erneut. Alternativ kannst du ein Foto aufnehmen und die Ränder anschließend anpassen.',
           ),
           actions: [
             TextButton(
@@ -637,6 +671,51 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       await addImage(bytes, replaceKey: replaceKey);
     }
   });
+  Future<void> recoverScan() async {
+    final result = await FlexDevice.channel.invokeListMethod<dynamic>(
+      'recoverScan',
+      {'draftId': buffer.draft.id},
+    );
+    await acceptNativeScans(result);
+  }
+
+  Future<void> acceptNativeScans(List<dynamic>? result) async {
+    if ((result?.length ?? 0) > scanPageLimit) {
+      throw const DomainError('Zu viele Aufnahmen.');
+    }
+    for (final value in result ?? const []) {
+      if (value is! Map ||
+          value['token'] is! String ||
+          value['bytes'] is! Uint8List) {
+        throw const DomainError('Ungültige Kameraaufnahme.');
+      }
+      final token = value['token'] as String;
+      if (!pages.any((p) => p.captureToken == token)) {
+        await addImage(
+          value['bytes'] as Uint8List,
+          captureToken: token,
+          nativeCorners: value['corners'] as List?,
+          replaceKey: data['scanReplaceKey'] as String?,
+        );
+        change({'scanReplaceKey': null});
+      }
+      await buffer.flush();
+      await FlexDevice.channel.invokeMethod<void>('finishScanPage', {
+        'draftId': buffer.draft.id,
+        'token': token,
+      });
+    }
+    change({'scanPending': false, 'scanReplaceKey': null});
+    await buffer.flush();
+    if (mounted) {
+      setState(
+        () => cameraNotice = filterUndo.isEmpty
+            ? null
+            : 'Ränder automatisch zugeschnitten · über „Bearbeitung zurücknehmen“ wiederherstellbar.',
+      );
+    }
+  }
+
   Future<void> acceptPhoto(Map<dynamic, dynamic>? result) async {
     if (result != null) {
       final token = result['token'] as String;

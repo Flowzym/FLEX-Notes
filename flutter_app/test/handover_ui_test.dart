@@ -229,7 +229,10 @@ void main() {
           await tester.ensureVisible(shortcut);
           await tester.tap(shortcut);
           await tester.pumpAndSettle();
-          expect(find.byType(FlexModal), findsOneWidget);
+          expect(
+            find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+            findsOneWidget,
+          );
           framed(tester, size);
           expect(
             find.byType(SchoolEditor),

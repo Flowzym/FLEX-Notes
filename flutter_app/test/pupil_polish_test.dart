@@ -252,7 +252,11 @@ void main() {
         expect(find.text('Gesprächsvorbereitung'), findsOneWidget);
         await t.tapAt(const Offset(1, 1));
         await t.pumpAndSettle();
-        await close(t);
+        if (!t
+            .widget<PupilWorkspaceDialog>(find.byType(PupilWorkspaceDialog))
+            .embedded) {
+          await close(t);
+        }
         for (final kind in [SchoolKind.social, SchoolKind.work]) {
           await tap(t, find.byKey(ValueKey('shortcut-a-${kind.name}')));
           await tap(t, find.byKey(const ValueKey('tone-positive')));

@@ -448,7 +448,7 @@ void main() {
       await tap(t, find.byTooltip('Weitere Bereiche'));
       await tap(t, find.text('Klassen-Orga'));
       Finder inModal(String text) => find.descendant(
-        of: find.byType(FlexModal).last,
+        of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded).last,
         matching: find.text(text),
       );
       expect(find.byKey(const ValueKey('class-orga-search')), findsNothing);
@@ -668,7 +668,9 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-open-a')));
         expect(find.byKey(const ValueKey('pupil-entry-search')), findsNothing);
         await capture(t, key, 'pupil-dialog-$suffix');
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
+        if (view.$1 < 1000 || view.$2 > 1.5) {
+          await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
+        }
         await open(
           t,
           OrgaEditor(

@@ -168,7 +168,7 @@ class _TimetableManagementState extends State<_TimetableManagement> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Einzelne Durchführungen',
+          'Einzelne Unterrichtsstunden',
           style: Theme.of(context).textTheme.titleSmall,
         ),
         if (exceptions.isEmpty)

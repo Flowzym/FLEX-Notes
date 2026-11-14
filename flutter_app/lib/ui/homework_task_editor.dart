@@ -1,3 +1,4 @@
+import 'dictation.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
@@ -119,13 +120,13 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                                 label: task.parentId == null
                                     ? 'Aufgabe'
                                     : 'Teilaufgabe',
-                                child: TextFormField(
-                                  key: ValueKey('task-${task.id}'),
+                                child: DictationTextField(
+                                  fieldKey: ValueKey('task-${task.id}'),
                                   focusNode: taskFocus.putIfAbsent(
                                     task.id,
                                     () => FocusNode(),
                                   ),
-                                  initialValue: task.text,
+                                  value: task.text,
                                   maxLength: 1000,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
@@ -152,7 +153,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                                         )
                                         .toList(),
                                   ),
-                                  onFieldSubmitted: (_) => addTask(after: task),
+                                  onSubmitted: (_) => addTask(after: task),
                                 ),
                               ),
                             ),

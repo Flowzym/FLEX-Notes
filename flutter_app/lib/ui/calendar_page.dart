@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/backup_merge.dart';
 import '../domain/calendar.dart';
+import '../domain/calendar_edit.dart';
 import '../domain/calendar_layout.dart';
 import '../domain/classroom.dart';
 import '../domain/material_workspace.dart';
@@ -55,7 +56,8 @@ class _CalendarPageState extends State<CalendarPage>
   DateTime get now => widget.clock?.call() ?? DateTime.now();
   late DateTime selected = schoolDay(dateOnly(now));
   late String mode;
-  int? periodDirection;
+  int periodDirection = 1;
+  int transitionSerial = 0;
   final nowMarker = GlobalKey();
   final scroll = ScrollController();
   Timer? ticker;
@@ -116,7 +118,10 @@ class _CalendarPageState extends State<CalendarPage>
   }
 
   void navigate(VoidCallback update) {
-    setState(update);
+    setState(() {
+      update();
+      transitionSerial++;
+    });
     widget.onDateChanged?.call(dateOnly(selected));
     if (scroll.hasClients) scroll.jumpTo(0);
   }
@@ -188,6 +193,37 @@ class _CalendarPageState extends State<CalendarPage>
         ),
       ),
     );
+  }
+
+  Future<void> editCalendarTime(CalendarItem item, CalendarEdit edit) async {
+    if (busy) return;
+    await run(() async {
+      final entry = item.entry;
+      final lesson = item.lesson;
+      Future<void> Function()? undo;
+      if (entry != null) {
+        await c.saveEntry(edit.applyToEntry(entry));
+        undo = () => c.saveEntry(entry.copyWith(revision: entry.revision + 1));
+      } else if (lesson != null) {
+        await c.saveClassroom(edit.applyToLesson(lesson));
+        undo = () => c.saveClassroom(
+          lesson.document.patch({'revision': lesson.document.revision + 1}),
+        );
+      }
+      if (!mounted || undo == null) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${lesson == null ? 'Termin' : 'Diese Stunde'}: ${displayDate(edit.date)} · ${edit.startTime}–${edit.endTime}',
+          ),
+          action: SnackBarAction(
+            label: 'Rückgängig',
+            onPressed: () => guarded(context, undo!),
+          ),
+        ),
+      );
+    });
   }
 
   Future<void> importIcs() async {
@@ -506,7 +542,7 @@ class _CalendarPageState extends State<CalendarPage>
     ],
   );
 
-  Widget dayBody(List<CalendarItem> items) {
+  Widget dayBody(List<CalendarItem> items, double height) {
     final timed = items.where(calendarTimed).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -533,13 +569,15 @@ class _CalendarPageState extends State<CalendarPage>
             showBlockDetails: true,
             onDay: openDay,
             onCreate: createAppointment,
+            onChange: editCalendarTime,
+            minimumHeight: height,
           ),
         ),
       ],
     );
   }
 
-  Widget weekBody(List<CalendarItem> items) {
+  Widget weekBody(List<CalendarItem> items, double height) {
     final monday = selected.subtract(Duration(days: selected.weekday - 1));
     final weekendEvents = items
         .where((i) => schoolDay(i.date).weekday > 5)
@@ -581,6 +619,8 @@ class _CalendarPageState extends State<CalendarPage>
             onOpen: openItem,
             showBlockDetails: true,
             onCreate: createAppointment,
+            onChange: editCalendarTime,
+            minimumHeight: height,
           ),
         ),
         for (final day in days) ...[
@@ -800,10 +840,31 @@ class _CalendarPageState extends State<CalendarPage>
         for (final item in dayItems.where(calendarTimed))
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Text(item.time),
-            title: Text(item.title),
-            subtitle: Text(item.detail),
-            trailing: const Icon(Icons.chevron_right),
+            key: ValueKey('calendar-month-entry-${item.id}'),
+            dense: true,
+            minVerticalPadding: 0,
+            visualDensity: VisualDensity.compact,
+            leading: SizedBox(
+              width: 46,
+              child: Text(
+                item.time,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            horizontalTitleGap: 8,
+            title: Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: item.detail.isEmpty
+                ? null
+                : Text(
+                    item.detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+            trailing: const Icon(Icons.chevron_right, size: 18),
             onTap: () => showCalendarItem(context, c, item),
           ),
       ],
@@ -926,40 +987,43 @@ class _CalendarPageState extends State<CalendarPage>
             ),
             if (busy) const LinearProgressIndicator(),
             Expanded(
-              child: FlexTabTransition(
-                section: 0,
-                index:
-                    selected.millisecondsSinceEpoch ~/
-                        Duration.millisecondsPerDay *
-                        3 +
-                    ['day', 'week', 'month'].indexOf(mode),
-                direction: periodDirection,
-                child: ListView(
-                  controller: scroll,
-                  key: const PageStorageKey('calendar-page'),
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 96),
-                  children: [
-                    if (mode == 'day')
-                      dayBody(items)
-                    else if (mode == 'week')
-                      weekBody(items)
-                    else
-                      monthBody(items),
-                    for (final plan in c.classroom.where(
-                      (p) =>
-                          planOnDay(p, dateOnly(selected)) &&
-                          p.map('flow').isEmpty,
-                    ))
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.event_note_outlined),
-                        title: Text(plan.title),
-                        subtitle: Text(
-                          planStatuses[plan.text('status', 'planned')]!,
+              child: LayoutBuilder(
+                builder: (_, viewport) => FlexTabTransition(
+                  section: 0,
+                  index: transitionSerial,
+                  direction: periodDirection,
+                  child: ListView(
+                    controller: scroll,
+                    key: const PageStorageKey('calendar-page'),
+                    padding: EdgeInsets.fromLTRB(
+                      12,
+                      0,
+                      12,
+                      mode == 'month' ? 80 : 0,
+                    ),
+                    children: [
+                      if (mode == 'day')
+                        dayBody(items, viewport.maxHeight)
+                      else if (mode == 'week')
+                        weekBody(items, viewport.maxHeight)
+                      else
+                        monthBody(items),
+                      for (final plan in c.classroom.where(
+                        (p) =>
+                            planOnDay(p, dateOnly(selected)) &&
+                            p.map('flow').isEmpty,
+                      ))
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.event_note_outlined),
+                          title: Text(plan.title),
+                          subtitle: Text(
+                            planStatuses[plan.text('status', 'planned')]!,
+                          ),
+                          onTap: () => showMaterialCollection(ctx, c, plan),
                         ),
-                        onTap: () => showMaterialCollection(ctx, c, plan),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

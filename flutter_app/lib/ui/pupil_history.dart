@@ -85,25 +85,25 @@ Widget readableRevision(Json row) {
     try {
       return readableRecord(Json.from(jsonDecode(text) as Map));
     } catch (_) {
-      return 'Diese historische Fassung verwendet ein anderes Datenformat.';
+      return 'Diese historische Version verwendet ein anderes Datenformat.';
     }
   }
 
   return ExpansionTile(
     title: Text(
-      'Fassung ${row['revision']} · ${displayDate(row['captured_at_utc'] as String)}',
+      'Version ${row['revision']} · ${displayDate(row['captured_at_utc'] as String)}',
     ),
     childrenPadding: const EdgeInsets.all(12),
     expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const Text(
-        'Bisherige Fassung',
+        'Bisherige Version',
         style: TextStyle(fontWeight: FontWeight.w600),
       ),
       SelectableText(describe(row['before_payload'] as String?)),
       const SizedBox(height: 12),
       const Text(
-        'Gespeicherte Fassung',
+        'Gespeicherte Version',
         style: TextStyle(fontWeight: FontWeight.w600),
       ),
       SelectableText(describe(row['after_payload'] as String?)),
@@ -199,7 +199,7 @@ Future<void> showPupilHistory(
                             ),
                             TextButton(
                               onPressed: () => showJournal(ctx, c, e.id),
-                              child: const Text('Frühere Fassungen'),
+                              child: const Text('Frühere Versionen'),
                             ),
                           ],
                         ),

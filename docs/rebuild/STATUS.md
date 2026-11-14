@@ -1,4 +1,21 @@
-# Aktueller Stand: Webvorschau und Android 0.28.0+78
+# Aktueller Stand: FLEX 0.29.0+79
+
+Kalender mit gleichbleibender Wischrichtung, Terminverschiebung und Zeitgriffen;
+kompaktere Monatsliste und höhere Tages-/Wochenraster. Ausgewählte Review-Punkte
+in Datenhaltung, Datenschutz, Android-Funktionen, Vorlagen und Diagnose ergänzt.
+
+[Umsetzung und genaue Grenzen](REVIEW-CALENDAR-BUILD-79.md) ·
+[Android-Abnahme](ANDROID-ACCEPTANCE-BUILD-79.md) ·
+[Releaseprozess](RELEASING.md) ·
+[APKs](../../releases/android/build-79/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 erhält vorhandene Daten; neue Sicherungen benötigen Build 79.
+Hardware-Abnahme und GitHub-Signiersecret-Einrichtung bleiben offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.28.0+78
 
 Blockweise Vollsicherungen mit AES-GCM, geprüfter Wiederherstellung und Android-
 SAF-Streams. Im vergleichbaren synthetischen 100-MB-Linux-Test sank Spitzen-RSS

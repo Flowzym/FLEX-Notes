@@ -59,7 +59,7 @@ Future<void> showMergeReview(
                           'Gleichnamiger Schüler: ${match.value.first.name}',
                         ),
                         const Text(
-                          'Gehören beide Fassungen zur selben Person?',
+                          'Gehören beide Versionen zur selben Person?',
                         ),
                         Wrap(
                           spacing: 8,

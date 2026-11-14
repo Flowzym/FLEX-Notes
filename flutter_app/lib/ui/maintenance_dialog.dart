@@ -1,18 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../security/backup_codec.dart';
-import '../services/complete_backup.dart';
+import '../services/stream_backup.dart';
+import '../platform/backup_transfer.dart';
 import '../services/material_storage.dart';
 import 'backup_dialog.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import 'common.dart';
-import 'draft_buffer.dart';
 import 'flex_modal.dart';
-
-Future<String> _protectMaintenanceBackup(Map<String, String> args) =>
-    BackupCodec.encrypt(args['text']!, args['password']!);
 
 class MaintenanceDialog extends StatefulWidget {
   const MaintenanceDialog({
@@ -77,22 +72,20 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
                       opening: false,
                     );
                     if (password == null) return;
-                    final captured = await CompleteBackup.capture(
-                      widget.controller.repository,
-                      const LocalMaterialFiles(),
-                    );
-                    final encrypted = await compute(_protectMaintenanceBackup, {
-                      'text': captured,
-                      'password': password,
-                    });
-                    if (await saveTextFile(
-                      'FLEX-Vollstaendige-Sicherung-${dateOnly(DateTime.now())}.json',
-                      encrypted,
-                      mime: 'application/json',
+                    final captured = await widget.controller.repository
+                        .exportBackup();
+                    if (await saveBackupStream(
+                      'FLEX-Vollstaendige-Sicherung-${dateOnly(DateTime.now())}.flexbackup',
+                      StreamBackup.capture(
+                        widget.controller.repository,
+                        const LocalMaterialFiles(),
+                        password: password,
+                        capturedNotebook: captured,
+                      ),
                     )) {
                       if (mounted) {
                         setState(() {
-                          backup = jsonEncode(jsonDecode(captured)['notebook']);
+                          backup = captured;
                           confirmed = false;
                         });
                       }
@@ -143,6 +136,9 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
                     emptyTrash: widget.emptyTrash,
                   );
                   await widget.controller.reload();
+                  await widget.controller.repository.removeUnreferencedFiles(
+                    const LocalMaterialFiles().remove,
+                  );
                   if (context.mounted) Navigator.pop(context);
                 }),
           child: const Text('Ausführen'),

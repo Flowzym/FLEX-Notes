@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'detail_flow.dart';
 import 'quick_add.dart';
 import 'package:flutter/material.dart';
@@ -32,10 +33,12 @@ class PupilWorkspaceDialog extends StatefulWidget {
     required this.showDrafts,
     required this.draftCount,
     this.initialArea,
+    this.embedded = false,
   });
   final NotebookController controller;
   final Pupil pupil;
   final FlexSymbol? initialArea;
+  final bool embedded;
   final Widget Function(OrgaEntry) entryCard;
   final VoidCallback editPupil, newOrga, newAppointment, showDrafts;
   final int draftCount;
@@ -46,13 +49,52 @@ class PupilWorkspaceDialog extends StatefulWidget {
 class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
   late FlexSymbol? area = widget.initialArea;
   String query = '', filter = 'all';
+  Set<String>? indexedKeys;
+  int searchGeneration = 0;
+  Timer? searchDelay;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(refreshSearch);
+  }
+
+  void refreshSearch() {
+    if (query.isNotEmpty) searchQuery(query);
+  }
+
+  void searchQuery(String value) {
+    final generation = ++searchGeneration;
+    searchDelay?.cancel();
+    setState(() {
+      query = value;
+      indexedKeys = null;
+    });
+    if (value.trim().isEmpty) return;
+    searchDelay = Timer(const Duration(milliseconds: 140), () async {
+      try {
+        final keys = await widget.controller.repository.searchEntryKeys(
+          value,
+          pupilId: widget.pupil.id,
+        );
+        if (mounted && generation == searchGeneration) {
+          setState(() => indexedKeys = keys);
+        }
+      } catch (_) {
+        /* The current local list remains searchable if the index cannot be read. */
+      }
+    });
+  }
+
   String? selectedRecordId, selectedEntryId;
   bool get splitView =>
+      !widget.embedded &&
       MediaQuery.sizeOf(context).width >= 900 &&
       MediaQuery.textScalerOf(context).scale(1) <= 1.4;
   final search = TextEditingController();
   @override
   void dispose() {
+    searchDelay?.cancel();
+    widget.controller.removeListener(refreshSearch);
     search.dispose();
     super.dispose();
   }
@@ -87,8 +129,10 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     );
   }
 
-  bool matches(bool pending, String text) =>
-      text.toLowerCase().contains(query.toLowerCase()) &&
+  bool matches(bool pending, String text, String key) =>
+      (indexedKeys == null
+          ? text.toLowerCase().contains(query.toLowerCase())
+          : indexedKeys!.contains(key)) &&
       (filter == 'all' || (filter == 'open' ? pending : !pending));
 
   Widget navigation() => LayoutBuilder(
@@ -360,7 +404,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               r.pupilId == p.id &&
               !r.deleted &&
               (area == null || r.kind.name == area!.name) &&
-              matches(r.pending, r.searchText),
+              matches(r.pending, r.searchText, 'school:${r.id}'),
         ))
           (
             id: r.id,
@@ -407,6 +451,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               matches(
                 e.pending,
                 '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}',
+                'orga:${e.id}',
               ),
         ))
           (
@@ -467,9 +512,22 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
         tooltip: 'Schüleraktionen',
         icon: const Icon(Icons.more_vert, size: 21),
         padding: const EdgeInsets.all(6),
-        onSelected: (action) {
+        onSelected: (action) async {
           if (action == 'edit') {
             widget.editPupil();
+          } else if (action == 'trash') {
+            if (await confirmFlex(
+                  context,
+                  'Schüler in den Papierkorb?',
+                  '${p.name} und die zugehörigen Einträge werden ausgeblendet und bleiben wiederherstellbar.',
+                  accept: 'In den Papierkorb',
+                ) &&
+                context.mounted) {
+              await guarded(context, () async {
+                await c.savePupil(p.copyWith(deleted: true, archived: true));
+                if (context.mounted && !widget.embedded) Navigator.pop(context);
+              });
+            }
           } else if (action == 'brief') {
             showBrief(context, c, p);
           } else {
@@ -481,6 +539,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
         },
         itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('Schüler bearbeiten')),
+          const PopupMenuItem(value: 'trash', child: Text('In den Papierkorb')),
           const PopupMenuItem(
             value: 'brief',
             child: Text('Gesprächsvorbereitung'),
@@ -493,6 +552,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       ),
     ];
     return FlexModal(
+      embedded: widget.embedded,
       maxWidth: 1120,
       title: title,
       headerContent: LayoutBuilder(
@@ -513,7 +573,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                 Row(
                   children: [
                     Expanded(child: title),
-                    close,
+                    if (!widget.embedded) close,
                   ],
                 ),
                 Row(
@@ -527,7 +587,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             children: [
               Expanded(child: title),
               ...headerActions,
-              close,
+              if (!widget.embedded) close,
             ],
           );
         },
@@ -587,7 +647,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                         ),
                       ),
                     ),
-                    onChanged: (v) => setState(() => query = v),
+                    onChanged: searchQuery,
                     actions: [
                       if (!p.archived && area == FlexSymbol.orga)
                         IconButton(

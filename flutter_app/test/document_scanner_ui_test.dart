@@ -730,7 +730,7 @@ void main() {
         (_) => ScanEditor(controller: c, files: files, draft: resumed),
       );
       await t.pumpAndSettle();
-      await tap(t, find.byTooltip('Stapelfilter rückgängig'));
+      await tap(t, find.byTooltip('Bearbeitung zurücknehmen'));
       await settleWork(
         t,
         () =>
@@ -1333,4 +1333,72 @@ void main() {
       },
     );
   }
+  testWidgets(
+    'native edge capture persists original before acknowledgment and recovers once',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      var attempts = 0;
+      final captured = {
+        'token': 'native-page',
+        'bytes': scannerImage(),
+        'corners': [
+          [.1, .1],
+          [.9, .1],
+          [.9, .9],
+          [.1, .9],
+        ],
+      };
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(FlexDevice.channel, (call) async {
+        if (call.method == 'scanDocument' || call.method == 'recoverScan') {
+          return [captured];
+        }
+        if (call.method == 'finishScanPage') {
+          final stored = await c.repository.dialogDrafts();
+          expect(
+            (stored.single.data['pages'] as List).single['captureToken'],
+            'native-page',
+          );
+          expect((stored.single.data['filterUndo'] as Map).length, 1);
+          attempts++;
+          if (attempts == 1) {
+            throw PlatformException(
+              code: 'scanner_ack',
+              message: 'Temporär nicht verfügbar.',
+            );
+          }
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(FlexDevice.channel, null),
+      );
+      await host(t, (_) => ScanEditor(controller: c, files: files));
+      await tap(t, find.byKey(const ValueKey('scanner-camera')));
+      await settleWork(t, () => attempts == 1);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+      await c.reload();
+      final draft = c.dialogDrafts.single;
+      expect(draft.data['scanPending'], true);
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: draft),
+      );
+      await settleWork(
+        t,
+        () =>
+            attempts == 2 && c.dialogDrafts.single.data['scanPending'] == false,
+      );
+      expect((c.dialogDrafts.single.data['pages'] as List).length, 1);
+      expect(files.values.length, 2);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+      expect(t.takeException(), isNull);
+    },
+  );
 }

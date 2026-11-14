@@ -769,6 +769,13 @@ extension _SchoolObservationView on _SchoolEditorState {
       onClose: busy ? null : close,
       actions: actions,
       titleActions: [
+        EntryTemplateButton(
+          controller: c,
+          kind: r.kind.name,
+          enabled: !busy,
+          capture: (name) => EntryTemplate.school(r, name),
+          apply: (template) => edit(template.applySchool(r).toJson()),
+        ),
         if (dirty || draftRevision > 0)
           EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
       ],

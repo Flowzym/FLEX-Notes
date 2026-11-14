@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../domain/calendar.dart';
-import '../domain/classroom.dart' show validClock;
+import '../domain/classroom.dart' show validEndClock;
 import '../domain/calendar_layout.dart';
 import '../domain/models.dart';
 import 'flex_modal.dart';
+import 'calendar_drag.dart';
+import '../domain/calendar_edit.dart';
 
 IconData calendarIcon(String category) => switch (category) {
   'lesson' => Icons.school_outlined,
@@ -33,7 +35,11 @@ class CalendarTimeline extends StatelessWidget {
     this.highlightNow = true,
     this.showBlockDetails = false,
     this.onCreate,
+    this.onChange,
+    this.minimumHeight = 0,
   });
+  final double minimumHeight;
+  final Future<void> Function(CalendarItem, CalendarEdit)? onChange;
   final List<DateTime> days;
   final List<CalendarItem> items;
   final DateTime now;
@@ -56,7 +62,7 @@ class CalendarTimeline extends StatelessWidget {
       final shortest = items.where(calendarTimed).fold<double>(
         double.infinity,
         (shortest, item) {
-          final duration = validClock(item.end)
+          final duration = validEndClock(item.end)
               ? clockMinutes(item.end) - clockMinutes(item.time)
               : 0;
           return math.min(shortest, math.max(minMinutes, duration).toDouble());
@@ -80,7 +86,16 @@ class CalendarTimeline extends StatelessWidget {
               ),
             )
           : baseHours;
-      final height = (hours.end - hours.start) * pixels;
+      final headHeight = week ? 48.0 * scale : 0.0;
+      final endMinute = math.min(
+        1440,
+        math.max(
+          hours.end,
+          hours.start +
+              ((minimumHeight - headHeight - 20) / pixels / 60).ceil() * 60,
+        ),
+      );
+      final height = (endMinute - hours.start) * pixels;
       final axis = scale > 1.5
           ? 66.0
           : week && days.length == 7
@@ -93,11 +108,22 @@ class CalendarTimeline extends StatelessWidget {
             )
           : constraints.maxWidth - axis;
       final width = axis + colWidth * days.length;
+      Widget editable(CalendarItem item, Widget child) =>
+          onChange == null || item.entry == null && item.lesson == null
+          ? child
+          : CalendarDragBlock(
+              key: ValueKey('calendar-edit-${item.id}'),
+              item: item,
+              days: days,
+              dayWidth: colWidth,
+              pixelsPerMinute: pixels,
+              onChange: onChange!,
+              child: child,
+            );
       final readableColumns = math.max(
         1,
         (colWidth / ((week ? 90 : 140) * scale)).floor(),
       );
-      final headHeight = week ? 48.0 * scale : 0.0;
       void createAt(Offset point) {
         if (onCreate == null ||
             point.dx < axis ||
@@ -121,10 +147,38 @@ class CalendarTimeline extends StatelessWidget {
           : const Color(0xffb46449);
       final current = highlightNow ? currentCalendarItem(items, now) : null,
           next = highlightNow ? nextCalendarItem(items, now) : null;
+      void openCluster(List<CalendarPlacement> cluster) {
+        showDialog<void>(
+          context: ctx,
+          builder: (dialog) => FlexModal(
+            title: Text('${cluster.length} Einträge'),
+            onClose: () => Navigator.pop(dialog),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final p in cluster)
+                  ListTile(
+                    title: Text(p.item.title),
+                    subtitle: Text(
+                      '${p.item.time}${p.item.end.isEmpty ? '' : '–${p.item.end}'}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.pop(dialog);
+                      onOpen(p.item);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      }
+
       final body = SizedBox(
         width: width,
         height: height + headHeight + 20,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             if (week && todayIndex >= 0)
               Positioned(
@@ -140,7 +194,7 @@ class CalendarTimeline extends StatelessWidget {
               ),
             for (
               var minute = hours.start;
-              minute <= hours.end;
+              minute <= endMinute;
               minute += week ? 60 : 30
             ) ...[
               Positioned(
@@ -256,30 +310,7 @@ class CalendarTimeline extends StatelessWidget {
                       color: scheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(9),
                       child: InkWell(
-                        onTap: () => showDialog<void>(
-                          context: ctx,
-                          builder: (dialog) => FlexModal(
-                            title: Text('${cluster.length} Einträge'),
-                            onClose: () => Navigator.pop(dialog),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                for (final p in cluster)
-                                  ListTile(
-                                    title: Text(p.item.title),
-                                    subtitle: Text(
-                                      '${p.item.time}${p.item.end.isEmpty ? '' : '–${p.item.end}'}',
-                                    ),
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () {
-                                      Navigator.pop(dialog);
-                                      onOpen(p.item);
-                                    },
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        onTap: () => openCluster(cluster),
                         child:
                             cluster
                                         .where(
@@ -310,14 +341,15 @@ class CalendarTimeline extends StatelessWidget {
                                       left: p.item.category == 'lesson' ? 0 : 4,
                                       right: 0,
                                       height: (p.finish - p.start) * pixels - 4,
-                                      child: IgnorePointer(
-                                        child: _TimeBlock(
+                                      child: editable(
+                                        p.item,
+                                        _TimeBlock(
                                           item: p.item,
                                           compact: true,
                                           details: false,
                                           current: false,
                                           next: false,
-                                          onTap: () {},
+                                          onTap: () => openCluster(cluster),
                                         ),
                                       ),
                                     ),
@@ -366,13 +398,16 @@ class CalendarTimeline extends StatelessWidget {
                           3,
                       width: colWidth / placement.columns - 6,
                       height: (placement.finish - placement.start) * pixels - 4,
-                      child: _TimeBlock(
-                        item: placement.item,
-                        compact: week,
-                        details: showBlockDetails,
-                        current: placement.item.id == current?.id,
-                        next: placement.item.id == next?.id,
-                        onTap: () => onOpen(placement.item),
+                      child: editable(
+                        placement.item,
+                        _TimeBlock(
+                          item: placement.item,
+                          compact: week,
+                          details: showBlockDetails,
+                          current: placement.item.id == current?.id,
+                          next: placement.item.id == next?.id,
+                          onTap: () => onOpen(placement.item),
+                        ),
                       ),
                     ),
             ],

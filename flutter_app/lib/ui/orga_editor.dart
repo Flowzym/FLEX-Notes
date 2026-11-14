@@ -1,3 +1,7 @@
+import 'entry_templates.dart';
+import '../domain/entry_template.dart';
+import 'dictation.dart';
+import '../services/dictation.dart';
 import 'compact_switch.dart';
 import 'document_attachments.dart';
 import 'option_bar.dart';
@@ -22,6 +26,7 @@ import 'entry_navigation.dart';
 import 'person_assignment.dart';
 import 'classroom_editor.dart';
 import '../domain/classroom.dart';
+import '../domain/calendar_layout.dart';
 
 class OrgaEditor extends StatefulWidget {
   const OrgaEditor({
@@ -599,10 +604,21 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (selected == null || !mounted) return;
     if (appointment) {
       if (selected.$1.isEmpty) return;
+      final duration =
+          validClock(entry.appointmentTime) &&
+              validEndClock(entry.appointmentEndTime)
+          ? clockMinutes(entry.appointmentEndTime) -
+                clockMinutes(entry.appointmentTime)
+          : 30;
       change(
         entry.copyWith(
           appointmentDate: selected.$1,
           appointmentTime: selected.$2,
+          appointmentEndTime: selected.$2.isEmpty || selected.$2 == '23:59'
+              ? ''
+              : minuteClock(
+                  (clockMinutes(selected.$2) + duration).clamp(0, 1439),
+                ),
         ),
       );
     } else if (due) {
@@ -668,6 +684,20 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             title: isClass ? 'Klassen-Orga' : 'Orga',
             onClose: busy ? null : close,
             titleActions: [
+              EntryTemplateButton(
+                controller: c,
+                kind: EntryTemplate.orgaKind(entry),
+                enabled: !busy,
+                capture: (name) =>
+                    EntryTemplate.orga(entry.copyWith(body: note.text), name),
+                apply: (template) {
+                  final next = template.applyOrga(
+                    entry.copyWith(body: note.text),
+                  );
+                  note.text = next.body;
+                  change(next);
+                },
+              ),
               if (dirty || draftRevision > 0)
                 EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
             ],
@@ -750,6 +780,48 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         label: Text(
                           '${displayDate(entry.appointmentDate)} · ${entry.appointmentTime.isEmpty ? 'Ganztägig' : entry.appointmentTime}',
                         ),
+                      ),
+                    ),
+                  if (entry.isAppointment && entry.appointmentTime.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('orga-appointment-end'),
+                        icon: const Icon(Icons.schedule_outlined),
+                        label: Text(
+                          'Ende: ${entry.appointmentEndTime.isEmpty ? 'Offen' : entry.appointmentEndTime}',
+                        ),
+                        onPressed: () async {
+                          final initial = entry.appointmentEndTime.isEmpty
+                              ? (clockMinutes(entry.appointmentTime) + 30)
+                                    .clamp(0, 1439)
+                              : clockMinutes(
+                                  entry.appointmentEndTime,
+                                ).clamp(0, 1439);
+                          final picked = await showTimePicker(
+                            context: context,
+                            helpText: 'Terminende',
+                            initialTime: TimeOfDay(
+                              hour: initial ~/ 60,
+                              minute: initial % 60,
+                            ),
+                          );
+                          if (picked == null || !mounted) return;
+                          final value = minuteClock(
+                            picked.hour * 60 + picked.minute,
+                          );
+                          if (value.compareTo(entry.appointmentTime) <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Das Ende muss nach dem Beginn liegen.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          change(entry.copyWith(appointmentEndTime: value));
+                        },
                       ),
                     ),
                   Row(
@@ -862,6 +934,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                               maxLines: 12,
                               maxLength: 12000,
                               decoration: InputDecoration(
+                                suffixIcon: supportsDictation
+                                    ? DictationButton(
+                                        controller: note,
+                                        onChanged: (_) => change(),
+                                      )
+                                    : null,
                                 hintText: entry.isAppointment
                                     ? 'Termin …'
                                     : entry.isTask

@@ -5,7 +5,7 @@ Die Konfiguration liegt in [flutter-ci.yml](../.github/workflows/flutter-ci.yml)
 die gemeinsame SDK-Einrichtung in [setup-flutter/action.yml](../.github/actions/setup-flutter/action.yml).
 
 Die Pipeline startet bei Pushes und Pull Requests, die `flutter_app/` oder `.github/`
-ändern. Der aktive Entwicklungsbranch ist `fix/dialog-reference-audit`;
+ändern. Der aktive Entwicklungsbranch ist `redesign/cream-olive`;
 `recovery/webpreview` bleibt die unveränderte historische Basis. Ein neuer Push
 beendet einen noch laufenden älteren Prüflauf desselben Branches/PRs.
 
@@ -55,9 +55,9 @@ setzt voraus, dass die Workflow-Datei auch im jeweiligen Standardbranch vorhande
   und Wiederherstellungsarchive werden nicht mit heruntergeladen.
 - Die Jobs benötigen nur lesenden Repository-Zugriff und keine eigenen Secrets.
   Es werden ausschließlich synthetische Testdaten verwendet.
-- Der Android-Build verwendet den kurzlebigen Debugschlüssel des Runners. Er prüft
-  die Release-Konfiguration, wird aber nicht als Update-APK veröffentlicht. Der
-  Signaturschlüssel der installierten FLEX Test bleibt außerhalb von GitHub Actions.
+- Der normale Android-CI-Build bleibt unsigniert und prüft die Release-Konfiguration
+  sowie native Kamera-/Speichertests. Er ist keine installierbare Update-APK.
+  Signierte Tags laufen getrennt über den [Release-Workflow](rebuild/RELEASING.md).
 - Die Pipeline ersetzt keine Android-Geräteprüfung von Biometrie, Doze,
   Benachrichtigungen oder Dokumentanbietern. Sie veröffentlicht keine App und
   greift nicht auf vorhandene Nutzerdaten zu.
@@ -72,7 +72,7 @@ dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart 
 flutter analyze --no-pub --fatal-infos --fatal-warnings
 python3 -m unittest discover -s tool -p test_schema.py -v
 flutter test --no-pub --coverage --reporter expanded
-flutter build apk --release --no-pub
+ORG_GRADLE_PROJECT_flexUnsignedRelease=true flutter build apk --release --no-pub
 python3 tool/prepare.py --assets-only
 dart compile js -O2 tool/drift_worker.dart -o web/drift_worker.js
 flutter build web --release --no-pub --no-web-resources-cdn

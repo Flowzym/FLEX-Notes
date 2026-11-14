@@ -1,3 +1,5 @@
+import 'package:flex_notizbuch/ui/calendar_drag.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
@@ -97,10 +99,18 @@ void main() {
     );
     await swipeHeader(-180);
     expect(
+      t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+      1,
+    );
+    expect(
       t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).week,
       false,
     );
     await swipeHeader(180);
+    expect(
+      t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+      -1,
+    );
     expect(
       find.byKey(const ValueKey('calendar-month-2026-11-16')),
       findsOneWidget,
@@ -171,7 +181,7 @@ void main() {
     },
   );
   testWidgets(
-    'long press an occupied appointment starts another; ordinary tap edits it',
+    'long press selects resize handles without creating a duplicate; ordinary tap edits',
     (t) async {
       await c.saveEntry(
         OrgaEntry.empty().copyWith(
@@ -189,14 +199,87 @@ void main() {
       await tap(t, find.byKey(const ValueKey('cancel-editor')));
       await t.longPress(find.text('Bestehend'));
       await t.pumpAndSettle();
-      expect(t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.revision, 0);
+      expect(find.byType(OrgaEditor), findsNothing);
       expect(
-        t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.appointmentDate,
-        '2026-11-09',
+        find.byKey(ValueKey('calendar-resize-end-orga:${c.entries.single.id}')),
+        findsOneWidget,
       );
-      await tap(t, find.byKey(const ValueKey('cancel-editor')));
       expect(c.entries, hasLength(1));
       await finish(t);
     },
   );
+  testWidgets(
+    'touch move and resize persist a real duration and can be undone',
+    (t) async {
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Verschieben',
+          appointmentDate: '2026-11-09',
+          appointmentTime: '09:00',
+          appointmentEndTime: '10:00',
+        ),
+      );
+      await host(t);
+      final id = c.entries.single.id;
+      final hour =
+          t.getTopLeft(find.byKey(const ValueKey('calendar-hour-600'))).dy -
+          t.getTopLeft(find.byKey(const ValueKey('calendar-hour-540'))).dy;
+      final gesture = await t.startGesture(
+        t.getCenter(find.byKey(ValueKey('calendar-drag-orga:$id'))),
+      );
+      await t.pump(const Duration(milliseconds: 600));
+      await gesture.moveBy(Offset(0, hour));
+      await t.pump();
+      expect(c.entries.single.appointmentTime, '09:00');
+      await gesture.up();
+      await t.pumpAndSettle();
+      expect(c.entries.single.appointmentTime, '10:00');
+      expect(c.entries.single.appointmentEndTime, '11:00');
+      final handle = find.byKey(ValueKey('calendar-resize-end-orga:$id'));
+      await t.drag(handle, Offset(0, hour / 2), touchSlopY: 0);
+      await t.pumpAndSettle();
+      expect(c.entries.single.appointmentEndTime, '11:30');
+      await c.reload();
+      expect(c.entries.single.appointmentEndTime, '11:30');
+      await tap(t, find.text('Rückgängig'));
+      expect(c.entries.single.appointmentTime, '10:00');
+      expect(c.entries.single.appointmentEndTime, '11:00');
+      await finish(t);
+    },
+  );
+  testWidgets('week drag crosses a day; cancelling never saves the preview', (
+    t,
+  ) async {
+    final entry = await c.repository.saveEntry(
+      OrgaEntry.empty().copyWith(
+        title: 'Verschieben',
+        appointmentDate: '2026-11-09',
+        appointmentTime: '09:00',
+        appointmentEndTime: '10:00',
+      ),
+    );
+    await c.reload();
+    await host(t);
+    await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+    final block = find.byKey(ValueKey('calendar-drag-orga:${entry.id}'));
+    final spec = t.widget<CalendarDragBlock>(find.byType(CalendarDragBlock));
+    final original = await t.startGesture(t.getCenter(block));
+    await t.pump(const Duration(milliseconds: 600));
+    await original.moveBy(Offset(spec.dayWidth, spec.pixelsPerMinute * 30));
+    await t.pump();
+    await original.cancel();
+    await t.pumpAndSettle();
+    expect(c.entries.single.appointmentDate, '2026-11-09');
+    expect(c.entries.single.appointmentTime, '09:00');
+    final gesture = await t.startGesture(t.getCenter(block));
+    await t.pump(const Duration(milliseconds: 600));
+    await gesture.moveBy(Offset(spec.dayWidth, spec.pixelsPerMinute * 30));
+    await t.pump();
+    await gesture.up();
+    await t.pumpAndSettle();
+    expect(c.entries.single.appointmentDate, '2026-11-10');
+    expect(c.entries.single.appointmentTime, '09:30');
+    expect(c.entries.single.appointmentEndTime, '10:30');
+    await finish(t);
+  });
 }

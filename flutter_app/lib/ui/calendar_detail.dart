@@ -56,7 +56,7 @@ Future<void> showCalendarItem(
             title: const Text('Unterricht'),
             onClose: () => Navigator.pop(ctx),
             content: const Text(
-              'Diese Durchführung wurde geändert oder abgesagt.',
+              'Diese Unterrichtsstunde wurde geändert oder abgesagt.',
             ),
           );
         }

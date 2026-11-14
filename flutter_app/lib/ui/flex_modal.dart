@@ -17,6 +17,7 @@ class FlexModal extends StatelessWidget {
     this.onClose,
     this.closeLabel = 'Schließen',
     this.scrollable = true,
+    this.embedded = false,
     this.maxWidth = 640,
     this.headerContent,
     this.footerContent,
@@ -26,7 +27,7 @@ class FlexModal extends StatelessWidget {
   final Widget? headerContent, footerContent;
   final List<Widget> actions, headerActions;
   final VoidCallback? onClose;
-  final bool scrollable;
+  final bool scrollable, embedded;
   final double maxWidth;
   @override
   Widget build(BuildContext context) {
@@ -228,7 +229,8 @@ class FlexModal extends StatelessWidget {
               // With large type or a keyboard the complete dialog must scroll;
               // fixed header/footer otherwise consume the available height.
               final layout = _ModalSections(
-                expandBody: DetailFlowScope.maybeOf(context) != null,
+                expandBody:
+                    embedded || DetailFlowScope.maybeOf(context) != null,
                 scrollAll:
                     constraints.maxHeight < 520 ||
                     MediaQuery.textScalerOf(context).scale(1) > 1.5,
@@ -250,7 +252,7 @@ class FlexModal extends StatelessWidget {
         ),
       ),
     );
-    if (DetailFlowScope.maybeOf(context) != null) {
+    if (embedded || DetailFlowScope.maybeOf(context) != null) {
       return dialog.child!;
     }
     return dialog;

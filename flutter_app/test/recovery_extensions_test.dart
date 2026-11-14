@@ -275,7 +275,9 @@ void main() {
         find
             .descendant(
               of: find.descendant(
-                of: find.byType(FlexModal),
+                of: find.byWidgetPredicate(
+                  (w) => w is FlexModal && !w.embedded,
+                ),
                 matching: find.byType(FlexBackground),
               ),
               matching: find.byType(DecoratedBox),

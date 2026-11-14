@@ -1,3 +1,7 @@
+import 'entry_templates.dart';
+import 'school_year_dialog.dart';
+import 'retention_dialog.dart';
+import 'diagnostics_dialog.dart';
 import 'merge_dialog.dart';
 import 'privacy_details.dart';
 import 'device_settings.dart';
@@ -243,6 +247,53 @@ class _SettingsPageState extends State<SettingsPage>
         ),
       ),
       const SizedBox(height: 18),
+      OutlinedButton.icon(
+        onPressed: () => showDiagnostics(context),
+        icon: const Icon(Icons.bug_report_outlined),
+        label: const Text('Fehlerbericht'),
+      ),
+      if (c.services?.quickAccess != null)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.widgets_outlined),
+          label: const Text('Homescreen-Widget hinzufügen'),
+          onPressed: () => guarded(context, () async {
+            final supported = await c.services!.quickAccess!.pinWidget();
+            if (!supported && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Bitte FLEX in der Widget-Auswahl deines Startbildschirms hinzufügen.',
+                  ),
+                ),
+              );
+            }
+          }),
+        ),
+      const SizedBox(height: 18),
+      OutlinedButton.icon(
+        onPressed: () => showEntryTemplateManager(context, c),
+        icon: const Icon(Icons.library_add_outlined),
+        label: const Text('Eintragsvorlagen'),
+      ),
+      Wrap(
+        spacing: 8,
+        children: [
+          TextButton.icon(
+            onPressed: () =>
+                guarded(context, () => showCatalogTransfer(context, c)),
+            icon: const Icon(Icons.file_upload_outlined),
+            label: const Text('Kataloge exportieren'),
+          ),
+          TextButton.icon(
+            onPressed: () => guarded(
+              context,
+              () => showCatalogTransfer(context, c, importing: true),
+            ),
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Kataloge importieren'),
+          ),
+        ],
+      ),
       Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
       Align(
         alignment: Alignment.centerLeft,
@@ -298,6 +349,23 @@ class _SettingsPageState extends State<SettingsPage>
   Widget data() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => showSchoolYearCloseout(context, c),
+            icon: const Icon(Icons.school_outlined),
+            label: const Text('Schuljahr abschließen'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => showRetentionReview(context, c),
+            icon: const Icon(Icons.auto_delete_outlined),
+            label: const Text('Aufbewahrung & Löschprüfung'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
       if (c.services != null) DeviceSettings(controller: c, backups: true),
       FlexCard(
         child: Padding(

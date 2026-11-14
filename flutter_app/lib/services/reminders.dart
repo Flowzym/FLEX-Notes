@@ -1,3 +1,4 @@
+import '../domain/reminder_action.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,12 +15,19 @@ class ReminderRequest {
     required this.target,
     required this.when,
     required this.label,
+    this.revision = 0,
+    this.completable = false,
   });
-  final int id;
+  final int id, revision;
+  final bool completable;
+  String get payload => ReminderAction(
+    target: target,
+    revision: revision,
+    scheduledAt: when.toUtc().toIso8601String(),
+  ).encode();
   final String target, label;
   final DateTime when;
-  String get fingerprint =>
-      '$id|$target|${when.toUtc().toIso8601String()}|$label';
+  String get fingerprint => '$id|$payload|$label|$completable';
 }
 
 List<ReminderRequest> planReminders(
@@ -27,6 +35,7 @@ List<ReminderRequest> planReminders(
   Map<String, dynamic> settings,
   DateTime now,
 ) {
+  data = data.active();
   final active = data.pupils.where((p) => !p.archived).map((p) => p.id).toSet();
   final hour = (settings['hour'] as int? ?? 9).clamp(0, 23);
   final minute = (settings['minute'] as int? ?? 0).clamp(0, 59);
@@ -152,6 +161,9 @@ List<ReminderRequest> planReminders(
   if (candidates.length > 200) candidates.removeRange(200, candidates.length);
   candidates.sort((a, b) => a.target.compareTo(b.target));
   final used = <int>{};
+  final entryById = {for (final e in data.entries) e.id: e};
+  final recordById = {for (final e in data.records) e.id: e};
+  final documentById = {for (final e in data.classroom) e.id: e};
   return candidates.map((item) {
     var id = 0x811c9dc5;
     for (final byte in utf8.encode(item.target)) {
@@ -165,6 +177,14 @@ List<ReminderRequest> planReminders(
       target: item.target,
       when: item.when,
       label: item.label,
+      revision: switch (item.target.split(':').first) {
+        'orga' => entryById[item.target.substring(5)]?.revision ?? 0,
+        'school' => recordById[item.target.substring(7)]?.revision ?? 0,
+        _ => documentById[item.target.split(':')[1]]?.revision ?? 0,
+      },
+      completable:
+          item.target.startsWith('orga:') &&
+          entryById[item.target.substring(5)]?.isTask == true,
     );
   }).toList();
 }
@@ -189,12 +209,19 @@ class AndroidReminderPort implements ReminderPort {
         android: AndroidInitializationSettings('ic_notification'),
       ),
       onDidReceiveNotificationResponse: (response) {
-        if (response.payload != null) onTap(response.payload!);
+        if (response.payload != null) {
+          onTap(ReminderAction.response(response.payload!, response.actionId));
+        }
       },
     );
     final launch = await plugin.getNotificationAppLaunchDetails();
     return launch?.didNotificationLaunchApp == true
-        ? launch?.notificationResponse?.payload
+        ? (launch?.notificationResponse?.payload == null
+              ? null
+              : ReminderAction.response(
+                  launch!.notificationResponse!.payload!,
+                  launch.notificationResponse!.actionId,
+                ))
         : null;
   }
 
@@ -230,11 +257,11 @@ class AndroidReminderPort implements ReminderPort {
         scheduledDate: tz.TZDateTime.from(request.when, tz.UTC),
         title: 'FLEX · ${request.label}',
         body: 'FLEX öffnen, um den Eintrag anzusehen.',
-        payload: request.target,
+        payload: request.payload,
         androidScheduleMode: exact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'flex_reminders',
             'FLEX-Erinnerungen',
@@ -243,6 +270,21 @@ class AndroidReminderPort implements ReminderPort {
             priority: Priority.high,
             visibility: NotificationVisibility.private,
             category: AndroidNotificationCategory.reminder,
+            actions: [
+              if (request.completable)
+                const AndroidNotificationAction(
+                  'done',
+                  'Erledigt',
+                  showsUserInterface: true,
+                  cancelNotification: true,
+                ),
+              const AndroidNotificationAction(
+                'snooze',
+                'Später · 1 Std.',
+                showsUserInterface: true,
+                cancelNotification: true,
+              ),
+            ],
           ),
         ),
       );

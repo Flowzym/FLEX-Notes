@@ -10,11 +10,11 @@ extension _SchoolEditorForms on _SchoolEditorState {
     String? hint,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
-    child: TextFormField(
-      key: ValueKey('record-$name'),
-      initialValue: r.toJson()[name] as String? ?? '',
+    child: DictationTextField(
+      fieldKey: ValueKey('record-$name'),
+      value: r.toJson()[name] as String? ?? '',
       autofocus: autofocus,
-      maxLength: maxLength,
+      maxLength: maxLength ?? 12000,
       minLines: lines,
       maxLines: lines == 1 ? 1 : 8,
       decoration: InputDecoration(

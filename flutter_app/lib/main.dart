@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'services/diagnostics.dart';
+import 'services/material_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'data/open_notebook.dart';
@@ -10,8 +13,23 @@ import 'domain/timetable.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final present = FlutterError.onError;
+  FlutterError.onError = (details) {
+    unawaited(
+      diagnostics.capture(
+        details.exception,
+        details.stack ?? StackTrace.current,
+      ),
+    );
+    if (!kReleaseMode) present?.call(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(diagnostics.capture(error, stack));
+    return true;
+  };
+  await diagnostics.initialize(const LocalMaterialFiles());
   LicenseRegistry.addLicense(() async* {
-    for (final name in ['SQLCipher', 'OpenSSL']) {
+    for (final name in ['SQLCipher', 'OpenSSL', 'AndroidX']) {
       yield LicenseEntryWithLineBreaks([
         name,
       ], await rootBundle.loadString('assets/licenses/$name.txt'));
@@ -50,10 +68,18 @@ Future<void> main() async {
         : null;
     final controller = NotebookController(repository, services: services);
     await controller.initialize();
+    try {
+      await repository.removeUnreferencedFiles(
+        const LocalMaterialFiles().remove,
+      );
+    } catch (error, stack) {
+      await diagnostics.capture(error, stack, area: DiagnosticArea.storage);
+    }
     await initializeFlexTimetable(repository);
     await controller.reload();
     runApp(FlexApp(controller: controller));
-  } catch (error) {
+  } catch (error, stack) {
+    await diagnostics.capture(error, stack, area: DiagnosticArea.startup);
     runApp(
       MaterialApp(
         home: Scaffold(

@@ -59,6 +59,8 @@ DateTime schoolDay(String value) {
 bool validClock(String value) =>
     RegExp(r'^(?:[01]\d|2[0-3]):[0-5]\d$').hasMatch(value);
 
+bool validEndClock(String value) => value == '24:00' || validClock(value);
+
 /// Calendar arithmetic uses dates, never elapsed local hours across DST changes.
 class RepeatRule {
   const RepeatRule({
@@ -426,7 +428,7 @@ class ClassroomDocument {
             start is! String ||
             finish is! String ||
             !validClock(start) ||
-            !validClock(finish) ||
+            !validEndClock(finish) ||
             start.compareTo(finish) >= 0 ||
             start.compareTo(end) < 0) {
           throw const DomainError(
@@ -524,7 +526,7 @@ class ClassroomDocument {
     if (kind == ClassroomKind.lesson) {
       if ((text('start').isNotEmpty || text('end').isNotEmpty) &&
           (!validClock(text('start')) ||
-              !validClock(text('end')) ||
+              !validEndClock(text('end')) ||
               text('end').compareTo(text('start')) <= 0)) {
         throw const DomainError('Bitte Beginn und ein späteres Ende wählen.');
       }
@@ -567,7 +569,7 @@ class ClassroomDocument {
         }
         if (exception['start'] != null &&
             (!validClock(exception['start'] as String) ||
-                !validClock(exception['end'] as String? ?? '') ||
+                !validEndClock(exception['end'] as String? ?? '') ||
                 (exception['end'] as String).compareTo(
                       exception['start'] as String,
                     ) <=

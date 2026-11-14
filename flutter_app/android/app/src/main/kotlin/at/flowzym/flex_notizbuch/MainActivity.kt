@@ -11,12 +11,14 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterFragmentActivity() {
     private val writer = Executors.newSingleThreadExecutor()
     private val streams by lazy { StreamFiles(this) }
+    private var quickAccess: FlexQuickAccess? = null
     private var pendingStream = false
     private var pendingSave: MethodChannel.Result? = null
     private var pendingBytes: ByteArray? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        quickAccess = FlexQuickAccess(this, flutterEngine.dartExecutor.binaryMessenger).also { it.accept(intent) }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.flowzym.flex_notizbuch/files")
             .setMethodCallHandler { call, result ->
                 if (call.method in StreamFiles.methods) {
@@ -103,7 +105,14 @@ class MainActivity : FlutterFragmentActivity() {
         if (code == null) result?.success(if (wasStream) null else saved) else result?.error(code, message, null)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        quickAccess?.accept(intent)
+    }
+
     override fun onDestroy() {
+        quickAccess?.dispose()
         finishSave("activity_closed", "Der Speicherdialog wurde geschlossen.")
         writer.execute { streams.close() }
         writer.shutdown()

@@ -1,7 +1,7 @@
-# FLEX für Android · Build 78
+# FLEX für Android · Build 79
 
-**0.28.0+78** ist als signierte ARM64- und ARMv7-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-78/README.md).
+**0.29.0+79** ist als signierte ARM64- und ARMv7-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-79/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -12,15 +12,15 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
 
-Build 78 kann direkt über die neue FLEX aus Build 62–77 installiert werden.
+Build 79 kann direkt über die neue FLEX aus Build 62–78 installiert werden.
 App-Kennung und Signatur bleiben erhalten. Vor dem Update eine vollständige
 verschlüsselte Sicherung außerhalb der App speichern. Bei einem Update aus
 Build 62–76 migriert der erste Start Datenbank und Materialien in die verschlüsselte
 Ablage; danach kein Downgrade und keine App-Daten löschen.
 
-[Build-78-Änderungen und Prüfbericht](../docs/rebuild/BACKUP-SHARING-BUILD-78.md) ·
-[Noch offene Geräteabnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-78.md).
-Neue `.flexbackup`-Sicherungen benötigen Build 78 oder neuer; alte bleiben lesbar.
+[Build-79-Änderungen und Prüfbericht](../docs/rebuild/REVIEW-CALENDAR-BUILD-79.md) ·
+[Noch offene Geräteabnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md).
+Neue Sicherungen mit Schema 8 benötigen Build 79 oder neuer; alte bleiben lesbar.
 
 ## Dauerhafte Signatur
 

@@ -1,3 +1,4 @@
+import '../domain/school_year.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
@@ -11,7 +12,10 @@ class NotebookController extends ChangeNotifier {
   final DeviceServices? services;
   final NotebookRepository repository;
   List<Pupil> pupils = [];
+  List<SchoolYearArchive> schoolYears = [];
   List<OrgaEntry> entries = [];
+  List<OrgaEntry> _hiddenEntries = [];
+  List<SchoolRecord> _hiddenRecords = [];
   List<OrgaEntry> trashedEntries = [];
   List<EditDraft> drafts = [];
   List<SchoolRecord> records = [];
@@ -20,9 +24,10 @@ class NotebookController extends ChangeNotifier {
   List<ClassroomDocument> classroom = [];
   NotebookSnapshot get currentSnapshot => NotebookSnapshot(
     pupils: pupils,
-    entries: [...entries, ...trashedEntries],
+    schoolYears: schoolYears,
+    entries: [...entries, ...trashedEntries, ..._hiddenEntries],
     drafts: drafts,
-    records: records,
+    records: [...records, ..._hiddenRecords],
     schoolDrafts: schoolDrafts,
     dialogDrafts: dialogDrafts,
     appearance: appearance,
@@ -51,13 +56,30 @@ class NotebookController extends ChangeNotifier {
     if (_disposed) return;
     final generation = ++_loadGeneration;
     final appearanceGeneration = _appearanceGeneration;
-    final next = await repository.snapshot();
+    final next = (await repository.snapshot()).active();
     if (_disposed || generation != _loadGeneration) return;
     pupils = next.pupils;
-    entries = next.entries.where((e) => !e.deleted).toList();
-    trashedEntries = next.entries.where((e) => e.deleted).toList();
+    schoolYears = next.schoolYears;
+    final deletedPupils = pupils
+        .where((p) => p.deleted)
+        .map((p) => p.id)
+        .toSet();
+    _hiddenEntries = next.entries
+        .where((e) => deletedPupils.contains(e.pupilId))
+        .toList();
+    entries = next.entries
+        .where((e) => !e.deleted && !deletedPupils.contains(e.pupilId))
+        .toList();
+    trashedEntries = next.entries
+        .where((e) => e.deleted && !deletedPupils.contains(e.pupilId))
+        .toList();
     drafts = next.drafts;
-    records = next.records;
+    records = next.records
+        .where((r) => !deletedPupils.contains(r.pupilId))
+        .toList();
+    _hiddenRecords = next.records
+        .where((r) => deletedPupils.contains(r.pupilId))
+        .toList();
     schoolDrafts = next.schoolDrafts;
     dialogDrafts = next.dialogDrafts;
     classroom = next.classroom;

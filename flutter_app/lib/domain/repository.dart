@@ -1,9 +1,35 @@
+import 'entry_template.dart';
+import 'reminder_action.dart';
+import 'school_year.dart';
 import 'models.dart';
 import 'school.dart';
 import 'observation_catalog.dart';
 import 'classroom.dart';
 
 abstract interface class NotebookRepository {
+  Future<List<EntryTemplate>> entryTemplates();
+  Future<void> saveEntryTemplate(EntryTemplate template);
+  Future<void> deleteEntryTemplate(String id);
+  Future<CatalogBundle> exportCatalogs();
+  Future<void> importCatalogs(CatalogBundle bundle, {required bool replace});
+  Future<bool> applyReminderAction(ReminderAction action, DateTime now);
+  Future<void> removeUnreferencedFiles(
+    Future<void> Function(String key) remove,
+  );
+  Future<List<SchoolYearArchive>> schoolYears();
+  Future<void> archiveSchoolYear(
+    SchoolYearArchive archive,
+    String capturedBackup,
+  );
+  Future<void> reopenSchoolYear(String id);
+  Future<RetentionPolicy> retentionPolicy();
+  Future<void> saveRetentionPolicy(RetentionPolicy policy);
+  Future<List<RetentionCandidate>> retentionReview(DateTime now);
+  Future<void> purgeRetained(
+    Set<String> keys,
+    String capturedBackup, {
+    DateTime? now,
+  });
   Future<List<ClassroomDocument>> classroomDocuments();
   Future<void> renameMaterialTag(String oldTag, String? newTag);
   Future<ClassroomDocument> saveClassroomDocument(
@@ -24,6 +50,7 @@ abstract interface class NotebookRepository {
   Future<void> initialize();
   Future<List<Pupil>> pupils();
   Future<Pupil> savePupil(Pupil pupil);
+  Future<Set<String>> searchEntryKeys(String query, {String? pupilId});
   Future<List<OrgaEntry>> entries();
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {
@@ -108,6 +135,7 @@ class NotebookSnapshot {
     required this.legacyCount,
     this.dialogDrafts = const [],
     this.classroom = const [],
+    this.schoolYears = const [],
   });
   final List<Pupil> pupils;
   final List<OrgaEntry> entries;
@@ -116,8 +144,26 @@ class NotebookSnapshot {
   final List<SchoolDraft> schoolDrafts;
   final List<DialogDraft> dialogDrafts;
   final List<ClassroomDocument> classroom;
+  final List<SchoolYearArchive> schoolYears;
   final Appearance appearance;
   final int legacyCount;
+  NotebookSnapshot active() {
+    final entryIds = schoolYears.expand((y) => y.orgaIds).toSet();
+    final recordIds = schoolYears.expand((y) => y.recordIds).toSet();
+    final documentIds = schoolYears.expand((y) => y.documentIds).toSet();
+    return NotebookSnapshot(
+      pupils: pupils,
+      entries: entries.where((e) => !entryIds.contains(e.id)).toList(),
+      records: records.where((r) => !recordIds.contains(r.id)).toList(),
+      classroom: classroom.where((d) => !documentIds.contains(d.id)).toList(),
+      drafts: drafts,
+      schoolDrafts: schoolDrafts,
+      dialogDrafts: dialogDrafts,
+      appearance: appearance,
+      legacyCount: legacyCount,
+      schoolYears: schoolYears,
+    );
+  }
 }
 
 class LegacyReport {

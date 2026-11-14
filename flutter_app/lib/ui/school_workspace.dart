@@ -1,3 +1,4 @@
+import '../services/pseudonymize.dart';
 import 'work_assignment_sources.dart';
 import 'detail_flow.dart';
 import 'document_attachments.dart';
@@ -766,6 +767,21 @@ class SchoolTools extends StatelessWidget {
           const Text(
             'Hier abgelegte Einträge sind ausgeblendet und weiterhin in Sicherungen enthalten.',
           ),
+          for (final pupil in controller.pupils.where((p) => p.deleted))
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(pupil.name),
+              subtitle: const Text('Schüler mit zugehörigen Einträgen'),
+              trailing: TextButton(
+                onPressed: () => guarded(
+                  context,
+                  () => controller.savePupil(
+                    pupil.copyWith(deleted: false, archived: false),
+                  ),
+                ),
+                child: const Text('Wiederherstellen'),
+              ),
+            ),
           for (final e in controller.trashedEntries)
             FlexCard(
               child: ListTile(
@@ -784,7 +800,8 @@ class SchoolTools extends StatelessWidget {
           for (final r in controller.records.where((v) => v.deleted))
             SchoolRecordCard(controller: controller, record: r),
           if (!controller.records.any((v) => v.deleted) &&
-              controller.trashedEntries.isEmpty)
+              controller.trashedEntries.isEmpty &&
+              !controller.pupils.any((p) => p.deleted))
             const EmptyState('Der Papierkorb ist leer.'),
         ],
       );
@@ -794,7 +811,7 @@ class SchoolTools extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const EmptyState(
-            'Gruppenerfassungen konnten nicht geladen werden.',
+            'Die gemeinsam angelegten Einträge konnten nicht geladen werden.',
           );
         }
         if (!snapshot.hasData) {
@@ -803,7 +820,7 @@ class SchoolTools extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text('Gruppenerfassungen'),
+            const Text('Für mehrere Schüler angelegt'),
             for (final group in snapshot.data!)
               FlexCard(
                 child: ListTile(
@@ -818,7 +835,7 @@ class SchoolTools extends StatelessWidget {
                           onPressed: () async {
                             if (await confirmFlex(
                                   context,
-                                  'Gruppenerfassung zurücknehmen?',
+                                  'Gemeinsam angelegte Einträge zurücknehmen?',
                                   'Alle unveränderten Einträge werden in den Papierkorb verschoben. Ein neuer Entwurf erhält die Eingaben.',
                                   accept: 'Rückgängig',
                                 ) &&
@@ -837,7 +854,9 @@ class SchoolTools extends StatelessWidget {
                 ),
               ),
             if (snapshot.data!.isEmpty)
-              const EmptyState('Noch keine Gruppenerfassungen.'),
+              const EmptyState(
+                'Noch keine Einträge für mehrere Schüler angelegt.',
+              ),
           ],
         );
       },
@@ -855,7 +874,8 @@ Future<void> showBrief(
 }) async {
   String? from = initialFrom;
   String? to = initialTo ?? dateOnly(DateTime.now());
-  var names = false;
+  var names = false, pseudonyms = false;
+  var additionalNames = '';
   var preview = '', error = '';
   final selection = <String>{...initialSelection};
   final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
@@ -985,6 +1005,32 @@ Future<void> showBrief(
                 ],
               ),
               CompactSwitchListTile(
+                key: const ValueKey('brief-pseudonyms'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Namen beim Export ersetzen'),
+                value: pseudonyms,
+                onChanged: (v) => update(() {
+                  pseudonyms = v;
+                  preview = '';
+                }),
+              ),
+              if (pseudonyms) ...[
+                const Text(
+                  'Bekannte Schülernamen werden durch Person 1, Person 2 usw. ersetzt. Prüfe Freitext und weitere personenbezogene Angaben in der Vorschau.',
+                ),
+                TextFormField(
+                  initialValue: additionalNames,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Weitere Namen, durch Komma getrennt',
+                  ),
+                  onChanged: (v) => update(() {
+                    additionalNames = v;
+                    preview = '';
+                  }),
+                ),
+              ],
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Namen weiterer Beteiligter aufnehmen'),
                 value: names,
@@ -1047,6 +1093,15 @@ Future<void> showBrief(
                   error = '';
                   preview =
                       'Gesprächsvorbereitung · ${pupil.name}\nZeitraum: ${from == null ? 'Beginn' : displayDate(from)} bis ${to == null ? 'heute' : displayDate(to)}\n\n${entries.where((e) => selection.contains(e.id)).map((e) => '${displayDate(e.date)} · ${e.label}\n${e.text}').join('\n\n')}\n\nNächste Schritte\n';
+                  if (pseudonyms) {
+                    preview = pseudonymizeReport(preview, [
+                      pupil.name,
+                      ...c.pupils
+                          .where((p) => p.id != pupil.id)
+                          .map((p) => p.name),
+                      ...additionalNames.split(RegExp(r'[,;\n]')),
+                    ]);
+                  }
                 }),
                 child: const Text('Auswahl zusammenstellen'),
               ),

@@ -119,6 +119,8 @@ mixin ClassroomStore on SchoolStore {
   });
 
   Future<void> validateClassroomReferences() async {
+    await (this as SqliteNotebook).validateYearReferences();
+    await (this as SqliteNotebook).entryTemplates();
     final docs = await classroomDocuments();
     final materials = docs
         .where((d) => d.kind == ClassroomKind.material)

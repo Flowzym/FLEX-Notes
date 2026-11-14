@@ -342,7 +342,7 @@ Future<void> showImportReview(
         title: const Text('Sicherung prüfen'),
         onClose: () => Navigator.pop(ctx),
         content: Text(
-          '${report.pupils} Schüler, ${report.entries} Einträge. Diese HTML-Sicherung kann unverändert zur Migration vorgemerkt werden. Sie wird noch nicht als aktiver Datenstand übernommen.',
+          '${report.pupils} Schüler, ${report.entries} Einträge. Diese HTML-Sicherung kann unverändert zur Migration vorgemerkt werden. Ihre Einträge werden noch nicht in FLEX übernommen.',
         ),
         actions: [
           FilledButton(
@@ -409,12 +409,12 @@ Future<void> showImportReview(
                 '${(tables['pupils'] as List).length} Schüler · ${(tables['school_records'] as List? ?? []).length + (tables['orga'] as List? ?? []).length} Einträge',
               ),
               const Text(
-                'Diese Fassung stellt geprüfte Sicherungen in einem leeren Arbeitsbereich wieder her. Ein vorhandener Datenstand wird nicht überschrieben.',
+                'Geprüfte Sicherungen können in einem leeren Arbeitsbereich wiederhergestellt werden. Vorhandene Daten bleiben erhalten.',
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
-                  'Diese Sicherung als neuen Datenstand verwenden',
+                  'Die Daten aus dieser Sicherung wiederherstellen',
                 ),
                 value: confirmed,
                 onChanged: busy
@@ -444,7 +444,7 @@ Future<void> showImportReview(
                       if (!confirmed) {
                         update(
                           () => error =
-                              'Bitte die Wiederherstellung als neuen Datenstand bestätigen.',
+                              'Bitte die Wiederherstellung dieser Sicherung bestätigen.',
                         );
                         return;
                       }

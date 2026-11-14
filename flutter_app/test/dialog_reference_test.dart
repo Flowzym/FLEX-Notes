@@ -328,8 +328,8 @@ void main() {
         }),
       );
       await tap(t, find.byKey(const ValueKey('save-school-record')));
-      await tap(t, find.text('Aktuelle Fassung übernehmen'));
-      await tap(t, find.text('Aktuelle Fassung übernehmen'));
+      await tap(t, find.text('Aktuelle Version übernehmen'));
+      await tap(t, find.text('Aktuelle Version übernehmen'));
       await tap(t, find.byKey(const ValueKey('save-school-record')));
       final saved = (await repo.schoolRecords()).single;
       expect(saved.taskState(task), TaskState.complete);
@@ -769,15 +769,13 @@ void main() {
         await t.pumpAndSettle();
         await tap(t, find.text('Sicherung wiederherstellen'));
         expect(
-          find.text(
-            'Bitte die Wiederherstellung als neuen Datenstand bestätigen.',
-          ),
+          find.text('Bitte die Wiederherstellung dieser Sicherung bestätigen.'),
           findsOneWidget,
         );
         expect(await target.pupils(), isEmpty);
         await tap(
           t,
-          find.text('Diese Sicherung als neuen Datenstand verwenden'),
+          find.text('Die Daten aus dieser Sicherung wiederherstellen'),
         );
         await tap(t, find.text('Sicherung wiederherstellen'));
         expect(await target.pupils(), hasLength(2));
@@ -860,7 +858,7 @@ void main() {
       await t.pumpAndSettle();
       expect(
         find.descendant(
-          of: find.byType(FlexModal),
+          of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
           matching: find.textContaining('Gespräch mit Eltern'),
         ),
         findsOneWidget,
@@ -872,17 +870,23 @@ void main() {
       await t.pumpAndSettle();
       expect(
         find.descendant(
-          of: find.byType(FlexModal),
+          of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
           matching: find.textContaining('Gespräch mit Eltern'),
         ),
         findsNothing,
       );
       expect(find.text('Aktuelle Beobachtung'), findsWidgets);
       unawaited(
-        showJournal(t.element(find.byType(FlexModal).last), c, changed.id),
+        showJournal(
+          t.element(
+            find.byWidgetPredicate((w) => w is FlexModal && !w.embedded).last,
+          ),
+          c,
+          changed.id,
+        ),
       );
       await t.pumpAndSettle();
-      await tap(t, find.textContaining('Fassung 2'));
+      await tap(t, find.textContaining('Version 2'));
       expect(find.textContaining('Frühere Beobachtung'), findsOneWidget);
       expect(find.textContaining('Aktuelle Beobachtung'), findsWidgets);
       expect(find.textContaining('rebuildFormat'), findsNothing);
@@ -1237,8 +1241,17 @@ void main() {
           await finish(t);
           continue;
         }
-        expect(find.byType(FlexModal), findsOneWidget, reason: scenario.key);
-        final rect = t.getRect(find.byKey(const ValueKey('flex-modal-frame')));
+        expect(
+          find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+          findsOneWidget,
+          reason: scenario.key,
+        );
+        final rect = t.getRect(
+          find.descendant(
+            of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+            matching: find.byKey(const ValueKey('flex-modal-frame')),
+          ),
+        );
         expect(rect.left, greaterThanOrEqualTo(9.9), reason: scenario.key);
         expect(rect.right, lessThanOrEqualTo(size.width - 9.9));
         expect(
@@ -1258,7 +1271,10 @@ void main() {
                   : 'Speichern',
             ),
           );
-          expect(find.byType(FlexModal), findsOneWidget);
+          expect(
+            find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+            findsOneWidget,
+          );
           if (scenario.key == 'social-error') {
             final error = find.byKey(const ValueKey('record-error'));
             expect(error, findsOneWidget);

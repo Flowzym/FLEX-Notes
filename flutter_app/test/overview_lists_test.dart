@@ -14,6 +14,7 @@ import 'package:flex_notizbuch/data/sqlite_notebook.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
+import 'package:flex_notizbuch/ui/pupil_card.dart';
 import 'package:flex_notizbuch/ui/orga_list_editing.dart';
 import 'package:flex_notizbuch/ui/overview_entry.dart';
 import 'package:flex_notizbuch/ui/school_workspace.dart';
@@ -359,7 +360,13 @@ void main() {
       await c.reload();
       await app(t);
       await tap(t, find.byKey(const ValueKey('page-1')));
-      expect(find.byIcon(Icons.edit_note), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(PupilCard),
+          matching: find.byIcon(Icons.edit_note),
+        ),
+        findsNothing,
+      );
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('count-a-social')),
@@ -645,7 +652,13 @@ void main() {
             findsOneWidget,
           );
         }
-        expect(find.byIcon(Icons.edit_note), findsNothing);
+        expect(
+          find.descendant(
+            of: find.byType(PupilCard),
+            matching: find.byIcon(Icons.edit_note),
+          ),
+          findsNothing,
+        );
         expect(t.takeException(), isNull);
         await capture(
           t,

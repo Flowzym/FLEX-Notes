@@ -55,13 +55,16 @@ class StreamBackup {
     String? password,
     bool appearance = true,
     BackupProgress? progress,
+    String? capturedNotebook,
   }) async* {
     if (password != null && password.runes.length < 12) {
       throw const DomainError(
         'Bitte mindestens zwölf Zeichen als Sicherungspasswort verwenden.',
       );
     }
-    final data = Json.from(jsonDecode(await repository.exportBackup()) as Map);
+    final data = Json.from(
+      jsonDecode(capturedNotebook ?? await repository.exportBackup()) as Map,
+    );
     if (!appearance) {
       (data['tables']['preferences'] as List).removeWhere(
         (r) => r['key'] == 'appearance',

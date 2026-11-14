@@ -1,3 +1,6 @@
+import 'entry_templates.dart';
+import '../domain/entry_template.dart';
+import 'dictation.dart';
 import 'work_assignment_sources.dart';
 import 'document_attachments.dart';
 import 'observation_tone_colors.dart';
@@ -507,15 +510,15 @@ class _SchoolEditorState extends State<SchoolEditor>
     if (taskId != null && !current.tasks.any((t) => t.id == taskId)) {
       setState(
         () => error =
-            'Diese Aufgabe ist in der aktuellen Fassung nicht mehr vorhanden.',
+            'Diese Aufgabe ist in der aktuellen Version nicht mehr vorhanden.',
       );
       return;
     }
     final accepted = await confirmFlex(
       context,
       'Änderungskonflikte',
-      'Die aktuelle Fassung wird geladen. Nur dein Kommentar und die ausdrücklich bearbeitete Abgabe werden übertragen. Aufgabenstände bleiben erhalten.',
-      accept: 'Aktuelle Fassung übernehmen',
+      'Die aktuelle Version wird geladen. Nur dein Kommentar und die ausdrücklich bearbeitete Abgabe werden übertragen. Aufgabenstände bleiben erhalten.',
+      accept: 'Aktuelle Version übernehmen',
     );
     if (!accepted || !mounted) return;
     final previous = current.feedback

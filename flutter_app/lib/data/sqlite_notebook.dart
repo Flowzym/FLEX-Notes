@@ -1,4 +1,7 @@
+import '../domain/entry_template.dart';
+import '../domain/reminder_action.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 
 import 'package:cryptography/cryptography.dart';
 
@@ -8,25 +11,36 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../domain/models.dart';
+import '../domain/school_year.dart';
 import '../domain/repository.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
 import '../domain/material_tags.dart';
+import '../domain/material_versions.dart';
 import 'database.dart';
 part 'school_store.dart';
+part 'privacy_store.dart';
+part 'template_store.dart';
 part 'backup_merge_store.dart';
 part 'classroom_store.dart';
 part 'draft_document_store.dart';
 
 class SqliteNotebook
-    with SchoolStore, ClassroomStore, BackupMergeStore
+    with
+        SchoolStore,
+        ClassroomStore,
+        BackupMergeStore,
+        PrivacyStore,
+        TemplateStore
     implements NotebookRepository, BackupMergeRepository {
   @override
   Future<NotebookSnapshot> snapshot() => db.transaction(() async {
     await materializeRepeats(DateTime.now());
+    final years = await schoolYears();
     return NotebookSnapshot(
+      schoolYears: years,
       pupils: await pupils(),
       entries: await entries(),
       drafts: await drafts(),
@@ -39,6 +53,150 @@ class SqliteNotebook
     );
   });
   SqliteNotebook(this.db);
+
+  @override
+  Future<bool> applyReminderAction(
+    ReminderAction action,
+    DateTime now,
+  ) => db.transaction(() async {
+    action.validate();
+    final token = (await Sha256().hash(
+      utf8.encode('${action.target}|${action.revision}|${action.scheduledAt}'),
+    )).bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final key = 'notification-action:$token';
+    if ((await db
+            .customSelect(
+              'SELECT 1 FROM preferences WHERE key=?',
+              variables: [Variable(key)],
+            )
+            .get())
+        .isNotEmpty) {
+      return false;
+    }
+    final data = (await snapshot()).active();
+    final override = data.classroom
+        .where(
+          (d) =>
+              !d.deleted &&
+              d.kind == ClassroomKind.reminder &&
+              d.text('target') == action.target,
+        )
+        .firstOrNull;
+    if (override != null &&
+        (override.flag('dismissed') ||
+            DateTime.tryParse(override.text('at')) !=
+                DateTime.parse(action.scheduledAt))) {
+      throw const DomainError(
+        'Diese Erinnerung wurde inzwischen geändert. Bitte in FLEX prüfen.',
+      );
+    }
+    final parts = action.target.split(':');
+    final id = parts[1];
+    final pupilIds = data.pupils
+        .where((p) => !p.archived && !p.deleted)
+        .map((p) => p.id)
+        .toSet();
+    final entry = data.entries
+        .where(
+          (e) =>
+              e.id == id &&
+              !e.deleted &&
+              (e.pupilId == null || pupilIds.contains(e.pupilId)),
+        )
+        .firstOrNull;
+    final record = data.records
+        .where((r) => r.id == id && !r.deleted && pupilIds.contains(r.pupilId))
+        .firstOrNull;
+    final document = data.classroom
+        .where((d) => d.id == id && !d.deleted)
+        .firstOrNull;
+    final revision = switch (parts.first) {
+      'orga' => entry?.revision,
+      'school' => record?.revision,
+      'return' =>
+        document?.kind == ClassroomKind.returnList ? document?.revision : null,
+      'lesson' =>
+        document?.kind == ClassroomKind.lesson ? document?.revision : null,
+      _ => null,
+    };
+    if (revision == null || revision != action.revision) {
+      throw const DomainError(
+        'Der Eintrag wurde inzwischen geändert oder entfernt. Bitte in FLEX prüfen.',
+      );
+    }
+    if (action.action == 'done') {
+      if (parts.first != 'orga' || entry == null || !entry.isTask) {
+        throw const DomainError(
+          'Dieser Eintrag lässt sich nicht als Aufgabe abschließen.',
+        );
+      }
+      if (!entry.done) {
+        await saveEntry(
+          entry.copyWith(
+            done: true,
+            reminderState: entry.reminderAtUtc == null
+                ? ReminderState.none
+                : ReminderState.acknowledged,
+          ),
+        );
+      }
+    } else {
+      if (entry?.done == true ||
+          record != null && !record.pending ||
+          document?.kind == ClassroomKind.returnList &&
+              document!.flag('closed')) {
+        throw const DomainError('Der Eintrag ist bereits abgeschlossen.');
+      }
+      if (parts.first == 'lesson') {
+        if (parts.length != 3 ||
+            !validDate(parts.last) ||
+            !lessonOccurrences(
+              data.classroom,
+              parts.last,
+              parts.last,
+            ).any((l) => l.target == action.target)) {
+          throw const DomainError(
+            'Diese Unterrichtsstunde findet nicht mehr statt.',
+          );
+        }
+      }
+      final snoozeId = const Uuid().v5(
+        Namespace.url.value,
+        'flex-snooze:${action.target}',
+      );
+      final previous = data.classroom
+          .where((d) => d.id == snoozeId)
+          .firstOrNull;
+      final fields = <String, dynamic>{
+        'target': action.target,
+        'at': now.add(const Duration(hours: 1)).toUtc().toIso8601String(),
+        'dismissed': false,
+        'deleted': false,
+      };
+      await saveClassroomDocument(
+        previous == null
+            ? ClassroomDocument.create(
+                ClassroomKind.reminder,
+                'Erinnerung',
+                fields,
+                id: snoozeId,
+              )
+            : previous.patch(fields),
+      );
+    }
+    await db.customStatement(
+      'INSERT INTO preferences(key,payload) VALUES (?,?)',
+      [
+        key,
+        jsonEncode({'at': now.toUtc().toIso8601String()}),
+      ],
+    );
+    await db.customStatement(
+      "DELETE FROM preferences WHERE key LIKE 'notification-action:%' AND json_extract(payload,'\$.at') < ?",
+      [now.subtract(const Duration(days: 30)).toUtc().toIso8601String()],
+    );
+    return true;
+  });
 
   @override
   Future<void> renameMaterialTag(String oldTag, String? newTag) =>
@@ -155,7 +313,7 @@ class SqliteNotebook
       if (edited.taskId != null &&
           !current.tasks.any((t) => t.id == edited.taskId)) {
         throw const DomainError(
-          'Diese Aufgabe ist in der aktuellen Fassung nicht mehr vorhanden.',
+          'Diese Aufgabe ist in der aktuellen Version nicht mehr vorhanden.',
         );
       }
       final previous = current.feedback
@@ -235,7 +393,7 @@ class SqliteNotebook
     final current = Json.from(jsonDecode(await exportBackup()) as Map);
     if (jsonEncode(captured['tables']) != jsonEncode(current['tables'])) {
       throw const DomainError(
-        'Der Datenstand wurde inzwischen geändert. Bitte eine neue vollständige Sicherung erstellen.',
+        'Die gespeicherten Daten wurden inzwischen geändert. Bitte eine neue vollständige Sicherung erstellen.',
       );
     }
     final check = await _rows('PRAGMA quick_check');
@@ -266,6 +424,22 @@ class SqliteNotebook
           .where((e) => e.deleted && !seriesIds.contains(e.id))
           .map((e) => e.id),
     };
+    await _purgeEntries(deleted);
+    await _purgeDeletedPupils(
+      (await pupils()).where((p) => p.deleted).map((p) => p.id).toSet(),
+    );
+    await validateClassroomReferences();
+  });
+
+  @override
+  Future<void> _purgeEntries(Set<String> deleted) async {
+    if (deleted.isEmpty) return;
+    final records = await schoolRecords();
+    final affectedContexts = records
+        .where((r) => deleted.contains(r.id))
+        .map((r) => r.situationId)
+        .whereType<String>()
+        .toSet();
     final scanDrafts = (await dialogDrafts()).where((d) => d.type == 'scan');
     if (scanDrafts.any(
       (d) => (d.data['links'] as List).any((l) => deleted.contains(l['id'])),
@@ -283,7 +457,9 @@ class SqliteNotebook
     for (final record in records.where(
       (r) => !r.deleted && deleted.contains(r.goalId),
     )) {
-      await saveSchoolRecord(record.patch({'goalId': null}));
+      await saveSchoolRecord(
+        record.patch({'goalId': null, 'goalSnapshot': ''}),
+      );
     }
     // Keep the PDF and student assignment when its source entry is permanently
     // removed; detach only those now-invalid entry links in the same transaction.
@@ -330,6 +506,7 @@ class SqliteNotebook
       'SELECT id FROM situations WHERE id NOT IN (SELECT situation_id FROM school_records WHERE situation_id IS NOT NULL)',
     )) {
       final id = row['id'] as String;
+      if (!affectedContexts.contains(id)) continue;
       if ((await _rows('SELECT id FROM context_drafts WHERE entity_id=?', [
         id,
       ])).isNotEmpty) {
@@ -366,7 +543,9 @@ class SqliteNotebook
         ]);
       }
     }
-  });
+    await _forgetArchivedIds(deleted);
+  }
+
   @override
   Future<Json?> situation(String id) async {
     final rows = await _rows('SELECT * FROM situations WHERE id=?', [id]);
@@ -705,6 +884,15 @@ class SqliteNotebook
       } else {
         _deviceId = rows.single['value'] as String;
       }
+      await db.customStatement(
+        "UPDATE devices SET name=CASE WHEN name='' THEN 'Dieses Gerät' ELSE name END,platform=?,created_at_utc=COALESCE(created_at_utc,?),last_seen_at_utc=? WHERE id=?",
+        [
+          kIsWeb ? 'web' : defaultTargetPlatform.name,
+          utcNow(),
+          utcNow(),
+          _deviceId,
+        ],
+      );
     });
   }
 
@@ -713,12 +901,42 @@ class SqliteNotebook
     name: row['name'] as String,
     color: row['color'] as int,
     archived: row['archived'] == 1,
+    deleted: row['deleted'] == 1,
+    createdAtUtc: row['created_at_utc'] as String?,
+    updatedAtUtc: row['updated_at_utc'] as String?,
+    deletedAtUtc: row['deleted_at_utc'] as String?,
     revision: row['revision'] as int,
   );
   @override
   Future<List<Pupil>> pupils() async => (await _rows(
     'SELECT * FROM pupils ORDER BY name COLLATE NOCASE,id',
   )).map(_pupil).toList();
+  @override
+  Future<Set<String>> searchEntryKeys(String query, {String? pupilId}) async {
+    if (query.trim().isEmpty) return {};
+    if (query.length > 300) {
+      throw const DomainError('Bitte einen kürzeren Suchtext eingeben.');
+    }
+    final expression = query
+        .trim()
+        .split(RegExp(r'\s+'))
+        .take(12)
+        .map((word) => '"${word.replaceAll('"', '""')}"*')
+        .join(' AND ');
+    final result = await _rows(
+      '''SELECT kind,entity_id FROM entry_search
+      WHERE entry_search MATCH ? AND (?='' OR pupil_id=?)
+      AND (pupil_id IS NULL OR pupil_id='' OR EXISTS
+        (SELECT 1 FROM pupils p WHERE p.id=entry_search.pupil_id AND p.deleted=0 AND (p.archived=0 OR p.id=?)))
+      AND ((kind='orga' AND EXISTS(SELECT 1 FROM orga o WHERE o.id=entity_id AND o.deleted=0))
+        OR (kind='school' AND EXISTS(SELECT 1 FROM school_records r WHERE r.id=entity_id AND json_extract(r.payload,'\$.deleted')=0))
+        OR (kind='classroom' AND EXISTS(SELECT 1 FROM preferences p WHERE p.key='classroom:'||entity_id AND json_extract(p.payload,'\$.deleted')=0)))
+      ORDER BY rank''',
+      [expression, pupilId ?? '', pupilId ?? '', pupilId ?? ''],
+    );
+    return result.map((row) => '${row['kind']}:${row['entity_id']}').toSet();
+  }
+
   @override
   Future<Pupil> savePupil(Pupil pupil) async {
     pupil.validate();
@@ -738,15 +956,24 @@ class SqliteNotebook
       final saved = pupil.copyWith(
         name: pupil.name.trim(),
         revision: pupil.revision + 1,
+        createdAtUtc: old.isEmpty
+            ? pupil.createdAtUtc ?? utcNow()
+            : old.single['created_at_utc'] as String?,
+        updatedAtUtc: utcNow(),
+        deletedAtUtc: pupil.deleted ? pupil.deletedAtUtc ?? utcNow() : null,
       );
       await db.customStatement(
-        'INSERT INTO pupils(id,name,color,archived,revision) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,color=excluded.color,archived=excluded.archived,revision=excluded.revision',
+        'INSERT INTO pupils(id,name,color,archived,revision,created_at_utc,updated_at_utc,deleted,deleted_at_utc) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,color=excluded.color,archived=excluded.archived,revision=excluded.revision,updated_at_utc=excluded.updated_at_utc,deleted=excluded.deleted,deleted_at_utc=excluded.deleted_at_utc',
         [
           saved.id,
           saved.name,
           saved.color,
           saved.archived ? 1 : 0,
           saved.revision,
+          saved.createdAtUtc,
+          saved.updatedAtUtc,
+          saved.deleted ? 1 : 0,
+          saved.deletedAtUtc,
         ],
       );
       await _audit(
@@ -790,6 +1017,7 @@ class SqliteNotebook
       reminderHasTime: timeMetadata['hasTime'] as bool? ?? true,
       appointmentDate: timeMetadata['appointmentDate'] as String?,
       appointmentTime: timeMetadata['appointmentTime'] as String? ?? '',
+      appointmentEndTime: timeMetadata['appointmentEndTime'] as String? ?? '',
       dueDate: row['due_date'] as String?,
       reminderAtUtc: row['reminder_at_utc'] as String?,
       reminderZone: row['reminder_zone'] as String,
@@ -893,6 +1121,7 @@ class SqliteNotebook
             'hasTime': saved.reminderHasTime,
             'appointmentDate': saved.appointmentDate,
             'appointmentTime': saved.appointmentTime,
+            'appointmentEndTime': saved.appointmentEndTime,
             'otherParticipants': saved.otherParticipants,
           }),
         ],
@@ -1071,6 +1300,7 @@ class SqliteNotebook
           );
   }
 
+  @override
   Future<ObservationCatalog> _saveCatalog(
     String key,
     ObservationCatalog value,
@@ -1141,7 +1371,7 @@ class SqliteNotebook
     return const JsonEncoder.withIndent('  ').convert({
       'format': 'FLEX-Flutter-Rebuild-Backup',
       'version': 1,
-      'schemaVersion': 7,
+      'schemaVersion': 8,
       'createdAtUtc': utcNow(),
       'tables': tables,
     });
@@ -1164,7 +1394,7 @@ class SqliteNotebook
         backup['format'] == 'FLEX-Flutter-Backup' && backup['version'] == 1;
     if ((!legacy &&
             (backup['format'] != 'FLEX-Flutter-Rebuild-Backup' ||
-                backup['schemaVersion'] != 7)) ||
+                !{7, 8}.contains(backup['schemaVersion']))) ||
         backup['version'] != 1 ||
         backup['tables'] is! Map) {
       throw const DomainError(
@@ -1197,6 +1427,39 @@ class SqliteNotebook
           )
           .toList();
     }
+    if (legacy || backup['schemaVersion'] == 7) {
+      tables['pupils'] = (tables['pupils'] as List)
+          .map(
+            (r) => <String, dynamic>{
+              'created_at_utc': null,
+              'updated_at_utc': null,
+              'deleted': 0,
+              'deleted_at_utc': null,
+              ...Json.from(r as Map),
+            },
+          )
+          .toList();
+      tables['devices'] = (tables['devices'] as List)
+          .map(
+            (r) => <String, dynamic>{
+              'name': '',
+              'platform': '',
+              'created_at_utc': null,
+              'last_seen_at_utc': null,
+              'public_key_metadata': null,
+              ...Json.from(r as Map),
+            },
+          )
+          .toList();
+    }
+    // Storage accepts future envelopes; the application explicitly supports v1.
+    if ((tables['operations'] as List).any(
+      (r) => (r as Map)['protocol_version'] != 1,
+    )) {
+      throw const DomainError(
+        'Diese Sicherung enthält ein neueres Änderungsformat. Bitte FLEX zuerst aktualisieren.',
+      );
+    }
     await db.transaction(() async {
       for (final table in backupTables.where(
         (t) => t != 'devices' && t != 'preferences',
@@ -1204,7 +1467,7 @@ class SqliteNotebook
         if ((await _rows('SELECT COUNT(*) AS n FROM $table')).single['n'] !=
             0) {
           throw const DomainError(
-            'Wiederherstellung ist nur in einem leeren Arbeitsbereich möglich. Der vorhandene Datenstand bleibt erhalten.',
+            'Wiederherstellung ist nur in einem leeren Arbeitsbereich möglich. Die vorhandenen Daten bleiben erhalten.',
           );
         }
       }
@@ -1251,6 +1514,8 @@ class SqliteNotebook
       }
       await schoolDrafts();
       await validateClassroomReferences();
+      await schoolYears();
+      await retentionPolicy();
       if ((await _rows('PRAGMA foreign_key_check')).isNotEmpty) {
         throw const DomainError('Die Sicherung enthält beschädigte Verweise.');
       }

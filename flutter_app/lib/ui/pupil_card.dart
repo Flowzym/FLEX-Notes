@@ -13,8 +13,10 @@ class PupilCard extends StatelessWidget {
     required this.counts,
     required this.due,
     this.draftCounts = const {},
+    this.selected = false,
   });
   final Pupil pupil;
+  final bool selected;
   final VoidCallback onOpen;
   final ValueChanged<FlexSymbol> onShortcut;
   final Map<FlexSymbol, int> counts, draftCounts;
@@ -29,7 +31,9 @@ class PupilCard extends StatelessWidget {
             .map(FlexSymbol.values.byName);
     const labels = ['Ziele', 'Sozial', 'Arbeit', 'HÜ', 'Orga'];
     return Material(
-      color: Colors.transparent,
+      color: selected
+          ? scheme.primary.withValues(alpha: .07)
+          : Colors.transparent,
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(

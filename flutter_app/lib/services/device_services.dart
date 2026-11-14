@@ -1,3 +1,4 @@
+import 'quick_access.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flex_device/flex_device.dart';
@@ -79,8 +80,10 @@ class DeviceServices {
     required this.backup,
     required this.reminders,
     this.incoming,
+    this.quickAccess,
   });
   final AppLock lock;
+  final QuickAccess? quickAccess;
   final IncomingShares? incoming;
   final AutomaticBackup backup;
   final Reminders reminders;
@@ -114,11 +117,18 @@ class DeviceServices {
     }
     final incoming = IncomingShares()..listen();
     await incoming.refresh();
+    final quickAccess = QuickAccess();
+    try {
+      await quickAccess.initialize();
+    } catch (_) {
+      /* Optional launcher integration. */
+    }
     return DeviceServices(
       lock: lock,
       backup: backup,
       reminders: reminders,
       incoming: incoming,
+      quickAccess: quickAccess,
     );
   }
 
@@ -133,6 +143,7 @@ class DeviceServices {
   }
 
   void resume() {
+    unawaited(quickAccess?.refresh().catchError((_) {}));
     unawaited(incoming?.refresh());
     unawaited(backup.load().catchError((Object _) {}));
     if (_snapshot != null) updated(_snapshot!);

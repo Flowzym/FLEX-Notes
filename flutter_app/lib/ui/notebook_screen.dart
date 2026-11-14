@@ -1,3 +1,6 @@
+import '../domain/reminder_action.dart';
+import 'homework_control.dart';
+import 'school_year_dialog.dart';
 import 'detail_flow.dart';
 import 'incoming_shares.dart';
 import 'quick_add.dart';
@@ -121,8 +124,49 @@ class _NotebookScreenState extends State<NotebookScreen> {
     c.services?.lock.addListener(_notification);
     c.services?.incoming?.addListener(_incoming);
     c.services?.lock.addListener(_incoming);
+    c.services?.quickAccess?.addListener(_quickAccess);
+    c.services?.lock.addListener(_quickAccess);
     _notification();
     _incoming();
+    _quickAccess();
+  }
+
+  bool _openingQuick = false;
+  void _quickAccess() {
+    final services = c.services;
+    if (!mounted ||
+        services == null ||
+        services.lock.locked ||
+        services.quickAccess?.pending == null ||
+        _openingQuick ||
+        _openingIncoming ||
+        _openingNotification) {
+      return;
+    }
+    _openingQuick = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted || services.lock.locked) return;
+        final target = services.quickAccess?.consume();
+        switch (target) {
+          case 'calendar':
+            _sectionTo(0);
+          case 'notes':
+            _main(1);
+          case 'scan':
+            await scanAndShow(context, c, const ScanContext());
+          case 'homework':
+            await showHomeworkControl(context, c, dateOnly(DateTime.now()));
+        }
+      } finally {
+        _openingQuick = false;
+        if (mounted) {
+          _notification();
+          _incoming();
+          _quickAccess();
+        }
+      }
+    });
   }
 
   bool _openingIncoming = false;
@@ -136,6 +180,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         services.lock.locked ||
         _openingIncoming ||
         _openingNotification ||
+        _openingQuick ||
         incoming.presenting) {
       return;
     }
@@ -156,6 +201,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
         if (mounted) {
           _notification();
           _incoming();
+          _quickAccess();
         }
       }
     });
@@ -168,7 +214,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
         services.lock.locked ||
         services.reminders.pendingTarget == null ||
         _openingNotification ||
-        _openingIncoming) {
+        _openingIncoming ||
+        _openingQuick) {
       return;
     }
     _openingNotification = true;
@@ -177,11 +224,34 @@ class _NotebookScreenState extends State<NotebookScreen> {
         _openingNotification = false;
         return;
       }
-      final target = services.reminders.pendingTarget!;
+      final payload = services.reminders.pendingTarget!;
+      final action = ReminderAction.parse(payload);
+      final target = action?.target ?? payload;
       services.reminders.consumeTarget();
       try {
         await c.reload();
         if (!mounted) return;
+        if (action != null && action.action != 'open') {
+          await guarded(context, () async {
+            final applied = await c.repository.applyReminderAction(
+              action,
+              DateTime.now(),
+            );
+            await c.reload();
+            if (mounted && applied) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    action.action == 'done'
+                        ? 'Aufgabe erledigt.'
+                        : 'Erinnerung in einer Stunde.',
+                  ),
+                ),
+              );
+            }
+          });
+          return;
+        }
         final id = target.substring(target.indexOf(':') + 1);
         if (target.startsWith('orga:')) {
           final entry = c.entries.where((e) => e.id == id).firstOrNull;
@@ -226,12 +296,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
         _openingNotification = false;
         _notification();
         _incoming();
+        _quickAccess();
       }
     });
   }
 
   @override
   void dispose() {
+    c.services?.quickAccess?.removeListener(_quickAccess);
+    c.services?.lock.removeListener(_quickAccess);
     c.services?.incoming?.removeListener(_incoming);
     c.services?.lock.removeListener(_incoming);
     c.services?.reminders.removeListener(_notification);
@@ -471,7 +544,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 type == 'drafts' && c.draftCount == 0 ||
                     type == 'trash' &&
                         c.trashedEntries.isEmpty &&
-                        !c.records.any((r) => r.deleted)
+                        !c.records.any((r) => r.deleted) &&
+                        !c.pupils.any((p) => p.deleted)
                 ? 140
                 : MediaQuery.sizeOf(ctx).height * .7,
             child: type == 'drafts'
@@ -531,12 +605,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
           () => showBulk(context, c),
         ),
         (
-          'Gruppenerfassungen',
+          'Für mehrere Schüler angelegt',
           Icons.groups_outlined,
           () => showDialog<void>(
             context: context,
             builder: (ctx) => FlexModal(
-              title: const Text('Gruppenerfassungen'),
+              title: const Text('Für mehrere Schüler angelegt'),
               onClose: () => Navigator.pop(ctx),
               scrollable: false,
               content: SizedBox(
@@ -773,6 +847,36 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ),
   );
 
+  String? _selectedPupil;
+  Widget _pupilWorkspace(
+    Pupil current, {
+    FlexSymbol? area,
+    bool embedded = false,
+  }) => PupilWorkspaceDialog(
+    key: ValueKey('pupil-workspace-${current.id}-$embedded'),
+    controller: c,
+    pupil: current,
+    initialArea: area,
+    embedded: embedded,
+    entryCard: _entryCard,
+    editPupil: () => _pupilEditor(current),
+    newOrga: () => _editor(OrgaEntry.empty(pupilId: current.id)),
+    newAppointment: () => _editor(
+      OrgaEntry.empty(
+        pupilId: current.id,
+      ).copyWith(appointmentDate: dateOnly(DateTime.now())),
+    ),
+    showDrafts: () => _pupilDrafts(current),
+    draftCount:
+        FlexSymbol.values.fold(
+          0,
+          (sum, symbol) => sum + _pupilDraftCount(current.id, symbol),
+        ) +
+        c.dialogDrafts
+            .where((d) => d.type == 'pupil' && d.ownerId == current.id)
+            .length,
+  );
+
   Future<void> _openPupil(Pupil pupil, {FlexSymbol? symbol}) async {
     try {
       await showFlexDetail<void>(
@@ -788,30 +892,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 final current =
                     c.pupils.where((p) => p.id == pupil.id).firstOrNull ??
                     pupil;
-                return PupilWorkspaceDialog(
-                  controller: c,
-                  pupil: current,
-                  initialArea: symbol,
-                  entryCard: _entryCard,
-                  editPupil: () => _pupilEditor(current),
-                  newOrga: () => _editor(OrgaEntry.empty(pupilId: current.id)),
-                  newAppointment: () => _editor(
-                    OrgaEntry.empty(
-                      pupilId: current.id,
-                    ).copyWith(appointmentDate: dateOnly(DateTime.now())),
-                  ),
-                  showDrafts: () => _pupilDrafts(current),
-                  draftCount:
-                      FlexSymbol.values.fold(
-                        0,
-                        (sum, s) => sum + _pupilDraftCount(current.id, s),
-                      ) +
-                      c.dialogDrafts
-                          .where(
-                            (d) => d.type == 'pupil' && d.ownerId == current.id,
-                          )
-                          .length,
-                );
+                return _pupilWorkspace(current, area: symbol);
               },
             );
           },
@@ -1273,13 +1354,51 @@ class _NotebookScreenState extends State<NotebookScreen> {
     );
   }
 
-  Widget _pupils({bool archived = false}) {
-    final all = c.pupils.where((p) => p.archived == archived).toList();
+  Widget _pupils({bool archived = false, bool inSplit = false}) {
+    if (!archived && !inSplit) {
+      return LayoutBuilder(
+        builder: (context, bounds) {
+          if (bounds.maxWidth < 1000 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.5) {
+            return _pupils(inSplit: true);
+          }
+          final pupils = c.pupils
+              .where((p) => !p.archived && !p.deleted)
+              .toList();
+          final selected =
+              pupils.where((p) => p.id == _selectedPupil).firstOrNull ??
+              pupils.firstOrNull;
+          return Row(
+            key: const ValueKey('pupil-master-detail'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: (bounds.maxWidth * .34).clamp(320, 420),
+                child: _pupils(inSplit: true),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: selected == null
+                    ? const Center(
+                        child: Text('Schüler hinzufügen, um zu beginnen.'),
+                      )
+                    : _pupilWorkspace(selected, embedded: true),
+              ),
+            ],
+          );
+        },
+      );
+    }
+    final all = c.pupils
+        .where((p) => !p.deleted && p.archived == archived)
+        .toList();
     final pupils = all
         .where((p) => p.name.toLowerCase().contains(_pupilQuery.toLowerCase()))
         .toList();
     final width = MediaQuery.sizeOf(context).width;
-    final gutter = width <= 360
+    final gutter = inSplit && width >= 1000
+        ? 12.0
+        : width <= 360
         ? 12.0
         : width <= 700
         ? 16.0
@@ -1308,6 +1427,21 @@ class _NotebookScreenState extends State<NotebookScreen> {
           ],
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
+        if (archived) ...[
+          for (final year in c.schoolYears)
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: Text(year.title),
+              subtitle: Text('${year.count} Einträge'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showSchoolYearArchive(context, c, year),
+            ),
+          TextButton.icon(
+            onPressed: () => showSchoolYearCloseout(context, c),
+            icon: const Icon(Icons.add),
+            label: const Text('Schuljahr abschließen'),
+          ),
+        ],
         const SizedBox(height: 10),
         if (pupils.isEmpty)
           EmptyState(
@@ -1325,7 +1459,21 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   PupilCard(
                     key: ValueKey('pupil-card-${pupil.id}'),
                     pupil: pupil,
-                    onOpen: () => _openPupil(pupil),
+                    selected:
+                        !archived &&
+                        inSplit &&
+                        width >= 1000 &&
+                        MediaQuery.textScalerOf(context).scale(1) <= 1.5 &&
+                        pupil.id == (_selectedPupil ?? all.firstOrNull?.id),
+                    onOpen: () {
+                      if (!archived &&
+                          width >= 1000 &&
+                          MediaQuery.textScalerOf(context).scale(1) <= 1.5) {
+                        setState(() => _selectedPupil = pupil.id);
+                      } else {
+                        _openPupil(pupil);
+                      }
+                    },
                     onShortcut: (symbol) => _entryShortcut(pupil, symbol),
                     counts: _shortcutCounts(pupil),
                     draftCounts: {

@@ -133,7 +133,7 @@ Future<void> showOrgaRepeat(
               RepeatField(rule: rule, onChanged: (v) => update(() => rule = v)),
               const SizedBox(height: 8),
               const Text(
-                'Änderungen gelten für kommende, noch unveränderte Durchführungen. Erledigte und einzeln bearbeitete Einträge bleiben erhalten.',
+                'Änderungen gelten für kommende, noch unveränderte Wiederholungen. Erledigte und einzeln bearbeitete Einträge bleiben erhalten.',
               ),
             ],
           ),

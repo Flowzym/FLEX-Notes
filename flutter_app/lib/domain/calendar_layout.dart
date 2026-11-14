@@ -67,7 +67,7 @@ List<CalendarPlacement> placeCalendarItems(
   for (final item in sorted) {
     final start = clockMinutes(item.time);
     final end = math.max(
-      validClock(item.end) ? clockMinutes(item.end) : start,
+      validEndClock(item.end) ? clockMinutes(item.end) : start,
       start + minimumMinutes,
     );
     if (group.isNotEmpty && start >= groupEnd) flush();
@@ -96,7 +96,7 @@ List<CalendarPlacement> placeCalendarItems(
     end = math.max(
       end,
       ((math.max(
-                    validClock(item.end) ? clockMinutes(item.end) : time,
+                    validEndClock(item.end) ? clockMinutes(item.end) : time,
                     time + minimumMinutes,
                   ) +
                   59) ~/
@@ -115,7 +115,7 @@ CalendarItem? currentCalendarItem(Iterable<CalendarItem> items, DateTime now) {
             i.date == date &&
             calendarTimed(i) &&
             !i.done &&
-            validClock(i.end) &&
+            validEndClock(i.end) &&
             clockMinutes(i.time) <= minutes &&
             clockMinutes(i.end) > minutes,
       )

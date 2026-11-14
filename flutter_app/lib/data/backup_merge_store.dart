@@ -215,7 +215,10 @@ mixin BackupMergeStore on SchoolStore {
       final key = row['key'] as String;
       // Device state and entity-specific metadata are not global options.
       if (key != 'appearance' &&
-          (!catalogs || !key.startsWith('observation-'))) {
+          !key.startsWith('school-year:') &&
+          (!catalogs ||
+              (!key.startsWith('observation-') &&
+                  !key.startsWith('entry-template:')))) {
         continue;
       }
       final old = (localTables['preferences'] as List)
@@ -229,6 +232,8 @@ mixin BackupMergeStore on SchoolStore {
           id: key,
           label: key == 'appearance'
               ? 'Darstellung'
+              : key.startsWith('school-year:')
+              ? 'Schuljahresarchiv'
               : 'Beobachtungsoptionen · $key',
           incoming: incoming is Map
               ? Json.from(incoming)
@@ -270,7 +275,7 @@ mixin BackupMergeStore on SchoolStore {
         (jsonDecode(await exportBackup()) as Map)['tables'] as Map;
     if (_tablesStamp(currentTables) != plan.localStamp) {
       throw const DomainError(
-        'Der Datenstand hat sich seit der Vorschau geändert. Bitte den Import erneut öffnen.',
+        'Die gespeicherten Daten wurden seit der Vorschau geändert. Bitte den Import erneut öffnen.',
       );
     }
     // Re-validate instead of trusting caller-editable model maps.
@@ -290,10 +295,11 @@ mixin BackupMergeStore on SchoolStore {
         .map((i) => '${i.kind}:${i.id}')
         .toSet();
     for (final row in (tables['devices'] as List).cast<Map>()) {
-      await db.customStatement(
-        'INSERT INTO devices(id) VALUES (?) ON CONFLICT(id) DO NOTHING',
-        [row['id']],
-      );
+      if ((await _rows('SELECT id FROM devices WHERE id=?', [
+        row['id'] as String,
+      ])).isEmpty) {
+        await _insertRow('devices', Json.from(row));
+      }
     }
     for (final item in checked.items.where((i) => i.kind == 'pupil')) {
       final resolved = item.resolve(incomingFields[item.key] ?? {});
@@ -306,6 +312,10 @@ mixin BackupMergeStore on SchoolStore {
           'color': pupil.color,
           'archived': pupil.archived ? 1 : 0,
           'revision': pupil.revision,
+          'created_at_utc': pupil.createdAtUtc,
+          'updated_at_utc': pupil.updatedAtUtc,
+          'deleted': pupil.deleted ? 1 : 0,
+          'deleted_at_utc': pupil.deletedAtUtc,
         });
       } else if (canonical(resolved) != canonical(item.local)) {
         await savePupil(pupil);

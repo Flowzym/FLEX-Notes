@@ -21,7 +21,7 @@ Future<void> showPrivacyDetails(BuildContext context) => showDialog<void>(
           ),
           (
             'Kamera & Scanner',
-            'Die Live-Randerkennung verwendet den Google-Dokumentenscanner über Google Play-Dienste. Die Bildverarbeitung erfolgt auf dem Gerät; die Dienste können Diagnose- und Nutzungsdaten nach Googles Bedingungen verarbeiten. Die einfache Fotoaufnahme ist ebenfalls verfügbar.',
+            'Die Dokumentkamera erkennt Ränder lokal mit CameraX und einer eigenen Bildanalyse, ohne Google Play-Dienste oder Bildübertragung. Ausstehende Aufnahmen werden verschlüsselt im privaten App-Speicher gehalten, bis sie im Scanentwurf gesichert sind.',
           ),
           (
             'OneDrive & Teilen',
