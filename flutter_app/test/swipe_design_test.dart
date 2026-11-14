@@ -191,13 +191,13 @@ void main() {
       expect(page(t), 1);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -217,12 +217,12 @@ void main() {
       expect(offset, greaterThan(0));
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(
@@ -238,7 +238,7 @@ void main() {
       await t.enterText(find.byType(TextField).first, 'Anna');
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
@@ -257,7 +257,7 @@ void main() {
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -293,10 +293,10 @@ void main() {
         await t.pump(const Duration(milliseconds: 100));
         expect(translation(), 0);
         expect(page(t), section.$3);
-        await t.dragFrom(const Offset(80, 450), const Offset(180, 0));
+        await t.dragFrom(const Offset(300, 450), const Offset(-180, 0));
         await t.pump();
         await t.pump(const Duration(milliseconds: 70));
-        expect(translation(), inExclusiveRange(-16, 0));
+        expect(translation(), inExclusiveRange(0, 16));
         expect(translation().abs(), closeTo(samples.last, .01));
         await t.pumpAndSettle();
         expect(translation(), 0);
@@ -309,7 +309,7 @@ void main() {
     },
   );
   testWidgets(
-    'all sections with page tabs swipe in pill order from content and header, wrap at both edges and preserve slider gestures',
+    'right swipes advance tabs from content and header, wrap at both edges and preserve slider gestures',
     (t) async {
       await app(t, size: const Size(390, 844));
       for (final section in [
@@ -323,34 +323,12 @@ void main() {
         final pills = find.byKey(ValueKey('$prefix-${section.$2.first}'));
         await tap(t, find.byKey(ValueKey('$prefix-${section.$2.first}')));
         expect(page(t), section.$2.first);
-        // The visual sequence, tap targets and swipe sequence must agree.
+        // Right swipes advance in visual order; left swipes go back.
         final actual = t.widget<FlexPagePills>(find.byType(FlexPagePills));
         expect(actual.pages.keys.toList(), section.$2);
-        await t.drag(pills, const Offset(230, 0));
+        await t.drag(pills, const Offset(-230, 0));
         await t.pumpAndSettle();
         expect(page(t), section.$2.last);
-        expect(
-          t
-              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
-              .direction,
-          -1,
-        );
-        await t.drag(pills, const Offset(-230, 0));
-        await t.pumpAndSettle();
-        expect(page(t), section.$2.first);
-        for (final next in section.$2.skip(1)) {
-          if (section.$1 == 0) {
-            await t.drag(pills, const Offset(-230, 0));
-          } else {
-            await t.dragFrom(const Offset(300, 450), const Offset(-230, 0));
-          }
-          await t.pumpAndSettle();
-          expect(page(t), next, reason: 'content in section ${section.$1}');
-          expect(t.takeException(), isNull);
-        }
-        await t.drag(pills, const Offset(-230, 0));
-        await t.pumpAndSettle();
-        expect(page(t), section.$2.first);
         expect(
           t
               .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
@@ -359,9 +337,31 @@ void main() {
         );
         await t.drag(pills, const Offset(230, 0));
         await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        for (final next in section.$2.skip(1)) {
+          if (section.$1 == 0) {
+            await t.drag(pills, const Offset(230, 0));
+          } else {
+            await t.dragFrom(const Offset(80, 450), const Offset(230, 0));
+          }
+          await t.pumpAndSettle();
+          expect(page(t), next, reason: 'content in section ${section.$1}');
+          expect(t.takeException(), isNull);
+        }
+        await t.drag(pills, const Offset(230, 0));
+        await t.pumpAndSettle();
+        expect(page(t), section.$2.first);
+        expect(
+          t
+              .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
+              .direction,
+          -1,
+        );
+        await t.drag(pills, const Offset(-230, 0));
+        await t.pumpAndSettle();
         expect(page(t), section.$2.last);
         for (final previous in section.$2.reversed.skip(1)) {
-          await t.drag(pills, const Offset(230, 0));
+          await t.drag(pills, const Offset(-230, 0));
           await t.pumpAndSettle();
           expect(page(t), previous, reason: 'header in section ${section.$1}');
           expect(t.takeException(), isNull);

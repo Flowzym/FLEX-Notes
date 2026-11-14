@@ -164,12 +164,12 @@ class _CalendarPageState extends State<CalendarPage>
     navigate(() => mode = value);
   }
 
-  void swipeMode(bool previous) {
+  void swipeMode(bool towardEnd) {
     const modes = ['day', 'week', 'month'];
-    final direction = previous ? -1 : 1;
+    final step = towardEnd ? 1 : -1;
     changeMode(
-      modes[(modes.indexOf(mode) + direction) % modes.length],
-      direction: direction,
+      modes[(modes.indexOf(mode) + step) % modes.length],
+      direction: -step,
     );
   }
 

@@ -97,12 +97,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
     }
   }
 
-  void _swipeContext(bool previous) {
+  void _swipeContext(bool towardEnd) {
     final order = _contextPages.keys.toList();
     if (order.length < 2) return;
-    final step = previous ? -1 : 1;
+    final step = towardEnd ? 1 : -1;
     final next = (order.indexOf(_contextPage) + step) % order.length;
-    _contextTo(order[next], swipeDirection: step);
+    // Advance along the pill in the swipe direction; the page follows the finger.
+    _contextTo(order[next], swipeDirection: -step);
   }
 
   VoidCallback? _refreshPupilDialog;

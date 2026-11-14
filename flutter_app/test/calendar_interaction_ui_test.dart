@@ -55,7 +55,7 @@ void main() {
     await t.pumpAndSettle();
   }
 
-  testWidgets('outside swipes change views; grid swipes change only dates', (
+  testWidgets('right swipes advance views; grid swipes still change dates', (
     t,
   ) async {
     await host(t);
@@ -69,7 +69,7 @@ void main() {
       await t.pumpAndSettle();
     }
 
-    await swipeHeader(-180);
+    await swipeHeader(180);
     expect(
       t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).week,
       true,
@@ -92,24 +92,24 @@ void main() {
       true,
     );
     expect(find.byType(OrgaEditor), findsNothing);
-    await swipeHeader(-180);
+    await swipeHeader(180);
     expect(
       find.byKey(const ValueKey('calendar-month-2026-11-16')),
       findsOneWidget,
-    );
-    await swipeHeader(-180);
-    expect(
-      t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
-      1,
-    );
-    expect(
-      t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).week,
-      false,
     );
     await swipeHeader(180);
     expect(
       t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
       -1,
+    );
+    expect(
+      t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).week,
+      false,
+    );
+    await swipeHeader(-180);
+    expect(
+      t.widget<FlexTabTransition>(find.byType(FlexTabTransition)).direction,
+      1,
     );
     expect(
       find.byKey(const ValueKey('calendar-month-2026-11-16')),
