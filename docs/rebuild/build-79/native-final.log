@@ -150,8 +150,8 @@ w: file:///workspace/FLEX-Notes/flutter_app/packages/flex_device/android/src/mai
 w: file:///workspace/FLEX-Notes/flutter_app/packages/flex_device/android/src/main/kotlin/at/flowzym/flex_device/FlexScannerActivity.kt:246:30 'fun setTargetResolution(p0: Size): ImageAnalysis.Builder' is deprecated. Deprecated in Java.
 
 > Task :flex_device:compileDebugJavaWithJavac NO-SOURCE
-> Task :flex_device:bundleLibCompileToJarDebug
 > Task :flex_device:bundleLibRuntimeToJarDebug
+> Task :flex_device:bundleLibCompileToJarDebug
 > Task :flex_device:processDebugJavaRes UP-TO-DATE
 > Task :flex_device:compileDebugUnitTestKotlin
 > Task :flex_device:compileDebugUnitTestJavaWithJavac NO-SOURCE
@@ -166,6 +166,6 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 33s
+BUILD SUCCESSFUL in 30s
 19 actionable tasks: 5 executed, 14 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html

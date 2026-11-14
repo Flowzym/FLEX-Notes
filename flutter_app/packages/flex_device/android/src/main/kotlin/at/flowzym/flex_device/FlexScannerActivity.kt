@@ -364,19 +364,44 @@ class FlexScannerActivity : ComponentActivity() {
                     val bitmaps = mutableSetOf<Bitmap>()
                     try {
                         val buffer = image.planes[0].buffer
+                        require(buffer.remaining() in 1..(40 * 1024 * 1024))
                         val bytes = ByteArray(buffer.remaining())
                         buffer.get(bytes)
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                        val options =
+                            BitmapFactory.Options().apply {
+                                inSampleSize =
+                                    ScanFrameGeometry.decodeSample(
+                                        bounds.outWidth,
+                                        bounds.outHeight,
+                                    )
+                            }
                         val raw =
-                            (BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("decode"))
+                            (BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                                    ?: error("decode"))
                                 .also { bitmaps.add(it) }
-                        val crop = image.cropRect
+                        val viewport = image.cropRect
+                        val crop =
+                            ScanFrameGeometry.scaledCrop(
+                                ScanFrameGeometry.Crop(
+                                    viewport.left,
+                                    viewport.top,
+                                    viewport.right,
+                                    viewport.bottom,
+                                ),
+                                image.width,
+                                image.height,
+                                raw.width,
+                                raw.height,
+                            )
                         val cut =
                             Bitmap.createBitmap(
                                     raw,
                                     crop.left,
                                     crop.top,
-                                    crop.width(),
-                                    crop.height(),
+                                    crop.width,
+                                    crop.height,
                                 )
                                 .also { bitmaps.add(it) }
                         val rotated =

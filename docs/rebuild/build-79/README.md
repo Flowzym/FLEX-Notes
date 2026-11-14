@@ -1,7 +1,7 @@
 # Build-79-Prüfnachweise
 
 Nur synthetische Testdaten. Codeanalyse und Formatierung ohne Befunde.
-11 SQLite-, 3 Vorschau-Server- und 6 native JVM-Tests erfolgreich.
+11 SQLite-, 3 Vorschau-Server- und 8 native JVM-Tests erfolgreich.
 Der lokale Gesamtlauf enthielt 645 Flutter-Tests. Zehn alte UI-Erwartungen
 (Beschriftungen und die nun eingebettete Tabletansicht) wurden aktualisiert;
 sämtliche betroffenen Testdateien wurden danach erfolgreich nachgeprüft.

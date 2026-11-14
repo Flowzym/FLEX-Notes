@@ -6,7 +6,7 @@
     "format": "246 files unchanged",
     "schemaTests": 11,
     "previewServerTests": 3,
-    "nativeTests": 6,
+    "nativeTests": 8,
     "flutterSuite": {
       "initialPasses": 635,
       "initialFailures": 10,
@@ -14,7 +14,8 @@
       "affectedFilesRerun": "All pass after scope/label corrections; see tests-rerun.log and dialog-final.log",
       "additionalReminderRegression": "4 tests pass including manual snooze/dismiss handling",
       "finalTabletRegression": "1 passed"
-    }
+    },
+    "cameraMemory": "Bounded decoding of high resolution frames and viewport-preserving crop mapping"
   },
   "browser": "Synthetic pre-existing notebook; migration, drag+undo, narrow layouts, report dialogs and encrypted backup import preview passed",
   "physicalAndroidTested": false,
