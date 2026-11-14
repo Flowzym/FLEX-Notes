@@ -1,0 +1,20 @@
+{
+  "version": "0.29.0+79",
+  "commit": "e27de61c8cff037e26d7330f861bd23abd213058",
+  "certificateSha256": "9e50d1e2393e2bf867fc33b11e50383fd066f7b2df5026fd1f2a1d2790fdcd79",
+  "signatureV3": true,
+  "artifacts": [
+    {
+      "file": "FLEX-0.29.0+79-arm64.apk",
+      "bytes": 38872846,
+      "sha256": "fdccdc329e9036975f522a48bfac36cbd53b59e0d87aeed29fc3895074be48ce",
+      "abi": "arm64-v8a"
+    },
+    {
+      "file": "FLEX-0.29.0+79-armv7.apk",
+      "bytes": 33956293,
+      "sha256": "c66ae3ce2667eb221a7b2c3c1a3d3dfd37c6455689c5061cc92bb3671d6be4db",
+      "abi": "armeabi-v7a"
+    }
+  ]
+}
