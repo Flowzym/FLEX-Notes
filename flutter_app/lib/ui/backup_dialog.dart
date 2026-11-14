@@ -1,4 +1,6 @@
 import 'merge_dialog.dart';
+import '../platform/backup_transfer.dart';
+import '../services/stream_backup.dart';
 import 'compact_switch.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -12,11 +14,8 @@ import '../services/complete_backup.dart';
 import '../services/material_files.dart';
 import '../services/material_storage.dart';
 import 'common.dart';
-import 'draft_buffer.dart';
 import 'flex_modal.dart';
 
-Future<String> _encrypt(Map<String, String> args) =>
-    BackupCodec.encrypt(args['text']!, args['password']!);
 Future<String> _decrypt(Map<String, String> args) =>
     BackupCodec.decrypt(args['text']!, args['password']!);
 
@@ -117,24 +116,33 @@ class _BackupDialogState extends State<BackupDialog> {
   }
 
   Future<void> exportFile() async {
-    var text = await CompleteBackup.capture(
-      widget.controller.repository,
-      widget.files,
-      appearance: appearance,
+    final password = encrypt
+        ? await backupPassword(context, opening: false)
+        : null;
+    if (encrypt && password == null) return;
+    final saved = await saveBackupStream(
+      'FLEX-Sicherung-${dateOnly(DateTime.now())}.flexbackup',
+      StreamBackup.capture(
+        widget.controller.repository,
+        widget.files,
+        password: password,
+        appearance: appearance,
+        progress: (count, bytes) {
+          if (mounted) {
+            setState(
+              () => message =
+                  '$count Dateien · ${(bytes / 1000000).toStringAsFixed(1)} MB verarbeitet',
+            );
+          }
+        },
+      ),
     );
-    if (encrypt) {
-      if (!mounted) return;
-      final password = await backupPassword(context, opening: false);
-      if (password == null) return;
-      text = await compute(_encrypt, {'text': text, 'password': password});
-    }
-    final saved = await saveTextFile(
-      'FLEX-Sicherung-${dateOnly(DateTime.now())}.json',
-      text,
-      mime: 'application/json',
-    );
-    if (saved && mounted) {
-      setState(() => message = 'Sicherungsdatei wurde ausgegeben.');
+    if (mounted) {
+      setState(
+        () => message = saved
+            ? 'Sicherungsdatei wurde ausgegeben.'
+            : 'Speichern abgebrochen.',
+      );
     }
   }
 
@@ -142,37 +150,34 @@ class _BackupDialogState extends State<BackupDialog> {
     final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(
-          label: 'JSON',
-          extensions: ['json'],
-          mimeTypes: ['application/json'],
+          label: 'FLEX-Sicherung',
+          extensions: ['flexbackup', 'json'],
+          mimeTypes: ['application/octet-stream', 'application/json'],
         ),
       ],
     );
     if (file == null) return;
-    if (await file.length() > BackupCodec.maxCompleteEnvelopeBytes) {
+    final length = await file.length();
+    if (length > BackupCodec.maxCompleteEnvelopeBytes) {
       throw const DomainError('Die Datei überschreitet 220 MB.');
     }
-    final bytes = BytesBuilder();
-    await for (final part in file.openRead()) {
-      if (bytes.length + part.length > BackupCodec.maxCompleteEnvelopeBytes) {
-        throw const DomainError('Die Datei überschreitet 220 MB.');
+    Stream<List<int>> source() async* {
+      // Web XFile.openRead() otherwise materializes the entire Blob at once.
+      for (var offset = 0; offset < length; offset += 262144) {
+        yield* file.openRead(offset, (offset + 262144).clamp(0, length));
       }
-      bytes.add(part);
     }
-    var text = utf8.decode(bytes.takeBytes());
-    if (BackupCodec.isEncrypted(text)) {
-      if (!mounted) return;
-      final password = await backupPassword(context, opening: true);
-      if (password == null) return;
-      text = await compute(_decrypt, {'text': text, 'password': password});
-    }
+
     if (!mounted) return;
-    await showImportReview(
+    await showBackupSourceReview(
       context,
       widget.controller,
-      text,
+      source,
       catalogs: catalogs,
       files: widget.files,
+      progress: (count, bytes) {
+        if (mounted) setState(() => message = '$count Dateien geprüft');
+      },
     );
   }
 
@@ -232,6 +237,68 @@ class _BackupDialogState extends State<BackupDialog> {
       ],
     ),
   );
+}
+
+Future<void> showBackupSourceReview(
+  BuildContext context,
+  NotebookController controller,
+  BackupSource source, {
+  String? password,
+  bool catalogs = true,
+  MaterialFiles files = const LocalMaterialFiles(),
+  BackupProgress? progress,
+}) async {
+  if (await StreamBackup.recognizes(source)) {
+    if (password == null && await StreamBackup.requiresPassword(source)) {
+      if (!context.mounted) return;
+      password = await backupPassword(context, opening: true);
+      if (password == null) return;
+    }
+    final restore = await StreamBackup.prepare(
+      source,
+      files,
+      password: password,
+      progress: progress,
+    );
+    if (context.mounted) {
+      await showImportReview(
+        context,
+        controller,
+        restore.notebook,
+        catalogs: catalogs,
+        files: files,
+        complete: restore,
+      );
+    }
+    return;
+  }
+  // Historical JSON containers remain supported. Only their legacy decoder
+  // requires a full in-memory buffer; new exports use the streaming path.
+  final bytes = BytesBuilder();
+  await for (final part in source()) {
+    if (bytes.length + part.length > BackupCodec.maxCompleteEnvelopeBytes) {
+      throw const DomainError('Die Datei überschreitet 220 MB.');
+    }
+    bytes.add(part);
+  }
+  var text = utf8.decode(bytes.takeBytes());
+  if (BackupCodec.isEncrypted(text)) {
+    if (password == null) {
+      if (!context.mounted) return;
+      password = await backupPassword(context, opening: true);
+      if (password == null) return;
+    }
+    text = await compute(_decrypt, {'text': text, 'password': password});
+  }
+  if (context.mounted) {
+    await showImportReview(
+      context,
+      controller,
+      text,
+      catalogs: catalogs,
+      files: files,
+    );
+  }
 }
 
 Future<void> showImportReview(

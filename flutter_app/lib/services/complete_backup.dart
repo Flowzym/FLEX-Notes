@@ -172,33 +172,9 @@ class CompleteBackup {
       }
       mapping[entry.key] = key;
     }
-    dynamic rewrite(dynamic value) {
-      if (value is List) return value.map(rewrite).toList();
-      if (value is! Map) return value;
-      return <String, dynamic>{
-        for (final e in value.entries)
-          e.key as String:
-              e.key == 'localKey' ||
-                  e.key == 'key' &&
-                      value.containsKey('width') &&
-                      value.containsKey('height')
-              ? mapping[e.value] ?? e.value
-              : e.key == 'filterUndo' && e.value is Map
-              ? {
-                  for (final p in (e.value as Map).entries)
-                    mapping[p.key] ?? p.key: rewrite(p.value),
-                }
-              : (e.key == 'payload' ||
-                        e.key == 'before_payload' ||
-                        e.key == 'after_payload') &&
-                    e.value is String
-              ? jsonEncode(rewrite(jsonDecode(e.value as String)))
-              : rewrite(e.value),
-      };
-    }
 
     return CompleteRestore(
-      jsonEncode(rewrite(jsonDecode(notebook))),
+      rewriteBackupFileKeys(notebook, mapping),
       writes,
       storage,
       files.length,
@@ -244,4 +220,33 @@ class CompleteRestore {
       rethrow;
     }
   }
+}
+
+String rewriteBackupFileKeys(String notebook, Map<String, String> mapping) {
+  dynamic rewrite(dynamic value) {
+    if (value is List) return value.map(rewrite).toList();
+    if (value is! Map) return value;
+    return <String, dynamic>{
+      for (final e in value.entries)
+        e.key as String:
+            e.key == 'localKey' ||
+                e.key == 'key' &&
+                    value.containsKey('width') &&
+                    value.containsKey('height')
+            ? mapping[e.value] ?? e.value
+            : e.key == 'filterUndo' && e.value is Map
+            ? {
+                for (final p in (e.value as Map).entries)
+                  mapping[p.key] ?? p.key: rewrite(p.value),
+              }
+            : (e.key == 'payload' ||
+                      e.key == 'before_payload' ||
+                      e.key == 'after_payload') &&
+                  e.value is String
+            ? jsonEncode(rewrite(jsonDecode(e.value as String)))
+            : rewrite(e.value),
+    };
+  }
+
+  return jsonEncode(rewrite(jsonDecode(notebook)));
 }

@@ -1,24 +1,25 @@
 # Aktueller Flutter-Stand
 
-**Webvorschau und Android 0.27.0+77**, Branch `redesign/cream-olive`.
+**Webvorschau und Android 0.28.0+78**, Branch `redesign/cream-olive`.
 
-Der fortlaufende [Projektstatus](docs/rebuild/STATUS.md) und die
-[Änderungen für Build 77](docs/rebuild/SECURITY-QUALITY-BUILD-77.md) beschreiben den
-aktuellen Funktionsumfang, Nachweise und offene Voraussetzungen.
-
+[Projektstatus](docs/rebuild/STATUS.md) ·
+[Änderungen und Grenzen für Build 78](docs/rebuild/BACKUP-SHARING-BUILD-78.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
 [GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
 [Startanweisungen](flutter_app/README.md) ·
 [Android-Bau und Installation](flutter_app/ANDROID-TEST.md).
 
-Die aktuellen Android-APKs sind Build 77 (ARM64/ARMv7). Sie aktualisieren die neue **FLEX** aus Build 62–76 mit gleicher Kennung und
-Signatur. Die ältere **FLEX Test** bleibt separat; deren ursprünglicher
-Testschlüssel fehlt weiterhin. [APK](releases/android/build-77/README.md) und
-[Umzug mit Notizbuch- und Materialsicherung](docs/rebuild/ANDROID-UMZUG-62.md).
-Die neue dauerhafte Signatur ist im Build festgeschrieben; der private Schlüssel
-bleibt außerhalb GitHubs. CI baut ausdrücklich unsigniert.
-Historische Rekonstruktionsstände stehen im Projektstatus und unter `reference/`.
+Vollständige Sicherungen nutzen `.flexbackup` mit blockweiser Verschlüsselung,
+Prüfung und Wiederherstellung. Android empfängt PDF, DOCX und Bilder über „Teilen
+→ FLEX“ mit Vorschau und Schüler-/Unterrichtszuordnung. OneDrive-Registrierungsvorlage
+und verständlichere Einrichtung sind vorbereitet; die eigene Client-ID fehlt noch.
 
-Vor der neuen Android-Speicherverschlüsselung eine vollständige Sicherung außerhalb
-der App speichern. Keine physische Android-Abnahme; große Sicherungen benötigen
-noch viel Arbeitsspeicher. Details und Kompatibilitätsgrenzen im Prüfbericht.
+[APKs Build 78](releases/android/build-78/README.md) aktualisieren die neue FLEX
+Build 62–77 mit gleicher Kennung und Signatur. Die ältere FLEX Test bleibt separat:
+[Umzug](docs/rebuild/ANDROID-UMZUG-62.md). Private Signierdaten bleiben außerhalb
+GitHubs; CI baut ausdrücklich unsigniert. Vor dem Update unabhängig sichern.
+
+Neue Sicherungen benötigen Build 78 oder neuer; alte JSON-Sicherungen bleiben
+lesbar. Altimport und Browser-Downloads können weiterhin viel Speicher benötigen.
+[Geräteabnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-78.md) ist offen; Linux-Messungen
+sind kein Nachweis für Android-Kamera, Hintergrundbetrieb oder Keystore-Verhalten.

@@ -1,4 +1,26 @@
-# Aktueller Stand: Webvorschau und Android 0.27.0+77
+# Aktueller Stand: Webvorschau und Android 0.28.0+78
+
+Blockweise Vollsicherungen mit AES-GCM, geprüfter Wiederherstellung und Android-
+SAF-Streams. Im vergleichbaren synthetischen 100-MB-Linux-Test sank Spitzen-RSS
+von 1.690 auf 508 MB; keine Android-Gerätemessung. Altimport und Browser-Blob-
+Downloads bleiben eingeschränkt. Neue Sicherungen benötigen Build 78 oder neuer.
+
+Android-Dateieingang für PDF, DOCX und Bilder mit verschlüsselter Zwischenablage,
+Vorschauen, Namen, Schülern, Unterricht und Einsatzdatum. Abbrüche und erneutes
+Übernehmen erhalten vorhandene Daten. OneDrive-Registrierung ist vorbereitet,
+aber eine echte Microsoft-Client-ID und Anmeldung fehlen weiterhin.
+
+[Prüfbericht](BACKUP-SHARING-BUILD-78.md) ·
+[Android-Abnahmecheckliste](ANDROID-ACCEPTANCE-BUILD-78.md) ·
+[APKs](../../releases/android/build-78/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+GitHub-CI von Build 77 vollständig erfolgreich; Build 78 wird mit demselben
+Workflow geprüft. Hardware-Abnahme bleibt ausdrücklich offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.27.0+77
 
 Android-Datenbank und Materialdateien mit Geräteschlüssel verschlüsselt; geprüfter
 Migrationspfad mit erhaltenem Original bei Fehlern. Stärkere PIN-/Sicherungsableitung,

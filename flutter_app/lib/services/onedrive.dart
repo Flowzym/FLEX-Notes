@@ -132,9 +132,7 @@ class OneDriveClient extends ChangeNotifier {
     }
     if (response['device_code'] is! String ||
         response['user_code'] is! String) {
-      throw const DomainError(
-        'Microsoft-Anmeldung konnte nicht gestartet werden.',
-      );
+      throw DomainError(oneDriveAuthorizationError(response));
     }
     final uri = Uri.tryParse(response['verification_uri'] as String? ?? '');
     if (uri == null ||
@@ -185,9 +183,7 @@ class OneDriveClient extends ChangeNotifier {
       return false;
     }
     if (response['access_token'] is! String) {
-      throw const DomainError(
-        'Microsoft-Anmeldung wurde abgebrochen oder ist nicht erlaubt.',
-      );
+      throw DomainError(oneDriveAuthorizationError(response));
     }
     await _save(response, epoch: epoch, flow: flow);
     return true;
@@ -379,4 +375,23 @@ class OneDriveClient extends ChangeNotifier {
     client.close();
     super.dispose();
   }
+}
+
+String oneDriveAuthorizationError(Json response) {
+  final codes = response['error_codes'] is List
+      ? response['error_codes'] as List
+      : const [];
+  if (codes.contains(7000218) || response['error'] == 'unauthorized_client') {
+    return 'Die Microsoft-Appregistrierung erlaubt diese Anmeldung noch nicht. Bitte dort öffentliche Clientflows aktivieren. Ein Client-Geheimnis ist nicht erforderlich.';
+  }
+  if (codes.contains(50194) || codes.contains(50020)) {
+    return 'Die Appregistrierung unterstützt dieses Konto noch nicht. Bitte persönliche Microsoft-Konten und Konten anderer Organisationen zulassen.';
+  }
+  if (codes.contains(700016) || response['error'] == 'invalid_client') {
+    return 'Microsoft findet die FLEX-Appregistrierung nicht. Bitte die Anwendungs-/Client-ID in der Einrichtung prüfen.';
+  }
+  if (response['error'] == 'expired_token') {
+    return 'Der Anmeldecode ist abgelaufen. Bitte erneut verbinden.';
+  }
+  return 'Microsoft-Anmeldung wurde abgebrochen oder ist nicht erlaubt. Bitte Kontoberechtigungen und Einrichtung prüfen.';
 }

@@ -16,7 +16,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import java.util.concurrent.Executors
 
-class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware, PluginRegistry.ActivityResultListener {
+class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware, PluginRegistry.ActivityResultListener, PluginRegistry.NewIntentListener {
     companion object {
         // One Android app process, including all foreground/WorkManager engines.
         private val backupLock = java.util.concurrent.Semaphore(1, true)
@@ -34,18 +34,42 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     private var screenProtected = false
     private var binding: ActivityPluginBinding? = null
     private var pending: MethodChannel.Result? = null
+    private lateinit var incoming: IncomingShares
+    private lateinit var streams: StreamFiles
     private val maxBytes = 220_000_000
-    private val backupName = Regex("FLEX-Auto-[0-9TZ-]+-[a-f0-9-]+\\.json")
+    private val backupName = Regex("FLEX-Auto-[0-9TZ-]+-[a-f0-9-]+\\.(json|flexbackup)")
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         detached = false
         context = binding.applicationContext
+        incoming = IncomingShares(context)
+        streams = StreamFiles(context)
         scanner = DocumentScanner(context)
         photo = PhotoCapture(context)
         channel = MethodChannel(binding.binaryMessenger, "at.flowzym.flex_notizbuch/device")
         channel.setMethodCallHandler(this)
     }
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method in IncomingShares.methods) {
+            writer.execute {
+                try {
+                    val value = when (call.method) {
+                        "pendingShares" -> incoming.pending()
+                        "discardShares" -> { incoming.discard(call.argument<List<String>>("ids").orEmpty()); null }
+                        else -> { incoming.clearError(); null }
+                    }
+                    main.post { result.success(value) }
+                } catch (_: Exception) { main.post { result.error("incoming_files", "Der Dateieingang konnte nicht geöffnet werden. Bitte erneut versuchen.", null) } }
+            }
+            return
+        }
+        if (call.method in StreamFiles.methods) {
+            writer.execute {
+                try { val value = streams.perform(call); main.post { result.success(value) } }
+                catch (_: Exception) { main.post { result.error("backup_stream", "Sicherung konnte nicht verarbeitet werden. Bitte Speicherort und freien Platz prüfen.", null) } }
+            }
+            return
+        }
         if (call.method == "preparePrivateStorage") {
             writer.execute {
                 try {
@@ -196,9 +220,21 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         } catch (_: Exception) { result.error("directory_permission", "Der Ordner erlaubt keinen dauerhaften Schreibzugriff.", null) }
         return true
     }
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) { this.binding = binding; activity = binding.activity; if (screenProtected) activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE); binding.addActivityResultListener(this) }
+    private fun acceptShare(intent: Intent) {
+        val uris = try { incoming.takeUris(intent) } catch (_: Exception) { intent.action = null; emptyList() } ?: return
+        writer.execute {
+            try { incoming.receive(uris) } finally { main.post { if (!detached) channel.invokeMethod("incomingSharesChanged", null) } }
+        }
+    }
+    override fun onNewIntent(intent: Intent): Boolean {
+        if (intent.action !in IncomingShares.actions) return false
+        activity?.intent = intent
+        acceptShare(intent)
+        return true
+    }
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) { this.binding = binding; activity = binding.activity; if (screenProtected) activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE); binding.addActivityResultListener(this); binding.addOnNewIntentListener(this); acceptShare(binding.activity.intent) }
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
-    override fun onDetachedFromActivityForConfigChanges() { binding?.removeActivityResultListener(this); binding = null; activity = null }
+    override fun onDetachedFromActivityForConfigChanges() { binding?.removeOnNewIntentListener(this); binding?.removeActivityResultListener(this); binding = null; activity = null }
     override fun onDetachedFromActivity() { photo.close(); scanner.close(); onDetachedFromActivityForConfigChanges(); pending?.error("activity_closed", "Ordnerauswahl geschlossen.", null); pending = null }
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; photo.close(); scanner.dispose(); channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.shutdown() }
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) { detached = true; photo.close(); scanner.dispose(); channel.setMethodCallHandler(null); for (token in lockTokens.toList()) { if (lockTokens.remove(token)) backupLock.release() }; writer.execute { streams.close() }; writer.shutdown() }
 }

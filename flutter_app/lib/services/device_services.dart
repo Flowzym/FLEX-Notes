@@ -8,8 +8,10 @@ import '../data/open_notebook.dart';
 import '../domain/repository.dart';
 import '../platform/backup_mutex.dart';
 import 'app_lock.dart';
+import 'incoming_shares.dart';
 import 'automatic_backup.dart';
 import 'complete_backup.dart';
+import 'stream_backup.dart';
 import 'material_storage.dart';
 import 'reminders.dart';
 import 'secret_store.dart';
@@ -39,6 +41,11 @@ AutomaticBackup makeBackup(NotebookRepository repository) => AutomaticBackup(
   store: DeviceSecretStore(),
   files: const DeviceBackupFiles(),
   export: () => CompleteBackup.capture(repository, const LocalMaterialFiles()),
+  exportStream: (password) => StreamBackup.capture(
+    repository,
+    const LocalMaterialFiles(),
+    password: password,
+  ),
   schedule: scheduleBackup,
   withLock: backupMutex,
 );
@@ -71,8 +78,10 @@ class DeviceServices {
     required this.lock,
     required this.backup,
     required this.reminders,
+    this.incoming,
   });
   final AppLock lock;
+  final IncomingShares? incoming;
   final AutomaticBackup backup;
   final Reminders reminders;
   Timer? _backupTimer;
@@ -103,7 +112,14 @@ class DeviceServices {
     } catch (_) {
       reminders.error = 'Android-Erinnerungen konnten nicht geladen werden.';
     }
-    return DeviceServices(lock: lock, backup: backup, reminders: reminders);
+    final incoming = IncomingShares()..listen();
+    await incoming.refresh();
+    return DeviceServices(
+      lock: lock,
+      backup: backup,
+      reminders: reminders,
+      incoming: incoming,
+    );
   }
 
   void updated(NotebookSnapshot data) {
@@ -117,6 +133,7 @@ class DeviceServices {
   }
 
   void resume() {
+    unawaited(incoming?.refresh());
     unawaited(backup.load().catchError((Object _) {}));
     if (_snapshot != null) updated(_snapshot!);
   }

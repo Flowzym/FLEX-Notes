@@ -33,3 +33,33 @@ vor Vorliegen der Registrierung ist eine echte Anmeldung hier nicht verifiziert.
 Offizielle Grundlagen:
 [Appregistrierung](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
 und [Device Authorization Grant](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code).
+
+
+## Vorbereitet für Build 78
+
+[Registrierungsdaten im Microsoft-Graph-Format](../../flutter_app/config/onedrive-public-client.json)
+sind als überprüfbare Vorlage vorbereitet. Sie enthalten ausschließlich den
+öffentlichen Clienttyp, Unterstützung für persönliche und Organisationskonten,
+Tokenformat v2 und delegiertes `Files.Read`. Keine Kennwörter, Client-Geheimnisse,
+Schreibrechte oder Azure-Ressourcen. Die JSON-Datei ist ein Körper für
+`POST https://graph.microsoft.com/v1.0/applications`, keine komplette Ersetzung
+eines bereits vorhandenen Portal-Manifests. Eine tatsächliche Registrierung
+wurde hier nicht erstellt; sie setzt eine angemeldete Person mit entsprechenden
+Verzeichnisrechten voraus.
+
+Eine danach ausgestellte Client-ID kann bereits beim Releasebau über
+`--dart-define=FLEX_ONEDRIVE_CLIENT_ID=…` vorgegeben werden. Die App fragt dann
+standardmäßig nur noch nach der Microsoft-Anmeldung; bisherige manuelle
+Installationskonfigurationen bleiben erhalten. Es wird keine fremde öffentliche
+Client-ID wiederverwendet. Bis zur Registrierung funktioniert die Materialübergabe
+über das Android-Teilen-Menü ohne eigene FLEX-OneDrive-Anmeldung.
+
+Die Anmeldung erkennt nun typische Registrierungsfehler (falsche Client-ID,
+fehlender öffentlicher Clientflow, unpassender Kontotyp) und nennt die passende
+Korrektur. Der echte Anmelde-/Token-Erneuerungs-/Dateizugriff bleibt nach Einrichten
+der Registrierung auf Android und Web zu prüfen.
+
+Vorlage anhand der Microsoft-Dokumentation geprüft:
+[Graph-Berechtigungen: Files.Read](https://learn.microsoft.com/en-us/graph/permissions-reference#filesread),
+[Application-Ressource](https://learn.microsoft.com/en-us/graph/api/resources/application?view=graph-rest-1.0),
+[Unterstützte Kontotypen](https://learn.microsoft.com/en-us/entra/identity-platform/supported-accounts-validation).

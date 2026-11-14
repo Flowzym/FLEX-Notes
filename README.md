@@ -1,4 +1,25 @@
-# FLEX-Notes – Flutter-Wiederaufbau
+# FLEX-Notes
+
+Aktueller Stand: **0.28.0+78**, Branch **`redesign/cream-olive`**.
+Flutter-App für Notizen, Unterricht, Kalender, Organisation und Materialien der FLEX-Klasse.
+
+- [Aktueller Funktions- und Prüfstand](FLUTTER_STATUS.md)
+- [Android-APKs Build 78](releases/android/build-78/README.md)
+- [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
+- [Entwicklung und lokaler Start](flutter_app/README.md)
+- [Sicherungen und Dateieingang](docs/rebuild/BACKUP-SHARING-BUILD-78.md)
+- [Offene Geräteabnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-78.md)
+
+Vor Android-Updates unabhängig sichern. Die neue FLEX aktualisiert Build 62–77;
+die ursprüngliche FLEX Test bleibt separat. Neue `.flexbackup`-Sicherungen benötigen
+Build 78 oder neuer. [Installation und Signatur](flutter_app/ANDROID-TEST.md).
+
+Die folgenden Abschnitte dokumentieren die Herkunft und frühere Arbeitsschritte.
+Ihre Versionsangaben beschreiben den damaligen Stand.
+
+---
+
+# Historischer Rekonstruktionsstand · Build 49
 
 Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderten Sicherung
 auf `recovery/webpreview`.

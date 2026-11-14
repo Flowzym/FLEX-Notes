@@ -357,19 +357,26 @@ Future<void> _restore(BuildContext context, NotebookController c) async {
               ),
               trailing: const Icon(Icons.restore),
               onTap: () => guarded(ctx, () async {
-                String text;
+                final input = await backup.openInput(file['uri'] as String);
+                if (!ctx.mounted) return;
                 try {
-                  text = await backup.open(file['uri'] as String);
+                  await showBackupSourceReview(
+                    ctx,
+                    c,
+                    input.source,
+                    password: input.password,
+                  );
                 } catch (_) {
                   if (!ctx.mounted) return;
                   final password = await backupPassword(ctx, opening: true);
-                  if (password == null) return;
-                  text = await backup.open(
-                    file['uri'] as String,
+                  if (password == null || !ctx.mounted) return;
+                  await showBackupSourceReview(
+                    ctx,
+                    c,
+                    input.source,
                     password: password,
                   );
                 }
-                if (ctx.mounted) await showImportReview(ctx, c, text);
               }),
             ),
         ],

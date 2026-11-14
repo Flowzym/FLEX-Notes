@@ -1,3 +1,7 @@
+// Full-strength cryptographic operations need headroom on shared CI runners.
+@Timeout(Duration(minutes: 2))
+library;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -206,6 +210,8 @@ void main() {
       expect(restarted.locked, true);
       expect(restarted.ready, false);
     },
+    // This scenario intentionally performs seven full-strength KDF operations.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test(
     'backgrounding during successful unlock cannot expose the app',

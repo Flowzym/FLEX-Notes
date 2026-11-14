@@ -38,6 +38,38 @@ http.Response jsonResponse(Object value, [int code = 200]) => http.Response(
 );
 
 void main() {
+  test(
+    'OneDrive registration failures explain the required correction without exposing server details',
+    () {
+      expect(
+        oneDriveAuthorizationError({
+          'error': 'invalid_client',
+          'error_description': 'private server text',
+        }),
+        contains('Client-ID'),
+      );
+      expect(
+        oneDriveAuthorizationError({
+          'error_codes': [7000218],
+        }),
+        contains('öffentliche Clientflows'),
+      );
+      expect(
+        oneDriveAuthorizationError({
+          'error_codes': [50194],
+        }),
+        contains('persönliche Microsoft-Konten'),
+      );
+      expect(
+        oneDriveAuthorizationError({
+          'error': 'invalid_client',
+          'error_description': 'private server text',
+        }),
+        isNot(contains('private server text')),
+      );
+    },
+  );
+
   test('reads independent legacy encrypted material package', () async {
     final bytes = base64Decode(
       File('test/fixtures/material_bundle_v1.base64').readAsStringSync().trim(),

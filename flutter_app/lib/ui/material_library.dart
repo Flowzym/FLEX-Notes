@@ -1,3 +1,4 @@
+import 'incoming_shares.dart';
 import 'onedrive_setup.dart';
 import 'material_versions.dart';
 import '../domain/material_versions.dart';
@@ -528,6 +529,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                           ),
                       ],
                     ),
+                    if (view == 'files' && !trash)
+                      IncomingFilesButton(controller: c),
                     if (view == 'files' && !trash)
                       LayoutBuilder(
                         builder: (ctx, constraints) {

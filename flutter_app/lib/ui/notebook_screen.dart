@@ -1,4 +1,5 @@
 import 'detail_flow.dart';
+import 'incoming_shares.dart';
 import 'quick_add.dart';
 import 'subtask_editor.dart';
 import 'material_thumbnail.dart';
@@ -118,7 +119,46 @@ class _NotebookScreenState extends State<NotebookScreen> {
     super.initState();
     c.services?.reminders.addListener(_notification);
     c.services?.lock.addListener(_notification);
+    c.services?.incoming?.addListener(_incoming);
+    c.services?.lock.addListener(_incoming);
     _notification();
+    _incoming();
+  }
+
+  bool _openingIncoming = false;
+  final _shownIncoming = <String>{};
+  String? _shownIncomingError;
+  void _incoming() {
+    final services = c.services, incoming = c.services?.incoming;
+    if (!mounted ||
+        services == null ||
+        incoming == null ||
+        services.lock.locked ||
+        _openingIncoming ||
+        _openingNotification ||
+        incoming.presenting) {
+      return;
+    }
+    if (incoming.items.every((d) => _shownIncoming.contains(d.id)) &&
+        (incoming.error == null || incoming.error == _shownIncomingError)) {
+      return;
+    }
+    _openingIncoming = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (mounted && !services.lock.locked) {
+          _shownIncoming.addAll(incoming.items.map((d) => d.id));
+          _shownIncomingError = incoming.error;
+          await showIncomingShares(context, c, incoming);
+        }
+      } finally {
+        _openingIncoming = false;
+        if (mounted) {
+          _notification();
+          _incoming();
+        }
+      }
+    });
   }
 
   bool _openingNotification = false;
@@ -127,7 +167,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
     if (services == null ||
         services.lock.locked ||
         services.reminders.pendingTarget == null ||
-        _openingNotification) {
+        _openingNotification ||
+        _openingIncoming) {
       return;
     }
     _openingNotification = true;
@@ -184,12 +225,15 @@ class _NotebookScreenState extends State<NotebookScreen> {
       } finally {
         _openingNotification = false;
         _notification();
+        _incoming();
       }
     });
   }
 
   @override
   void dispose() {
+    c.services?.incoming?.removeListener(_incoming);
+    c.services?.lock.removeListener(_incoming);
     c.services?.reminders.removeListener(_notification);
     c.services?.lock.removeListener(_notification);
     _pupilSearch.dispose();
