@@ -7,12 +7,7 @@ If no such version exists, report the issue to the plugin. If necessary, here is
 an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
 
 If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 24064 bytes (98.5% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-Warning: The generated ELF library contains unobfuscated DWARF debugging information.
-         To avoid this, use --strip to remove it.
-Warning: The generated ELF library contains unobfuscated DWARF debugging information.
-         To avoid this, use --strip to remove it.
 Warning: Unable to initialize metrics, ensure /home/agent/.android is writable, details: /home/agent/.android/analytics.settings (No such file or directory)
-Running Gradle task 'assembleRelease'...                          105.8s
+Running Gradle task 'assembleRelease'...                           96.2s
 ✓ Built build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk (34.0MB)
 ✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (38.9MB)

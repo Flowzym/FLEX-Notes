@@ -8,7 +8,10 @@ sämtliche betroffenen Testdateien wurden danach erfolgreich nachgeprüft.
 Die Zwischenfassung von `tests-rerun.log` enthält noch zwei Erwartungen,
 deren abschließender erfolgreicher Lauf in `dialog-final.log` steht.
 Ein zusätzlicher Benachrichtigungstest sowie die Tablet-FAB-Korrektur wurden
-separat geprüft. GitHub führt die vollständige aktuelle Suite erneut aus.
+separat geprüft. GitHub hat die vollständige Suite mit **646 erfolgreichen Flutter-Tests**
+abgeschlossen (Lauf 43645270426). Danach wurde ausschließlich die native
+Kamera-Speicherbegrenzung ergänzt: acht JVM-Tests und beide signierten APK-Builds
+sind erfolgreich; Dart-, Datenbank- und Webquellen sind dabei unverändert.
 
 `verification.json` enthält den zugehörigen Quellcommit. Die unabhängigen CI-Läufe stehen
 unter [GitHub Actions](https://github.com/Flowzym/FLEX-Notes/actions/workflows/flutter-ci.yml).
