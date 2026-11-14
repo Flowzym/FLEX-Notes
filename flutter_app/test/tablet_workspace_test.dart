@@ -6,6 +6,7 @@ import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/pupil_card.dart';
 import 'package:flex_notizbuch/ui/pupil_workspace.dart';
+import 'package:flex_notizbuch/ui/quick_add.dart';
 import 'classroom_test.dart' show classroomMemory;
 import 'support/app_test_fonts.dart';
 
@@ -40,6 +41,7 @@ void main() {
       await t.pumpWidget(FlexApp(controller: c));
       await t.pumpAndSettle();
       expect(find.byKey(const ValueKey('pupil-master-detail')), findsOneWidget);
+      expect(find.byType(QuickAddButton), findsOneWidget);
       expect(
         t
             .widget<PupilWorkspaceDialog>(find.byType(PupilWorkspaceDialog))

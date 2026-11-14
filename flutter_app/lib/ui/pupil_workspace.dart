@@ -626,7 +626,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             workspace(
               ListView(
                 key: const PageStorageKey('pupil-workspace'),
-                padding: const EdgeInsets.only(bottom: 84),
+                padding: EdgeInsets.only(bottom: widget.embedded ? 16 : 84),
                 children: [
                   navigation(),
                   const SizedBox(height: 8),
@@ -726,7 +726,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                 ],
               ),
             ),
-            if (!p.archived)
+            if (!p.archived && !widget.embedded)
               Positioned(
                 right: 4,
                 bottom: 8,
