@@ -468,7 +468,7 @@ extension _ScanEditorView on _ScanEditorState {
               title: const Text('Vorhandene Datei ersetzen'),
               subtitle: Text(
                 replace
-                    ? 'Die lokale Fassung wird ersetzt. Bereits exportierte Kopien bleiben erhalten.'
+                    ? 'Die lokale Datei wird ersetzt. Bereits exportierte Kopien bleiben erhalten.'
                     : 'Es wird eine neue Kopie gespeichert.',
               ),
               value: replace,
@@ -476,6 +476,24 @@ extension _ScanEditorView on _ScanEditorState {
                   ? null
                   : (v) => updateScanView(() => replace = v ?? false),
             ),
+          if (data['redacted'] == true && data['sourceId'] != null) ...[
+            if (replace)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Frühere Versionen entfernen'),
+                subtitle: const Text(
+                  'Sie können ungeschwärzte Inhalte enthalten.',
+                ),
+                value: data['discardVersions'] != false,
+                onChanged: busy
+                    ? null
+                    : (v) => change({'discardVersions': v == true}),
+              )
+            else
+              const Text(
+                'Das ungeschwärzte Original bleibt erhalten. Zum Entfernen „Vorhandene Datei ersetzen“ wählen.',
+              ),
+          ],
           DraftStatus(buffer: buffer),
         ],
       ),

@@ -83,10 +83,10 @@ void main() {
         find.byKey(const ValueKey('orga-note')),
         'Entwurf Test',
       );
-      await tester.tap(find.byTooltip('Checkliste'));
+      await tester.tap(find.byTooltip('Unteraufgaben'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, 'Neuer Listenpunkt'),
+        find.widgetWithText(TextField, 'Neue Unteraufgabe'),
         'Noch nicht hinzugefügter Testpunkt',
       );
       await tester.tap(find.byKey(const ValueKey('entry-back')));

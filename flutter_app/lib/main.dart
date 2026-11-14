@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'data/open_notebook.dart';
 import 'services/device_services.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,39 @@ import 'domain/timetable.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    for (final name in ['SQLCipher', 'OpenSSL']) {
+      yield LicenseEntryWithLineBreaks([
+        name,
+      ], await rootBundle.loadString('assets/licenses/$name.txt'));
+    }
+  });
+  runApp(
+    const MaterialApp(
+      home: Scaffold(
+        backgroundColor: Color(0xFFFAF7F2),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'FLEX.',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF65734A),
+                ),
+              ),
+              SizedBox(height: 24),
+              CircularProgressIndicator(color: Color(0xFF65734A)),
+              SizedBox(height: 16),
+              Text('FLEX wird geöffnet …'),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
   try {
     final repository = await openNotebook();
     final services = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
@@ -29,7 +63,9 @@ Future<void> main() async {
               child: SelectableText(
                 error is DomainError
                     ? error.message
-                    : 'Der lokale Speicher konnte nicht geöffnet werden. Vorhandene Daten wurden nicht zurückgesetzt. Bitte Speicherberechtigung und freien Platz prüfen. Für die Webvorschau müssen sqlite3.wasm und drift_worker.js vorhanden sein.',
+                    : (kIsWeb
+                          ? 'Die lokalen Daten konnten nicht geöffnet werden. Bitte die Seite neu laden und freien Speicher sowie die Browsereinstellungen prüfen. Vorhandene Daten wurden nicht zurückgesetzt.'
+                          : 'Die lokalen Daten konnten nicht geöffnet werden. Bitte FLEX neu starten und freien Speicher prüfen. Vorhandene Daten wurden nicht zurückgesetzt.'),
               ),
             ),
           ),

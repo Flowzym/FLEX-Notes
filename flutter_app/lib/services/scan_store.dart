@@ -49,6 +49,8 @@ Future<ClassroomDocument> saveScan(
   MaterialFiles files,
   DialogDraft draft, {
   bool replace = false,
+  bool discardVersions = false,
+  void Function()? onCleanupFailure,
 }) async {
   validateScanData(draft.data);
   final data = draft.data;
@@ -90,7 +92,7 @@ Future<ClassroomDocument> saveScan(
       'Zum Ersetzen eines Fotos bitte genau ein Bild behalten.',
     );
   }
-  final previousVersion = source == null
+  final previousVersion = source == null || discardVersions
       ? null
       : materialVersionSnapshot({
           ...source.toJson(),
@@ -117,10 +119,12 @@ Future<ClassroomDocument> saveScan(
         'localKey': key,
         'size': item.$2.length,
         if (source != null)
-          'versions': [
-            previousVersion!,
-            ...materialVersions(source.toJson()),
-          ].take(materialVersionLimit).toList(),
+          'versions': discardVersions
+              ? <Json>[]
+              : [
+                  previousVersion!,
+                  ...materialVersions(source.toJson()),
+                ].take(materialVersionLimit).toList(),
         'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
         'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
@@ -157,6 +161,8 @@ Future<ClassroomDocument> saveScan(
       ...scanFileKeys(draft.data),
       if (source != null) ...materialFileKeys(source.toJson()),
     ]);
-  } catch (_) {}
+  } catch (_) {
+    onCleanupFailure?.call();
+  }
   return saved;
 }

@@ -321,7 +321,7 @@ class SchoolRecord {
   factory SchoolRecord.fromJson(Json j) {
     if (j['rebuildFormat'] != 1) {
       throw const DomainError(
-        'Dieser fachliche Datenstand stammt aus einer anderen Fassung. Er bleibt unverändert; eine Migration ist erforderlich.',
+        'Diese Einträge stammen aus einer anderen App-Version und können noch nicht übernommen werden. Die vorhandenen Daten bleiben erhalten.',
       );
     }
     return SchoolRecord(
@@ -388,7 +388,7 @@ class SchoolRecord {
     if (!['active', 'achieved', 'ended'].contains(goalStatus) ||
         !['', 'before', 'during', 'after', 'break'].contains(situation) ||
         !['self', 'reported', 'interpretation'].contains(source)) {
-      throw const DomainError('Ungültiger fachlicher Stand.');
+      throw const DomainError('Der gespeicherte Eintrag ist ungültig.');
     }
     if (!draft && kind == SchoolKind.goal && title.trim().isEmpty) {
       throw const DomainError('Bitte ein Ziel formulieren.');

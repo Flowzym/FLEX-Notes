@@ -47,7 +47,7 @@ jobs:
           target: checks
 
       - name: Check Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart packages/flex_device/lib
+        run: dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart tool/benchmark_backup.dart packages/flex_device/lib
 
       - name: Analyze Dart and Flutter code
         run: flutter analyze --no-pub --fatal-infos --fatal-warnings
@@ -126,12 +126,20 @@ jobs:
         # Compile without the permanent private key. This APK is unsigned and
         # must not be distributed; the installation key stays outside GitHub.
 
-      - name: Save Android build log
+      - name: Test native encrypted file envelopes
+        working-directory: flutter_app/android
+        env:
+          ORG_GRADLE_PROJECT_flexUnsignedRelease: 'true'
+        run: ./gradlew :flex_device:testDebugUnitTest --console=plain 2>&1 | tee "$RUNNER_TEMP/flex-android-reports/native-tests.log"
+
+      - name: Save Android build and test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: android-build-log-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/flex-android-reports/
+          path: |
+            ${{ runner.temp }}/flex-android-reports/
+            flutter_app/build/flex_device/test-results/testDebugUnitTest/
           retention-days: 14
           if-no-files-found: warn
 

@@ -1168,7 +1168,7 @@ class SqliteNotebook
         backup['version'] != 1 ||
         backup['tables'] is! Map) {
       throw const DomainError(
-        'Keine unterstützte Vollsicherung. Die Rekonstruktion importiert ihre eigenen Sicherungen sowie Flutter 0.1.0; für andere Stände ist eine gesonderte Migration erforderlich.',
+        'Diese Sicherung wird noch nicht unterstützt. Bitte eine vollständige FLEX-Sicherung verwenden. Vorhandene Daten bleiben erhalten.',
       );
     }
     final tables = Map<String, dynamic>.from(backup['tables'] as Map);
@@ -1262,7 +1262,7 @@ class SqliteNotebook
     final value = _decode(text);
     if (value['format'] == 'FLEX-Encrypted') {
       throw const DomainError(
-        'Diese Sicherung ist verschlüsselt. Bitte im unveränderten HTML-Prototyp öffnen und für die Migration als JSON exportieren.',
+        'Diese ältere Sicherung bitte zuerst in der ursprünglichen FLEX-Version öffnen und dort unverschlüsselt als JSON exportieren. Diese Exportdatei enthält persönliche Daten und sollte nach dem Import sicher entfernt werden.',
       );
     }
     if (value['version'] != 3 ||

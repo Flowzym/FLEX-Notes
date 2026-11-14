@@ -164,7 +164,9 @@ class ScanPage {
 }
 
 void validateScanData(Json j) {
-  if (j['outputFormat'] != null &&
+  if (j['redacted'] != null && j['redacted'] is! bool ||
+      j['discardVersions'] != null && j['discardVersions'] is! bool ||
+      j['outputFormat'] != null &&
           !{'pdf', 'jpg'}.contains(j['outputFormat']) ||
       j['capturePending'] != null && j['capturePending'] is! bool ||
       j['captureAsDocument'] != null && j['captureAsDocument'] is! bool ||

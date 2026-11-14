@@ -431,7 +431,7 @@ Future<void> _configureLock(
                         : (v) => update(() => biometrics = v),
                   ),
                   const Text(
-                    'Die App sperrt beim Verlassen. Ohne PIN oder aktivierte Biometrie ist kein Zugriff möglich. Bewahre eine verschlüsselte Sicherung samt Passwort auf. Die App-Sperre verschlüsselt die Datenbank nicht.',
+                    'Die App sperrt beim Verlassen. Datenbank und lokale Dokumente sind auf Android zusätzlich mit dem Geräteschlüssel verschlüsselt. Bewahre eine vollständige verschlüsselte Sicherung samt Passwort für den Gerätewechsel auf.',
                   ),
                 ],
                 if (error != null) Text(error!),

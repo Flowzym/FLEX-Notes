@@ -65,8 +65,8 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
         children: [
           Text(
             widget.emptyTrash
-                ? 'Gelöschte Einträge und ihre früheren Fassungen werden endgültig entfernt. Erstelle zuerst eine vollständige Sicherung.'
-                : 'Der lokale Speicher wird geprüft und optimiert. Einträge, frühere Fassungen und Entwürfe bleiben erhalten.',
+                ? 'Gelöschte Einträge und ihre früheren Versionen werden endgültig entfernt. Erstelle zuerst eine vollständige Sicherung.'
+                : 'Der lokale Speicher wird geprüft und optimiert. Einträge, frühere Versionen und Entwürfe bleiben erhalten.',
           ),
           TextButton(
             onPressed: busy
@@ -102,8 +102,10 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
           ),
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Ich habe die Sicherung gespeichert und andere App-Tabs geschlossen.',
+            title: Text(
+              kIsWeb
+                  ? 'Sicherung gespeichert und andere FLEX-Tabs geschlossen'
+                  : 'Sicherung gespeichert',
             ),
             value: confirmed,
             onChanged: busy

@@ -119,6 +119,45 @@ void main() {
     now: now,
   );
   test(
+    'legacy PIN upgrades only after successful PIN entry; failed write stays locked',
+    () async {
+      final secrets = MemorySecrets();
+      secrets.values[AppLock.key] = File(
+        'test/fixtures/pin_v1.json',
+      ).readAsStringSync();
+      final lock = lockFor(secrets);
+      await lock.load();
+      expect(await lock.unlockPin('000000'), false);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+      expect(await lock.unlockBiometric(), true);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+      lock.lock();
+      expect(await lock.unlockPin('654321'), true);
+      final upgraded = jsonDecode(secrets.values[AppLock.key]!);
+      expect(upgraded['version'], 2);
+      expect(
+        upgraded['salt'],
+        isNot(
+          jsonDecode(
+            File('test/fixtures/pin_v1.json').readAsStringSync(),
+          )['salt'],
+        ),
+      );
+      final restarted = lockFor(secrets);
+      await restarted.load();
+      expect(await restarted.unlockPin('654321'), true);
+      secrets.values[AppLock.key] = File(
+        'test/fixtures/pin_v1.json',
+      ).readAsStringSync();
+      final failing = lockFor(secrets);
+      await failing.load();
+      secrets.broken = true;
+      expect(await failing.unlockPin('654321'), false);
+      expect(failing.locked, true);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+    },
+  );
+  test(
     'PIN persists hashed, locks on restart, checks old PIN for changes',
     () async {
       final secrets = MemorySecrets(), lock = lockFor(MemorySecrets());

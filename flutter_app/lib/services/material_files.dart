@@ -82,9 +82,13 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
 class MaterialBundle {
   static const maxPlain = 60000000, maxFileTotal = 40000000;
   static final cipher = AesGcm.with256bits();
-  static Future<SecretKey> _key(String password, List<int> salt) => Pbkdf2(
+  static Future<SecretKey> _key(
+    String password,
+    List<int> salt, {
+    bool legacy = false,
+  }) => Pbkdf2(
     macAlgorithm: Hmac.sha256(),
-    iterations: 310000,
+    iterations: legacy ? 310000 : 600000,
     bits: 256,
   ).deriveKey(secretKey: SecretKey(utf8.encode(password)), nonce: salt);
   static Future<Uint8List> encode(
@@ -125,10 +129,10 @@ class MaterialBundle {
       plain,
       secretKey: await _key(password, salt),
       nonce: nonce,
-      aad: ascii.encode('FLEXMAT1'),
+      aad: ascii.encode('FLEXMAT2'),
     );
     return Uint8List.fromList([
-      ...ascii.encode('FLEXMAT1'),
+      ...ascii.encode('FLEXMAT2'),
       ...salt,
       ...nonce,
       ...box.cipherText,
@@ -142,7 +146,10 @@ class MaterialBundle {
   decode(Uint8List bytes, String password) async {
     if (bytes.length < 52 ||
         bytes.length > maxPlain + 52 ||
-        ascii.decode(bytes.sublist(0, 8), allowInvalid: true) != 'FLEXMAT1') {
+        !{
+          'FLEXMAT1',
+          'FLEXMAT2',
+        }.contains(ascii.decode(bytes.sublist(0, 8), allowInvalid: true))) {
       throw const DomainError('Keine gültige Materialsicherung.');
     }
     try {
@@ -152,8 +159,12 @@ class MaterialBundle {
           nonce: bytes.sublist(24, 36),
           mac: Mac(bytes.sublist(bytes.length - 16)),
         ),
-        secretKey: await _key(password, bytes.sublist(8, 24)),
-        aad: ascii.encode('FLEXMAT1'),
+        secretKey: await _key(
+          password,
+          bytes.sublist(8, 24),
+          legacy: ascii.decode(bytes.sublist(0, 8)) == 'FLEXMAT1',
+        ),
+        aad: bytes.sublist(0, 8),
       );
       final j = Json.from(jsonDecode(utf8.decode(plain)) as Map);
       if (j['format'] != 'FLEX-Materials' ||

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'package:archive/archive.dart' show Archive, ArchiveFile, ZipEncoder;
 import 'dart:convert';
@@ -37,6 +38,18 @@ http.Response jsonResponse(Object value, [int code = 200]) => http.Response(
 );
 
 void main() {
+  test('reads independent legacy encrypted material package', () async {
+    final bytes = base64Decode(
+      File('test/fixtures/material_bundle_v1.base64').readAsStringSync().trim(),
+    );
+    final restored = await MaterialBundle.decode(
+      bytes,
+      'Legacy materials password',
+    );
+    expect(restored.documents, isEmpty);
+    expect(restored.files, isEmpty);
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
   test('DOCX requires a Word package and rejects macro-bearing archives', () {
     Uint8List zip(List<String> names) {

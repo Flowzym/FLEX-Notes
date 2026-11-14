@@ -1,0 +1,11 @@
+const{chromium}=require('/opt/codex/cua_node/lib/node_modules/playwright');const fs=require('fs'),assert=require('assert');
+(async()=>{const b=await chromium.connectOverCDP('http://127.0.0.1:9223'),ctx=b.contexts()[0],p=await ctx.newPage();for(const old of ctx.pages())if(old!==p&&old.url().includes('8083'))await old.close();
+const errors=[];p.on('pageerror',e=>errors.push(e.message));await p.setViewportSize({width:390,height:844});await p.goto('http://127.0.0.1:8083');await p.waitForTimeout(3500);await p.locator('flt-semantics-placeholder').evaluate(e=>e.click());
+const click=async name=>{const target=p.getByRole('button',{name,exact:true});await target.waitFor();const rect=await target.boundingBox();assert(rect);const style=await p.addStyleTag({content:'flt-semantics-host, flt-semantics, flt-semantics-container {pointer-events:none!important}'});await p.mouse.click(rect.x+rect.width/2,rect.y+rect.height/2);await style.evaluate(e=>e.remove());await p.waitForTimeout(300)};
+await click('Weitere Bereiche Mehr');await click('Einstellungen');console.log((await p.locator('body').innerText()).slice(0,2500));
+await click('Bedienung');await click('Datenschutz & Speicher');assert((await p.locator('body').innerText()).includes('Google Play-Dienste'));
+await p.screenshot({path:'/workspace/build77/privacy-390.png'});await p.setViewportSize({width:320,height:844});await p.waitForTimeout(200);await p.screenshot({path:'/workspace/build77/privacy-320.png'});await click('Schließen');
+await click('Material');console.log((await p.locator('body').innerText()).slice(0,3000));
+await p.screenshot({path:'/workspace/build77/materials-320.png'});assert.deepEqual(errors,[]);
+fs.writeFileSync('/workspace/build77/browser-check.json',JSON.stringify({version:'0.27.0+77',syntheticData:true,widths:[320,390],checks:['existing local pupil and material data open','privacy information accessible from settings','privacy modal at phone widths'],pageErrors:errors,physicalAndroidTested:false},null,2)+'\n');await b.close();
+})().catch(e=>{console.error(e);process.exit(1)});

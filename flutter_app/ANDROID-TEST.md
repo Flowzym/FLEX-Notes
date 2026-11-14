@@ -1,7 +1,7 @@
-# FLEX für Android · Build 76
+# FLEX für Android · Build 77
 
-**0.26.0+76** ist als signierte Universal-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-76/README.md).
+**0.27.0+77** ist als signierte ARM64- und ARMv7-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-77/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -12,9 +12,12 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
 
-Build 76 kann direkt über die neue FLEX aus Build 62–75 installiert werden.
-App-Kennung, Signatur und lokaler Speicher bleiben dabei erhalten.
-[Kalender, Touchbedienung, Stundenplan und Prüfbericht](../docs/rebuild/CALENDAR-TOUCH-TIMETABLE-BUILD-76.md).
+Build 77 kann direkt über die neue FLEX aus Build 62–76 installiert werden.
+App-Kennung und Signatur bleiben erhalten. Vor dem Update eine vollständige
+verschlüsselte Sicherung außerhalb der App speichern. Der erste Start migriert
+Datenbank und Materialien in die verschlüsselte Ablage. Nicht auf Build 76
+zurückgehen; App-Daten nicht löschen.
+[Speicherverschlüsselung, Sicherung und Prüfbericht](../docs/rebuild/SECURITY-QUALITY-BUILD-77.md).
 
 ## Dauerhafte Signatur
 
@@ -42,7 +45,7 @@ Flutter-Version und Abhängigkeiten stehen in der CI-Konfiguration und im Lockfi
 Java 21 und das Android SDK werden benötigt. Nach `flutter pub get`:
 
 ```sh
-FLEX_SIGNING_PROPERTIES=/privater/ordner/signing.properties flutter build apk --release
+FLEX_SIGNING_PROPERTIES=/privater/ordner/signing.properties flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
 ```
 
 Die Properties-Datei enthält `storeFile`, `storePassword`, `keyAlias` und
@@ -63,16 +66,16 @@ und heißen **FLEX Dev**.
 ## Geprüft und noch offen
 
 Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–75 überein.
-Statische Analyse ohne Befunde. 57 gezielte Prüfungen zu Kalender, Stundenplan,
-Serien und Touchbedienung bestanden über mehrere Läufe. Die Release-Webvorschau wurde
-mit synthetischen Daten bei 320 und 390 Pixeln geprüft. Keine vollständige
-Testsuite in diesem Build. Live-Randerkennung benötigt die native Android-
+16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–76 überein.
+Statische Analyse und Formatprüfung ohne Befunde. 600 Flutter-Tests, 11 Schema- und 2 native Verschlüsselungstests sowie
+3 Servertests und Browserprüfungen sind im aktuellen
+Prüfbericht dokumentiert. Beide APKs enthalten SQLCipher. Native JVM-Tests prüfen
+Dateiverschlüsselung, aber keinen echten Android-Keystore. Live-Randerkennung benötigt die native Android-
 Dokumentkamera und funktionierende Google Play-Dienste.
 
-Installation, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
+Installation und Speichermigration, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
 der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/CALENDAR-TOUCH-TIMETABLE-BUILD-76.md).
+[Nachweise](../docs/rebuild/SECURITY-QUALITY-BUILD-77.md).
 
 Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
 beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.

@@ -270,7 +270,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       return e.message!;
     }
     if (e is MissingPluginException) {
-      return 'Die Kamerafunktion fehlt in dieser App-Version. Bitte die aktuelle FLEX-Testapp installieren oder ein Bild aus Dateien hinzufügen.';
+      return 'Die Kamerafunktion fehlt in dieser App-Version. Bitte FLEX aktualisieren oder ein Bild aus Dateien hinzufügen.';
     }
     return friendlyError(e);
   }
@@ -818,7 +818,10 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       photo: page.photo,
       captureToken: page.captureToken,
     );
-    change({'pages': next.map((p) => p.toJson()).toList()});
+    change({
+      'pages': next.map((p) => p.toJson()).toList(),
+      if (edited['redacted'] == true) 'redacted': true,
+    });
     await buffer.flush();
     await cleanupPages([page.key]);
   });
@@ -934,18 +937,43 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   });
 
   Future<void> save() => action(() async {
+    final discard =
+        replace && data['redacted'] == true && data['discardVersions'] != false;
+    if (discard &&
+        !await confirmFlex(
+          context,
+          'Original und frühere Versionen entfernen?',
+          'Die geschwärzte Datei ersetzt dieses Dokument. Seine bisherigen Versionen werden entfernt. '
+              'Andere Kopien, offene Entwürfe und bereits erstellte Sicherungen bleiben unverändert.',
+          accept: 'Ersetzen und entfernen',
+        )) {
+      return;
+    }
+    if (!mounted) return;
     await retainSourceCopy();
     if (nativeCamera && data['capturePending'] == true) await recoverPhoto();
     await buffer.flush();
+    var cleanupFailed = false;
     final saved = await saveScan(
       c.repository,
       widget.files,
       buffer.draft,
       replace: replace,
+      discardVersions: discard,
+      onCleanupFailure: () => cleanupFailed = true,
     );
     committed = true;
     await cleanupPages();
     await c.reload();
+    if (cleanupFailed && mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Datei gespeichert. Einige alte Dateien konnten noch nicht entfernt werden.',
+          ),
+        ),
+      );
+    }
     await pop(saved);
   });
   Future<void> deleteDraft() async {

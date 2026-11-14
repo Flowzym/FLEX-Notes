@@ -265,7 +265,7 @@ void main() {
     },
   );
   testWidgets(
-    'tap and swipe use the same short directional transition in every section',
+    'tap and swipe use the same short directional transition in every section with page tabs',
     (t) async {
       await app(t, size: const Size(390, 844));
       double translation() => t
@@ -281,13 +281,7 @@ void main() {
           .getTranslation()
           .x;
       final samples = <double>[];
-      for (final section in [
-        (1, 1, 0),
-        (0, 0, 1),
-        (2, 0, 1),
-        (3, 0, 1),
-        (4, 0, 1),
-      ]) {
+      for (final section in [(1, 1, 0), (2, 0, 3), (3, 0, 1), (4, 0, 1)]) {
         await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
         final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
         await tap(t, find.byKey(ValueKey('$prefix-${section.$2}')));
@@ -315,13 +309,12 @@ void main() {
     },
   );
   testWidgets(
-    'all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures',
+    'all sections with page tabs swipe in pill order from content and header, wrap at both edges and preserve slider gestures',
     (t) async {
       await app(t, size: const Size(390, 844));
       for (final section in [
         (1, [1, 0, 2]),
-        (0, [0, 1]),
-        (2, [0, 1, 2]),
+        (2, [0, 3, 2]),
         (3, [0, 1, 2, 3]),
         (4, [0, 1, 2, 3, 4, 5]),
       ]) {

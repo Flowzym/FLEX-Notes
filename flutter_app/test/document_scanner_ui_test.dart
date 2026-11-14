@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flex_notizbuch/services/scan_store.dart';
 import 'package:flutter/services.dart';
 import 'package:flex_device/flex_device.dart';
 import 'package:file_selector/file_selector.dart';
@@ -107,6 +108,63 @@ void main() {
     await t.tap(f);
     await t.pump();
   }
+
+  testWidgets(
+    'redacted replacement requires explicit confirmation before removing originals',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      await files.write('first-page', scannerImage());
+      Future<DialogDraft> draft(String id, Map<String, dynamic> extra) =>
+          c.repository.saveDialogDraft(
+            DialogDraft(
+              id: id,
+              type: 'scan',
+              ownerId: id,
+              updatedAtUtc: utcNow(),
+              data: {
+                ...const ScanContext(title: 'Privacy test').initial(),
+                'pages': [const ScanPage('first-page', 180, 240).toJson()],
+                ...extra,
+              },
+            ),
+          );
+      final first = await t.runAsync(
+        () async => saveScan(c.repository, files, await draft('first', {})),
+      );
+      await files.write('first-page', scannerImage());
+      final edited = await draft('edited', {
+        'sourceId': first!.id,
+        'sourceRevision': first.revision,
+        'redacted': true,
+      });
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: edited),
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.text('Vorhandene Datei ersetzen'));
+      expect(find.text('Frühere Versionen entfernen'), findsOneWidget);
+      await tap(t, find.text('PDF ersetzen'));
+      expect(
+        find.text('Original und frühere Versionen entfernen?'),
+        findsOneWidget,
+      );
+      await tap(t, find.text('Abbrechen'));
+      expect(files.values.containsKey(first.text('localKey')), true);
+      expect(
+        (await c.repository.classroomDocuments()).single.revision,
+        first.revision,
+      );
+      await tap(t, find.text('PDF ersetzen'));
+      await tap(t, find.text('Ersetzen und entfernen'));
+      await settleWork(t, () => find.byType(ScanEditor).evaluate().isEmpty);
+      expect(files.values.containsKey(first.text('localKey')), false);
+      expect(
+        (await c.repository.classroomDocuments()).single.rows('versions'),
+        isEmpty,
+      );
+    },
+  );
 
   testWidgets(
     'direct import opens picker once and retains imported preview pages',

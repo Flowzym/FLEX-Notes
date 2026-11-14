@@ -1,4 +1,5 @@
 import 'merge_dialog.dart';
+import 'privacy_details.dart';
 import 'device_settings.dart';
 import 'observation_tone_colors.dart';
 import '../domain/observation_catalog.dart';
@@ -182,6 +183,14 @@ class _SettingsPageState extends State<SettingsPage>
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (c.services != null) DeviceSettings(controller: c, backups: false),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => showPrivacyDetails(context),
+          icon: const Icon(Icons.privacy_tip_outlined),
+          label: const Text('Datenschutz & Speicher'),
+        ),
+      ),
       FlexCard(
         child: Padding(
           padding: const EdgeInsets.all(18),

@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:path_provider/path_provider.dart';
+import 'native_storage.dart';
 import '../domain/models.dart';
 import 'database.dart';
 import 'sqlite_notebook.dart';
 
 Future<SqliteNotebook> openNotebook() async {
   final schema = await rootBundle.loadString('assets/schema.sql');
+  final native = await notebookNativeOptions();
   final connection = driftDatabase(
-    name: 'flex_notizbuch_rebuild_v1',
-    native: DriftNativeOptions(
-      databaseDirectory: getApplicationSupportDirectory,
-      shareAcrossIsolates: true,
-    ),
+    name: native?.databasePath == null
+        ? 'flex_notizbuch_rebuild_v1'
+        : 'flex_notizbuch_encrypted_v1',
+    native: native,
     web: DriftWebOptions(
       sqlite3Wasm: Uri.parse('sqlite3.wasm'),
       driftWorker: Uri.parse('drift_worker.js'),

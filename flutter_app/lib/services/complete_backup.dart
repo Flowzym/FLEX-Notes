@@ -81,8 +81,10 @@ class CompleteBackup {
     if (utf8.encode(notebook).length > 20000000) {
       throw const DomainError('Die Notizbuchdaten überschreiten 20 MB.');
     }
-    final files = <String, Json>{};
-    var total = 0;
+    final out = StringBuffer(
+      '{"format":"$format","version":1,"notebook":$notebook,"files":{',
+    );
+    var total = 0, fileIndex = 0;
     for (final ref in references(notebook).entries) {
       if (!await storage.exists(ref.key)) {
         throw const DomainError(
@@ -97,17 +99,12 @@ class CompleteBackup {
           'Die vollständige Sicherung enthält mehr als 100 MB Dateien.',
         );
       }
-      files[ref.key] = {
-        'data': base64Encode(bytes),
-        'sha256': base64Encode((await Sha256().hash(bytes)).bytes),
-      };
+      if (fileIndex++ > 0) out.write(',');
+      out.write(
+        '${jsonEncode(ref.key)}:${jsonEncode({'data': base64Encode(bytes), 'sha256': base64Encode((await Sha256().hash(bytes)).bytes)})}',
+      );
     }
-    return jsonEncode({
-      'format': format,
-      'version': 1,
-      'notebook': data,
-      'files': files,
-    });
+    return (out..write('}}')).toString();
   }
 
   static Future<CompleteBackup> decode(Json data) async {

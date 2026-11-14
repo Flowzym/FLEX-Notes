@@ -1,4 +1,22 @@
-# Aktueller Stand: Webvorschau und Android 0.26.0+76
+# Aktueller Stand: Webvorschau und Android 0.27.0+77
+
+Android-Datenbank und Materialdateien mit Geräteschlüssel verschlüsselt; geprüfter
+Migrationspfad mit erhaltenem Original bei Fehlern. Stärkere PIN-/Sicherungsableitung,
+kompatibler Altimport, bestätigtes Entfernen früherer Versionen beim Schwärzen.
+Eigenes Adaptive Icon, verständlichere Texte und Datenschutzinformationen.
+Zwei kleinere APKs (ARM64/ARMv7) mit bisheriger Signatur.
+
+[Änderungen und Prüfnachweise](SECURITY-QUALITY-BUILD-77.md) ·
+[APKs](../../releases/android/build-77/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Vor Installation vollständige Sicherung außerhalb der App erstellen. Android-
+Geräteabnahme und durchgehend speichersparende große Sicherungen bleiben offen.
+Neue Sicherungen benötigen Build 77 oder neuer; alte bleiben lesbar.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.26.0+76
 
 Der Kalender hat eine gemeinsame Datum-/Werkzeugzeile. Verwalten enthält
 Stundenplan und Sa/So. Wischen außen wechselt Tag/Woche/Monat, Wischen im Raster

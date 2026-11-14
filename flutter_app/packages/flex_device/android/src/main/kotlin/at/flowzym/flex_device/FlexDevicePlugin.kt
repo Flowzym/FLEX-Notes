@@ -46,6 +46,19 @@ class FlexDevicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         channel.setMethodCallHandler(this)
     }
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "preparePrivateStorage") {
+            writer.execute {
+                try {
+                    val vault = PrivateStorage(context)
+                    val key = vault.databaseKey()
+                    vault.migrateMaterials()
+                    main.post { result.success(key) }
+                } catch (_: Exception) {
+                    main.post { result.error("private_storage", "Der geschützte Speicher ist nicht verfügbar. Vorhandene Daten bleiben erhalten.", null) }
+                }
+            }
+            return
+        }
         if (call.method == "pendingPhotoOwner") { result.success(photo.owner()); return }
         if (call.method == "discardPhoto") { photo.discard(call.argument<String>("draftId"), result); return }
         if (call.method == "capturePhoto") { photo.start(activity, call.argument<String>("draftId"), result); return }

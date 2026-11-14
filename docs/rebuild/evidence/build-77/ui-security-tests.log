@@ -1,0 +1,54 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+Shell: 2026-11-14 18:21:51.770: ERROR CORE sqlcipher_page_cipher: hmac check failed for pgno=1
+Shell: 2026-11-14 18:21:51.772: ERROR CORE sqlite3Codec: error decrypting page 1 data: 1
+Shell: 2026-11-14 18:21:51.772: ERROR CORE sqlcipher_codec_ctx_set_error: 1 lock=0
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:04 +7: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redacted replacement requires explicit confirmation before removing originals
+00:06 +8: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:07 +9: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:09 +10: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:10 +11: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:11 +12: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:14 +13: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:16 +14: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:18 +15: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:20 +16: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:22 +17: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:25 +18: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle encrypts documents and bytes and detects wrong password or tampering
+00:25 +19: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch filter keeps page order and safely retries failed draft write=false
+00:25 +20: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: batch filter keeps page order and safely retries failed draft write=false
+00:28 +21: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:31 +22: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:34 +23: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:36 +24: /workspace/FLEX-Notes/flutter_app/test/material_services_test.dart: material bundle rejects a missing file and invalid local identifiers
+00:36 +25: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +26: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +27: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +28: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +29: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +30: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:36 +31: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: filter updates preview before Apply, latest selection wins and export stays full size
+00:39 +32: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: backup preview shows date/time conflicts and applies only selected field
+00:39 +33: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: automatic crop survives switching to filters before saving
+00:40 +34: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: automatic crop survives switching to filters before saving
+00:42 +35: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:44 +36: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:45 +37: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:45 +38: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:46 +39: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:46 +40: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:47 +41: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:48 +42: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:48 +43: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: Android back cannot dismiss an editor behind the app lock
+00:48 +44: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: camera cancellation retains content and deleting an open draft removes its pages
+00:48 +45: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+00:48 +46: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 1.0
+00:48 +47: /workspace/FLEX-Notes/flutter_app/test/document_scanner_ui_test.dart: redaction matches image coordinates on 320px screen: Size(240.0, 180.0)
+00:49 +48: /workspace/FLEX-Notes/flutter_app/test/device_ui_test.dart: device settings and setup dialogs fit a phone at text scale 2.0
+00:49 +49: All tests passed!

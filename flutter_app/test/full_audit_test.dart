@@ -461,7 +461,16 @@ void main() {
     await tap(t, find.byTooltip('Weitere Bereiche'));
     await tap(t, find.text('Einstellungen'));
     await tap(t, find.byKey(const ValueKey('settings-tab-1')));
-    expect(t.widget<OptionBar>(find.byType(OptionBar)).value, 'neutral');
+    expect(
+      t
+          .widget<OptionBar>(
+            find.byWidgetPredicate(
+              (w) => w is OptionBar && w.keyPrefix == 'default-tone',
+            ),
+          )
+          .value,
+      'neutral',
+    );
     await tap(t, find.byKey(const ValueKey('default-tone-negative')));
     await t.runAsync(c.flushAppearance);
     expect((await repo.appearance()).defaultObservationTone, 'negative');

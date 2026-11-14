@@ -1,3 +1,4 @@
+import 'package:flex_notizbuch/services/complete_backup.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -415,6 +416,40 @@ void main() {
       expect(files.values.keys.toSet(), before);
       expect((await repo.dialogDrafts()).single.id, d.id);
       expect(await repo.classroomDocuments(), isEmpty);
+    },
+  );
+  test(
+    'explicit version removal keeps only the replacement and exports no old bytes',
+    () async {
+      final first = await saveScan(repo, files, await draft());
+      final second = await saveScan(
+        repo,
+        files,
+        await draft(
+          fields: {'sourceId': first.id, 'sourceRevision': first.revision},
+        ),
+        replace: true,
+      );
+      final protected = await saveScan(
+        repo,
+        files,
+        await draft(
+          fields: {
+            'sourceId': second.id,
+            'sourceRevision': second.revision,
+            'redacted': true,
+          },
+        ),
+        replace: true,
+        discardVersions: true,
+      );
+      expect(protected.rows('versions'), isEmpty);
+      expect(files.values.containsKey(first.text('localKey')), false);
+      expect(files.values.containsKey(second.text('localKey')), false);
+      expect(files.values.keys, [protected.text('localKey')]);
+      final captured =
+          jsonDecode(await CompleteBackup.capture(repo, files)) as Json;
+      expect((captured['files'] as Map).keys, [protected.text('localKey')]);
     },
   );
   test(

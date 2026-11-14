@@ -165,23 +165,30 @@ void main() {
           scale: view.$3,
         );
         final suffix = '${view.$1.toInt()}-${view.$3}-${view.$4}';
-        for (final destination in [(1, 3), (0, 2), (2, 3), (3, 4), (4, 6)]) {
+        for (final destination in [
+          (1, [0, 1, 2]),
+          (0, [0]),
+          (2, [0, 3, 2]),
+          (3, [0, 1, 2, 3]),
+          (4, [0, 1, 2, 3, 4, 5]),
+        ]) {
           await tap(t, find.byKey(ValueKey('bottom-${destination.$1}')));
-          for (var tab = 0; tab < destination.$2; tab++) {
-            await tap(
-              t,
-              find.byKey(
-                ValueKey(
-                  destination.$1 == 1
-                      ? 'page-$tab'
-                      : 'context-${destination.$1}-$tab',
+          for (final tab in destination.$2) {
+            if (destination.$1 != 0) {
+              await tap(
+                t,
+                find.byKey(
+                  ValueKey(
+                    destination.$1 == 1
+                        ? 'page-$tab'
+                        : 'context-${destination.$1}-$tab',
+                  ),
                 ),
-              ),
-            );
+              );
+            }
             await capture(t, key, 'page-${destination.$1}-$tab-$suffix');
             if (destination.$1 == 0 && view.$1 == 390) {
-              // Calendar, timetable and tasks belong in one capsule at the
-              // standard phone size, even with the real semibold face.
+              // Calendar is its own page; tasks now live under Organisation.
               expect(
                 find.byKey(const ValueKey('context-0-track-1')),
                 findsNothing,

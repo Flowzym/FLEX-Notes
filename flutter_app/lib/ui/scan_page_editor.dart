@@ -38,6 +38,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
   final zoom = TransformationController();
   String? error;
   final redactions = <Rect>[];
+  bool bakedRedaction = false;
   List<Offset> corners = const [
     Offset.zero,
     Offset(1, 0),
@@ -81,6 +82,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
         ? const [Offset.zero, Offset(1, 0), Offset(1, 1), Offset(0, 1)]
         : [...corners],
     redactions: [...redactions],
+    bakedRedaction: bakedRedaction,
     mode: geometry ? 'filter' : mode,
   );
 
@@ -103,6 +105,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
     previewTimer?.cancel();
     setState(() {
       current = state.bytes;
+      bakedRedaction = state.bakedRedaction;
       currentWidth = state.width;
       currentHeight = state.height;
       filter = state.filter;
@@ -275,7 +278,12 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
           if (transformed != null) 'bytes': transformed['bytes'],
           if (transformed != null) 'redactions': <List<double>>[],
         });
-        if (mounted) Navigator.pop(context, result);
+        if (mounted) {
+          Navigator.pop(context, {
+            ...result,
+            'redacted': bakedRedaction || redactions.isNotEmpty,
+          });
+        }
         return true;
       }
       if (!mounted) return false;
@@ -285,6 +293,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
           current = transformed!['bytes'] as Uint8List;
           currentWidth = transformed['width'] as int;
           currentHeight = transformed['height'] as int;
+          bakedRedaction = bakedRedaction || redactions.isNotEmpty;
           redactions.clear();
           corners = const [
             Offset.zero,
@@ -810,10 +819,12 @@ class _ScanEditSnapshot {
     ],
     this.redactions = const [],
     this.mode = 'filter',
+    this.bakedRedaction = false,
   });
   final Uint8List bytes;
   final int width, height;
   final String filter, mode;
+  final bool bakedRedaction;
   final double brightness, contrast, saturation;
   final List<Offset> corners;
   final List<Rect> redactions;

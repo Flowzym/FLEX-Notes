@@ -26,29 +26,26 @@ class MaterialStorage(private val context: Context) {
     }
     fun perform(call: MethodCall): Any? {
         val target = file(call)
-        return when (call.method) {
-            "hasMaterial" -> target.isFile && target.length() in 1..limit.toLong()
+        val vault = PrivateStorage(context)
+        return synchronized(PrivateStorage.monitor) { when (call.method) {
+            "hasMaterial" -> target.isFile && target.length() in 1..(limit + VaultFileCodec.overhead).toLong()
             "writeMaterial" -> {
                 val bytes = requireNotNull(call.argument<ByteArray>("bytes"))
                 require(bytes.isNotEmpty() && bytes.size <= limit)
-                val temporary = File.createTempFile("material-", ".tmp", target.parentFile)
-                try {
-                    java.io.FileOutputStream(temporary).use { it.write(bytes); it.fd.sync() }
-                    require(java.security.MessageDigest.isEqual(
-                        java.security.MessageDigest.getInstance("SHA-256").digest(bytes),
-                        java.security.MessageDigest.getInstance("SHA-256").digest(temporary.readBytes())))
-                    if (!temporary.renameTo(target)) throw java.io.IOException("Cannot commit material")
-                } finally { temporary.delete() }
+                vault.write(target, bytes)
                 null
             }
             "removeMaterial" -> { if (target.exists() && !target.delete()) throw java.io.IOException("Cannot remove material"); null }
-            "readMaterial" -> { require(target.length() in 1..limit.toLong()); target.readBytes() }
+            "readMaterial" -> { require(target.length() in 1..(limit + VaultFileCodec.overhead).toLong()); vault.read(target) }
             "openMaterial" -> {
                 require(target.isFile)
                 val extension = call.argument<String>("extension")
                 require(extension == "pdf" || extension == "docx")
                 val name = (call.argument<String>("name") ?: "Material.$extension").replace(Regex("[/\\\\\\r\\n]"), "_").take(160)
-                val uri = FileProvider.getUriForFile(context, context.packageName + ".materials", target, name)
+                val exports = File(context.cacheDir, "flex-open").apply { mkdirs() }
+                val exported = File.createTempFile("document-", ".$extension", exports)
+                java.io.FileOutputStream(exported).use { it.write(vault.read(target)); it.fd.sync() }
+                val uri = FileProvider.getUriForFile(context, context.packageName + ".materials", exported, name)
                 val mime = if (extension == "pdf") "application/pdf" else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 context.startActivity(Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, mime)
@@ -57,8 +54,11 @@ class MaterialStorage(private val context: Context) {
                 null
             }
             "pdfMaterialInfo", "renderMaterialPage" -> {
-                require(target.length() in 1..limit.toLong())
-                PdfRenderer(ParcelFileDescriptor.open(target, ParcelFileDescriptor.MODE_READ_ONLY)).use { renderer ->
+                require(target.length() in 1..(limit + VaultFileCodec.overhead).toLong())
+                val decoded = File.createTempFile("flex-render-", ".pdf", context.cacheDir)
+                try {
+                java.io.FileOutputStream(decoded).use { it.write(vault.read(target)) }
+                PdfRenderer(ParcelFileDescriptor.open(decoded, ParcelFileDescriptor.MODE_READ_ONLY)).use { renderer ->
                     require(renderer.pageCount in 1..2000)
                     if (call.method == "pdfMaterialInfo") mapOf("pages" to renderer.pageCount)
                     else {
@@ -76,8 +76,9 @@ class MaterialStorage(private val context: Context) {
                         }
                     }
                 }
+                } finally { decoded.delete() }
             }
             else -> throw IllegalArgumentException("Unknown material operation")
-        }
+        } }
     }
 }

@@ -68,11 +68,11 @@ Future<void> showMaterialVersions(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Die letzten fünf Fassungen bleiben auf diesem Gerät gespeichert. Frühere Fassungen können Inhalte vor einer Schwärzung enthalten.',
+                    'Bis zu fünf frühere Versionen bleiben gespeichert. Sie können ungeschwärzte Inhalte enthalten und lassen sich hier einzeln entfernen.',
                   ),
                   const SizedBox(height: 12),
                   if (versions.isEmpty)
-                    const Text('Noch keine frühere Fassung.'),
+                    const Text('Noch keine frühere Version.'),
                   for (final v in versions)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
