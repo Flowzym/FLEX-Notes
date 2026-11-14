@@ -111,8 +111,11 @@ void main() {
     });
   }
 
-  Future<void> manage(WidgetTester t) =>
-      tap(t, find.byKey(const ValueKey('calendar-edit-timetable')));
+  Future<void> manage(WidgetTester t) async {
+    await tap(t, find.byKey(const ValueKey('calendar-manage')));
+    await tap(t, find.byKey(const ValueKey('calendar-edit-timetable')));
+  }
+
   Future<void> editFirst(WidgetTester t) =>
       tap(t, find.byTooltip('Block bearbeiten').first);
 
@@ -135,7 +138,10 @@ void main() {
           'unified-week-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
         await manage(t);
-        expect(find.text('Stundenzeiten'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('timetable-section-hours')),
+          findsOneWidget,
+        );
         await editFirst(t);
         expect(find.byKey(const ValueKey('timetable-title')), findsOneWidget);
         await screenshot(
@@ -217,7 +223,9 @@ void main() {
         ).where((l) => l.title == 'Flexk'),
         isEmpty,
       );
+      await tap(t, find.byKey(const ValueKey('timetable-section-changes')));
       await tap(t, find.byTooltip('Block wiederherstellen'));
+      await tap(t, find.byKey(const ValueKey('timetable-section-plan')));
       expect(
         lessonOccurrences(
           c.classroom,
@@ -226,7 +234,8 @@ void main() {
         ).where((l) => l.title == 'Flexk'),
         hasLength(1),
       );
-      await tap(t, find.text('Stundenzeiten'));
+      await tap(t, find.byKey(const ValueKey('timetable-section-hours')));
+      await tap(t, find.byKey(const ValueKey('timetable-edit-hours')));
       await enter(t, find.byKey(const ValueKey('period-p1-start')), '07:40');
       await tap(t, find.text('Speichern'));
       expect(
@@ -274,7 +283,7 @@ void main() {
     final c = await controller();
     await host(t, c);
     await manage(t);
-    await tap(t, find.text('Block hinzufügen'));
+    await tap(t, find.byKey(const ValueKey('timetable-add-1')));
     await enter(t, find.byKey(const ValueKey('timetable-title')), 'Lernzeit');
     await enter(
       t,
@@ -352,4 +361,141 @@ void main() {
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
   });
+  testWidgets(
+    'copy creates an independent block; exceptions retain notes on undo',
+    (t) async {
+      final c = await controller();
+      final original = c.classroom.firstWhere(
+        (d) =>
+            d.kind == ClassroomKind.lesson &&
+            d.text('date') == '2026-11-09' &&
+            d.title == 'Flexk',
+      );
+      await c.saveClassroom(
+        patchLessonOccurrence(original, '2026-11-09', {
+          'cancelled': true,
+          'note': 'Vorbereitung behalten',
+        }),
+      );
+      final before = c.classroom
+          .singleWhere((d) => d.id == original.id)
+          .toJson();
+      await host(t, c);
+      // Copying from a Saturday still anchors to the displayed plan week.
+      for (var i = 0; i < 5; i++) {
+        await tap(t, find.byTooltip('Nächster Zeitraum'));
+      }
+      await manage(t);
+      await tap(t, find.byKey(ValueKey('timetable-copy-${original.id}')));
+      await enter(
+        t,
+        find.byKey(const ValueKey('timetable-title')),
+        'Neue Lernzeit',
+      );
+      await tap(t, find.byKey(const ValueKey('timetable-weekday')));
+      await tap(t, find.text('Dienstag').last);
+      await tap(t, find.text('Speichern'));
+      final copy = c.classroom.singleWhere((d) => d.title == 'Neue Lernzeit');
+      expect(copy.id, isNot(original.id));
+      expect(copy.text('date'), '2026-11-10');
+      expect(copy.text('start'), original.text('start'));
+      expect(copy.strings('slotIds'), original.strings('slotIds'));
+      expect(copy.rows('exceptions'), isEmpty);
+      expect(
+        c.classroom.singleWhere((d) => d.id == original.id).toJson(),
+        before,
+      );
+      expect(find.text('Zeitliche Überschneidung'), findsWidgets);
+      await tap(t, find.byKey(const ValueKey('timetable-section-changes')));
+      await tap(t, find.byTooltip('Zeitänderung / Ausfall zurücknehmen'));
+      final restored = c.classroom
+          .singleWhere((d) => d.id == original.id)
+          .rows('exceptions')
+          .single;
+      expect(restored['cancelled'], false);
+      expect(restored['note'], 'Vorbereitung behalten');
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('hours can be extended while used periods cannot be removed', (
+    t,
+  ) async {
+    final c = await controller();
+    await host(t, c, width: 320);
+    await manage(t);
+    await tap(t, find.byKey(const ValueKey('timetable-section-hours')));
+    await tap(t, find.byKey(const ValueKey('timetable-edit-hours')));
+    expect(
+      t
+          .widget<IconButton>(find.byKey(const ValueKey('period-remove-p1')))
+          .onPressed,
+      isNull,
+    );
+    await tap(t, find.byKey(const ValueKey('period-add')));
+    await tap(t, find.text('Speichern'));
+    final table = c.classroom.singleWhere(
+      (d) => d.kind == ClassroomKind.timetable,
+    );
+    expect(table.rows('slots'), hasLength(11));
+    final last = table.rows('slots').last;
+    expect(last['start'], '17:05');
+    expect(last['end'], '17:55');
+    await tap(t, find.byKey(const ValueKey('timetable-edit-hours')));
+    await tap(t, find.byKey(ValueKey('period-remove-${last['id']}')));
+    await tap(t, find.text('Speichern'));
+    expect(
+      c.classroom.singleWhere((d) => d.id == table.id).rows('slots'),
+      hasLength(10),
+    );
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+    'adding beyond plan validity stays disabled with a route to extend it',
+    (t) async {
+      final c = await controller();
+      final table = c.classroom.singleWhere(
+        (d) => d.kind == ClassroomKind.timetable,
+      );
+      await c.saveClassroomBatch(
+        changeTimetableHours(
+          c.classroom,
+          table,
+          table.patch({'endDate': '2026-11-13'}),
+        ),
+      );
+      await host(t, c);
+      await manage(t);
+      expect(
+        t
+            .widget<IconButton>(find.byKey(const ValueKey('timetable-add-1')))
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        t
+            .widget<IconButton>(find.byKey(const ValueKey('timetable-add-6')))
+            .onPressed,
+        isNull,
+      );
+      await tap(t, find.byTooltip('Nächste Planwoche'));
+      for (var day = 1; day <= 7; day++) {
+        expect(
+          t
+              .widget<IconButton>(find.byKey(ValueKey('timetable-add-$day')))
+              .onPressed,
+          isNull,
+        );
+      }
+      await tap(t, find.textContaining('Gültigkeit anpassen'));
+      expect(
+        find.byKey(const ValueKey('timetable-edit-hours')),
+        findsOneWidget,
+      );
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
 }

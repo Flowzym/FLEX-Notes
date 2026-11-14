@@ -263,8 +263,6 @@ void main() {
       );
       final chosen = next.add(const Duration(days: 4));
       await tap(t, find.byKey(ValueKey('calendar-month-${dateOnly(chosen)}')));
-      await tap(t, find.byKey(const ValueKey('quick-add')));
-      await tap(t, find.byKey(const ValueKey('quick-add-appointment')));
       expect(
         t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.appointmentDate,
         dateOnly(chosen),
@@ -292,7 +290,9 @@ void main() {
                 .days
                 .length ==
             5) {
+          await tap(t, find.byKey(const ValueKey('calendar-manage')));
           await tap(t, find.byKey(const ValueKey('calendar-weekends')));
+          await tap(t, find.byTooltip('Schließen'));
         }
         expect(
           t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).days.length,

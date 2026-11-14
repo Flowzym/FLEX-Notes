@@ -14,6 +14,7 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
 import 'package:flex_notizbuch/ui/calendar_page.dart';
+import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/calendar_timeline.dart';
 import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'classroom_test.dart' show classroomMemory, lesson;
@@ -414,44 +415,30 @@ void main() {
           final dates = t.getRect(
             find.byKey(const ValueKey('calendar-date-navigation')),
           );
-          final options = t.getRect(
-            find.byKey(const ValueKey('calendar-display-options')),
-          );
-          expect(toolbar.bottom, lessThanOrEqualTo(modes.top));
-          expect(modes.bottom, lessThanOrEqualTo(dates.top));
-          expect(dates.bottom, lessThanOrEqualTo(options.top));
+          expect(modes.bottom, lessThanOrEqualTo(toolbar.top));
           for (final action in [
             'materials',
             'manage',
             'show-lessons',
-            'edit-timetable',
-            if (mode == 'week') 'weekends',
             'filter',
+            'today',
+            'previous',
+            'next',
           ]) {
             final button = find.byKey(ValueKey('calendar-$action'));
             expect(button.hitTestable(), findsOneWidget);
             final rect = t.getRect(button);
-            final group =
-                ['materials', 'manage', 'edit-timetable'].contains(action)
-                ? toolbar
-                : options;
-            expect(rect.left, greaterThanOrEqualTo(group.left));
-            expect(rect.right, lessThanOrEqualTo(group.right));
-            expect(rect.top, greaterThanOrEqualTo(group.top));
-            expect(rect.bottom, lessThanOrEqualTo(group.bottom));
-            expect(
-              find.descendant(of: button, matching: find.byType(Text)),
-              findsOneWidget,
-            );
-            expect(rect.width, greaterThanOrEqualTo(39.99));
-            expect(rect.height, greaterThanOrEqualTo(39.99));
+            expect(rect.left, greaterThanOrEqualTo(toolbar.left));
+            expect(rect.right, lessThanOrEqualTo(toolbar.right));
+            expect(rect.center.dy, closeTo(dates.center.dy, .01));
+            expect(rect.width, greaterThanOrEqualTo(31.99));
+            expect(rect.height, greaterThanOrEqualTo(43.99));
           }
-          final period = t.getRect(
-            find.byKey(const ValueKey('calendar-period')),
+          expect(
+            find.byKey(const ValueKey('calendar-edit-timetable')),
+            findsNothing,
           );
-          final today = t.getRect(find.byKey(const ValueKey('calendar-today')));
-          expect(today.left - period.right, closeTo(6, .01));
-          expect(today.center.dy, closeTo(period.center.dy, .01));
+          expect(find.byKey(const ValueKey('calendar-weekends')), findsNothing);
           expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
           await capture(
             t,
@@ -483,9 +470,15 @@ void main() {
     await host(t, c);
     await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
     await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
-    expect(find.text('November 2026'), findsOneWidget);
+    expect(find.byType(OrgaEditor), findsOneWidget);
+    expect(
+      t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.appointmentDate,
+      '2026-11-05',
+    );
+    await tap(t, find.text('Abbrechen'));
+    expect(find.text('Nov 2026'), findsOneWidget);
     await tap(t, find.byTooltip('Tagesansicht öffnen'));
-    expect(find.textContaining('Do, 5. November'), findsOneWidget);
+    expect(find.text('Do, 5.11.'), findsOneWidget);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
   });
@@ -562,8 +555,9 @@ void main() {
             .length;
         final toggle = find.byKey(const ValueKey('calendar-weekends'));
         expect(dayCount(), 7);
-        expect(t.widget<TextButton>(toggle).onPressed, isNotNull);
+        await tap(t, find.byKey(const ValueKey('calendar-manage')));
         await tap(t, toggle);
+        await tap(t, find.byTooltip('Schließen'));
         expect(dayCount(), 5);
         expect(find.text('Sa'), findsNothing);
         expect(find.text('So'), findsNothing);
@@ -582,12 +576,18 @@ void main() {
           await tap(t, hidden);
           expect(dayCount(), 7);
           expect(hidden, findsNothing);
+          await tap(t, find.byKey(const ValueKey('calendar-manage')));
           await tap(t, toggle);
+          await tap(t, find.byTooltip('Schließen'));
           expect(dayCount(), 5);
         }
+        await tap(t, find.byKey(const ValueKey('calendar-manage')));
         await tap(t, toggle);
+        await tap(t, find.byTooltip('Schließen'));
         expect(dayCount(), 7);
+        await tap(t, find.byKey(const ValueKey('calendar-manage')));
         await tap(t, toggle);
+        await tap(t, find.byTooltip('Schließen'));
         expect(dayCount(), 5);
         expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox());

@@ -1,0 +1,72 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: outside swipes change views; grid swipes change only dates
+00:02 +1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 390.0/1.0
+00:03 +2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 390.0/1.0
+00:03 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: week touch respects its column; month touch creates an all-day draft
+00:04 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: week touch respects its column; month touch creates an all-day draft
+00:04 +5: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 1100.0/1.0
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: long press an occupied appointment starts another; ordinary tap edits it
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
+#2      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart:192:16)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  long press an occupied appointment starts another; ordinary tap edits it
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +6 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: base plan editing retains keyboard focus and custom times
+00:05 +6 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: long press an occupied appointment starts another; ordinary tap edits it [E]
+  Test failed. See exception logs above.
+  The test description was: long press an occupied appointment starts another; ordinary tap edits it
+  
+00:05 +6 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: base plan editing retains keyboard focus and custom times
+00:06 +7 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:08 +8 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: cancelled block draft resumes without losing its controls
+00:09 +9 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: adding a block leaves existing PDF blocks intact
+00:10 +10 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: lesson switch preserves selected day, appointments and stored data
+00:10 +11 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: lesson tap offers explicit single and future changes
+00:11 +12 -1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: copy creates an independent block; exceptions retain notes on undo
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: at least one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Zeitliche Überschneidung": []>
+   Which: means none were found but some were expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart:398:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart line 398
+The test description was:
+  copy creates an independent block; exceptions retain notes on undo
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:14 +12 -2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: copy creates an independent block; exceptions retain notes on undo [E]
+  Test failed. See exception logs above.
+  The test description was: copy creates an independent block; exceptions retain notes on undo
+  
+00:14 +12 -2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: hours can be extended while used periods cannot be removed
+00:15 +13 -2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: (tearDownAll)
+00:15 +13 -2: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: long press an occupied appointment starts another; ordinary tap edits it
+  /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: copy creates an independent block; exceptions retain notes on undo

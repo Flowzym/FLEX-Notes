@@ -1,4 +1,21 @@
-# Aktueller Stand: Webvorschau und Android 0.25.0+75
+# Aktueller Stand: Webvorschau und Android 0.26.0+76
+
+Der Kalender hat eine gemeinsame Datum-/Werkzeugzeile. Verwalten enthält
+Stundenplan und Sa/So. Wischen außen wechselt Tag/Woche/Monat, Wischen im Raster
+den Zeitraum. Berühren eines Zeitfelds legt dort einen Termin an.
+Die Stundenplanverwaltung bietet eine gegliederte Woche, unabhängige Blockkopien,
+Überschneidungshinweise, erweiterbare Stundenzeiten und gesammelte Änderungen.
+
+[Änderungen und Prüfnachweise](CALENDAR-TOUCH-TIMETABLE-BUILD-76.md) ·
+[APK](../../releases/android/build-76/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Neue signierte Android-APK als direktes Update von FLEX Build 62–75.
+Physische Android-Abnahme bleibt offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.25.0+75
 
 Monatskalender mit durchgehendem Tagesraster. Neu aufgebautes Entwicklungsmodal
 mit kurzen Verlaufszeilen, Themen-/Tonartfiltern, Originaleinträgen und

@@ -32,6 +32,7 @@ class CalendarTimeline extends StatelessWidget {
     this.showDates = true,
     this.highlightNow = true,
     this.showBlockDetails = false,
+    this.onCreate,
   });
   final List<DateTime> days;
   final List<CalendarItem> items;
@@ -41,6 +42,7 @@ class CalendarTimeline extends StatelessWidget {
   final bool week, showDates, highlightNow, showBlockDetails;
   final ValueChanged<CalendarItem> onOpen;
   final ValueChanged<DateTime> onDay;
+  final void Function(DateTime day, String time)? onCreate;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -96,6 +98,23 @@ class CalendarTimeline extends StatelessWidget {
         (colWidth / ((week ? 90 : 140) * scale)).floor(),
       );
       final headHeight = week ? 48.0 * scale : 0.0;
+      void createAt(Offset point) {
+        if (onCreate == null ||
+            point.dx < axis ||
+            point.dy < headHeight ||
+            point.dy >= headHeight + height) {
+          return;
+        }
+        final day = ((point.dx - axis) / colWidth).floor();
+        if (day < 0 || day >= days.length) return;
+        final minute =
+            ((hours.start + (point.dy - headHeight) / pixels) ~/ 15 * 15).clamp(
+              0,
+              23 * 60 + 45,
+            );
+        onCreate!(days[day], minuteClock(minute));
+      }
+
       final scheme = Theme.of(ctx).colorScheme;
       final nowColor = Theme.of(ctx).brightness == Brightness.dark
           ? const Color(0xffe0a08a)
@@ -145,6 +164,29 @@ class CalendarTimeline extends StatelessWidget {
               ),
             ],
             for (var dayIndex = 0; dayIndex < days.length; dayIndex++) ...[
+              if (onCreate != null)
+                Positioned(
+                  top: headHeight,
+                  left: axis + dayIndex * colWidth,
+                  width: colWidth,
+                  height: height,
+                  child: Semantics(
+                    label: 'Termin am ${dateOnly(days[dayIndex])} hinzufügen',
+                    button: true,
+                    onTap: () =>
+                        onCreate!(days[dayIndex], minuteClock(hours.start)),
+                    child: GestureDetector(
+                      key: ValueKey(
+                        'calendar-create-${dateOnly(days[dayIndex])}',
+                      ),
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (details) => createAt(
+                        details.localPosition +
+                            Offset(axis + dayIndex * colWidth, headHeight),
+                      ),
+                    ),
+                  ),
+                ),
               if (week)
                 Positioned(
                   top: 0,
@@ -414,7 +456,13 @@ class CalendarTimeline extends StatelessWidget {
       return _TimelineViewport(
         overflow: width > constraints.maxWidth + 1,
         gridKey: ValueKey('calendar-time-grid-${week ? 'week' : 'day'}'),
-        child: body,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPressStart: onCreate == null
+              ? null
+              : (details) => createAt(details.localPosition),
+          child: body,
+        ),
       );
     },
   );
@@ -517,6 +565,8 @@ class _TimeBlock extends StatelessWidget {
           '${item.title}, $time${current ? ', jetzt' : ''}${next ? ', als Nächstes' : ''}',
       child: Tooltip(
         message: '${item.title} · $time',
+        // Long presses belong to time-field creation; hover still shows details.
+        triggerMode: TooltipTriggerMode.manual,
         child: Material(
           color: Color.alphaBlend(
             tint.withValues(alpha: item.category == 'lesson' ? .10 : .24),

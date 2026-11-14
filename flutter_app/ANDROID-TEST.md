@@ -1,7 +1,7 @@
-# FLEX für Android · Build 75
+# FLEX für Android · Build 76
 
-**0.25.0+75** ist als signierte Universal-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-75/README.md).
+**0.26.0+76** ist als signierte Universal-APK verfügbar:
+[APK und Prüfnachweise](../releases/android/build-76/README.md).
 
 Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
 **FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
@@ -12,9 +12,9 @@ ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
 befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
 erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
 
-Build 75 kann direkt über die neue FLEX aus Build 62–67 installiert werden.
+Build 76 kann direkt über die neue FLEX aus Build 62–75 installiert werden.
 App-Kennung, Signatur und lokaler Speicher bleiben dabei erhalten.
-[Kalender, Entwicklung, Scanner und Prüfbericht](../docs/rebuild/CALENDAR-DEVELOPMENT-SCANNER-BUILD-75.md).
+[Kalender, Touchbedienung, Stundenplan und Prüfbericht](../docs/rebuild/CALENDAR-TOUCH-TIMETABLE-BUILD-76.md).
 
 ## Dauerhafte Signatur
 
@@ -63,16 +63,16 @@ und heißen **FLEX Dev**.
 ## Geprüft und noch offen
 
 Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–67 überein.
-Statische Analyse ohne Befunde. 59 gezielte Prüfungen zu Kalender, Entwicklung,
-Klassen-UI und Scanner bestanden über mehrere Läufe. Die Release-Webvorschau wurde
+16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–75 überein.
+Statische Analyse ohne Befunde. 57 gezielte Prüfungen zu Kalender, Stundenplan,
+Serien und Touchbedienung bestanden über mehrere Läufe. Die Release-Webvorschau wurde
 mit synthetischen Daten bei 320 und 390 Pixeln geprüft. Keine vollständige
 Testsuite in diesem Build. Live-Randerkennung benötigt die native Android-
 Dokumentkamera und funktionierende Google Play-Dienste.
 
 Installation, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
 der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/CALENDAR-DEVELOPMENT-SCANNER-BUILD-75.md).
+[Nachweise](../docs/rebuild/CALENDAR-TOUCH-TIMETABLE-BUILD-76.md).
 
 Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
 beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.

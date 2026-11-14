@@ -7,6 +7,9 @@ import '../domain/timetable.dart';
 import 'common.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
+import 'option_bar.dart';
+
+part 'timetable_management.dart';
 
 Future<void> showTimetableSettings(
   BuildContext context,
@@ -64,103 +67,8 @@ Future<void> showTimetableManagement(
   String? date,
 }) => showDialog<void>(
   context: context,
-  builder: (ctx) => AnimatedBuilder(
-    animation: c,
-    builder: (ctx, _) {
-      final currentTable =
-          c.classroom.where((d) => d.id == table.id).firstOrNull ?? table;
-      return FlexModal(
-        title: const Text('Stundenplan verwalten'),
-        onClose: () => Navigator.pop(ctx),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => showTimetableBlockEditor(
-                    ctx,
-                    c,
-                    currentTable,
-                    weekday: schoolDay(
-                      date ?? dateOnly(DateTime.now()),
-                    ).weekday,
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Block hinzufügen'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => showTimetableHours(ctx, c, currentTable),
-                  icon: const Icon(Icons.schedule),
-                  label: const Text('Stundenzeiten'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Grundplan · Änderungen gelten für den gesamten gewählten Block.',
-              style: Theme.of(ctx).textTheme.bodySmall,
-            ),
-            for (final block
-                in (c.classroom
-                    .where(
-                      (b) =>
-                          b.kind == ClassroomKind.lesson &&
-                          b.text('timetableId') == table.id,
-                    )
-                    .toList()
-                  ..sort(
-                    (
-                      a,
-                      b,
-                    ) => '${schoolDay(a.text('date')).weekday} ${a.text('start')}'
-                        .compareTo(
-                          '${schoolDay(b.text('date')).weekday} ${b.text('start')}',
-                        ),
-                  )))
-              ListTile(
-                title: Text(
-                  '${block.title}${block.deleted ? ' · Papierkorb' : ''}',
-                ),
-                subtitle: Text(
-                  '${calendarWeekday(schoolDay(block.text('date')))} · ${block.text('start')}–${block.text('end')}\nAb ${displayDate(block.text('date'))}${block.rule.until == null ? '' : ' bis ${displayDate(block.rule.until!)}'}',
-                ),
-                onTap: block.deleted
-                    ? null
-                    : () => showTimetableBlockEditor(
-                        ctx,
-                        c,
-                        currentTable,
-                        document: block,
-                      ),
-                trailing: IconButton(
-                  tooltip: block.deleted
-                      ? 'Block wiederherstellen'
-                      : 'Block bearbeiten',
-                  icon: Icon(
-                    block.deleted ? Icons.restore : Icons.edit_outlined,
-                  ),
-                  onPressed: block.deleted
-                      ? () => guarded(
-                          ctx,
-                          () =>
-                              c.saveClassroom(block.patch({'deleted': false})),
-                        )
-                      : () => showTimetableBlockEditor(
-                          ctx,
-                          c,
-                          currentTable,
-                          document: block,
-                        ),
-                ),
-              ),
-          ],
-        ),
-      );
-    },
-  ),
+  builder: (_) =>
+      _TimetableManagement(controller: c, tableId: table.id, date: date),
 );
 
 String blockPeriodLabel(ClassroomDocument table, ClassroomDocument block) {
@@ -179,6 +87,8 @@ Future<void> showTimetableBlockEditor(
   NotebookController c,
   ClassroomDocument table, {
   ClassroomDocument? document,
+  ClassroomDocument? copyFrom,
+  String? from,
   int weekday = 1,
   DialogDraft? draft,
 }) async {
@@ -189,13 +99,33 @@ Future<void> showTimetableBlockEditor(
       {
         ...(source ??
                 timetableBlock(
-                  table,
+                  from == null ? table : table.patch({'date': from}),
                   weekday: weekday,
                   firstSlot: 0,
                   lastSlot: 0,
                   title: 'Unterricht',
                 ))
             .toJson(),
+        if (copyFrom != null) ...{
+          'title': copyFrom.title,
+          'subject': copyFrom.text('subject'),
+          'teacher': copyFrom.text('teacher'),
+          'room': copyFrom.text('room'),
+          'note': copyFrom.text('note'),
+          'slotIds': copyFrom.strings('slotIds'),
+          'start': copyFrom.text('start'),
+          'end': copyFrom.text('end'),
+          'repeat': {
+            'frequency': 'weekly',
+            'interval': copyFrom.rule.interval,
+            'weekdays': [weekday],
+            'until': table.text('endDate').isEmpty
+                ? null
+                : table.text('endDate'),
+            'skipHolidays': copyFrom.rule.skipHolidays,
+            'excluded': <String>[],
+          },
+        },
         '_timetableEditor': true,
         '_tableRevision': table.revision,
         '_weekday': source == null
@@ -440,9 +370,45 @@ Future<void> showTimetableHours(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${entry.$2['label']}. Stunde',
-                    style: Theme.of(ctx).textTheme.titleSmall,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${entry.$2['label']}. Stunde',
+                          style: Theme.of(ctx).textTheme.titleSmall,
+                        ),
+                      ),
+                      IconButton(
+                        key: ValueKey('period-remove-${entry.$2['id']}'),
+                        tooltip:
+                            c.classroom.any(
+                              (d) =>
+                                  d.kind == ClassroomKind.lesson &&
+                                  d.text('timetableId') == table.id &&
+                                  d.strings('slotIds').contains(entry.$2['id']),
+                            )
+                            ? 'Diese Stunde wird von Unterrichtsblöcken verwendet'
+                            : 'Stunde entfernen',
+                        onPressed:
+                            slots.length <= 1 ||
+                                c.classroom.any(
+                                  (d) =>
+                                      d.kind == ClassroomKind.lesson &&
+                                      d.text('timetableId') == table.id &&
+                                      d
+                                          .strings('slotIds')
+                                          .contains(entry.$2['id']),
+                                )
+                            ? null
+                            : () => change({
+                                'slots': [
+                                  for (final slot in slots)
+                                    if (slot['id'] != entry.$2['id']) slot,
+                                ],
+                              }),
+                        icon: const Icon(Icons.remove_circle_outline, size: 20),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -477,6 +443,30 @@ Future<void> showTimetableHours(
                 ],
               ),
             ),
+          OutlinedButton.icon(
+            key: const ValueKey('period-add'),
+            onPressed: slots.length >= 20
+                ? null
+                : () {
+                    final last = slots.last['end'] as String;
+                    final start = validClock(last) ? clockMinutes(last) + 5 : 0;
+                    change({
+                      'slots': [
+                        ...slots,
+                        {
+                          'id': newId(),
+                          'label': '${slots.length + 1}',
+                          'start': start + 50 < 1440 ? minuteClock(start) : '',
+                          'end': start + 50 < 1440
+                              ? minuteClock(start + 50)
+                              : '',
+                        },
+                      ],
+                    });
+                  },
+            icon: const Icon(Icons.add),
+            label: const Text('Stunde hinzufügen'),
+          ),
         ],
       );
     },
