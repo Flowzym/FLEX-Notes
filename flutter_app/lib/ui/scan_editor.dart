@@ -574,9 +574,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       }
     }
   });
-  Future<void> capture() => action(() async {
-    await buffer.flush();
-    final remaining = scanPageLimit - pages.length;
+  Future<void> capture({String? replaceKey}) => action(() async {
+    // The native document camera detects boundaries before taking the shot.
+    // Series and replacement must use this path too, not the plain photo intent.
+    await buffer.flush(force: true);
+    final remaining = replaceKey == null ? scanPageLimit - pages.length : 1;
     if (remaining < 1) {
       throw const DomainError('Pro PDF sind bis zu 25 Seiten möglich.');
     }
@@ -590,18 +592,49 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             );
     } on PlatformException catch (e) {
       if (e.code != 'scanner_unavailable' || !nativeCamera) rethrow;
-      if (mounted) {
+      if (!mounted) return;
+      final usePhoto = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => FlexModal(
+          title: const Text('Live-Randerkennung nicht verfügbar'),
+          onClose: () => Navigator.pop(ctx, false),
+          content: const Text(
+            'Die Dokumentkamera konnte nicht starten. Prüfe die Google Play-Dienste und versuche es erneut. Alternativ kannst du ein Foto aufnehmen und die Ränder anschließend anpassen.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Zurück'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Ohne Randerkennung'),
+            ),
+          ],
+        ),
+      );
+      if (usePhoto == true && mounted) {
         setState(
           () => cameraNotice =
-              'Aufnahme mit der normalen Kamera. Dokumentränder, Zuschnitt und Filter sind unter „Bearbeiten“ verfügbar.',
+              'Foto ohne Live-Randerkennung · Zuschnitt unter Bearbeiten.',
         );
+        await captureStill(document: true, replaceKey: replaceKey);
       }
-      await captureStill(document: true);
+      buffer.change(data);
+      await buffer.flush();
       return;
     }
-    if (values == null) return;
+    if (values == null) {
+      buffer.change(data);
+      await buffer.flush();
+      return;
+    }
+    if (values.length > remaining) {
+      throw const DomainError('Die Kamera hat zu viele Seiten zurückgegeben.');
+    }
+    if (mounted) setState(() => cameraNotice = null);
     for (final bytes in values) {
-      await addImage(bytes);
+      await addImage(bytes, replaceKey: replaceKey);
     }
   });
   Future<void> acceptPhoto(Map<dynamic, dynamic>? result) async {
@@ -711,6 +744,8 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (!mounted || source == null) return;
     if (source == 'file') {
       await pick(replaceKey: page.key);
+    } else if (!page.photo && (nativeCamera || widget.capturePages != null)) {
+      await capture(replaceKey: page.key);
     } else {
       await action(() async {
         await captureStill(document: !page.photo, replaceKey: page.key);

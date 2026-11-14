@@ -769,9 +769,31 @@ class _CalendarPageState extends State<CalendarPage>
                 crossAxisCount: 7,
                 childAspectRatio: cellWidth / cellHeight,
               ),
-              itemCount: first.weekday - 1 + length,
+              itemCount: ((first.weekday - 1 + length + 6) ~/ 7) * 7,
               itemBuilder: (ctx, index) {
-                if (index < first.weekday - 1) return const SizedBox.shrink();
+                Widget gridCell(Widget child) {
+                  final line = BorderSide(
+                    color: Theme.of(ctx).colorScheme.outlineVariant,
+                    width: .7,
+                  );
+                  return DecoratedBox(
+                    key: ValueKey('calendar-month-cell-$index'),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: index < 7 ? line : BorderSide.none,
+                        left: index % 7 == 0 ? line : BorderSide.none,
+                        right: line,
+                        bottom: line,
+                      ),
+                    ),
+                    child: child,
+                  );
+                }
+
+                if (index < first.weekday - 1 ||
+                    index >= first.weekday - 1 + length) {
+                  return gridCell(const SizedBox.shrink());
+                }
                 final day = DateTime.utc(
                   selected.year,
                   selected.month,
@@ -784,72 +806,77 @@ class _CalendarPageState extends State<CalendarPage>
                     .toList();
                 final scheme = Theme.of(ctx).colorScheme;
                 final today = dateOnly(day) == dateOnly(now);
-                return Semantics(
-                  label:
-                      '${calendarWeekday(day)}, ${displayDate(dateOnly(day))}, ${entries.length} Einträge',
-                  selected: day == selected,
-                  button: true,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Material(
-                      color: day == selected
-                          ? scheme.primary.withValues(alpha: .2)
-                          : Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        side: BorderSide(
-                          color: today ? scheme.primary : Colors.transparent,
+                return gridCell(
+                  Semantics(
+                    label:
+                        '${calendarWeekday(day)}, ${displayDate(dateOnly(day))}, ${entries.length} Einträge',
+                    selected: day == selected,
+                    button: true,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Material(
+                        color: day == selected
+                            ? scheme.primary.withValues(alpha: .2)
+                            : Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          side: BorderSide(
+                            color: today ? scheme.primary : Colors.transparent,
+                          ),
                         ),
-                      ),
-                      child: InkWell(
-                        key: ValueKey('calendar-month-${dateOnly(day)}'),
-                        onTap: () {
-                          setState(() => selected = day);
-                          widget.onDateChanged?.call(dateOnly(day));
-                        },
-                        borderRadius: BorderRadius.circular(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${day.day}',
-                              maxLines: 1,
-                              style: Theme.of(
-                                ctx,
-                              ).textTheme.bodyMedium?.copyWith(fontSize: 13),
-                            ),
-                            if (entries.isNotEmpty)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  for (final category in ['appointment', 'due'])
-                                    if (entries.any(
-                                      (i) => category == 'due'
-                                          ? calendarDue(i)
-                                          : i.category == category,
-                                    ))
-                                      Container(
-                                        width: 5,
-                                        height: 5,
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 1,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: category == 'lesson'
-                                              ? scheme.primary
-                                              : category == 'appointment'
-                                              ? const Color(0xff829fb8)
-                                              : scheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                  if (entries.every(
-                                    (i) => i.category == 'holiday',
-                                  ))
-                                    const Icon(Icons.remove, size: 12),
-                                ],
+                        child: InkWell(
+                          key: ValueKey('calendar-month-${dateOnly(day)}'),
+                          onTap: () {
+                            setState(() => selected = day);
+                            widget.onDateChanged?.call(dateOnly(day));
+                          },
+                          borderRadius: BorderRadius.circular(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${day.day}',
+                                maxLines: 1,
+                                style: Theme.of(
+                                  ctx,
+                                ).textTheme.bodyMedium?.copyWith(fontSize: 13),
                               ),
-                          ],
+                              if (entries.isNotEmpty)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (final category in [
+                                      'appointment',
+                                      'due',
+                                    ])
+                                      if (entries.any(
+                                        (i) => category == 'due'
+                                            ? calendarDue(i)
+                                            : i.category == category,
+                                      ))
+                                        Container(
+                                          width: 5,
+                                          height: 5,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: category == 'lesson'
+                                                ? scheme.primary
+                                                : category == 'appointment'
+                                                ? const Color(0xff829fb8)
+                                                : scheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                    if (entries.every(
+                                      (i) => i.category == 'holiday',
+                                    ))
+                                      const Icon(Icons.remove, size: 12),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

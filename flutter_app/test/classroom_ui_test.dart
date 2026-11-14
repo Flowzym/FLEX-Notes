@@ -443,14 +443,6 @@ void main() {
       await tap(t, find.text('Arbeit'));
       expect(find.text('Gemeinsam gelesen'), findsNothing);
       await tap(t, find.text('Sozial'));
-      await tap(
-        t,
-        find.byKey(
-          ValueKey(
-            'development-week-${dateOnly(DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1)))}',
-          ),
-        ),
-      );
       await t.ensureVisible(find.text('Gemeinsam gelesen'));
       expect(find.text('Gemeinsam gelesen'), findsOneWidget);
       expect(t.takeException(), isNull);

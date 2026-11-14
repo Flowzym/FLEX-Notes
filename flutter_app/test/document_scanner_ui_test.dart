@@ -376,6 +376,7 @@ void main() {
               ++shot <= 2 ? scannerImage(width: 180 + shot * 20) : null,
         ),
       );
+      await tap(t, find.byKey(const ValueKey('scan-format-jpg')));
       await tap(t, find.byKey(const ValueKey('scanner-batch')));
       await settleWork(
         t,
@@ -871,9 +872,81 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'document series uses live scanner, preserves order and can replace one page',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      final limits = <int>[];
+      var photos = 0;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          capturePages: (limit) async {
+            limits.add(limit);
+            return limits.length == 1
+                ? [scannerImage(width: 180), scannerImage(width: 200)]
+                : [scannerImage(width: 220)];
+          },
+          capturePhoto: () async {
+            photos++;
+            return null;
+          },
+        ),
+      );
+      await tap(t, find.byKey(const ValueKey('scanner-batch')));
+      await settleWork(
+        t,
+        () =>
+            find.text('2 Seiten').evaluate().isNotEmpty &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(limits, [25]);
+      expect(photos, 0);
+      final original = (c.dialogDrafts.single.data['pages'] as List)
+          .map((p) => p['key'])
+          .toList();
+      await tap(t, find.byTooltip('Bild ersetzen').first);
+      await t.pumpAndSettle();
+      await tap(t, find.text('Neu aufnehmen'));
+      await settleWork(
+        t,
+        () =>
+            limits.length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(limits, [25, 1]);
+      expect(photos, 0);
+      final pages = c.dialogDrafts.single.data['pages'] as List;
+      expect(pages, hasLength(2));
+      expect(pages.first['width'], 220);
+      expect(pages.last['key'], original.last);
+      expect(await files.exists(original.first as String), isFalse);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('cancelled live camera leaves no empty scan draft', (t) async {
+    final c = await controller();
+    await host(
+      t,
+      (_) => ScanEditor(
+        controller: c,
+        files: MemoryMaterialFiles(),
+        capturePages: (_) async => null,
+      ),
+    );
+    await tap(t, find.byKey(const ValueKey('scanner-camera')));
+    await t.pumpAndSettle();
+    await tap(t, find.text('Später fortsetzen'));
+    await t.pumpAndSettle();
+    expect(c.dialogDrafts, isEmpty);
+  });
+
   for (final cameraFails in [false, true]) {
     testWidgets(
-      'document scanner falls back without Play Services; camera fails=$cameraFails',
+      'document scanner offers explicit fallback without Play Services; camera fails=$cameraFails',
       (t) async {
         final c = await controller(), files = MemoryMaterialFiles();
         final calls = <String>[];
@@ -908,6 +981,10 @@ void main() {
         );
         await host(t, (_) => ScanEditor(controller: c, files: files));
         await tap(t, find.byKey(const ValueKey('scanner-camera')));
+        await t.pump(const Duration(milliseconds: 350));
+        expect(calls, isNot(contains('capturePhoto')));
+        expect(find.text('Live-Randerkennung nicht verfügbar'), findsOneWidget);
+        await tap(t, find.text('Ohne Randerkennung'));
         if (cameraFails) {
           await t.pumpAndSettle();
           expect(
@@ -937,7 +1014,7 @@ void main() {
         }
         expect(calls, containsAllInOrder(['scanDocument', 'capturePhoto']));
         expect(
-          find.textContaining('Aufnahme mit der normalen Kamera'),
+          find.textContaining('Foto ohne Live-Randerkennung'),
           findsOneWidget,
         );
         await t.pumpWidget(const SizedBox());

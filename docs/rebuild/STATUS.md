@@ -1,4 +1,21 @@
-# Aktueller Stand: Webvorschau 0.24.1+74
+# Aktueller Stand: Webvorschau und Android 0.25.0+75
+
+Monatskalender mit durchgehendem Tagesraster. Neu aufgebautes Entwicklungsmodal
+mit kurzen Verlaufszeilen, Themen-/Tonartfiltern, Originaleinträgen und
+Gesprächsauswahl. Dokumentserien und das Ersetzen einer Dokumentseite verwenden
+nun ebenfalls die Android-Kamera mit Live-Randerkennung; einfache Fotos sind
+eine ausdrücklich angebotene Alternative, falls die Dokumentkamera nicht startet.
+
+[Änderungen und Prüfnachweise](CALENDAR-DEVELOPMENT-SCANNER-BUILD-75.md) ·
+[APK](../../releases/android/build-75/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Neue signierte Android-APK als direktes Update von FLEX Build 62–67.
+Echte Kameraaufnahme und Installation auf einem Handy bleiben zu prüfen.
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.1+74
 
 Das Rücklaufformular hat eigene Bereiche für Anlass, Schüler, Frist/Erinnerung
 und Anhänge. Scan/Foto, Bilder/PDF und vorhandenes Material sind direkt erreichbar.

@@ -502,6 +502,9 @@ extension _ScanEditorView on _ScanEditorState {
                   key: const ValueKey('scanner-batch'),
                   onPressed: busy || pages.length >= scanPageLimit
                       ? null
+                      : (!photoOutput &&
+                            (nativeCamera || widget.capturePages != null))
+                      ? capture
                       : captureSeries,
                   icon: Icons.burst_mode_outlined,
                   label: 'Serie',
