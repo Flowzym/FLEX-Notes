@@ -424,14 +424,16 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-assign-materials')));
         await tap(t, find.text('Brüche üben'));
         await tap(t, find.text('Übernehmen'));
-        expect(find.text('Im Unterricht geplant'), findsOneWidget);
+        expect(find.text('Material zuordnen'), findsOneWidget);
       }
 
       await select();
       await tap(t, find.byTooltip('Schließen').last);
       expect(c.classroom.single.strings('pupilIds'), ['q']);
       await select();
-      await tap(t, find.text('Übernehmen'));
+      await tap(t, find.byKey(const ValueKey('assignment-plan-p')));
+      await tap(t, find.text('Übernehmen').last);
+      await tap(t, find.byKey(const ValueKey('material-assignment-save')));
       expect(c.classroom.single.strings('pupilIds'), containsAll(['q', 'p']));
       expect(pupilMaterialDates(c.classroom.single, 'p'), [today]);
       expect(pupilMaterialDates(c.classroom.single, 'q'), [today]);
@@ -609,7 +611,10 @@ void main() {
         await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Fach'));
         expect(t.takeException(), isNull);
         await tap(t, find.byKey(const ValueKey('context-3-1')));
-        await tap(t, find.text('2 Unterlagen bereitgelegt'));
+        await tap(
+          t,
+          find.byKey(ValueKey('prepared-day-${dateOnly(DateTime.now())}')),
+        );
         await capture(t, key, 'bereitgelegt-${width.toInt()}-${scale.toInt()}');
         expect(t.takeException(), isNull);
       },

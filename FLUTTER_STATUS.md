@@ -1,6 +1,11 @@
 # Aktueller Flutter-Stand
 
-**0.31.0+82**, Branch `redesign/cream-olive`.
+**0.32.0+83**, Branch `redesign/cream-olive`.
+
+Build 83 überarbeitet die Materialablage: direkte individuelle Schülerzuordnung,
+optionale und getrennte Einsatzdaten, Schülerfilter, wirksame Suche in
+„Bereitgelegt“ und kompakte Materialdetails. Bestehende Daten und Dateireferenzen
+bleiben erhalten. [Materialprüfung](docs/rebuild/MATERIAL-BUILD-83.md).
 
 Build 82 integriert Microsofts native MSAL-Anmeldung für Android mit der
 bereitgestellten Entra-Registrierung. Die Tokenverwaltung bleibt im SDK;
@@ -14,7 +19,7 @@ Android verlangt nach dem Update einmalig eine neue Microsoft-Anmeldung.
 [Änderungen und Grenzen](docs/rebuild/NAVIGATION-BUILD-80.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
 [GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
-[Android-APKs](releases/android/build-82/README.md).
+[Android-APKs](releases/android/build-83/README.md).
 
 Einheitliche Navigationspillen, wählbare Wischrichtung und Standardreiter;
 Notizen mittig unter Live. Weitere Bereiche oben rechts, Scanner unten direkt.
@@ -39,6 +44,6 @@ Sicherung anlegen. APKs verwenden das bestehende dauerhafte Zertifikat.
 Der [taggesteuerte Releaseprozess](docs/rebuild/RELEASING.md) ist implementiert,
 die Einrichtung der GitHub-Signiersecrets ist wegen fehlenden Zugriffs (403)
 noch nicht bestätigt. Branch-/PR-CI baut weiterhin ohne Signierschlüssel.
-[Physische Android-Abnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md) und eigene
-Microsoft-Appregistrierung bleiben offen. Lokale und automatisierte Prüfungen
+[Physische Android-Abnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md) bleibt offen;
+die eigene Microsoft-Appregistrierung ist seit Build 82 eingerichtet. Lokale und automatisierte Prüfungen
 belegen keine Kamera-, Diktat- oder Launcherfunktion auf einem konkreten Handy.

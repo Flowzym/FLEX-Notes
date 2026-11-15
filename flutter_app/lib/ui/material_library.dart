@@ -45,6 +45,7 @@ part 'material_browser.dart';
 
 part 'material_actions.dart';
 part 'material_selection.dart';
+part 'material_assignments.dart';
 
 class MaterialLibraryPage extends StatefulWidget {
   const MaterialLibraryPage({
@@ -67,6 +68,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   final files = const LocalMaterialFiles();
   String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
   String formatFilter = 'all';
+  String pupilFilter = '';
   String get sort => c.appearance.materialSort;
   bool get grid => c.appearance.materialGrid;
   final search = TextEditingController();
@@ -306,15 +308,9 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   }
 
   Future<void> assignSelection() async {
-    final ids = await chooseMaterialPupils(context, c, []);
-    if (ids == null || ids.isEmpty) return;
-    await c.repository.saveClassroomDocuments([
-      for (final d in c.classroom.where((d) => selection.contains(d.id)))
-        d.patch({
-          'pupilIds': {...d.strings('pupilIds'), ...ids}.toList(),
-        }),
-    ]);
-    await c.reload();
+    final materials = resolveMaterials(c.classroom, selection);
+    final saved = await showMaterialAssignments(context, c, materials);
+    if (!saved) return;
     if (mounted) {
       setState(() {
         selection.clear();
@@ -420,10 +416,16 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         d.deleted == trash &&
                         materialMatches(d, query, pupils: c.pupils) &&
                         (view != 'files' ||
-                            matchesMaterialTags(
-                              d.strings('tags'),
-                              tagFilter,
-                            )) &&
+                            (pupilFilter.isEmpty ||
+                                    (pupilFilter == 'unassigned'
+                                        ? d.strings('pupilIds').isEmpty
+                                        : d
+                                              .strings('pupilIds')
+                                              .contains(pupilFilter))) &&
+                                matchesMaterialTags(
+                                  d.strings('tags'),
+                                  tagFilter,
+                                )) &&
                         (kind != ClassroomKind.material ||
                             (!favorites || d.flag('favorite')) &&
                                 (formatFilter == 'all' ||
@@ -466,6 +468,20 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   .toSet()
                   .toList()
                 ..sort();
+          final today = dateOnly(DateTime.now());
+          final preparedDays = view != 'prepared'
+              ? <String, List<ClassroomDocument>>{}
+              : preparedMaterialsByDay(
+                  c.classroom,
+                  query: query,
+                  pupils: c.pupils,
+                );
+          final upcoming =
+              preparedDays.keys.where((d) => d.compareTo(today) > 0).toList()
+                ..sort();
+          final past =
+              preparedDays.keys.where((d) => d.compareTo(today) < 0).toList()
+                ..sort((a, b) => b.compareTo(a));
           return Column(
             children: [
               Expanded(
@@ -691,32 +707,52 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         ),
                       ),
                     if (view == 'prepared') ...[
-                      PreparedMaterialsTile(
-                        controller: c,
-                        date: dateOnly(DateTime.now()),
-                      ),
                       OutlinedButton.icon(
                         onPressed: () => showPreparedMaterials(ctx, c),
                         icon: const Icon(Icons.date_range_outlined),
                         label: const Text('Tag wählen / vorbereiten'),
                       ),
-                      for (final d
-                          in (c.classroom
-                              .where(
-                                (d) =>
-                                    !d.deleted &&
-                                    d.kind == ClassroomKind.preparation &&
-                                    d.strings('materialIds').isNotEmpty &&
-                                    d.text('date') != dateOnly(DateTime.now()),
-                              )
-                              .toList()
-                            ..sort(
-                              (a, b) =>
-                                  b.text('date').compareTo(a.text('date')),
-                            )))
+                      if (query.trim().isEmpty ||
+                          preparedDays.containsKey(today))
                         PreparedMaterialsTile(
                           controller: c,
-                          date: d.text('date'),
+                          date: today,
+                          query: query,
+                        ),
+                      if (upcoming.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            'Nächste Einsätze',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      for (final date in upcoming)
+                        PreparedMaterialsTile(
+                          controller: c,
+                          date: date,
+                          query: query,
+                        ),
+                      if (past.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            'Frühere Einsätze',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      for (final date in past)
+                        PreparedMaterialsTile(
+                          controller: c,
+                          date: date,
+                          query: query,
+                        ),
+                      if (query.trim().isNotEmpty && preparedDays.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            'Keine passenden Materialien bereitgelegt oder geplant.',
+                          ),
                         ),
                     ] else ...[
                       if (view == 'files') ...[
@@ -750,6 +786,55 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                         formatFilter != 'all'
                                     ? 'Filter aktiv'
                                     : 'Filter',
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              key: const ValueKey('material-pupil-filter'),
+                              tooltip: 'Nach Schüler filtern',
+                              initialValue: pupilFilter,
+                              onSelected: (value) =>
+                                  setState(() => pupilFilter = value),
+                              itemBuilder: (_) => [
+                                for (final entry in <String, String>{
+                                  '': 'Alle Zuordnungen',
+                                  'unassigned': 'Ohne Schülerzuordnung',
+                                  for (final p in c.pupils)
+                                    if (!p.archived ||
+                                        c.classroom.any(
+                                          (d) =>
+                                              d.kind ==
+                                                  ClassroomKind.material &&
+                                              d
+                                                  .strings('pupilIds')
+                                                  .contains(p.id),
+                                        ))
+                                      p.id:
+                                          '${p.name}${p.archived ? ' · Archiv' : ''}',
+                                }.entries)
+                                  CheckedPopupMenuItem(
+                                    value: entry.key,
+                                    checked: pupilFilter == entry.key,
+                                    child: Text(entry.value),
+                                  ),
+                              ],
+                              child: Chip(
+                                avatar: const Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  pupilFilter.isEmpty
+                                      ? 'Schüler'
+                                      : pupilFilter == 'unassigned'
+                                      ? 'Ohne Zuordnung'
+                                      : c.pupils
+                                                .where(
+                                                  (p) => p.id == pupilFilter,
+                                                )
+                                                .firstOrNull
+                                                ?.name ??
+                                            'Schüler nicht verfügbar',
+                                ),
                               ),
                             ),
                           ],
@@ -915,6 +1000,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                   typeFilter != 'all' ||
                                   subjectFilter.isNotEmpty ||
                                   tagFilter.isNotEmpty ||
+                                  pupilFilter.isNotEmpty ||
                                   formatFilter != 'all')
                                 TextButton(
                                   onPressed: () => setState(() {
@@ -925,6 +1011,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                     subjectFilter = '';
                                     tagFilter.clear();
                                     formatFilter = 'all';
+                                    pupilFilter = '';
                                   }),
                                   child: const Text(
                                     'Suche und Filter zurücksetzen',
@@ -1131,8 +1218,9 @@ Future<void> importMaterialFile(
   validateMaterialBytes(data, ext);
   final key = newId();
   await files.write(key, data);
+  late final ClassroomDocument imported;
   try {
-    await c.repository.saveClassroomDocument(
+    imported = await c.repository.saveClassroomDocument(
       ClassroomDocument.create(ClassroomKind.material, file.name, {
         if (pupilId != null) 'pupilIds': [pupilId],
         'localKey': key,
@@ -1148,4 +1236,5 @@ Future<void> importMaterialFile(
     rethrow;
   }
   await c.reload();
+  if (context.mounted) await showMaterialDetails(context, c, imported);
 }

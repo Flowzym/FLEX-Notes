@@ -11,6 +11,67 @@ List<String> pupilMaterialDates(ClassroomDocument material, String pupilId) =>
         .toList()
       ..sort());
 
+/// Changes references only; the shared file and other metadata stay intact.
+/// Batch assignment adds pupils/dates, while editing one material replaces them.
+ClassroomDocument assignMaterialPupils(
+  ClassroomDocument material,
+  Iterable<String> pupilIds,
+  Map<String, List<String>> dates, {
+  bool add = false,
+}) {
+  final ids = {if (add) ...material.strings('pupilIds'), ...pupilIds};
+  final schedule = <String, Set<String>>{
+    if (add)
+      for (final id in material.strings('pupilIds'))
+        id: pupilMaterialDates(material, id).toSet(),
+  };
+  for (final id in pupilIds) {
+    schedule.putIfAbsent(id, () => {}).addAll(dates[id] ?? []);
+  }
+  return material.patch({
+    'pupilIds': ids.toList(),
+    'pupilDates': [
+      for (final id in ids)
+        for (final date in (schedule[id]?.toList() ?? <String>[])..sort())
+          {'pupilId': id, 'date': date},
+    ],
+  });
+}
+
+/// Includes personal teaching dates even if no class preparation exists yet.
+Map<String, List<ClassroomDocument>> preparedMaterialsByDay(
+  Iterable<ClassroomDocument> documents, {
+  String query = '',
+  Iterable<Pupil> pupils = const [],
+}) {
+  final materials = {
+    for (final d in documents)
+      if (!d.deleted &&
+          d.kind == ClassroomKind.material &&
+          materialMatches(d, query, pupils: pupils))
+        d.id: d,
+  };
+  final days = <String, Map<String, ClassroomDocument>>{};
+  void include(String date, ClassroomDocument material) {
+    days.putIfAbsent(date, () => {})[material.id] = material;
+  }
+
+  for (final d in documents) {
+    if (d.deleted || d.kind != ClassroomKind.preparation) continue;
+    for (final id in d.strings('materialIds')) {
+      if (materials[id] case final material?) include(d.text('date'), material);
+    }
+  }
+  for (final material in materials.values) {
+    for (final row in material.rows('pupilDates')) {
+      include(row['date'] as String, material);
+    }
+  }
+  return {
+    for (final entry in days.entries) entry.key: entry.value.values.toList(),
+  };
+}
+
 /// Assign without duplicating the file or changing another pupil's schedule.
 ClassroomDocument planPupilMaterial(
   ClassroomDocument material,

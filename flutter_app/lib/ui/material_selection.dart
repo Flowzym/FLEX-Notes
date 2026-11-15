@@ -214,6 +214,9 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
             : openMaterial(ctx, c, d, drive: drive, files: files),
       ),
       onEdit: () => showMaterialDetails(ctx, c, d, drive: drive),
+      onAssign: trash || busy
+          ? null
+          : () => showMaterialAssignments(ctx, c, [d]),
       onFavorite: trash
           ? null
           : () => action(

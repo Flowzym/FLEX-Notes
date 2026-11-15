@@ -20,6 +20,7 @@ class _MaterialBrowserCard extends StatefulWidget {
     this.onFavorite,
     this.onPrepare,
     this.onRestore,
+    this.onAssign,
     this.selected,
     this.onSelect,
   });
@@ -28,7 +29,7 @@ class _MaterialBrowserCard extends StatefulWidget {
   final bool grid, prepared;
   final List<Pupil> pupils;
   final VoidCallback onOpen, onEdit;
-  final VoidCallback? onFavorite, onPrepare, onRestore;
+  final VoidCallback? onFavorite, onPrepare, onRestore, onAssign;
   final bool? selected;
   final ValueChanged<bool>? onSelect;
 
@@ -63,7 +64,7 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
       d.text('subject'),
       if (d.text('documentType', 'other') != 'other')
         materialTypes[d.text('documentType')] ?? '',
-      if (names.isNotEmpty) names.join(', '),
+      if (widget.onAssign == null && names.isNotEmpty) names.join(', '),
     ].where((text) => text.isNotEmpty).join(' · ');
     Widget smallText(String text, {int lines = 1}) => Tooltip(
       message: text,
@@ -177,6 +178,24 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
               ],
             ),
     );
+    final assignment = widget.onAssign == null || widget.selected != null
+        ? null
+        : TextButton.icon(
+            key: ValueKey('material-assign-${d.id}'),
+            onPressed: widget.onAssign,
+            icon: const Icon(Icons.person_outline, size: 18),
+            label: Text(
+              names.isEmpty ? 'Zuordnen' : names.join(', '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: TextButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              minimumSize: const Size(44, 44),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          );
     return Material(
       color: theme.colorScheme.surfaceContainer.withValues(alpha: .8),
       shape: RoundedRectangleBorder(
@@ -211,6 +230,7 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                     description,
                     const SizedBox(height: 4),
                     availability,
+                    ?assignment,
                     Align(alignment: Alignment.centerRight, child: actions),
                   ],
                 );
@@ -237,14 +257,15 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                       children: [
                         description,
                         const SizedBox(height: 4),
-                        if (wide)
-                          availability
-                        else
+                        availability,
+                        if (assignment != null || !wide)
                           Row(
                             children: [
-                              Expanded(child: availability),
-                              const SizedBox(width: 4),
-                              actions,
+                              if (assignment != null)
+                                Expanded(child: assignment)
+                              else
+                                const Spacer(),
+                              if (!wide) actions,
                             ],
                           ),
                       ],

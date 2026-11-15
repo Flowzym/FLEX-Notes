@@ -21,6 +21,15 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
   NotebookController get c => widget.controller;
   Pupil get pupil => widget.pupil;
   bool busy = false;
+  String query = '';
+  bool searching = false;
+  final search = TextEditingController();
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
 
   Future<void> run(Future<void> Function() work) async {
     if (busy) return;
@@ -32,20 +41,8 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
   Future<void> assign() => run(() async {
     final ids = await chooseMaterials(context, c, []);
     if (ids == null || ids.isEmpty || !mounted) return;
-    final date = await pickFlexDate(
-      context,
-      date: dateOnly(DateTime.now()),
-      allowTime: false,
-      allowDateClear: false,
-      title: 'Im Unterricht geplant',
-    );
-    if (date == null || !mounted) return;
     final materials = resolveMaterials(c.classroom, ids);
-    await c.repository.saveClassroomDocuments([
-      for (final material in materials)
-        planPupilMaterial(material, pupil.id, date.$1),
-    ]);
-    await c.reload();
+    await showMaterialAssignments(context, c, materials, pupil: pupil);
   });
 
   Future<void> plan(
@@ -83,18 +80,26 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: c,
     builder: (ctx, _) {
+      final today = dateOnly(DateTime.now());
+      String nextDate(ClassroomDocument d) =>
+          pupilMaterialDates(
+            d,
+            pupil.id,
+          ).where((date) => date.compareTo(today) >= 0).firstOrNull ??
+          '9999';
       final direct =
           c.classroom
               .where(
                 (d) =>
                     !d.deleted &&
                     d.kind == ClassroomKind.material &&
-                    d.strings('pupilIds').contains(pupil.id),
+                    d.strings('pupilIds').contains(pupil.id) &&
+                    materialMatches(d, query, pupils: c.pupils),
               )
               .toList()
             ..sort((a, b) {
-              final ad = pupilMaterialDates(a, pupil.id).firstOrNull ?? '9999';
-              final bd = pupilMaterialDates(b, pupil.id).firstOrNull ?? '9999';
+              final ad = nextDate(a);
+              final bd = nextDate(b);
               return ad == bd ? a.title.compareTo(b.title) : ad.compareTo(bd);
             });
       final collections = c.classroom.where(
@@ -102,7 +107,8 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
             !d.deleted &&
             (d.kind == ClassroomKind.materialSet ||
                 d.kind == ClassroomKind.plan) &&
-            d.strings('pupilIds').contains(pupil.id),
+            d.strings('pupilIds').contains(pupil.id) &&
+            materialMatches(d, query, pupils: c.pupils),
       );
       final scope = ScanContext(
         pupilIds: [pupil.id],
@@ -129,7 +135,7 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
                   key: const ValueKey('pupil-assign-materials'),
                   onPressed: busy ? null : assign,
                   icon: const Icon(Icons.add),
-                  label: const Text('Material zuordnen'),
+                  label: const Text('Zuordnen'),
                 ),
                 IconButton(
                   tooltip: 'Scannen',
@@ -144,6 +150,11 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
                       ? null
                       : () => showContextDocuments(ctx, c, scope),
                   icon: const Icon(Icons.attach_file),
+                ),
+                IconButton(
+                  tooltip: 'Materialien durchsuchen',
+                  onPressed: () => setState(() => searching = !searching),
+                  icon: const Icon(Icons.search),
                 ),
                 TextButton.icon(
                   onPressed: busy
@@ -161,10 +172,33 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
                 ),
               ],
             ),
+            if (searching || query.isNotEmpty)
+              TextField(
+                key: const ValueKey('pupil-material-search'),
+                controller: search,
+                decoration: InputDecoration(
+                  hintText: 'Materialien durchsuchen',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: IconButton(
+                    tooltip: 'Suche löschen',
+                    onPressed: () => setState(() {
+                      search.clear();
+                      query = '';
+                      searching = false;
+                    }),
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+                onChanged: (value) => setState(() => query = value),
+              ),
             if (direct.isEmpty && collections.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text('Noch keine Materialien zugeordnet.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  query.isEmpty
+                      ? 'Noch keine Materialien zugeordnet.'
+                      : 'Keine passenden Materialien.',
+                ),
               ),
             for (final material in direct)
               Padding(
@@ -176,6 +210,7 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
                     MaterialRow(
                       material: material,
                       onOpen: () => run(() => openMaterial(ctx, c, material)),
+                      onEdit: () => showMaterialDetails(ctx, c, material),
                       trailing: IconButton(
                         tooltip: 'Schülerzuordnung entfernen',
                         icon: const Icon(Icons.link_off),

@@ -15,6 +15,75 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   test(
+    'assignments can be undated, additive or edited without copying the file',
+    () {
+      final source = planPupilMaterial(worksheet(), 'p', '2026-11-13');
+      final added = assignMaterialPupils(source, ['q'], {}, add: true);
+      expect(added.strings('pupilIds'), ['p', 'q']);
+      expect(pupilMaterialDates(added, 'q'), isEmpty);
+      expect(pupilMaterialDates(added, 'p'), ['2026-11-13']);
+      final dated = assignMaterialPupils(
+        added,
+        ['q'],
+        {
+          'q': ['2026-11-16', '2026-11-16', '2026-11-17'],
+        },
+        add: true,
+      );
+      expect(pupilMaterialDates(dated, 'q'), ['2026-11-16', '2026-11-17']);
+      final edited = assignMaterialPupils(
+        dated,
+        ['q'],
+        {
+          'q': ['2026-11-18'],
+        },
+      );
+      expect(pupilMaterialDates(edited, 'p'), isEmpty);
+      expect(pupilMaterialDates(edited, 'q'), ['2026-11-18']);
+      expect(edited.id, source.id);
+      expect(edited.text('url'), source.text('url'));
+    },
+  );
+
+  test(
+    'prepared days include personal dates, deduplicate, search and omit trash',
+    () {
+      var source = planPupilMaterial(worksheet(), 'p', '2026-11-13');
+      source = planPupilMaterial(source, 'q', '2026-11-13');
+      source = planPupilMaterial(source, 'q', '2026-11-16');
+      final docs = [
+        source,
+        prepareMaterials([source], '2026-11-13', [source.id]),
+      ];
+      final days = preparedMaterialsByDay(docs);
+      expect(days.keys.toSet(), {'2026-11-13', '2026-11-16'});
+      expect(days['2026-11-13']!.map((m) => m.id), [source.id]);
+      expect(preparedMaterialsByDay(docs, query: 'Geometrie'), isEmpty);
+      expect(
+        preparedMaterialsByDay(
+          docs,
+          query: 'Anna',
+          pupils: [const Pupil(id: 'q', name: 'Anna')],
+        ).length,
+        2,
+      );
+      expect(
+        preparedMaterialsByDay([
+          source.patch({'deleted': true}),
+          docs.last,
+        ]),
+        isEmpty,
+      );
+      expect(
+        preparedMaterialsByDay([
+          source,
+          docs.last.patch({'deleted': true}),
+        ]).length,
+        2,
+      );
+    },
+  );
+  test(
     'individual dates remain independent; removing assignment keeps file and other pupil',
     () {
       var doc = planPupilMaterial(worksheet(), 'p', '2026-11-13');

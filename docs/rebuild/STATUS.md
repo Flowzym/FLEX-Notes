@@ -1,4 +1,18 @@
-# Aktueller Stand: FLEX 0.31.0+82
+# Aktueller Stand: FLEX 0.32.0+83
+
+Materialien können direkt einzelnen Schülern zugeordnet werden, mit optionalen
+und unabhängigen Einsatzdaten. Überarbeitete Materialdetails, Schülerfilter,
+Suche und persönlich geplante Einsätze unter „Bereitgelegt“.
+[Materialprüfung und Änderungen](MATERIAL-BUILD-83.md).
+
+[APKs](../../releases/android/build-83/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 und bestehende Dateireferenzen bleiben erhalten.
+
+---
+
+# Vorheriger Stand: FLEX 0.31.0+82
 
 Build 82 integriert Microsofts native MSAL-Anmeldung für Android mit der
 bereitgestellten Entra-Registrierung. Die Tokenverwaltung bleibt im SDK;
