@@ -36,12 +36,13 @@ Schema 8 bleibt bestehen; zusätzliche Termin- und Anzeigeangaben verwenden die
 bestehenden Metadaten. Ältere Einträge ohne Tags und bisherige Einstellungen
 bleiben lesbar. Neue Felder sollten mit Build 80 oder neuer bearbeitet werden.
 
-Geprüft werden Speicherung/Wiederherstellung der Einstellungen, beide
+Geprüft sind Speicherung/Wiederherstellung der Einstellungen, beide
 Wischrichtungen samt Umlauf, neue Navigationswege, Termin-Tags einschließlich
-Umlauten, Typwechsel, Vorlagen, ICS und feldweises Zusammenführen. Der vollständige
-Flutter-Testlauf, Analyse, Formatkontrolle sowie Android- und Web-Releasebuild
-gehören zur Abnahme. Browseransichten wurden mit synthetischen Daten bei 320 und
-390 Pixeln kontrolliert. Physische Android-Geräteprüfungen bleiben gesondert offen.
+Umlauten, Typwechsel, Vorlagen, ICS und feldweises Zusammenführen. Alle **650
+Flutter-Tests** sind erfolgreich; Analyse und Formatkontrolle ohne Befund.
+Android- und Web-Releasebuilds sind erfolgreich. Zehn Browseransichten wurden
+mit synthetischen Daten bei 320 und 390 Pixeln kontrolliert, ohne JavaScriptfehler.
+Physische Android-Geräteprüfungen bleiben gesondert offen.
 
 [Android-Download und Signaturprüfung](../../releases/android/build-80/README.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
