@@ -498,7 +498,7 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
               final height = (constraints.maxWidth / aspect).clamp(
                 1.0,
                 MediaQuery.sizeOf(ctx).height *
-                    (mode == 'filter' || mode == 'preview' ? .34 : .46),
+                    (mode == 'filter' || mode == 'preview' ? .40 : .48),
               );
               final image = Image.memory(
                 comparing
@@ -581,7 +581,6 @@ class _ScanPageEditorState extends State<ScanPageEditor> {
             if (widget.photo)
               adjustment('Sättigung', saturation, 0, 2, (v) => saturation = v),
           ],
-          const SizedBox(height: 8),
           const SizedBox(height: 8),
           if (mode == 'redact')
             const Text(

@@ -265,9 +265,10 @@ Future<void> browseOneDrive(
                             }
                             update(() => busy = true);
                             final ok = await guarded(ctx, () async {
-                              final id = const Uuid().v5(
-                                Namespace.url.value,
-                                'flex-onedrive:$driveId:${item['id']}',
+                              final id = oneDriveMaterialId(
+                                driveId,
+                                item['id'] as String,
+                                c.classroom,
                               );
                               final old = c.classroom
                                   .where((d) => d.id == id)
@@ -281,10 +282,12 @@ Future<void> browseOneDrive(
                                     .split('.')
                                     .last
                                     .toLowerCase(),
-                                'size': item['size'] ?? 0,
-                                if (old == null || old.text('localKey').isEmpty)
+                                if (old == null ||
+                                    old.text('localKey').isEmpty) ...{
+                                  'size': item['size'] ?? 0,
                                   'sourceModifiedAt':
                                       item['lastModifiedDateTime'] ?? '',
+                                },
                                 if (old == null)
                                   ...suggestMaterialMetadata(
                                     item['name'] as String,
@@ -442,21 +445,12 @@ Future<void> openMaterial(
   final ownDrive = drive == null;
   final client = drive ?? OneDriveClient();
   try {
-    if (ownDrive) await client.load();
-    if (current.text('itemId').isNotEmpty && client.connected) {
-      try {
+    // Open durable local bytes immediately. Source refresh is an explicit
+    // action in material details, so poor reception cannot delay a lesson.
+    if (!await files.exists(current.text('localKey'))) {
+      if (ownDrive) await client.load();
+      if (current.text('itemId').isNotEmpty && client.connected) {
         current = await cacheMaterial(c, current, client, files);
-      } catch (e) {
-        if (!await files.exists(current.text('localKey'))) rethrow;
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Offlinekopie · ${displayDate(current.text('sourceModifiedAt').isEmpty ? null : current.text('sourceModifiedAt'))}',
-              ),
-            ),
-          );
-        }
       }
     }
     if (!await files.exists(current.text('localKey'))) {

@@ -6,6 +6,7 @@ import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'flex_modal.dart';
 import 'return_lists.dart';
+import 'classroom_editor.dart';
 
 /// Entries by kind, including pupil assignments, without copying data.
 class GeneralOrgaPage extends StatefulWidget {
@@ -19,7 +20,7 @@ class GeneralOrgaPage extends StatefulWidget {
   });
   final NotebookController controller;
   final String kind;
-  final ValueChanged<OrgaEntry> onEdit;
+  final Future<void> Function(OrgaEntry) onEdit;
   final Widget Function(OrgaEntry) entryBuilder;
   final ValueChanged<EditDraft> onEditDraft;
   @override
@@ -32,6 +33,51 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
   bool get wantKeepAlive => true;
   String query = '', filter = 'all', typeFilter = 'all';
   final search = TextEditingController();
+  Iterable<DialogDraft> get returnDrafts => widget.controller.dialogDrafts
+      .where((d) => widget.kind != 'note' && isReturnDraft(d));
+
+  Future<void> revealSavedReturn(Future<void> Function() edit) async {
+    final before = widget.controller.classroom.map((d) => d.id).toSet();
+    await edit();
+    if (!mounted) return;
+    final saved = widget.controller.classroom
+        .where(
+          (d) =>
+              d.kind == ClassroomKind.returnList &&
+              !d.deleted &&
+              !before.contains(d.id),
+        )
+        .firstOrNull;
+    if (saved == null) return;
+    if (widget.kind == 'note') {
+      await showReturnDetail(context, widget.controller, saved.id);
+      return;
+    }
+    // A successful creation must not disappear behind the previous filters.
+    setState(() {
+      filter = 'all';
+      if (typeFilter != 'all') typeFilter = 'returns';
+      query = '';
+      search.clear();
+    });
+  }
+
+  Future<void> create() => revealSavedReturn(
+    () => typeFilter == 'returns'
+        ? showClassroomEditor(
+            context,
+            widget.controller,
+            ClassroomKind.returnList,
+          )
+        : widget.onEdit(
+            OrgaEntry.empty().copyWith(
+              isTask: widget.kind == 'task' || typeFilter == 'tasks',
+              appointmentDate: typeFilter == 'appointments'
+                  ? dateOnly(DateTime.now())
+                  : null,
+            ),
+          ),
+  );
   @override
   void dispose() {
     search.dispose();
@@ -71,7 +117,37 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   },
                 ),
               ),
-            if (!widget.controller.drafts.any((d) => matches(d.entry)))
+            for (final draft in returnDrafts)
+              ListTile(
+                title: Text(
+                  (draft.data['title'] as String? ?? '').trim().isEmpty
+                      ? 'Rücklauf'
+                      : draft.data['title'] as String,
+                ),
+                subtitle: const Text('Rücklauf · Entwurf'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  revealSavedReturn(
+                    () => showClassroomEditor(
+                      context,
+                      widget.controller,
+                      ClassroomKind.returnList,
+                      draft: draft,
+                    ),
+                  );
+                },
+                trailing: DraftDeleteButton(
+                  onDelete: () async {
+                    await widget.controller.repository.discardDialogDraft(
+                      draft.id,
+                      draft.revision,
+                    );
+                    await widget.controller.reload();
+                  },
+                ),
+              ),
+            if (!widget.controller.drafts.any((d) => matches(d.entry)) &&
+                returnDrafts.isEmpty)
               const Text('Keine Entwürfe.'),
           ],
         ),
@@ -165,7 +241,9 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
           'class' => 'Klassen-Orga',
           _ => 'Organisation',
         };
-        final drafts = c.drafts.where((d) => matches(d.entry)).length;
+        final drafts =
+            c.drafts.where((d) => matches(d.entry)).length +
+            returnDrafts.length;
         final types = {
           'all': 'Alle Arten',
           'tasks': 'Aufgaben',
@@ -202,21 +280,16 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   ),
                 IconButton(
                   key: ValueKey('general-add-${widget.kind}'),
-                  tooltip: typeFilter == 'appointments'
+                  tooltip: typeFilter == 'returns'
+                      ? 'Rücklauf anlegen'
+                      : typeFilter == 'appointments'
                       ? 'Termin anlegen'
                       : widget.kind == 'task'
                       ? 'Aufgabe anlegen'
                       : widget.kind == 'note'
                       ? 'Notiz anlegen'
                       : 'Orga anlegen',
-                  onPressed: () => widget.onEdit(
-                    OrgaEntry.empty().copyWith(
-                      isTask: widget.kind == 'task' || typeFilter == 'tasks',
-                      appointmentDate: typeFilter == 'appointments'
-                          ? dateOnly(DateTime.now())
-                          : null,
-                    ),
-                  ),
+                  onPressed: create,
                   icon: const Icon(Icons.add),
                 ),
               ],

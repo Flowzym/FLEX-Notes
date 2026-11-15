@@ -52,7 +52,7 @@ object DocumentEdges {
         }
         val low = percentile(0.15)
         val high = percentile(0.85)
-        if (high - low < 18) return null
+        if (high - low < 10) return null
         val gradient = IntArray(luma.size)
         for (y in 1 until height - 1) for (x in 1 until width - 1) {
             val i = y * width + x
@@ -68,7 +68,7 @@ object DocumentEdges {
                     luma[i - width + 1]
             gradient[i] = abs(gx) + abs(gy)
         }
-        val edgeThreshold = max(50, (high - low) * 2)
+        val edgeThreshold = max(24, (high - low) * 2)
         val edges = BooleanArray(luma.size)
         for (y in 2 until height - 2) for (x in 2 until width - 2) if (
             gradient[y * width + x] > edgeThreshold

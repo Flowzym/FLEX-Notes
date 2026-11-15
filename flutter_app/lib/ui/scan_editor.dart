@@ -260,6 +260,10 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         {
           'scanner_unavailable',
           'scanner_busy',
+          'scanner_read',
+          'scanner_ack',
+          'scanner_cleanup',
+          'scanner_closed',
           'photo_busy',
           'photo_unavailable',
           'photo_read',
@@ -602,7 +606,10 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
       }
     }
   });
-  Future<void> capture({String? replaceKey}) => action(() async {
+  Future<void> capture({
+    String? replaceKey,
+    bool photo = false,
+  }) => action(() async {
     // The native document camera detects boundaries before taking the shot.
     // Series and replacement must use this path too, not the plain photo intent.
     await buffer.flush(force: true);
@@ -619,21 +626,31 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         await buffer.flush(force: true);
         final captured = await FlexDevice.channel.invokeListMethod<dynamic>(
           'scanDocument',
-          {'limit': remaining, 'draftId': buffer.draft.id},
+          {'limit': remaining, 'draftId': buffer.draft.id, 'photo': photo},
         );
         await acceptNativeScans(captured);
         return;
       }
     } on PlatformException catch (e) {
       if (e.code != 'scanner_unavailable' || !nativeCamera) rethrow;
+      // No native session was created. A fallback photo has its own durable
+      // recovery flag and must not also recover a nonexistent scan session.
+      change({'scanPending': false, 'scanReplaceKey': null});
+      await buffer.flush(force: true);
       if (!mounted) return;
       final usePhoto = await showDialog<bool>(
         context: context,
         builder: (ctx) => FlexModal(
-          title: const Text('Live-Randerkennung nicht verfügbar'),
+          title: Text(
+            photo
+                ? 'Kamera nicht verfügbar'
+                : 'Live-Randerkennung nicht verfügbar',
+          ),
           onClose: () => Navigator.pop(ctx, false),
-          content: const Text(
-            'Die Dokumentkamera konnte nicht starten. Prüfe den Kamerazugriff in den Android-App-Einstellungen und versuche es erneut. Alternativ kannst du ein Foto aufnehmen und die Ränder anschließend anpassen.',
+          content: Text(
+            photo
+                ? 'Die Kamera konnte nicht starten. Prüfe den Kamerazugriff in den Android-App-Einstellungen. Alternativ kannst du die Kamera-App deines Handys verwenden.'
+                : 'Die Dokumentkamera konnte nicht starten. Prüfe den Kamerazugriff in den Android-App-Einstellungen und versuche es erneut. Alternativ kannst du ein Foto aufnehmen und die Ränder anschließend anpassen.',
           ),
           actions: [
             TextButton(
@@ -642,17 +659,18 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ohne Randerkennung'),
+              child: Text(photo ? 'Kamera-App öffnen' : 'Ohne Randerkennung'),
             ),
           ],
         ),
       );
       if (usePhoto == true && mounted) {
         setState(
-          () => cameraNotice =
-              'Foto ohne Live-Randerkennung · Zuschnitt unter Bearbeiten.',
+          () => cameraNotice = photo
+              ? 'Aufnahme mit der Kamera-App.'
+              : 'Foto ohne Live-Randerkennung · Zuschnitt unter Bearbeiten.',
         );
-        await captureStill(document: true, replaceKey: replaceKey);
+        await captureStill(document: !photo, replaceKey: replaceKey);
       }
       buffer.change(data);
       await buffer.flush();
@@ -683,6 +701,17 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if ((result?.length ?? 0) > scanPageLimit) {
       throw const DomainError('Zu viele Aufnahmen.');
     }
+    if (pages.isEmpty &&
+        result != null &&
+        result.isNotEmpty &&
+        data['sourceId'] == null) {
+      change({
+        'outputFormat':
+            result.every((value) => value is Map && value['photo'] == true)
+            ? 'jpg'
+            : 'pdf',
+      });
+    }
     for (final value in result ?? const []) {
       if (value is! Map ||
           value['token'] is! String ||
@@ -694,7 +723,10 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         await addImage(
           value['bytes'] as Uint8List,
           captureToken: token,
-          nativeCorners: value['corners'] as List?,
+          photo: value['photo'] == true,
+          nativeCorners: value['photo'] == true
+              ? null
+              : value['corners'] as List?,
           replaceKey: data['scanReplaceKey'] as String?,
         );
         change({'scanReplaceKey': null});
@@ -745,9 +777,11 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     await acceptPhoto(result);
   }
 
-  Future<void> takePhoto() => action(() async {
-    await captureStill(document: false);
-  });
+  Future<void> takePhoto() => nativeCamera && widget.capturePhoto == null
+      ? capture(photo: true)
+      : action(() async {
+          await captureStill(document: false);
+        });
   Future<bool> captureStill({
     required bool document,
     String? replaceKey,
@@ -823,8 +857,9 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (!mounted || source == null) return;
     if (source == 'file') {
       await pick(replaceKey: page.key);
-    } else if (!page.photo && (nativeCamera || widget.capturePages != null)) {
-      await capture(replaceKey: page.key);
+    } else if (nativeCamera && widget.capturePhoto == null ||
+        !page.photo && widget.capturePages != null) {
+      await capture(replaceKey: page.key, photo: page.photo);
     } else {
       await action(() async {
         await captureStill(document: !page.photo, replaceKey: page.key);

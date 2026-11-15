@@ -177,42 +177,13 @@ extension _ScanEditorView on _ScanEditorState {
                 ),
               ],
             ),
-          const SizedBox(height: 8),
-          TextField(
-            key: const ValueKey('scan-title'),
-            controller: title,
-            enabled: !busy,
-            maxLength: 200,
-            decoration: InputDecoration(
-              labelText: 'Dateiname',
-              counterText: '',
-              suffixText: photoOutput ? '.jpg' : '.pdf',
-            ),
-            onChanged: (v) => change({'title': v}),
-          ),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final format in const [
-                ('pdf', 'PDF'),
-                ('jpg', 'Fotos (JPG)'),
-              ])
-                ChoiceChip(
-                  key: ValueKey('scan-format-${format.$1}'),
-                  label: Text(format.$2),
-                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
-                  onSelected: busy
-                      ? null
-                      : (_) => change({'outputFormat': format.$1}),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  '${pages.length} ${pages.length == 1 ? 'Seite' : 'Seiten'}',
+                  pages.isEmpty
+                      ? 'Neue Aufnahme'
+                      : '${pages.length} ${pages.length == 1 ? 'Seite' : 'Seiten'}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -235,31 +206,59 @@ extension _ScanEditorView on _ScanEditorState {
                   onPressed: busy ? null : filterPages,
                   icon: const Icon(Icons.auto_fix_high),
                 ),
-              IconButton(
-                tooltip: pageGrid ? 'Seiten als Liste' : 'Seiten als Raster',
-                onPressed: () => updateScanView(() => pageGrid = !pageGrid),
-                icon: Icon(
-                  pageGrid ? Icons.view_list_outlined : Icons.grid_view,
+              if (pages.isNotEmpty)
+                IconButton(
+                  tooltip: pageGrid ? 'Seiten als Liste' : 'Seiten als Raster',
+                  onPressed: () => updateScanView(() => pageGrid = !pageGrid),
+                  icon: Icon(
+                    pageGrid ? Icons.view_list_outlined : Icons.grid_view,
+                  ),
                 ),
-              ),
             ],
           ),
           if (pages.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Container(
+              key: const ValueKey('scanner-start'),
+              margin: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
               child: Column(
                 children: [
-                  Icon(Icons.document_scanner_outlined, size: 44),
-                  SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: .09),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Icon(
+                      Icons.document_scanner_outlined,
+                      size: 42,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Text(
-                    'Dein Dokument beginnt hier',
+                    'Dokumente & Fotos',
+                    style: Theme.of(context).textTheme.titleLarge,
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
-                    'Scannen, fotografieren oder eine Datei importieren.',
+                    nativeCamera
+                        ? 'Dokumentränder live erfassen. Mehrere Seiten direkt nacheinander aufnehmen.'
+                        : 'Bilder oder PDFs importieren und direkt bearbeiten.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -367,6 +366,37 @@ extension _ScanEditorView on _ScanEditorState {
               ],
             ),
           const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          TextField(
+            key: const ValueKey('scan-title'),
+            controller: title,
+            enabled: !busy,
+            maxLength: 200,
+            decoration: InputDecoration(
+              labelText: 'Dateiname',
+              counterText: '',
+              suffixText: photoOutput ? '.jpg' : '.pdf',
+            ),
+            onChanged: (v) => change({'title': v}),
+          ),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final format in const [
+                ('pdf', 'PDF'),
+                ('jpg', 'Fotos (JPG)'),
+              ])
+                ChoiceChip(
+                  key: ValueKey('scan-format-${format.$1}'),
+                  label: Text(format.$2),
+                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
+                  onSelected: busy
+                      ? null
+                      : (_) => change({'outputFormat': format.$1}),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
           const Divider(),
           const Text(
             'Zuordnung & Tags',
@@ -502,6 +532,7 @@ extension _ScanEditorView on _ScanEditorState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
+            alignment: WrapAlignment.spaceEvenly,
             spacing: 8,
             runSpacing: 8,
             children: [
@@ -515,7 +546,7 @@ extension _ScanEditorView on _ScanEditorState {
                   icon: Icons.document_scanner_outlined,
                   label: 'Scannen',
                 ),
-              if (widget.capturePhoto != null || nativeCamera)
+              if (widget.capturePhoto != null && widget.capturePages == null)
                 ScanTool(
                   key: const ValueKey('scanner-batch'),
                   onPressed: busy || pages.length >= scanPageLimit

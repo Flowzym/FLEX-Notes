@@ -64,6 +64,23 @@ class ProtectedDialogState extends State<ProtectedDialog>
   late Json data;
   bool busy = false, canPop = false;
   String? error;
+  final errorAnchor = GlobalKey();
+
+  void showError(Object failure) {
+    if (!mounted) return;
+    setState(() => error = friendlyError(failure));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = errorAnchor.currentContext;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(
+          target,
+          alignment: .5,
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -132,7 +149,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
       await widget.controller.reload();
       if (mounted) await pop();
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -159,7 +176,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
           );
           await pop();
         } catch (discardError) {
-          if (mounted) setState(() => error = friendlyError(discardError));
+          showError(discardError);
         }
       }
     } finally {
@@ -185,7 +202,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
         await buffer.flush();
       }
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -208,7 +225,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
         await buffer.flush();
       }
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -228,7 +245,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
         await pop();
       }
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     }
     if (mounted) setState(() => busy = false);
   }
@@ -241,7 +258,7 @@ class ProtectedDialogState extends State<ProtectedDialog>
       await widget.controller.reload();
       if (mounted) changePage(buffer.draft);
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -292,11 +309,15 @@ class ProtectedDialogState extends State<ProtectedDialog>
                 DraftStatus(buffer: buffer),
                 if (error != null)
                   Padding(
+                    key: errorAnchor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ),
                   ),

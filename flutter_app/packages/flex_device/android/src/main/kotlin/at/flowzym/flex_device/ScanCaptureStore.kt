@@ -35,7 +35,12 @@ class ScanCaptureStore(context: Context, val owner: String) {
 
     fun count(): Int = synchronized(PrivateStorage.monitor) { rows().length() }
 
-    fun add(bytes: ByteArray, quad: DocumentEdges.Quad?): String =
+    fun lastImage(): ByteArray? =
+        synchronized(PrivateStorage.monitor) {
+            lastToken()?.let { vault.read(File(directory, it)) }
+        }
+
+    fun add(bytes: ByteArray, quad: DocumentEdges.Quad?, photo: Boolean = false): String =
         synchronized(PrivateStorage.monitor) {
             val pages = rows()
             require(pages.length() < 25 && bytes.size <= 10_000_000)
@@ -45,7 +50,7 @@ class ScanCaptureStore(context: Context, val owner: String) {
             val token = UUID.randomUUID().toString()
             val file = File(directory, token)
             vault.write(file, bytes)
-            val row = JSONObject().put("token", token)
+            val row = JSONObject().put("token", token).put("photo", photo)
             if (quad != null) row.put("corners", JSONArray(quad.points.map { listOf(it.x, it.y) }))
             pages.put(row)
             try {
@@ -69,6 +74,7 @@ class ScanCaptureStore(context: Context, val owner: String) {
                     mutableMapOf<String, Any>(
                         "token" to token,
                         "bytes" to vault.read(File(directory, token)),
+                        "photo" to row.optBoolean("photo", false),
                     )
                 row.optJSONArray("corners")?.let { corners ->
                     result["corners"] =

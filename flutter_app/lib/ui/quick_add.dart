@@ -270,6 +270,18 @@ Future<void> showQuickAdd(
           ? {
               'pupilIds': [pupil.id],
             }
+          : pupil != null && action == 'returnList'
+          ? {
+              'participants': [
+                {
+                  'pupilId': pupil.id,
+                  'name': pupil.name,
+                  'status': 'open',
+                  'note': '',
+                  'paid': 0,
+                },
+              ],
+            }
           : null,
     );
   }

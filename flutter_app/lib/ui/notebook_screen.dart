@@ -1370,7 +1370,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
           )
           .length +
       (symbol == FlexSymbol.orga
-          ? c.drafts.where((d) => d.entry.pupilId == pupilId).length
+          ? c.drafts.where((d) => d.entry.pupilId == pupilId).length +
+                c.dialogDrafts
+                    .where((d) => isReturnDraft(d, pupilId: pupilId))
+                    .length
           : 0) +
       c.dialogDrafts
           .where(
@@ -1396,9 +1399,11 @@ class _NotebookScreenState extends State<NotebookScreen> {
       FlexSymbol.homework: records
           .where((r) => r.kind == SchoolKind.homework && r.pending)
           .length,
-      FlexSymbol.orga: c.entries
-          .where((e) => e.pupilId == pupil.id && e.isTask && !e.done)
-          .length,
+      FlexSymbol.orga:
+          c.entries
+              .where((e) => e.pupilId == pupil.id && e.isTask && !e.done)
+              .length +
+          c.classroom.where((d) => d.returnPendingFor(pupil.id)).length,
     };
   }
 
@@ -1416,13 +1421,19 @@ class _NotebookScreenState extends State<NotebookScreen> {
       ))
         FlexSymbol.homework,
       if (c.entries.any(
-        (e) =>
-            e.pupilId == pupil.id &&
-            e.isTask &&
-            !e.done &&
-            e.dueDate != null &&
-            e.dueDate!.compareTo(today) <= 0,
-      ))
+            (e) =>
+                e.pupilId == pupil.id &&
+                e.isTask &&
+                !e.done &&
+                e.dueDate != null &&
+                e.dueDate!.compareTo(today) <= 0,
+          ) ||
+          c.classroom.any(
+            (d) =>
+                d.returnPendingFor(pupil.id) &&
+                d.text('dueDate').isNotEmpty &&
+                d.text('dueDate').compareTo(today) <= 0,
+          ))
         FlexSymbol.orga,
     };
   }
@@ -1682,6 +1693,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   (d.type == 'pupil' &&
                       symbol == null &&
                       d.ownerId == pupilId) ||
+                  ((symbol == null || symbol == FlexSymbol.orga) &&
+                      isReturnDraft(d, pupilId: pupilId)) ||
                   d.type == 'bulk' &&
                       (symbol == null || d.data['kind'] == symbol.name) &&
                       (d.data['recipients'] as List).contains(pupilId),

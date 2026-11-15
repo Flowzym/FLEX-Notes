@@ -19,7 +19,13 @@ class DocumentScanner(private val context: Context) {
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
-    fun start(activity: Activity?, draftId: String?, limit: Int, result: MethodChannel.Result) {
+    fun start(
+        activity: Activity?,
+        draftId: String?,
+        limit: Int,
+        photo: Boolean,
+        result: MethodChannel.Result,
+    ) {
         if (
             activity == null ||
                 pending != null ||
@@ -35,6 +41,7 @@ class DocumentScanner(private val context: Context) {
             activity.startActivityForResult(
                 Intent(activity, FlexScannerActivity::class.java)
                     .putExtra("owner", draftId)
+                    .putExtra("photo", photo)
                     .putExtra("limit", limit.coerceIn(1, 25)),
                 requestCode,
             )

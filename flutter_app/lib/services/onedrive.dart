@@ -321,7 +321,8 @@ class OneDriveClient extends ChangeNotifier {
     final pending = () async {
       final epoch = _sessionEpoch;
       if (_tokens?['refresh'] is! String) {
-        throw const DomainError('Bitte erneut bei OneDrive anmelden.');
+        if (epoch == _sessionEpoch && !_disposed) await disconnect();
+        throw const OneDriveSignInRequired();
       }
       final response = await _post('token', {
         'client_id': clientId,
@@ -330,6 +331,15 @@ class OneDriveClient extends ChangeNotifier {
         'scope': 'offline_access Files.Read',
       });
       if (response['access_token'] is! String) {
+        if ({
+          'invalid_grant',
+          'interaction_required',
+          'login_required',
+          'consent_required',
+        }.contains(response['error'])) {
+          if (epoch == _sessionEpoch && !_disposed) await disconnect();
+          throw const OneDriveSignInRequired();
+        }
         throw const DomainError(
           'Die OneDrive-Anmeldung ist abgelaufen. Bitte erneut verbinden.',
         );
@@ -374,13 +384,14 @@ class OneDriveClient extends ChangeNotifier {
       );
     }
     if (response.statusCode == 401) {
+      if (_native == null) await disconnect();
       _nativeReady = false;
       if (!_disposed) notifyListeners();
       throw const OneDriveSignInRequired();
     }
     if (response.statusCode == 403) {
       throw const DomainError(
-        'Microsoft erlaubt den Dateizugriff noch nicht. Bitte in Entra die delegierte Berechtigung Files.Read ergänzen und erneut anmelden.',
+        'Microsoft erlaubt diesen Dateizugriff nicht. Bitte das angemeldete Konto, die Freigabe der Datei und die delegierte Berechtigung Files.Read in Entra prüfen.',
       );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {

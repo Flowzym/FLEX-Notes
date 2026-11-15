@@ -10,6 +10,7 @@ import 'flex_modal.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'surfaces.dart';
+import 'return_lists.dart';
 
 String readableRecord(Json value) {
   if (value['format'] == 'flex-classroom-1') {
@@ -148,6 +149,25 @@ Future<void> showPupilHistory(
                 ),
           );
           final rows = <({String date, Widget child})>[
+            if (area == 'all' || area == 'orga')
+              for (final d in c.classroom.where(
+                (d) =>
+                    !d.deleted &&
+                    d.returnParticipant(pupilId) != null &&
+                    accepts(
+                      d.text('createdAtUtc').substring(0, 10),
+                      d.returnSearchText(pupilId),
+                      d.returnPendingFor(pupilId),
+                    ),
+              ))
+                (
+                  date: d.text('createdAtUtc'),
+                  child: ReturnListCard(
+                    controller: c,
+                    document: d,
+                    pupilId: pupilId,
+                  ),
+                ),
             for (final r in records)
               (
                 date: '${r.observedOn} ${r.observedTime}',

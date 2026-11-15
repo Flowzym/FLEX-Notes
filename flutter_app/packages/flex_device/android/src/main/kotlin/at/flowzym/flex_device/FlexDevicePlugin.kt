@@ -166,6 +166,7 @@ class FlexDevicePlugin :
                 activity,
                 call.argument<String>("draftId"),
                 call.argument<Int>("limit") ?: 25,
+                call.argument<Boolean>("photo") ?: false,
                 result,
             )
             return

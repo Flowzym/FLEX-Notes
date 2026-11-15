@@ -129,13 +129,16 @@ class ReturnListCard extends StatelessWidget {
     super.key,
     required this.controller,
     required this.document,
+    this.pupilId,
   });
   final NotebookController controller;
   final ClassroomDocument document;
+  final String? pupilId;
 
   @override
   Widget build(BuildContext context) {
     final d = document;
+    final participant = pupilId == null ? null : d.returnParticipant(pupilId!);
     return FlexCard(
       key: ValueKey('return-entry-${d.id}'),
       child: ListTile(
@@ -143,7 +146,14 @@ class ReturnListCard extends StatelessWidget {
         title: Text(d.title),
         subtitle: Text(
           [
-            'Rücklauf · ${d.flag('closed') ? 'Abgeschlossen' : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
+            'Rücklauf · ${d.flag('closed')
+                ? 'Abgeschlossen'
+                : participant != null
+                ? returnStatuses[d.text('type')]![participant['status']]
+                : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
+            if (participant != null &&
+                (participant['note'] as String).isNotEmpty)
+              participant['note'] as String,
             if (d.text('dueDate').isNotEmpty) displayDate(d.text('dueDate')),
           ].join('\n'),
         ),

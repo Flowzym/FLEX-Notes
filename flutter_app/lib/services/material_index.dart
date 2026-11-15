@@ -4,6 +4,39 @@ import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'onedrive.dart';
 
+/// A detached, edited copy keeps its identity and all its pupil/entry links.
+/// Re-importing the cloud original must create/reuse a separate material.
+String oneDriveMaterialId(
+  String driveId,
+  String itemId,
+  Iterable<ClassroomDocument> existing,
+) {
+  final documents = {for (final d in existing) d.id: d};
+  final linked = documents.values
+      .where(
+        (d) =>
+            d.kind == ClassroomKind.material &&
+            d.text('driveId') == driveId &&
+            d.text('itemId') == itemId,
+      )
+      .firstOrNull;
+  if (linked != null) return linked.id;
+  var id = const Uuid().v5(
+    Namespace.url.value,
+    'flex-onedrive:$driveId:$itemId',
+  );
+  for (var i = 0; i <= documents.length; i++) {
+    if (!documents.containsKey(id)) return id;
+    id = const Uuid().v5(
+      Namespace.url.value,
+      'flex-onedrive:$driveId:$itemId:after:$id',
+    );
+  }
+  throw const DomainError(
+    'Die OneDrive-Datei konnte nicht eindeutig zugeordnet werden.',
+  );
+}
+
 /// Read-only scan, bounded across the whole tree (not only per Graph page).
 /// Identity is drive/item based, so moving or renaming a source keeps all links.
 Future<List<ClassroomDocument>> scanMaterialFolder(
@@ -62,10 +95,7 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
           'Bitte einen kleineren Unterordner wählen (höchstens 2000 Dateien).',
         );
       }
-      final id = const Uuid().v5(
-        Namespace.url.value,
-        'flex-onedrive:${folder.text('driveId')}:$itemId',
-      );
+      final id = oneDriveMaterialId(folder.text('driveId'), itemId, old.values);
       final previous = old[id];
       final fields = <String, dynamic>{
         'name': name, 'driveId': folder.text('driveId'), 'itemId': itemId,

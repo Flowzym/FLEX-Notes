@@ -953,7 +953,7 @@ void main() {
           },
         ),
       );
-      await tap(t, find.byKey(const ValueKey('scanner-batch')));
+      await tap(t, find.byKey(const ValueKey('scanner-camera')));
       await settleWork(
         t,
         () =>
@@ -1110,17 +1110,24 @@ void main() {
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(FlexDevice.channel, null),
       );
+      resume = await c.repository.saveDialogDraft(
+        DialogDraft(
+          id: 'legacy-photo-draft',
+          type: 'scan',
+          ownerId: 'legacy-photo-draft',
+          updatedAtUtc: utcNow(),
+          data: {
+            ...const ScanContext().initial(),
+            'outputFormat': 'jpg',
+            'capturePending': true,
+            'captureAsDocument': false,
+          },
+        ),
+      );
       await host(
         t,
         (_) => ScanEditor(controller: c, files: files, draft: resume),
       );
-      await tap(t, find.byKey(const ValueKey('scanner-photo')));
-      await t.pumpAndSettle();
-      await tap(t, find.text('Später fortsetzen'));
-      await t.pumpAndSettle();
-      resume = c.dialogDrafts.single;
-      await t.tap(find.text('Öffnen'));
-      await t.pump();
       await settleWork(
         t,
         () =>
@@ -1401,4 +1408,84 @@ void main() {
       expect(t.takeException(), isNull);
     },
   );
+
+  for (final mixed in [false, true]) {
+    testWidgets(
+      'native camera retains photo mode and mixed batch metadata: $mixed',
+      (t) async {
+        final c = await controller(), files = MemoryMaterialFiles();
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        final calls = <String>[];
+        messenger.setMockMethodCallHandler(FlexDevice.channel, (call) async {
+          calls.add(call.method);
+          if (call.method == 'scanDocument') {
+            expect((call.arguments as Map)['photo'], true);
+            return [
+              {
+                'token': 'photo',
+                'photo': true,
+                'bytes': scannerImage(),
+                'corners': [
+                  [.1, .1],
+                  [.9, .1],
+                  [.9, .9],
+                  [.1, .9],
+                ],
+              },
+              if (mixed)
+                {'token': 'document', 'photo': false, 'bytes': scannerImage()},
+            ];
+          }
+          if (call.method == 'finishScanPage') {
+            final stored = (await c.repository.dialogDrafts()).single;
+            expect(
+              (stored.data['pages'] as List).any(
+                (p) => p['captureToken'] == (call.arguments as Map)['token'],
+              ),
+              true,
+            );
+          }
+          return null;
+        });
+        addTearDown(
+          () => messenger.setMockMethodCallHandler(FlexDevice.channel, null),
+        );
+        await host(
+          t,
+          (_) => ScanEditor(
+            controller: c,
+            files: files,
+            scope: const ScanContext(pupilIds: ['p'], title: 'Kamera'),
+          ),
+        );
+        await tap(t, find.byKey(const ValueKey('scanner-photo')));
+        await settleWork(
+          t,
+          () =>
+              c.dialogDrafts.isNotEmpty &&
+              c.dialogDrafts.single.data['scanPending'] == false,
+        );
+        final data = c.dialogDrafts.single.data;
+        expect(data['outputFormat'], mixed ? 'pdf' : 'jpg');
+        final pages = (data['pages'] as List)
+            .map((p) => ScanPage.fromJson(Json.from(p as Map)))
+            .toList();
+        expect(pages.first.photo, true);
+        expect(pages.first.width, 180);
+        expect(pages.first.height, 240);
+        expect(calls, isNot(contains('capturePhoto')));
+        expect(data['filterUndo'] as Map? ?? {}, isEmpty);
+        await tap(t, find.byKey(const ValueKey('save-scan')));
+        await settleWork(t, () => c.classroom.isNotEmpty);
+        expect(c.classroom.single.text('extension'), mixed ? 'pdf' : 'jpg');
+        expect(c.classroom.single.strings('pupilIds'), ['p']);
+        await t.pumpWidget(const SizedBox());
+        await t.pumpAndSettle();
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
+  }
 }

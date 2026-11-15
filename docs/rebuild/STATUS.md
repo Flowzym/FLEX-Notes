@@ -1,4 +1,21 @@
-# Aktueller Stand: FLEX 0.32.0+83
+# Aktueller Stand: FLEX 0.33.0+84
+
+Rückläufe sind beim Schüler, in Aufgaben und Entwürfen durchgängig erreichbar;
+auch gemeinsame Anhänge erscheinen in der Schüler-Vorschau. Lokal bearbeitete
+OneDrive-Dateien bleiben beim erneuten Einlesen erhalten. Der CameraX-Scanner
+verbindet Dokumente/Fotos mit Live-Kantenanzeige, stabiler automatischer Aufnahme,
+Serienaufnahme und Bildkontrolle in der Creme/Olive-Oberfläche.
+
+[Prüfung, Korrekturen und offene UX-Punkte](INTEGRATION-SCANNER-BUILD-84.md) ·
+[APKs und Prüfnachweise](../../releases/android/build-84/README.md) ·
+[Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+App-Kennung, permanentes Zertifikat und Schema 8 bleiben unverändert.
+Physische Kamera-/Android-Abnahme und echte OneDrive-Anmeldung bleiben offen.
+
+---
+
+# Vorheriger Stand: FLEX 0.32.0+83
 
 Materialien können direkt einzelnen Schülern zugeordnet werden, mit optionalen
 und unabhängigen Einsatzdaten. Überarbeitete Materialdetails, Schülerfilter,

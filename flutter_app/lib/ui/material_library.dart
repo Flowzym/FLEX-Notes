@@ -598,12 +598,14 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                       : Icons.cloud_outlined,
                                   run: busy
                                       ? null
-                                      : () => action(
-                                          () => drive.connected
-                                              ? browseOneDrive(ctx, c, drive)
-                                              : connectOneDrive(ctx, drive),
-                                          showProgress: false,
-                                        ),
+                                      : () => action(() async {
+                                          if (!drive.connected) {
+                                            await connectOneDrive(ctx, drive);
+                                          }
+                                          if (ctx.mounted && drive.connected) {
+                                            await browseOneDrive(ctx, c, drive);
+                                          }
+                                        }, showProgress: false),
                                 ),
                               ];
                           return Wrap(

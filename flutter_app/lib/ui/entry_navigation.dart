@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/school.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
+import 'classroom_editor.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 import 'common.dart';
@@ -112,9 +114,12 @@ int entryDraftCount(
     c.dialogDrafts
         .where(
           (d) =>
+              d.id != exclude &&
+                  kind == null &&
+                  isReturnDraft(d, pupilId: pupilId) ||
               d.type == 'bulk' &&
-              d.data['kind'] == (kind?.name ?? 'orga') &&
-              (d.data['recipients'] as List).contains(pupilId),
+                  d.data['kind'] == (kind?.name ?? 'orga') &&
+                  (d.data['recipients'] as List).contains(pupilId),
         )
         .length;
 
@@ -195,6 +200,24 @@ Future<void> showEntryDrafts(
                 Future<void> Function() discard,
               })
             >[
+              if (kind == null)
+                for (final d in c.dialogDrafts.where(
+                  (d) => d.id != exclude && isReturnDraft(d, pupilId: pupilId),
+                ))
+                  (
+                    id: 'return-${d.id}',
+                    preview: d.data['title'] as String? ?? '',
+                    time: d.updatedAtUtc,
+                    mode: 'Rücklauf',
+                    open: () => showClassroomEditor(
+                      ctx,
+                      c,
+                      ClassroomKind.returnList,
+                      draft: d,
+                    ),
+                    discard: () =>
+                        c.repository.discardDialogDraft(d.id, d.revision),
+                  ),
               for (final d in school)
                 (
                   id: 'school-${d.id}',

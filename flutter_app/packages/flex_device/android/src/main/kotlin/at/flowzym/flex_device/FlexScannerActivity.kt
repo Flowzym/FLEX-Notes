@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.graphics.*
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.*
@@ -22,7 +23,7 @@ class FlexScannerActivity : ComponentActivity() {
     private lateinit var preview: PreviewView
     private lateinit var overlay: EdgeOverlay
     private lateinit var status: TextView
-    private lateinit var shutter: Button
+    private lateinit var shutter: CaptureShutter
     private lateinit var done: Button
     private lateinit var store: ScanCaptureStore
     private lateinit var autoButton: Button
@@ -36,11 +37,20 @@ class FlexScannerActivity : ComponentActivity() {
     private var automatic = false
     private var flash = false
     private var current: DocumentEdges.Quad? = null
-    private var stable = 0
+    private val stability = ScanStability()
+    private lateinit var thumbnail: ImageView
+    private lateinit var countLabel: TextView
+    private lateinit var documentMode: Button
+    private lateinit var photoModeButton: Button
+    @Volatile private var photoMode = false
+    private var reviewing = false
+    private var thumbnailBitmap: Bitmap? = null
+    private var heldMessageUntil = 0L
+    private var captureProgress = 0f
+    private var pageCount = 0
+    private var focusPoint: PointF? = null
     private var lastAnalysis = 0L
     private var lastShot = 0L
-    private var waitingForMovement = false
-    private var lastCaptured: DocumentEdges.Quad? = null
     private var imageAspect = 0.75f
     private val cream = Color.rgb(250, 247, 242)
     private val olive = Color.rgb(98, 109, 67)
@@ -60,11 +70,12 @@ class FlexScannerActivity : ComponentActivity() {
         }
         store = ScanCaptureStore(this, owner)
         limit = intent.getIntExtra("limit", 25).coerceIn(1, 25)
+        photoMode = intent.getBooleanExtra("photo", false)
+        automatic = getPreferences(MODE_PRIVATE).getBoolean("automatic", false)
         val root =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setBackgroundColor(cream)
-                setPadding(0, 0, 0, 0)
             }
         root.setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(
@@ -75,28 +86,60 @@ class FlexScannerActivity : ComponentActivity() {
             )
             insets
         }
-        val toolbar = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        toolbar.addView(button("Zurück") { leave() })
+        val toolbar =
+            LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(8.dp, 4.dp, 8.dp, 4.dp)
+            }
         toolbar.addView(
-            TextView(this).apply {
-                text = "FLEX.  Dokument scannen"
-                setTextColor(olive)
-                textSize = 16f
+            ScannerGlyph(this, "back").apply {
+                contentDescription = "Zurück"
+                setOnClickListener { leave() }
             },
-            LinearLayout.LayoutParams(0, 56.dp, 1f),
+            LinearLayout.LayoutParams(48.dp, 48.dp),
         )
         toolbar.addView(
-            button("Licht") {
-                camera?.let {
-                    if (it.cameraInfo.hasFlashUnit()) {
-                        flash = !flash
-                        it.cameraControl.enableTorch(flash)
-                    } else status.text = "Dieses Gerät hat kein Kameralicht."
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    TextView(this@FlexScannerActivity).apply {
+                        text = "FLEX."
+                        textSize = 10f
+                        letterSpacing = .08f
+                        setTextColor(olive)
+                    }
+                )
+                addView(
+                    TextView(this@FlexScannerActivity).apply {
+                        text = "Aufnahme"
+                        textSize = 19f
+                        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                        setTextColor(Color.rgb(40, 43, 37))
+                    }
+                )
+            },
+            LinearLayout.LayoutParams(0, 52.dp, 1f),
+        )
+        toolbar.addView(
+            ScannerGlyph(this, "light").apply {
+                contentDescription = "Kameralicht einschalten"
+                setOnClickListener {
+                    camera?.let { camera ->
+                        if (camera.cameraInfo.hasFlashUnit()) {
+                            flash = !flash
+                            camera.cameraControl.enableTorch(flash)
+                            isSelected = flash
+                            contentDescription =
+                                if (flash) "Kameralicht ausschalten" else "Kameralicht einschalten"
+                        } else message("Kein Kameralicht verfügbar")
+                    }
                 }
-            }
+            },
+            LinearLayout.LayoutParams(48.dp, 48.dp),
         )
         root.addView(toolbar)
-        val frame = FrameLayout(this)
+        val frame = FrameLayout(this).apply { setBackgroundColor(Color.rgb(24, 26, 23)) }
         preview =
             PreviewView(this).apply {
                 scaleType = PreviewView.ScaleType.FIT_CENTER
@@ -105,50 +148,84 @@ class FlexScannerActivity : ComponentActivity() {
         frame.addView(preview, FrameLayout.LayoutParams(-1, -1))
         overlay = EdgeOverlay()
         frame.addView(overlay, FrameLayout.LayoutParams(-1, -1))
-        root.addView(frame, LinearLayout.LayoutParams(-1, 0, 1f))
         status =
             TextView(this).apply {
                 text = "Kamera wird gestartet …"
-                setTextColor(olive)
-                textSize = 14f
+                setTextColor(Color.WHITE)
+                textSize = 13f
                 gravity = Gravity.CENTER
-                setPadding(12.dp, 10.dp, 12.dp, 10.dp)
-                minHeight = 48.dp
+                setPadding(16.dp, 10.dp, 16.dp, 10.dp)
+                background = shape(Color.argb(210, 30, 33, 27), 22f)
+                accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             }
-        root.addView(status)
-        val actions = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        frame.addView(
+            status,
+            FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+                setMargins(16.dp, 12.dp, 16.dp, 18.dp)
+            },
+        )
+        root.addView(frame, LinearLayout.LayoutParams(-1, 0, 1f))
+        val modes =
+            LinearLayout(this).apply {
+                gravity = Gravity.CENTER
+                setPadding(16.dp, 10.dp, 16.dp, 0)
+            }
+        documentMode = button("Dokument") { setPhotoMode(false) }
+        photoModeButton = button("Foto") { setPhotoMode(true) }
+        modes.addView(documentMode, LinearLayout.LayoutParams(0, 44.dp, 1f))
+        modes.addView(photoModeButton, LinearLayout.LayoutParams(0, 44.dp, 1f))
         autoButton =
-            button("Auto aus") {
+            button(if (automatic) "Auto an" else "Auto aus") {
                 automatic = !automatic
-                autoButton.text = if (automatic) "Auto an" else "Auto aus"
-                stable = 0
+                getPreferences(MODE_PRIVATE).edit().putBoolean("automatic", automatic).apply()
+                stability.restartCountdown()
+                updateModes()
             }
-        actions.addView(autoButton, LinearLayout.LayoutParams(0, 56.dp, 1f))
-        shutter = button("Aufnehmen") { takePhoto() }.apply { isEnabled = false }
-        actions.addView(shutter, LinearLayout.LayoutParams(0, 56.dp, 1.4f))
+        modes.addView(autoButton, LinearLayout.LayoutParams(0, 44.dp, 1f))
+        root.addView(modes)
+        val actions =
+            LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(20.dp, 2.dp, 20.dp, 8.dp)
+            }
+        val stack =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+            }
+        thumbnail =
+            ImageView(this).apply {
+                contentDescription = "Letzte Aufnahme ansehen"
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                background = shape(Color.rgb(231, 231, 220), 10f)
+                clipToOutline = true
+                isFocusable = true
+                setOnClickListener { showLastCapture() }
+            }
+        stack.addView(thumbnail, LinearLayout.LayoutParams(48.dp, 56.dp))
+        countLabel =
+            TextView(this).apply {
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setTextColor(olive)
+            }
+        stack.addView(countLabel)
+        actions.addView(stack, LinearLayout.LayoutParams(0, -2, 1f))
+        shutter =
+            CaptureShutter(this).apply {
+                isEnabled = false
+                setOnClickListener { takePhoto() }
+            }
+        actions.addView(shutter, LinearLayout.LayoutParams(96.dp, 96.dp))
         done =
-            button("Fertig (${store.count()})") {
+            button("Weiter") {
                 setResult(RESULT_OK)
                 finish()
             }
-        actions.addView(done, LinearLayout.LayoutParams(0, 56.dp, 1f))
+        actions.addView(done, LinearLayout.LayoutParams(0, 48.dp, 1f))
         root.addView(actions)
-        root.addView(
-            button("Letzte Aufnahme entfernen") {
-                if (!busy) {
-                    val last = store.lastToken()
-                    if (last != null)
-                        AlertDialog.Builder(this)
-                            .setMessage("Letzte Aufnahme entfernen?")
-                            .setNegativeButton("Abbrechen", null)
-                            .setPositiveButton("Entfernen") { _, _ ->
-                                store.acknowledge(last)
-                                updateCount()
-                            }
-                            .show()
-                }
-            }
-        )
+        updateModes()
+        updateCount()
         setContentView(root)
         onBackPressedDispatcher.addCallback(
             this,
@@ -176,7 +253,17 @@ class FlexScannerActivity : ComponentActivity() {
             )
         preview.setOnTouchListener { _, event ->
             zoom.onTouchEvent(event)
-            if (event.action == MotionEvent.ACTION_UP && !zoom.isInProgress)
+            if (event.action == MotionEvent.ACTION_UP && !zoom.isInProgress) {
+                focusPoint = PointF(event.x, event.y)
+                overlay.invalidate()
+                overlay.postDelayed(
+                    {
+                        focusPoint = null
+                        overlay.invalidate()
+                    },
+                    700,
+                )
+                stability.restartCountdown()
                 camera
                     ?.cameraControl
                     ?.startFocusAndMetering(
@@ -185,6 +272,7 @@ class FlexScannerActivity : ComponentActivity() {
                             )
                             .build()
                     )
+            }
             true
         }
         if (
@@ -213,15 +301,155 @@ class FlexScannerActivity : ComponentActivity() {
     private val Int.dp: Int
         get() = (this * resources.displayMetrics.density).roundToInt()
 
+    private fun shape(color: Int, radius: Float) =
+        GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = radius * resources.displayMetrics.density
+        }
+
     private fun button(label: String, action: () -> Unit) =
         Button(this).apply {
             text = label
             isAllCaps = false
             textSize = 13f
             setTextColor(olive)
-            minHeight = 48.dp
+            minWidth = 0
+            minimumWidth = 0
+            minHeight = 44.dp
+            setPadding(6.dp, 0, 6.dp, 0)
+            stateListAnimator = null
+            background = shape(Color.TRANSPARENT, 22f)
             setOnClickListener { action() }
         }
+
+    private fun showStatus(text: String) {
+        if (status.text.toString() != text) status.text = text
+    }
+
+    private fun message(text: String) {
+        showStatus(text)
+        heldMessageUntil = SystemClock.elapsedRealtime() + 2200
+    }
+
+    private fun setPhotoMode(photo: Boolean) {
+        if (busy) return
+        photoMode = photo
+        current = null
+        stability.reset()
+        updateModes()
+        message(
+            if (photo) "Foto · ohne automatischen Zuschnitt"
+            else "Alle vier Dokumentränder ins Bild bringen"
+        )
+    }
+
+    private fun updateModes() {
+        for ((view, active) in listOf(documentMode to !photoMode, photoModeButton to photoMode)) {
+            view.background =
+                shape(if (active) Color.rgb(224, 228, 211) else Color.TRANSPARENT, 22f)
+            view.isSelected = active
+            view.isEnabled = !busy
+        }
+        autoButton.text = if (automatic) "Auto an" else "Auto aus"
+        autoButton.isSelected = automatic && !photoMode
+        autoButton.isEnabled = !photoMode && !busy
+        autoButton.contentDescription =
+            if (automatic) "Automatische Aufnahme ausschalten"
+            else "Automatische Aufnahme einschalten"
+        autoButton.alpha = if (photoMode) .35f else 1f
+        shutter.progress = 0f
+        overlay.invalidate()
+    }
+
+    private fun refreshThumbnail() {
+        executor.execute {
+            val bitmap =
+                try {
+                    store.lastImage()?.let { bytes ->
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                        var sample = 1
+                        while (max(bounds.outWidth, bounds.outHeight) / sample > 200) sample *= 2
+                        BitmapFactory.decodeByteArray(
+                            bytes,
+                            0,
+                            bytes.size,
+                            BitmapFactory.Options().apply { inSampleSize = sample },
+                        )
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            runOnUiThread {
+                if (isDestroyed || isFinishing) {
+                    bitmap?.recycle()
+                    return@runOnUiThread
+                }
+                val previous = thumbnailBitmap
+                thumbnailBitmap = bitmap
+                thumbnail.setImageBitmap(bitmap)
+                previous?.recycle()
+            }
+        }
+    }
+
+    private fun showLastCapture() {
+        if (busy || reviewing || store.count() == 0) return
+        reviewing = true
+        stability.restartCountdown()
+        val picture =
+            ImageView(this).apply {
+                setImageBitmap(thumbnailBitmap)
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setPadding(12.dp, 12.dp, 12.dp, 12.dp)
+            }
+        val dialog =
+            AlertDialog.Builder(this)
+                .setTitle("Aufnahme ${store.count()}")
+                .setView(picture)
+                .setPositiveButton("Weiter scannen", null)
+                .setNegativeButton("Entfernen") { _, _ ->
+                    store.lastToken()?.let { store.acknowledge(it) }
+                    updateCount()
+                }
+                .create()
+        var fullImage: Bitmap? = null
+        dialog.setOnDismissListener {
+            reviewing = false
+            stability.restartCountdown()
+            picture.setImageDrawable(null)
+            fullImage?.recycle()
+        }
+        dialog.show()
+        dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        executor.execute {
+            val bitmap =
+                try {
+                    store.lastImage()?.let { bytes ->
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                        var sample = 1
+                        while (max(bounds.outWidth, bounds.outHeight) / sample > 1200) sample *= 2
+                        BitmapFactory.decodeByteArray(
+                            bytes,
+                            0,
+                            bytes.size,
+                            BitmapFactory.Options().apply { inSampleSize = sample },
+                        )
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            runOnUiThread {
+                if (!dialog.isShowing || isDestroyed) bitmap?.recycle()
+                else if (bitmap != null) {
+                    fullImage = bitmap
+                    picture.setImageBitmap(bitmap)
+                }
+            }
+        }
+    }
 
     private fun bindCamera() {
         val future = ProcessCameraProvider.getInstance(this)
@@ -257,8 +485,10 @@ class FlexScannerActivity : ComponentActivity() {
                     camera =
                         p.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, group.build())
                     shutter.isEnabled = store.count() < limit
-                    status.text =
-                        "Dokument vollständig ins Bild bringen. Antippen zum Scharfstellen."
+                    message(
+                        if (photoMode) "Foto aufnehmen · Antippen zum Scharfstellen"
+                        else "Dokument ins Bild bringen · Ränder werden live erkannt"
+                    )
                 } catch (_: Exception) {
                     status.text = "Kamera nicht verfügbar. Bitte schließen und erneut versuchen."
                 }
@@ -300,43 +530,36 @@ class FlexScannerActivity : ComponentActivity() {
                     }
                 values[at] = value
             }
-            val found = DocumentEdges.detect(values, sw, sh)
+            val wasPhoto = photoMode
+            val found = if (wasPhoto) null else DocumentEdges.detect(values, sw, sh)
+            val brightness = values.average()
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 imageAspect = sw.toFloat() / sh
-                val previous = current
-                val distance =
-                    if (previous == null || found == null) 1.0
-                    else
-                        previous.points.zip(found.points).maxOf { (a, b) ->
-                            hypot(a.x - b.x, a.y - b.y)
-                        }
-                stable = if (distance < 0.018) stable + 1 else 0
-                current = found
-                if (
-                    waitingForMovement &&
-                        (found == null ||
-                            lastCaptured?.points?.zip(found.points)?.maxOf { (a, b) ->
-                                hypot(a.x - b.x, a.y - b.y)
-                            } ?: 1.0 > 0.09)
-                )
-                    waitingForMovement = false
+                if (busy || reviewing || wasPhoto != photoMode || now < lastShot)
+                    return@runOnUiThread
+                val frame = stability.update(found, now)
+                current = if (photoMode) null else frame.quad
+                captureProgress = if (automatic && !photoMode) frame.progress else 0f
+                shutter.progress = captureProgress
                 overlay.invalidate()
-                if (!busy)
-                    status.text =
-                        if (found == null)
-                            "Keine sicheren Ränder · Aufnahme und manueller Zuschnitt möglich"
-                        else if (stable >= 5) "Ränder erkannt · ruhig halten"
-                        else "Ränder werden ausgerichtet …"
-                if (
-                    automatic &&
-                        found != null &&
-                        found.confidence > 0.8 &&
-                        stable >= 7 &&
-                        !waitingForMovement &&
-                        now - lastShot > 1800
-                )
-                    takePhoto()
+                if (now >= heldMessageUntil) {
+                    showStatus(
+                        when {
+                            pageCount >= limit -> "Serie vollständig · Weiter zur Bearbeitung"
+                            photoMode -> "Foto · Antippen zum Scharfstellen"
+                            automatic && frame.nextPage -> "Gespeichert · nächste Seite einlegen"
+                            found == null && brightness < 55 ->
+                                "Mehr Licht hilft bei der Kantenerkennung"
+                            found == null -> "Alle vier Dokumentränder ins Bild bringen"
+                            found.confidence < .8 -> "Ränder prüfen · manuell aufnehmen"
+                            frame.progress < .35f -> "Ränder gefunden · ruhig halten"
+                            automatic -> "Ruhig halten · automatische Aufnahme"
+                            else -> "Ränder erkannt · bereit zur Aufnahme"
+                        }
+                    )
+                }
+                if (automatic && !photoMode && frame.ready && !reviewing) takePhoto()
             }
         } catch (_: Exception) {
             /* A failed analysis never interrupts the camera. */
@@ -347,14 +570,15 @@ class FlexScannerActivity : ComponentActivity() {
 
     private fun takePhoto() {
         val still = capture ?: return
-        if (busy || leaving || isFinishing || store.count() >= limit) return
+        if (busy || leaving || isFinishing || pageCount >= limit) return
         busy = true
         shutter.isEnabled = false
         done.isEnabled = false
+        updateModes()
+        val takingPhoto = photoMode
         status.text = "Aufnahme wird gesichert …"
         lastShot = SystemClock.elapsedRealtime()
-        lastCaptured = current
-        waitingForMovement = true
+        stability.didCapture(lastShot)
         // Re-detect on the actual still so motion between preview and shutter
         // cannot apply stale corners to a different page.
         still.takePicture(
@@ -443,10 +667,12 @@ class FlexScannerActivity : ComponentActivity() {
                                 (Color.red(c) * 77 + Color.green(c) * 150 + Color.blue(c) * 29) /
                                     256
                             }
-                        val edges = DocumentEdges.detect(luma, small.width, small.height)
+                        val edges =
+                            if (takingPhoto) null
+                            else DocumentEdges.detect(luma, small.width, small.height)
                         ByteArrayOutputStream().use { out ->
                             normalized.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                            store.add(out.toByteArray(), edges)
+                            store.add(out.toByteArray(), edges, takingPhoto)
                         }
                         runOnUiThread {
                             busy = false
@@ -456,7 +682,15 @@ class FlexScannerActivity : ComponentActivity() {
                                 return@runOnUiThread
                             }
                             updateCount()
-                            status.text = "Seite gespeichert · nächste aufnehmen oder fertig"
+                            message("Aufnahme ${store.count()} gespeichert")
+                            overlay
+                                .animate()
+                                .alpha(.2f)
+                                .setDuration(90)
+                                .withEndAction {
+                                    overlay.animate().alpha(1f).setDuration(160).start()
+                                }
+                                .start()
                             shutter.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                         }
                     } catch (_: Exception) {
@@ -495,9 +729,16 @@ class FlexScannerActivity : ComponentActivity() {
 
     private fun updateCount() {
         val count = store.count()
-        done.text = "Fertig ($count)"
-        done.isEnabled = !busy
+        pageCount = count
+        countLabel.text = "$count / $limit"
+        done.text = if (count == 0) "Weiter" else "Weiter ($count)"
+        done.isEnabled = !busy && count > 0
+        done.background = shape(if (count > 0) olive else Color.rgb(231, 231, 220), 24f)
+        done.setTextColor(if (count > 0) Color.WHITE else olive)
+        thumbnail.isEnabled = count > 0 && !busy
         shutter.isEnabled = !busy && capture != null && count < limit
+        updateModes()
+        refreshThumbnail()
     }
 
     private fun leave() {
@@ -537,6 +778,8 @@ class FlexScannerActivity : ComponentActivity() {
     override fun onDestroy() {
         provider?.unbindAll()
         executor.shutdown()
+        if (::thumbnail.isInitialized) thumbnail.setImageDrawable(null)
+        thumbnailBitmap?.recycle()
         super.onDestroy()
     }
 
@@ -545,6 +788,12 @@ class FlexScannerActivity : ComponentActivity() {
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
+            focusPoint?.let { point ->
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 2.dp.toFloat()
+                paint.color = Color.WHITE
+                canvas.drawCircle(point.x, point.y, 24.dp.toFloat(), paint)
+            }
             val quad = current ?: return
             val dw = min(width.toFloat(), height * imageAspect)
             val dh = dw / imageAspect
@@ -559,11 +808,11 @@ class FlexScannerActivity : ComponentActivity() {
                     close()
                 }
             paint.style = Paint.Style.FILL
-            paint.color = Color.argb(30, 210, 235, 150)
+            paint.color = Color.argb(26, 218, 230, 181)
             canvas.drawPath(path, paint)
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = 3.dp.toFloat()
-            paint.color = if (stable >= 5) Color.rgb(212, 234, 151) else Color.WHITE
+            paint.color = if (captureProgress > .35f) Color.rgb(207, 223, 164) else Color.WHITE
             canvas.drawPath(path, paint)
             paint.style = Paint.Style.FILL
             for (p in points) canvas.drawCircle(p.x, p.y, 5.dp.toFloat(), paint)

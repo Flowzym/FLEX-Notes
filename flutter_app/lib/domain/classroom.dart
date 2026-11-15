@@ -628,8 +628,12 @@ class ClassroomDocument {
         throw const DomainError('Ungültige Rücklaufliste.');
       }
       final participants = rows('participants');
-      if (participants.isEmpty ||
-          participants.length > 1000 ||
+      if (participants.isEmpty) {
+        throw const DomainError(
+          'Bitte mindestens einen Schüler für den Rücklauf auswählen.',
+        );
+      }
+      if (participants.length > 1000 ||
           participants.map((p) => p['pupilId']).toSet().length !=
               participants.length) {
         throw const DomainError('Bitte Schüler eindeutig auswählen.');
@@ -709,6 +713,34 @@ const returnTypes = {
 };
 bool returnPending(Json row) =>
     row['status'] == 'open' || row['status'] == 'partial';
+
+extension PupilReturnList on ClassroomDocument {
+  Json? returnParticipant(String pupilId) => kind == ClassroomKind.returnList
+      ? rows(
+          'participants',
+        ).where((row) => row['pupilId'] == pupilId).firstOrNull
+      : null;
+
+  bool returnPendingFor(String pupilId) {
+    final row = returnParticipant(pupilId);
+    return !deleted && !flag('closed') && row != null && returnPending(row);
+  }
+
+  String returnSearchText(String pupilId) => [
+    title,
+    text('note'),
+    text('otherParticipants'),
+    returnParticipant(pupilId)?['note'] ?? '',
+  ].join(' ');
+}
+
+bool isReturnDraft(DialogDraft draft, {String? pupilId}) =>
+    draft.type == 'classroom' &&
+    draft.data['kind'] == ClassroomKind.returnList.name &&
+    (pupilId == null ||
+        (draft.data['participants'] as List? ?? []).any(
+          (row) => row['pupilId'] == pupilId,
+        ));
 
 class LessonOccurrence {
   const LessonOccurrence(

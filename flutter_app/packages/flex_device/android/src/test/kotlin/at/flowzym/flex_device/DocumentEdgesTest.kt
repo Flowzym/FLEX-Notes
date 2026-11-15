@@ -51,6 +51,20 @@ class DocumentEdgesTest {
     }
 
     @Test
+    fun detectsPalePaperOnALightDeskWithoutInventingEdgesInNoise() {
+        val frame =
+            IntArray(w * h) { i ->
+                val inside = i % w in 32..208 && i / w in 35..285
+                (if (inside) 199 else 183) + (i * 13 % 3) - 1
+            }
+        val quad = DocumentEdges.detect(frame, w, h)
+        assertNotNull(quad)
+        assertEquals(32.0 / 239, quad!!.points[0].x, .04)
+        assertEquals(285.0 / 319, quad.points[2].y, .04)
+        assertNull(DocumentEdges.detect(IntArray(w * h) { 183 + (it * 13 % 7) }, w, h))
+    }
+
+    @Test
     fun rejectsUniformOrCutOffFrames() {
         assertNull(DocumentEdges.detect(IntArray(w * h) { 160 }, w, h))
         assertNull(DocumentEdges.detect(IntArray(w * h) { if (it % w < 100) 35 else 230 }, w, h))

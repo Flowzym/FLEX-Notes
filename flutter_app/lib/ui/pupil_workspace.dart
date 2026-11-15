@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
 import '../domain/school.dart';
 import 'common.dart';
 import 'collapsible_search.dart';
@@ -19,6 +20,7 @@ import 'document_attachments.dart';
 import 'material_thumbnail.dart';
 import '../domain/document_scanner.dart';
 import 'surfaces.dart';
+import 'return_lists.dart';
 
 /// One pupil's entries with persistent area navigation and a quiet action bar.
 class PupilWorkspaceDialog extends StatefulWidget {
@@ -129,8 +131,8 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     );
   }
 
-  bool matches(bool pending, String text, String key) =>
-      (indexedKeys == null
+  bool matches(bool pending, String text, String key, {bool indexed = true}) =>
+      (!indexed || indexedKeys == null
           ? text.toLowerCase().contains(query.toLowerCase())
           : indexedKeys!.contains(key)) &&
       (filter == 'all' || (filter == 'open' ? pending : !pending));
@@ -292,10 +294,17 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     required String summary,
     required String status,
     required ScanContext scope,
+    ScanContext? sharedScope,
     required VoidCallback onOpen,
   }) {
     final c = widget.controller;
-    final docs = c.classroom.where(scope.matchesMaterial).toList();
+    final docs = c.classroom
+        .where(
+          (d) =>
+              scope.matchesMaterial(d) ||
+              (sharedScope?.matchesMaterial(d) ?? false),
+        )
+        .toList();
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -477,6 +486,52 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                   : 'Notiz',
               scope: orgaScanContext(c, e),
               onOpen: () => details(entryId: e.id),
+            ),
+          ),
+      if (area == null || area == FlexSymbol.orga)
+        for (final d in c.classroom.where(
+          (d) =>
+              !d.deleted &&
+              d.returnParticipant(p.id) != null &&
+              matches(
+                d.returnPendingFor(p.id),
+                d.returnSearchText(p.id),
+                'classroom:${d.id}',
+                indexed: false,
+              ),
+        ))
+          (
+            id: d.id,
+            date: d.text('createdAtUtc'),
+            pending: d.returnPendingFor(p.id),
+            card: preview(
+              id: d.id,
+              symbol: FlexSymbol.orga,
+              title: d.title,
+              date: d.text('createdAtUtc'),
+              summary: [
+                d.text('note'),
+                d.returnParticipant(p.id)!['note'] as String,
+              ].where((s) => s.isNotEmpty).join(' · '),
+              status: [
+                'Rücklauf',
+                d.flag('closed')
+                    ? 'Abgeschlossen'
+                    : returnStatuses[d.text('type')]![d.returnParticipant(
+                        p.id,
+                      )!['status']]!,
+                if (d.text('dueDate').isNotEmpty)
+                  'Frist ${displayDate(d.text('dueDate'))}',
+              ].join(' · '),
+              scope: ScanContext(
+                pupilIds: [p.id],
+                links: [DocumentLink('classroom', d.id)],
+              ),
+              sharedScope: ScanContext(
+                links: [DocumentLink('classroom', d.id)],
+                unassignedPupilsOnly: true,
+              ),
+              onOpen: () => showReturnDetail(context, c, d.id),
             ),
           ),
     ]..sort((a, b) => b.date.compareTo(a.date));
