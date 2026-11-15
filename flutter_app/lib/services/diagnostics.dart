@@ -138,7 +138,7 @@ class DiagnosticLog extends ChangeNotifier {
     _rotate();
     return const JsonEncoder.withIndent('  ').convert({
       'format': 'FLEX-Diagnostic-1',
-      'appVersion': '0.30.0+80',
+      'appVersion': '0.30.1+81',
       'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
       'createdAtUtc': clock().toUtc().toIso8601String(),
       'events': events,

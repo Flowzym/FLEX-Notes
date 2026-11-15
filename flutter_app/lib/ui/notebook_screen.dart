@@ -557,7 +557,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   ],
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 2),
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
                 child: Row(
                   children: [
                     Text(

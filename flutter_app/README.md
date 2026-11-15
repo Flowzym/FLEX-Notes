@@ -1,9 +1,9 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Aktuell: **0.30.0+80**, Branch `redesign/cream-olive`.
+Aktuell: **0.30.1+81**, Branch `redesign/cream-olive`.
 [Änderungen und Prüfungen](../docs/rebuild/NAVIGATION-BUILD-80.md) ·
 [Projektstatus](../docs/rebuild/STATUS.md) ·
-[Android-APKs](../releases/android/build-80/README.md) ·
+[Android-APKs](../releases/android/build-81/README.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
 
 Die App verwendet Flutter-Widgets und direkt gezeichnete Symbole; sie bettet den

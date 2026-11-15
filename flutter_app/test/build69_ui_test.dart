@@ -197,7 +197,7 @@ void main() {
               Offset(direction * 180, 0),
             );
             await t.pump(const Duration(milliseconds: 30));
-            index = (index + direction) % section.$2.length;
+            index = (index - direction) % section.$2.length;
             expect(
               t
                   .widget<FlexPagePills>(find.byType(FlexPagePills).first)

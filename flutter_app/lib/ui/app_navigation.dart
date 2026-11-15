@@ -146,7 +146,7 @@ class FlexPagePills extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final Map<int, String> pages;
   final String keyPrefix;
-  static const pagePadding = EdgeInsets.fromLTRB(16, 6, 16, 2);
+  static const pagePadding = EdgeInsets.fromLTRB(16, 0, 16, 2);
   static const _icons = {
     'Aktuell': Icons.calendar_today_outlined,
     'Notizen': Icons.sticky_note_2_outlined,

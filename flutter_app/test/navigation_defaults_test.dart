@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/ui/app.dart';
@@ -23,7 +24,7 @@ void main() {
       expect(defaults.organisationDefaultPage, 0);
       expect(defaults.materialDefaultPage, 0);
       expect(defaults.moreDefaultPage, 0);
-      expect(defaults.navigationSwipeNext, 'right');
+      expect(defaults.navigationSwipeNext, 'left');
       for (final change in [
         {'liveDefaultPage': 3},
         {'organisationDefaultPage': 1},
@@ -33,6 +34,37 @@ void main() {
       ]) {
         expect(() => defaults.patch(change), throwsA(isA<DomainError>()));
       }
+    },
+  );
+
+  test(
+    'build 80 direction is corrected without resetting other preferences',
+    () async {
+      final repo = classroomMemory();
+      await repo.initialize();
+      addTearDown(repo.close);
+      final original = const Appearance(
+        navigationSwipeNext: 'right',
+        mode: 'dark',
+        textScale: 1.2,
+        materialDefaultPage: 2,
+      ).toJson()..remove('navigationSwipeVersion');
+      await repo.db.customStatement(
+        "INSERT OR REPLACE INTO preferences(key,payload) VALUES ('appearance',?)",
+        [jsonEncode(original)],
+      );
+      final migrated = await repo.appearance();
+      expect(migrated.navigationSwipeNext, 'left');
+      expect(migrated.mode, 'dark');
+      expect(migrated.textScale, 1.2);
+      expect(migrated.materialDefaultPage, 2);
+      final reversed = migrated.patch({'navigationSwipeNext': 'right'});
+      await repo.saveAppearance(reversed);
+      expect((await repo.appearance()).navigationSwipeNext, 'right');
+      expect(
+        Appearance.fromJson(reversed.toJson()).navigationSwipeNext,
+        'right',
+      );
     },
   );
 
@@ -79,7 +111,7 @@ void main() {
         'default-organisationDefaultPage-4',
         'default-materialDefaultPage-3',
         'default-moreDefaultPage-4',
-        'navigation-swipe-next-left',
+        'navigation-swipe-next-right',
       ]) {
         await tap(find.byKey(ValueKey(choice)));
       }
@@ -98,7 +130,7 @@ void main() {
       for (final next in [0, 1, 2]) {
         await t.drag(
           find.byKey(const ValueKey('page-pills')),
-          const Offset(-180, 0),
+          const Offset(180, 0),
         );
         await t.pumpAndSettle();
         expect(
@@ -109,7 +141,7 @@ void main() {
           t
               .widget<FlexTabTransition>(find.byType(FlexTabTransition).first)
               .direction,
-          1,
+          -1,
         );
       }
       for (final destination in [(2, 4), (3, 3), (4, 4)]) {
@@ -133,7 +165,7 @@ void main() {
       for (final next in [2, 0, 1]) {
         await t.drag(
           find.byKey(const ValueKey('calendar-mode-navigation')),
-          const Offset(-180, 0),
+          const Offset(180, 0),
         );
         await t.pumpAndSettle();
         expect(

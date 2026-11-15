@@ -232,10 +232,14 @@ class _SettingsPageState extends State<SettingsPage>
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              const Text('Zum nächsten Reiter wischen'),
+              const Text('Beim Wischen nach links'),
               const SizedBox(height: 6),
               OptionBar(
-                options: const {'left': 'Nach links', 'right': 'Nach rechts'},
+                options: const {
+                  'left': 'Reiter nach rechts',
+                  'right': 'Reiter nach links',
+                },
+                fontSize: 12,
                 value: c.appearance.navigationSwipeNext,
                 keyPrefix: 'navigation-swipe-next',
                 onChanged: (value) =>

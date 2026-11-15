@@ -1,4 +1,9 @@
-# Aktueller Stand: FLEX 0.30.0+80
+# Aktueller Stand: FLEX 0.30.1+81
+
+Build 81 korrigiert die Wischrichtung: links wischen wählt den Reiter rechts.
+Die umgekehrte Grundeinstellung aus Build 80 wird einmalig zurückgesetzt;
+anschließende eigene Richtungswahl bleibt erhalten. Der Abstand von der
+Dreipunktzeile zur oberen Navigation ist um 8 Pixel reduziert.
 
 Vereinheitlichte Navigation mit wählbarer Wischrichtung und Startreiter je
 Bereich. Scanner direkt unten, weitere Bereiche oben; Klassen-Orga unter
@@ -6,7 +11,7 @@ Organisation und direkt sichtbare Filter. Termin-Tags mit Suche, Entwürfen,
 Sicherungen, Vorlagen und ICS-Export.
 
 [Änderungen und Prüfungen](NAVIGATION-BUILD-80.md) ·
-[APKs](../../releases/android/build-80/README.md) ·
+[APKs](../../releases/android/build-81/README.md) ·
 [Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
 
 Schema 8 unverändert; neue Felder mit Build 80 oder neuer bearbeiten.

@@ -1,11 +1,16 @@
 # Aktueller Flutter-Stand
 
-**0.30.0+80**, Branch `redesign/cream-olive`.
+**0.30.1+81**, Branch `redesign/cream-olive`.
+
+Build 81 korrigiert die Wischrichtung: links wischen wählt den Reiter rechts.
+Die umgekehrte Grundeinstellung aus Build 80 wird einmalig zurückgesetzt;
+anschließende eigene Richtungswahl bleibt erhalten. Der Abstand von der
+Dreipunktzeile zur oberen Navigation ist um 8 Pixel reduziert.
 
 [Änderungen und Grenzen](docs/rebuild/NAVIGATION-BUILD-80.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
 [GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
-[Android-APKs](releases/android/build-80/README.md).
+[Android-APKs](releases/android/build-81/README.md).
 
 Einheitliche Navigationspillen, wählbare Wischrichtung und Standardreiter;
 Notizen mittig unter Live. Weitere Bereiche oben rechts, Scanner unten direkt.

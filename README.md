@@ -1,17 +1,17 @@
 # FLEX-Notes
 
-Aktueller Stand: **0.30.0+80**, Branch **`redesign/cream-olive`**.
+Aktueller Stand: **0.30.1+81**, Branch **`redesign/cream-olive`**.
 Flutter-App für Notizen, Unterricht, Kalender, Organisation und Materialien der FLEX-Klasse.
 
 - [Aktueller Funktions- und Prüfstand](FLUTTER_STATUS.md)
-- [Android-APKs Build 80](releases/android/build-80/README.md)
+- [Android-APKs Build 81](releases/android/build-81/README.md)
 - [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
 - [Entwicklung und lokaler Start](flutter_app/README.md)
 - [Navigation, Standardansichten und Termin-Tags](docs/rebuild/NAVIGATION-BUILD-80.md)
 - [Review-Ergänzungen und Kalender](docs/rebuild/REVIEW-CALENDAR-BUILD-79.md)
 - [Offene Geräteabnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md)
 
-Vor Android-Updates unabhängig sichern. Die neue FLEX aktualisiert Build 62–79;
+Vor Android-Updates unabhängig sichern. Die neue FLEX aktualisiert Build 62–80;
 die ursprüngliche FLEX Test bleibt separat. Neue Sicherungen mit Schema 8 benötigen
 Build 79 oder neuer. [Installation und Signatur](flutter_app/ANDROID-TEST.md).
 

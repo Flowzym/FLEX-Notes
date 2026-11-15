@@ -689,7 +689,7 @@ class Appearance {
     this.textScale = 1,
     this.defaultObservationTone = 'neutral',
     this.calendarDefaultView = 'day',
-    this.navigationSwipeNext = 'right',
+    this.navigationSwipeNext = 'left',
     this.liveDefaultPage = 1,
     this.organisationDefaultPage = 0,
     this.materialDefaultPage = 0,
@@ -719,6 +719,7 @@ class Appearance {
     'textScale': textScale,
     'defaultObservationTone': defaultObservationTone,
     'calendarDefaultView': calendarDefaultView,
+    'navigationSwipeVersion': 1,
     'navigationSwipeNext': navigationSwipeNext,
     'liveDefaultPage': liveDefaultPage,
     'organisationDefaultPage': organisationDefaultPage,
@@ -730,6 +731,10 @@ class Appearance {
   };
 
   factory Appearance.fromJson(Json source) {
+    final swipeNext = source['navigationSwipeNext'] as String? ?? 'left';
+    if (!['left', 'right'].contains(swipeNext)) {
+      throw const DomainError('Ungültige Wischrichtung.');
+    }
     final a = Appearance(
       // The first opening after the redesign starts with the approved cream theme.
       // Subsequent choices round-trip normally, including through backups.
@@ -740,7 +745,11 @@ class Appearance {
       defaultObservationTone:
           source['defaultObservationTone'] as String? ?? 'neutral',
       calendarDefaultView: source['calendarDefaultView'] as String? ?? 'day',
-      navigationSwipeNext: source['navigationSwipeNext'] as String? ?? 'right',
+      // Build 80 persisted the reversed default with every appearance update.
+      // Correct that once; subsequent explicit choices round-trip normally.
+      navigationSwipeNext: source['navigationSwipeVersion'] == 1
+          ? swipeNext
+          : 'left',
       liveDefaultPage: source['liveDefaultPage'] as int? ?? 1,
       organisationDefaultPage: source['organisationDefaultPage'] as int? ?? 0,
       materialDefaultPage: source['materialDefaultPage'] as int? ?? 0,
