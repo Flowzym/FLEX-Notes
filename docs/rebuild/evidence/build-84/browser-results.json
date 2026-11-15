@@ -1,0 +1,15 @@
+{
+  "build": "0.33.0+84",
+  "mockMicrosoftOnly": true,
+  "autoBrowseAfterSignIn": true,
+  "jpgHiddenInRootAndSubfolder": true,
+  "oneFileAddedIndividually": true,
+  "bookmarkAdded": true,
+  "errors": [],
+  "calls": [
+    "/v1.0/me/drive/root",
+    "/v1.0/drives/review-drive/items/root/children",
+    "/v1.0/drives/review-drive/items/teaching/children",
+    "/v1.0/drives/review-drive/items/fractions/thumbnails"
+  ]
+}

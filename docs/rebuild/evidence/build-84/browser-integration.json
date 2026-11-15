@@ -1,0 +1,17 @@
+{
+  "version": "0.33.0+84",
+  "isolatedSyntheticData": true,
+  "viewports": [
+    320,
+    390
+  ],
+  "returnCreatedFromPupil": true,
+  "pupilAndTasksShowSameReturn": true,
+  "individualStatusSaved": true,
+  "scanContextRetained": true,
+  "pdfImportedFilteredTaggedSaved": true,
+  "pdfThumbnailAndBytesSurviveReload": true,
+  "pdfOpensAfterReload": true,
+  "sourceAfterLastPreviewFix": "78fdc1ae7da17e5bfd2b1cb0a66e5db7b535be33",
+  "errors": []
+}
