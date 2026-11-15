@@ -27,6 +27,9 @@ plugins {
 
 dependencies {
     implementation("com.microsoft.identity.client:msal:8.7.0")
+    // Nimbus JOSE marks its PEM/X.509 support optional. Include the provider so
+    // release shrinking resolves those classes instead of suppressing R8 errors.
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.87")
     testImplementation("junit:junit:4.13.2")
     implementation("androidx.core:core:1.17.0")
     implementation("androidx.activity:activity-ktx:1.11.0")

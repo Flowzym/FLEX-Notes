@@ -89,6 +89,9 @@ MSAL ist auf Version 8.7.0 festgelegt. Die transitive Bibliothek
 `com.microsoft.device.display:display-mask:0.3.0` kommt aus Microsofts
 [Duo-Paketfeed](https://pkgs.dev.azure.com/MicrosoftDeviceSDK/DuoSDK-Public/_packaging/Duo-SDK-Feed/maven/v1).
 Das zusätzliche Gradle-Repository ist auf diese Paketgruppe begrenzt.
+Die optionale PEM/X.509-Abhängigkeit von Nimbus JOSE wird mit
+`bcpkix-jdk18on:1.87` ausdrücklich eingebunden, damit der optimierte Android-Build
+keine fehlenden Kryptografieklassen durch Warnungsunterdrückung verdeckt.
 
 Die [ältere Graph-Registrierungsvorlage](../../flutter_app/config/onedrive-public-client.json)
 beschreibt einen öffentlichen Client, ist aber **keine MSAL-Konfigurationsdatei**

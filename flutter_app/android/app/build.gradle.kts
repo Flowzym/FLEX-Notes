@@ -98,6 +98,15 @@ android {
         includeInBundle = false
     }
 
+    packaging {
+        resources {
+            // Preserve the license shared by the three Bouncy Castle modules.
+            merges += "META-INF/LICENSE.md"
+            // OSGi bundle metadata is not used by Android's class loader.
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".dev"
