@@ -1,7 +1,7 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
 Aktuell: **0.31.0+82**, Branch `redesign/cream-olive`.
-[Änderungen und Prüfungen](../docs/rebuild/NAVIGATION-BUILD-80.md) ·
+[Änderungen und Prüfungen](../docs/rebuild/ONEDRIVE-SETUP.md) ·
 [Projektstatus](../docs/rebuild/STATUS.md) ·
 [Android-APKs](../releases/android/build-82/README.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
