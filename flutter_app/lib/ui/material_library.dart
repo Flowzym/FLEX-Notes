@@ -985,16 +985,29 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         spacing: 8,
                         runSpacing: 4,
                         children: [
-                          if (drive.connected) ...[
-                            const Chip(
-                              label: Text('OneDrive verbunden'),
-                              avatar: Icon(Icons.cloud_done_outlined, size: 18),
+                          if (drive.hasAccount) ...[
+                            Chip(
+                              label: Text(
+                                !drive.connected
+                                    ? 'Anmeldung erneuern'
+                                    : drive.accountName?.isNotEmpty == true
+                                    ? drive.accountName!
+                                    : 'OneDrive verbunden',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              avatar: const Icon(
+                                Icons.cloud_done_outlined,
+                                size: 18,
+                              ),
                             ),
                             TextButton.icon(
                               onPressed: busy
                                   ? null
                                   : () => action(
-                                      () => browseOneDrive(ctx, c, drive),
+                                      () => drive.connected
+                                          ? browseOneDrive(ctx, c, drive)
+                                          : connectOneDrive(ctx, drive),
                                     ),
                               icon: const Icon(Icons.folder_open),
                               label: const Text('Ordner wählen'),

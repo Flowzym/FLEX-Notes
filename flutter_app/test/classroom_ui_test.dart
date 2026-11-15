@@ -151,13 +151,13 @@ void main() {
         const Offset(-320, 0),
       );
       await t.pumpAndSettle();
-      expect(find.byKey(const PageStorageKey('overview')), findsOneWidget);
+      expect(find.text('Ablauf starten'), findsOneWidget);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
         const Offset(-320, 0),
       );
       await t.pumpAndSettle();
-      expect(find.text('Ablauf starten'), findsOneWidget);
+      expect(find.byKey(const PageStorageKey('overview')), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-3')));

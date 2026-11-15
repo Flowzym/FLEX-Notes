@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../domain/models.dart';
 import 'secret_store.dart';
+import 'onedrive_native.dart';
 
 class OneDriveAuthorization {
   const OneDriveAuthorization(
@@ -19,23 +20,42 @@ class OneDriveAuthorization {
   final DateTime expires;
 }
 
-/// Public-client device flow: no client secret is embedded in the application.
-/// Graph credentials stay in device secure storage, outside notebook backups.
+/// Android uses MSAL's private cache; web uses public-client device flow.
+/// Neither authentication path includes credentials in notebook backups.
 class OneDriveClient extends ChangeNotifier {
   OneDriveClient({
     SecretStore? store,
     http.Client? client,
     String? clientId,
+    NativeOneDriveAuth? nativeAuth,
+    bool? useNativeAuthentication,
     DateTime Function()? now,
   }) : store = store ?? DeviceSecretStore(),
        client = client ?? http.Client(),
        _clientId =
-           clientId ?? const String.fromEnvironment('FLEX_ONEDRIVE_CLIENT_ID'),
+           clientId ??
+           const String.fromEnvironment(
+             'FLEX_ONEDRIVE_CLIENT_ID',
+             defaultValue: oneDriveRegisteredClientId,
+           ),
+       _native =
+           (useNativeAuthentication ??
+               (nativeAuth != null ||
+                   !kIsWeb && defaultTargetPlatform == TargetPlatform.android))
+           ? nativeAuth ?? const MsalOneDriveAuth()
+           : null,
        now = now ?? DateTime.now;
   final SecretStore store;
   final http.Client client;
+  final NativeOneDriveAuth? _native;
+  OneDriveAccount? _account;
+  bool _nativeReady = false;
+  bool get nativeAuthentication => _native != null;
+  String? get accountName => _account?.username;
+  bool get hasAccount => _account != null || connected;
   String _clientId;
-  String get clientId => _clientId;
+  String get clientId =>
+      _native != null ? oneDriveRegisteredClientId : _clientId;
   static const configurationKey = 'flex.onedrive.client.v1';
   final DateTime Function() now;
   static const _key = 'flex.onedrive.tokens.v1';
@@ -49,19 +69,34 @@ class OneDriveClient extends ChangeNotifier {
   bool get configured => RegExp(
     r'^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$',
   ).hasMatch(clientId);
-  bool get connected => _tokens != null && _epoch == _sessionEpoch;
+  bool get connected =>
+      (_native != null ? _nativeReady && _account != null : _tokens != null) &&
+      _epoch == _sessionEpoch;
   void cancelAuthorization() {
     _flow++;
     _activeCode = null;
   }
 
   Future<void> load() async {
-    final epoch = _sessionEpoch;
+    final epoch = _sessionEpoch, flow = _flow;
     await _writes.catchError((Object _) {});
+    if (_native != null) {
+      // A device-code refresh token cannot be imported into MSAL. Only the old
+      // credential is removed; linked materials and local data stay untouched.
+      _clientId = oneDriveRegisteredClientId;
+      await store.delete(_key);
+      final account = await _native.currentAccount();
+      if (epoch != _sessionEpoch || flow != _flow || _disposed) return;
+      _account = account;
+      _nativeReady = account != null;
+      _epoch = epoch;
+      notifyListeners();
+      return;
+    }
     final configuredId = await store.read(configurationKey);
     if (configuredId != null) _clientId = configuredId;
     final raw = await store.read(_key);
-    if (epoch != _sessionEpoch || _disposed) return;
+    if (epoch != _sessionEpoch || flow != _flow || _disposed) return;
     _tokens = raw == null ? null : Json.from(jsonDecode(raw) as Map);
     if (_tokens?['clientId'] != clientId) _tokens = null;
     _epoch = _sessionEpoch;
@@ -70,6 +105,11 @@ class OneDriveClient extends ChangeNotifier {
 
   Future<void> configure(String value) async {
     final id = value.trim();
+    if (_native != null && id != oneDriveRegisteredClientId) {
+      throw const DomainError(
+        'Die Android-Anmeldung verwendet die in FLEX hinterlegte Microsoft-Registrierung.',
+      );
+    }
     if (!RegExp(
       r'^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$',
     ).hasMatch(id)) {
@@ -87,6 +127,14 @@ class OneDriveClient extends ChangeNotifier {
   Future<void> disconnect() async {
     _sessionEpoch++;
     cancelAuthorization();
+    _nativeReady = false;
+    _tokens = null;
+    if (!_disposed) notifyListeners();
+    // The native queue finishes pending authentication/cache writes first.
+    if (_native != null) {
+      await _native.signOut();
+      _account = null;
+    }
     final operation = _writes
         .catchError((Object _) {})
         .then((_) => store.delete(_key));
@@ -94,6 +142,24 @@ class OneDriveClient extends ChangeNotifier {
     await operation;
     _tokens = null;
     if (!_disposed) notifyListeners();
+  }
+
+  Future<bool> signInNative() async {
+    final auth = _native;
+    if (auth == null) {
+      throw const DomainError('Native Anmeldung nicht verfügbar.');
+    }
+    final epoch = _sessionEpoch, flow = ++_flow;
+    final account = await auth.signIn();
+    if (epoch != _sessionEpoch || flow != _flow || _disposed) {
+      throw const DomainError('Anmeldung abgebrochen.');
+    }
+    if (account == null) return false;
+    _account = account;
+    _nativeReady = true;
+    _epoch = epoch;
+    notifyListeners();
+    return true;
   }
 
   Future<Json> _post(String endpoint, Map<String, String> body) async {
@@ -117,6 +183,11 @@ class OneDriveClient extends ChangeNotifier {
   }
 
   Future<OneDriveAuthorization> begin() async {
+    if (_native != null) {
+      throw const DomainError(
+        'Bitte die native Microsoft-Anmeldung verwenden.',
+      );
+    }
     final flow = ++_flow;
     if (!configured) {
       throw const DomainError(
@@ -223,6 +294,23 @@ class OneDriveClient extends ChangeNotifier {
 
   Future<String> _token({bool force = false}) async {
     if (!connected) throw const DomainError('Bitte OneDrive verbinden.');
+    if (_native != null) {
+      final epoch = _sessionEpoch;
+      final accountId = _account!.id;
+      try {
+        final token = await _native.token(accountId, forceRefresh: force);
+        if (epoch != _sessionEpoch || _disposed || _account?.id != accountId) {
+          throw const DomainError('Die OneDrive-Verbindung wurde beendet.');
+        }
+        return token;
+      } on OneDriveSignInRequired {
+        if (epoch == _sessionEpoch && !_disposed && _account?.id == accountId) {
+          _nativeReady = false;
+          notifyListeners();
+        }
+        rethrow;
+      }
+    }
     if (!force &&
         DateTime.parse(
           _tokens!['expires'] as String,
@@ -258,6 +346,7 @@ class OneDriveClient extends ChangeNotifier {
   }
 
   Future<Json> graph(String path, {bool retried = false}) async {
+    final epoch = _sessionEpoch, accountId = _account?.id;
     final uri = path.startsWith('https://')
         ? Uri.parse(path)
         : Uri.parse('https://graph.microsoft.com/v1.0$path');
@@ -273,12 +362,25 @@ class OneDriveClient extends ChangeNotifier {
           headers: {'Authorization': 'Bearer ${await _token(force: retried)}'},
         )
         .timeout(const Duration(seconds: 30));
+    if (epoch != _sessionEpoch || _disposed || _account?.id != accountId) {
+      throw const DomainError('Die OneDrive-Verbindung wurde beendet.');
+    }
     if (response.statusCode == 401 && !retried) {
       return graph(path, retried: true);
     }
     if (response.statusCode == 404) {
       throw const DomainError(
         'Die OneDrive-Datei wurde verschoben, gelöscht oder ist nicht mehr freigegeben.',
+      );
+    }
+    if (response.statusCode == 401) {
+      _nativeReady = false;
+      if (!_disposed) notifyListeners();
+      throw const OneDriveSignInRequired();
+    }
+    if (response.statusCode == 403) {
+      throw const DomainError(
+        'Microsoft erlaubt den Dateizugriff noch nicht. Bitte in Entra die delegierte Berechtigung Files.Read ergänzen und erneut anmelden.',
       );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {

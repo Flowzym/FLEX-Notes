@@ -1,9 +1,13 @@
-# Aktueller Stand: FLEX 0.30.1+81
+# Aktueller Stand: FLEX 0.31.0+82
 
-Build 81 korrigiert die Wischrichtung: links wischen wählt den Reiter rechts.
-Die umgekehrte Grundeinstellung aus Build 80 wird einmalig zurückgesetzt;
-anschließende eigene Richtungswahl bleibt erhalten. Der Abstand von der
-Dreipunktzeile zur oberen Navigation ist um 8 Pixel reduziert.
+Build 82 integriert Microsofts native MSAL-Anmeldung für Android mit der
+bereitgestellten Entra-Registrierung. Die Tokenverwaltung bleibt im SDK;
+Kontobindung und serialisierte Cacheoperationen schützen laufende Anfragen
+beim Abmelden. Web behält die Code-Anmeldung. Vorhandene Daten bleiben erhalten;
+Android verlangt nach dem Update einmalig eine neue Microsoft-Anmeldung.
+
+[OneDrive-Einrichtung und Geräteabnahme](ONEDRIVE-SETUP.md).
+
 
 Vereinheitlichte Navigation mit wählbarer Wischrichtung und Startreiter je
 Bereich. Scanner direkt unten, weitere Bereiche oben; Klassen-Orga unter
@@ -11,7 +15,7 @@ Organisation und direkt sichtbare Filter. Termin-Tags mit Suche, Entwürfen,
 Sicherungen, Vorlagen und ICS-Export.
 
 [Änderungen und Prüfungen](NAVIGATION-BUILD-80.md) ·
-[APKs](../../releases/android/build-81/README.md) ·
+[APKs](../../releases/android/build-82/README.md) ·
 [Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
 
 Schema 8 unverändert; neue Felder mit Build 80 oder neuer bearbeiten.

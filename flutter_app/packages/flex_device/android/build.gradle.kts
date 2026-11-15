@@ -26,6 +26,7 @@ plugins {
 }
 
 dependencies {
+    implementation("com.microsoft.identity.client:msal:8.7.0")
     testImplementation("junit:junit:4.13.2")
     implementation("androidx.core:core:1.17.0")
     implementation("androidx.activity:activity-ktx:1.11.0")

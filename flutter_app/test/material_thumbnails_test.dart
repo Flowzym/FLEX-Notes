@@ -178,6 +178,7 @@ void main() {
       });
       var requests = 0;
       final drive = OneDriveClient(
+        useNativeAuthentication: false,
         store: secrets,
         clientId: clientId,
         client: MockClient((r) async {

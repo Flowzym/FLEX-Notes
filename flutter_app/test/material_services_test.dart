@@ -193,6 +193,7 @@ void main() {
     () async {
       var called = false;
       final drive = OneDriveClient(
+        useNativeAuthentication: false,
         store: MaterialSecrets(),
         clientId: '',
         client: MockClient((r) async {
@@ -212,6 +213,7 @@ void main() {
       final store = MaterialSecrets();
       var polls = 0;
       final drive = OneDriveClient(
+        useNativeAuthentication: false,
         store: store,
         clientId: clientId,
         client: MockClient((r) async {
@@ -250,6 +252,7 @@ void main() {
   test('cancelled login does not save a late successful response', () async {
     final store = MaterialSecrets(), response = Completer<http.Response>();
     final drive = OneDriveClient(
+      useNativeAuthentication: false,
       store: store,
       clientId: clientId,
       client: MockClient(
@@ -288,6 +291,7 @@ void main() {
       final started = Completer<void>(), reply = Completer<http.Response>();
       var refreshes = 0;
       final drive = OneDriveClient(
+        useNativeAuthentication: false,
         store: store,
         clientId: clientId,
         client: MockClient((r) async {
@@ -323,6 +327,7 @@ void main() {
       });
       final requests = <http.Request>[];
       final drive = OneDriveClient(
+        useNativeAuthentication: false,
         store: store,
         clientId: clientId,
         client: MockClient((r) async {
@@ -359,6 +364,7 @@ void main() {
   test('failed secure storage does not report a connected account', () async {
     final store = MaterialSecrets()..fail = true;
     final drive = OneDriveClient(
+      useNativeAuthentication: false,
       store: store,
       clientId: clientId,
       client: MockClient(

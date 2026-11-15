@@ -5,6 +5,83 @@ import '../services/onedrive.dart';
 import 'common.dart';
 import 'flex_modal.dart';
 
+Future<void> connectNativeOneDrive(
+  BuildContext context,
+  OneDriveClient drive,
+) async {
+  var started = false, busy = true;
+  String? error;
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, update) {
+        Future<void> signIn() async {
+          try {
+            await drive.signInNative();
+            if (ctx.mounted) Navigator.pop(ctx);
+          } catch (e) {
+            if (ctx.mounted) {
+              update(() {
+                busy = false;
+                error = friendlyError(e);
+              });
+            }
+          }
+        }
+
+        if (!started) {
+          started = true;
+          Future<void>(signIn);
+        }
+        return PopScope(
+          canPop: !busy,
+          child: FlexModal(
+            maxWidth: 520,
+            title: const Text('OneDrive verbinden'),
+            onClose: busy ? null : () => Navigator.pop(ctx),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (busy) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text('Microsoft-Anmeldung wird geöffnet …'),
+                ],
+                if (error != null) Text(error!),
+                const SizedBox(height: 12),
+                const Text(
+                  'FLEX liest deine OneDrive-Materialien. Dateien in OneDrive werden nicht verändert.',
+                ),
+              ],
+            ),
+            actions: busy
+                ? const []
+                : [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Schließen'),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () {
+                        update(() {
+                          busy = true;
+                          error = null;
+                        });
+                        signIn();
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text('Erneut anmelden'),
+                    ),
+                  ],
+          ),
+        );
+      },
+    ),
+  );
+}
+
 Future<bool> setupOneDrive(BuildContext context, OneDriveClient drive) async {
   final id = TextEditingController(text: drive.clientId);
   var busy = false;

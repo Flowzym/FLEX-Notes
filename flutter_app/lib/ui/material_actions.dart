@@ -27,6 +27,10 @@ Future<void> _launchMaterial(String url) async {
 }
 
 Future<void> connectOneDrive(BuildContext context, OneDriveClient drive) async {
+  if (drive.nativeAuthentication) {
+    await connectNativeOneDrive(context, drive);
+    return;
+  }
   if (!drive.configured && !await setupOneDrive(context, drive)) return;
   if (!context.mounted) return;
   OneDriveAuthorization? auth;
@@ -187,6 +191,22 @@ Future<void> browseOneDrive(
               return Column(
                 children: [
                   Text(friendlyError(s.error!)),
+                  if (!drive.connected)
+                    TextButton.icon(
+                      onPressed: () async {
+                        await connectOneDrive(ctx, drive);
+                        if (ctx.mounted && drive.connected) {
+                          update(
+                            () => listing = drive.children(
+                              drive: driveId,
+                              folder: stack.last.id,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text('Erneut anmelden'),
+                    ),
                   TextButton(
                     onPressed: () => update(
                       () => listing = drive.children(

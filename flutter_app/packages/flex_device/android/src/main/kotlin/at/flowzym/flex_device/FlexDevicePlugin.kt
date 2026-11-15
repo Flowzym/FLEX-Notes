@@ -34,6 +34,7 @@ class FlexDevicePlugin :
     private lateinit var dictation: OnDeviceDictation
     private lateinit var scanner: DocumentScanner
     private lateinit var photo: PhotoCapture
+    private lateinit var oneDrive: OneDriveAuthentication
     private lateinit var channel: MethodChannel
     private val writer = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -54,11 +55,16 @@ class FlexDevicePlugin :
         dictation = OnDeviceDictation(context, binding.binaryMessenger)
         scanner = DocumentScanner(context)
         photo = PhotoCapture(context)
+        oneDrive = OneDriveAuthentication(context) { activity }
         channel = MethodChannel(binding.binaryMessenger, "at.flowzym.flex_notizbuch/device")
         channel.setMethodCallHandler(this)
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method in OneDriveAuthentication.methods) {
+            oneDrive.perform(call, result)
+            return
+        }
         if (call.method in IncomingShares.methods) {
             writer.execute {
                 try {
@@ -446,6 +452,7 @@ class FlexDevicePlugin :
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         detached = true
+        oneDrive.close()
         dictation.dispose()
         photo.close()
         scanner.dispose()

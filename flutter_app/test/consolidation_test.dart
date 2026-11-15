@@ -358,7 +358,11 @@ void main() {
     'OneDrive public configuration persists without including credentials in notebook data',
     () async {
       final secrets = MaterialSecrets();
-      final drive = OneDriveClient(store: secrets, clientId: '');
+      final drive = OneDriveClient(
+        store: secrets,
+        clientId: '',
+        useNativeAuthentication: false,
+      );
       addTearDown(drive.dispose);
       await expectLater(
         drive.configure('not-a-client-id'),
@@ -367,7 +371,11 @@ void main() {
       await drive.configure(clientId);
       expect(drive.configured, true);
       expect(secrets.values[tokenKey], isNull);
-      final reopened = OneDriveClient(store: secrets, clientId: '');
+      final reopened = OneDriveClient(
+        store: secrets,
+        clientId: '',
+        useNativeAuthentication: false,
+      );
       addTearDown(reopened.dispose);
       await reopened.load();
       expect(reopened.clientId, clientId);
