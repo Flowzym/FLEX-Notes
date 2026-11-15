@@ -1,0 +1,26 @@
+{
+  "version": "0.30.1+81",
+  "sourceCommit": "8c82d54f06e264e950e645199b1f501d166cee35",
+  "targetedFlutterTests": {
+    "passed": 42,
+    "failed": 0
+  },
+  "analyze": "No issues found",
+  "format": "246 files unchanged",
+  "browser": {
+    "version": "0.30.1+81",
+    "leftSwipeSequence": [
+      "Bereitgelegt",
+      "Pakete",
+      "Planungen",
+      "Dateien"
+    ],
+    "rightSwipeFromFirst": "Planungen",
+    "viewports": [
+      390,
+      320
+    ],
+    "errors": []
+  },
+  "deviceInstallTested": false
+}
