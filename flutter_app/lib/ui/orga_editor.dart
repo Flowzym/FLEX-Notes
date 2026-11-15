@@ -1,4 +1,5 @@
 import 'entry_templates.dart';
+import 'material_tags.dart';
 import '../domain/entry_template.dart';
 import 'dictation.dart';
 import '../services/dictation.dart';
@@ -1052,6 +1053,27 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                  if (entry.isAppointment)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: MaterialTagEditor(
+                        key: const ValueKey('appointment-tags'),
+                        values: entry.tags,
+                        suggestions: [
+                          'Schularbeit',
+                          'Test',
+                          'Gespräch',
+                          'Ausflug',
+                          for (final e in c.entries.where(
+                            (e) => !e.deleted && e.isAppointment,
+                          ))
+                            ...e.tags,
+                          for (final d in c.drafts) ...d.entry.tags,
+                        ],
+                        enabled: !busy,
+                        onChanged: (tags) => change(entry.copyWith(tags: tags)),
+                      ),
+                    ),
                   if (entry.isTask) ...[
                     OutlinedButton.icon(
                       onPressed: () => date(due: true),

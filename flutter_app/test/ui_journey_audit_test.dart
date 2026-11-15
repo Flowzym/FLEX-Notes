@@ -112,7 +112,6 @@ void main() {
         2: 'Papierkorb',
         3: 'Daten',
         4: 'Einstellungen',
-        5: 'Scanner',
       };
       await t.pumpWidget(
         MaterialApp(
@@ -168,13 +167,23 @@ void main() {
         for (final destination in [
           (1, [0, 1, 2]),
           (0, [0]),
-          (2, [0, 3, 2]),
+          (2, [0, 3, 2, 4]),
           (3, [0, 1, 2, 3]),
-          (4, [0, 1, 2, 3, 4, 5]),
+          (4, [0, 1, 2, 3, 4]),
+          (5, [0]),
         ]) {
-          await tap(t, find.byKey(ValueKey('bottom-${destination.$1}')));
+          await tap(
+            t,
+            find.byKey(
+              ValueKey(
+                destination.$1 == 4
+                    ? 'header-more'
+                    : 'bottom-${destination.$1}',
+              ),
+            ),
+          );
           for (final tab in destination.$2) {
-            if (destination.$1 != 0) {
+            if (destination.$1 != 0 && destination.$1 != 5) {
               await tap(
                 t,
                 find.byKey(
@@ -199,8 +208,7 @@ void main() {
               );
             }
             if (destination.$1 == 1 && tab == 1 && view.$1 == 390) {
-              // Roomier pupil rows keep all five actions directly reachable;
-              // the sixth row may require scrolling on a standard phone.
+              // Every pupil keeps all five actions reachable by scrolling.
               for (final pupil in [
                 'audit-p0',
                 'audit-p4',
@@ -209,12 +217,10 @@ void main() {
                 'audit-p2',
                 'audit-p6',
               ]) {
-                if (pupil == 'audit-p6') {
-                  await t.ensureVisible(
-                    find.byKey(ValueKey('shortcut-$pupil-orga')),
-                  );
-                  await t.pumpAndSettle();
-                }
+                await t.ensureVisible(
+                  find.byKey(ValueKey('shortcut-$pupil-orga')),
+                );
+                await t.pumpAndSettle();
                 for (final action in [
                   'goal',
                   'social',

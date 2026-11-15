@@ -60,6 +60,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
   int _orgaView = 0;
   final _visited = <int>{1};
+  final _appliedDefaults = <int, int>{};
   final _dataLayout = SettingsLayoutState()..tab = 2;
   String? _overviewSection;
   final _settingsLayout = SettingsLayoutState();
@@ -69,15 +70,17 @@ class _NotebookScreenState extends State<NotebookScreen> {
     0 => const {0: 'Kalender'},
     1 => livePages,
     2 => organisationPages,
-    3 => _materialPages,
-    _ => _morePages,
+    3 => materialPages,
+    4 => morePages,
+    _ => const {0: 'Scanner'},
   };
   int get _contextPage => switch (_destination) {
     0 => 0,
     1 => _primary,
     2 => _orgaView,
     3 => _materialView,
-    _ => _moreView,
+    4 => _moreView,
+    _ => 0,
   };
 
   void _contextTo(int index, {int? swipeDirection}) {
@@ -100,10 +103,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void _swipeContext(bool towardEnd) {
     final order = _contextPages.keys.toList();
     if (order.length < 2) return;
-    final step = towardEnd ? 1 : -1;
+    final direction = towardEnd ? 1 : -1;
+    final step = c.appearance.navigationSwipeNext == 'right'
+        ? direction
+        : -direction;
     final next = (order.indexOf(_contextPage) + step) % order.length;
-    // Advance along the pill in the swipe direction; the page follows the finger.
-    _contextTo(order[next], swipeDirection: -step);
+    // The page follows the finger, independently of the chosen tab order.
+    _contextTo(order[next], swipeDirection: -direction);
   }
 
   VoidCallback? _refreshPupilDialog;
@@ -114,13 +120,14 @@ class _NotebookScreenState extends State<NotebookScreen> {
     _refreshPupilDialog?.call();
   }
 
-  String _pupilQuery = '', _entryQuery = '', _filter = 'all';
+  String _pupilQuery = '';
   final _expandedSections = <String>{};
   final _pupilSearch = TextEditingController();
-  final _entrySearch = TextEditingController();
   @override
   void initState() {
     super.initState();
+    _primary = c.appearance.liveDefaultPage;
+    _appliedDefaults[1] = _primary;
     c.services?.reminders.addListener(_notification);
     c.services?.lock.addListener(_notification);
     c.services?.incoming?.addListener(_incoming);
@@ -311,7 +318,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
     c.services?.reminders.removeListener(_notification);
     c.services?.lock.removeListener(_notification);
     _pupilSearch.dispose();
-    _entrySearch.dispose();
     super.dispose();
   }
 
@@ -319,6 +325,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
   void _sectionTo(int index) {
     FocusManager.instance.primaryFocus?.unfocus();
     _changeView(() {
+      final start = switch (index) {
+        1 => c.appearance.liveDefaultPage,
+        2 => c.appearance.organisationDefaultPage,
+        3 => c.appearance.materialDefaultPage,
+        4 => c.appearance.moreDefaultPage,
+        _ => null,
+      };
+      // Keep an in-session selection until its configured start view changes.
+      if (start != null && _appliedDefaults[index] != start) {
+        switch (index) {
+          case 1:
+            _primary = start;
+          case 2:
+            _orgaView = start;
+          case 3:
+            _materialView = start;
+          case 4:
+            _moreView = start;
+        }
+        _appliedDefaults[index] = start;
+      }
       _destination = index;
       _visited.add(index);
     });
@@ -372,229 +399,28 @@ class _NotebookScreenState extends State<NotebookScreen> {
     await c.reload();
   }
 
-  Future<void> _classOrga() async {
-    var filter = 'all', query = '';
-    final search = TextEditingController();
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => AnimatedBuilder(
-          animation: c,
-          builder: (ctx, _) {
-            final values = c.entries
-                .where(
-                  (e) =>
-                      e.pupilId == null &&
-                      '${e.title} ${e.body} ${e.otherParticipants}'
-                          .toLowerCase()
-                          .contains(query.toLowerCase()) &&
-                      (filter == 'all' ||
-                          (filter == 'appointments'
-                              ? e.isAppointment
-                              : e.isTask &&
-                                    (filter == 'done' ? e.done : !e.done))),
-                )
-                .toList();
-            return FlexModal(
-              maxWidth: 1000,
-              title: const Text('Klassen-Orga'),
-              headerActions: [
-                TextButton.icon(
-                  onPressed: () => showReturnLists(ctx, c),
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('Rückläufe'),
-                ),
-              ],
-              onClose: () => Navigator.pop(ctx),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  CollapsibleSearch(
-                    controller: search,
-                    fieldKey: const ValueKey('class-orga-search'),
-                    buttonKey: const ValueKey('class-orga-search-button'),
-                    label: 'Einträge durchsuchen',
-                    onChanged: (value) => update(() => query = value),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final option in const {
-                        'all': 'Alle',
-                        'appointments': 'Termine',
-                        'open': 'Offen',
-                        'done': 'Erledigt',
-                      }.entries)
-                        transparentChip(
-                          ChoiceChip(
-                            label: Text(option.value),
-                            selected: filter == option.key,
-                            onSelected: (_) =>
-                                update(() => filter = option.key),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (values.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text('Keine Einträge.'),
-                    ),
-                  for (final e in values)
-                    FlexCard(
-                      child: InkWell(
-                        onTap: () => _editor(e),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                e.isAppointment
-                                    ? 'Termin'
-                                    : e.isTask
-                                    ? e.done
-                                          ? 'Aufgabe erledigt'
-                                          : 'Aufgabe offen'
-                                    : 'Notiz',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                e.body.isEmpty ? e.title : e.body,
-                                maxLines: 5,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (e.isAppointment)
-                                Text(
-                                  'Termin: ${displayDate(e.appointmentDate)} ${e.appointmentTime}',
-                                ),
-                              if (e.dueDate != null)
-                                Text('Termin: ${displayDate(e.dueDate)}'),
-                              if (e.reminderState == ReminderState.planned)
-                                Text('Erinnern am: ${displayReminder(e)}'),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              actions: [
-                OutlinedButton.icon(
-                  key: const ValueKey('class-add-appointment'),
-                  onPressed: () => _editor(
-                    OrgaEntry.empty().copyWith(
-                      appointmentDate: dateOnly(DateTime.now()),
-                    ),
-                  ),
-                  icon: const Icon(Icons.event_outlined),
-                  label: const Text('Termin anlegen'),
-                ),
-                FilledButton(
-                  onPressed: () => _editor(OrgaEntry.empty()),
-                  child: const Text('Eintrag hinzufügen'),
-                ),
-              ],
-            );
-          },
+  Future<void> _showDrafts() => showDialog<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: c,
+      builder: (ctx, _) => FlexModal(
+        title: const Text('Gesicherte Entwürfe'),
+        onClose: () => Navigator.pop(ctx),
+        scrollable: false,
+        content: SizedBox(
+          height: c.draftCount == 0 ? 140 : MediaQuery.sizeOf(ctx).height * .7,
+          child: _drafts(),
         ),
       ),
-    );
-    search.dispose();
-  }
+    ),
+  );
 
-  Future<void> _auxDialog(String type) async {
-    if (type == 'class') {
-      await _classOrga();
-      return;
-    }
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AnimatedBuilder(
-        animation: c,
-        builder: (ctx, _) => FlexModal(
-          title: Text(
-            type == 'drafts'
-                ? 'Gesicherte Entwürfe'
-                : type == 'class'
-                ? 'Klassen-Orga'
-                : 'Papierkorb',
-          ),
-          maxWidth: type == 'class' ? 1000 : 760,
-          actions: type == 'trash'
-              ? [
-                  TextButton(
-                    onPressed: () => showDialog<void>(
-                      context: ctx,
-                      builder: (_) =>
-                          MaintenanceDialog(controller: c, emptyTrash: true),
-                    ),
-                    child: const Text('Papierkorb endgültig leeren'),
-                  ),
-                ]
-              : const [],
-          onClose: () => Navigator.pop(ctx),
-          scrollable: false,
-          content: SizedBox(
-            height:
-                type == 'drafts' && c.draftCount == 0 ||
-                    type == 'trash' &&
-                        c.trashedEntries.isEmpty &&
-                        !c.records.any((r) => r.deleted) &&
-                        !c.pupils.any((p) => p.deleted)
-                ? 140
-                : MediaQuery.sizeOf(ctx).height * .7,
-            child: type == 'drafts'
-                ? _drafts()
-                : type == 'trash'
-                ? SchoolTools(controller: c, mode: 'trash')
-                : _entries(
-                    c.entries.where((e) => e.pupilId == null).toList(),
-                    scope: 'class',
-                    orga: true,
-                    pupil: null,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static const _morePages = {
-    0: 'Weitere',
-    1: 'Archiv',
-    2: 'Papierkorb',
-    3: 'Daten',
-    4: 'Einstellungen',
-    5: 'Scanner',
-  };
-  static const _materialPages = {
-    0: 'Dateien',
-    1: 'Bereitgelegt',
-    2: 'Pakete',
-    3: 'Planungen',
-  };
   static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
   Widget _moreHome() => ListView(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
-        (
-          'Scans & Fotos',
-          Icons.document_scanner_outlined,
-          () => _changeView(() => _moreView = 5),
-        ),
-        (
-          'Entwürfe (${c.draftCount})',
-          Icons.edit_note,
-          () => _auxDialog('drafts'),
-        ),
-        ('Klassen-Orga', Icons.assignment_outlined, _classOrga),
+        ('Entwürfe (${c.draftCount})', Icons.edit_note, () => _showDrafts()),
         (
           'Rückläufe',
           Icons.fact_check_outlined,
@@ -662,10 +488,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ],
   );
   Widget _moreBody() => switch (_moreView) {
-    5 => ScannerLibrary(
-      key: const ValueKey('scanner-library-page'),
-      controller: c,
-    ),
     1 => _pupils(archived: true),
     2 => Column(
       children: [
@@ -701,9 +523,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
   };
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: _destination == 1 && _primary == 1,
+    canPop: _destination == 1 && _primary == c.appearance.liveDefaultPage,
     onPopInvokedWithResult: (didPop, result) {
-      if (!didPop) _main(1);
+      if (!didPop) _main(c.appearance.liveDefaultPage);
     },
     child: Scaffold(
       floatingActionButton: QuickAddButton(
@@ -735,26 +557,48 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   ],
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'FLEX.',
-                    key: const ValueKey('app-wordmark'),
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: .5,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: .55),
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 2),
+                child: Row(
+                  children: [
+                    Text(
+                      'FLEX.',
+                      key: const ValueKey('app-wordmark'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: .5,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: .55),
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    Semantics(
+                      selected: _destination == 4,
+                      child: SizedBox(
+                        width: 44,
+                        height: 32,
+                        child: IconButton(
+                          key: const ValueKey('header-more'),
+                          tooltip: 'Weitere Bereiche',
+                          onPressed: () => _sectionTo(4),
+                          padding: EdgeInsets.zero,
+                          iconSize: 23,
+                          icon: const Icon(Icons.more_horiz),
+                          style: IconButton.styleFrom(
+                            backgroundColor: _destination == 4
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (_contextPages.length > 1)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                  padding: FlexPagePills.pagePadding,
                   child: FlexPagePills(
                     keyPrefix: _destination == 1
                         ? 'page'
@@ -789,8 +633,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             key: const ValueKey('main-pages'),
                             index: livePages.keys.toList().indexOf(_primary),
                             children: [
-                              _pupils(),
                               _overview(),
+                              _pupils(),
                               LessonFlowPage(controller: c),
                             ],
                           ),
@@ -804,6 +648,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                                 _generalOrga('all'),
                                 _generalOrga('task'),
                                 _generalOrga('note'),
+                                _generalOrga('class'),
                               ],
                             )
                           else
@@ -817,6 +662,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
                             const SizedBox(),
                           if (_visited.contains(4))
                             _moreBody()
+                          else
+                            const SizedBox(),
+                          if (_visited.contains(5))
+                            ScannerLibrary(
+                              key: const ValueKey('scanner-library-page'),
+                              controller: c,
+                            )
                           else
                             const SizedBox(),
                         ],
@@ -1096,7 +948,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               key: const ValueKey('overview-drafts'),
-              onPressed: () => _auxDialog('drafts'),
+              onPressed: () => _showDrafts(),
               icon: const Icon(Icons.edit_note, size: 18),
               label: Text(
                 '${c.draftCount} ${c.draftCount == 1 ? 'Entwurf' : 'Entwürfe'}',
@@ -1575,173 +1427,6 @@ class _NotebookScreenState extends State<NotebookScreen> {
     };
   }
 
-  Widget _entries(
-    List<OrgaEntry> entries, {
-    required String scope,
-    required bool orga,
-    required Pupil? pupil,
-  }) {
-    final visible = entries
-        .where(
-          (e) =>
-              '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}'
-                  .toLowerCase()
-                  .contains(_entryQuery.toLowerCase()) &&
-              (_filter == 'all' ||
-                  (_filter == 'appointments'
-                      ? e.isAppointment
-                      : (e.isTask && e.done == (_filter == 'done')))),
-        )
-        .toList();
-    return ListView(
-      key: PageStorageKey('entries-$scope-$orga'),
-      padding: EdgeInsets.all(pupil == null ? 24 : 0),
-      children: [
-        if (pupil == null)
-          Text('Klassen-Orga', style: Theme.of(context).textTheme.titleLarge),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: () => scanAndShow(
-              context,
-              c,
-              const ScanContext(title: 'Klassen-Orga', category: 'form'),
-            ),
-            icon: const Icon(Icons.document_scanner_outlined),
-            label: const Text('Scannen'),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilledButton.icon(
-              onPressed: () => _editor(OrgaEntry.empty(pupilId: pupil?.id)),
-              icon: const Icon(Icons.add),
-              label: const Text('Orga anlegen'),
-            ),
-            TextButton.icon(
-              key: const ValueKey('orga-add-appointment'),
-              onPressed: () => _editor(
-                OrgaEntry.empty(
-                  pupilId: pupil?.id,
-                ).copyWith(appointmentDate: dateOnly(DateTime.now())),
-              ),
-              icon: const Icon(Icons.event_outlined),
-              label: const Text('Termin anlegen'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        CollapsibleSearch(
-          controller: _entrySearch,
-          fieldKey: ValueKey('entry-query-$scope'),
-          buttonKey: ValueKey('entry-search-$scope'),
-          label: 'Einträge durchsuchen',
-          onChanged: (value) => _changeView(() => _entryQuery = value),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final f in {
-              'all': 'Alle',
-              'appointments': 'Termine',
-              'open': 'Offene Aufgaben',
-              'done': 'Erledigte Aufgaben',
-            }.entries)
-              transparentChip(
-                FilterChip(
-                  label: Text(f.value),
-                  selected: _filter == f.key,
-                  onSelected: (_) => _changeView(() => _filter = f.key),
-                ),
-              ),
-          ],
-        ),
-        if (pupil != null && !orga)
-          for (final r in c.records.where(
-            (r) =>
-                r.pupilId == pupil.id &&
-                !r.deleted &&
-                r.searchText.toLowerCase().contains(_entryQuery.toLowerCase()),
-          ))
-            SchoolRecordCard(controller: c, record: r),
-        if (orga || _entryQuery.isNotEmpty || _filter != 'all')
-          _section(
-            '$scope-list',
-            'Orga',
-            visible,
-            empty: 'Keine passenden Orga-Einträge.',
-          )
-        else ...[
-          _section(
-            '$scope-pending',
-            'Anstehend',
-            c.upcoming(visible),
-            empty: 'Keine offenen Aufgaben oder Erinnerungen.',
-          ),
-          _section(
-            '$scope-docs',
-            'Noch ergänzen',
-            visible.where((e) => e.needsCompletion && !e.pending).toList(),
-            empty: 'Keine Dokumentation nachzutragen.',
-          ),
-          _section(
-            '$scope-recent',
-            'Zuletzt',
-            visible.where((e) => !e.pending && !e.needsCompletion).toList(),
-            empty: 'Noch keine abgeschlossenen Vorgänge oder Notizen.',
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _section(
-    String key,
-    String title,
-    List<OrgaEntry> entries, {
-    required String empty,
-  }) {
-    final expanded = _expandedSections.contains(key);
-    return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '$title · ${entries.length}',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          if (entries.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(empty),
-            ),
-          ...entries.take(expanded ? entries.length : 4).map(_entryCard),
-          if (entries.length > 4)
-            TextButton(
-              onPressed: () => _changeView(() {
-                if (expanded) {
-                  _expandedSections.remove(key);
-                } else {
-                  _expandedSections.add(key);
-                }
-              }),
-              child: Text(
-                expanded
-                    ? 'Weniger anzeigen'
-                    : '${entries.length - 4} weitere anzeigen',
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _addSubtask(OrgaEntry entry) => showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -1868,6 +1553,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   '${displayDate(e.appointmentDate)} · ${e.appointmentTime.isEmpty ? 'Ganztägig' : e.appointmentTime}',
+                ),
+              ),
+            if (e.tags.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  e.tags.map((tag) => '#$tag').join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
             if (e.dueDate != null)

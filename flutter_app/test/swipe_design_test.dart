@@ -191,13 +191,13 @@ void main() {
       expect(page(t), 1);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -217,12 +217,12 @@ void main() {
       expect(offset, greaterThan(0));
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(
@@ -238,7 +238,7 @@ void main() {
       await t.enterText(find.byType(TextField).first, 'Anna');
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 0);
@@ -257,7 +257,7 @@ void main() {
       expect(page(t), 0);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
-        const Offset(-300, 0),
+        const Offset(300, 0),
       );
       await t.pumpAndSettle();
       expect(page(t), 1);
@@ -281,8 +281,13 @@ void main() {
           .getTranslation()
           .x;
       final samples = <double>[];
-      for (final section in [(1, 1, 0), (2, 0, 3), (3, 0, 1), (4, 0, 1)]) {
-        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+      for (final section in [(1, 0, 1), (2, 0, 3), (3, 0, 1), (4, 0, 1)]) {
+        await tap(
+          t,
+          find.byKey(
+            ValueKey(section.$1 == 4 ? 'header-more' : 'bottom-${section.$1}'),
+          ),
+        );
         final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
         await tap(t, find.byKey(ValueKey('$prefix-${section.$2}')));
         await t.tap(find.byKey(ValueKey('$prefix-${section.$3}')));
@@ -313,12 +318,17 @@ void main() {
     (t) async {
       await app(t, size: const Size(390, 844));
       for (final section in [
-        (1, [1, 0, 2]),
-        (2, [0, 3, 2]),
+        (1, [0, 1, 2]),
+        (2, [0, 3, 2, 4]),
         (3, [0, 1, 2, 3]),
-        (4, [0, 1, 2, 3, 4, 5]),
+        (4, [0, 1, 2, 3, 4]),
       ]) {
-        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        await tap(
+          t,
+          find.byKey(
+            ValueKey(section.$1 == 4 ? 'header-more' : 'bottom-${section.$1}'),
+          ),
+        );
         final prefix = section.$1 == 1 ? 'page' : 'context-${section.$1}';
         final pills = find.byKey(ValueKey('$prefix-${section.$2.first}'));
         await tap(t, find.byKey(ValueKey('$prefix-${section.$2.first}')));

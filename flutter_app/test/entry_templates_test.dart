@@ -69,6 +69,7 @@ void main() {
     () {
       final source = OrgaEntry.empty(pupilId: 'old').copyWith(
         body: 'Vorbereitung',
+        tags: ['Schularbeit'],
         items: [
           const CheckItem(id: 'old-item', text: 'Formular', checked: true),
         ],
@@ -77,6 +78,7 @@ void main() {
       );
       final target = OrgaEntry.empty(pupilId: 'new').copyWith(
         body: 'Vorhanden',
+        tags: ['Englisch'],
         appointmentDate: '2026-12-01',
         appointmentTime: '11:00',
         appointmentEndTime: '12:00',
@@ -87,6 +89,7 @@ void main() {
       expect(applied.appointmentTime, '11:00');
       expect(applied.appointmentEndTime, '12:00');
       expect(applied.items.single.checked, false);
+      expect(applied.tags, ['Englisch', 'Schularbeit']);
     },
   );
   test(

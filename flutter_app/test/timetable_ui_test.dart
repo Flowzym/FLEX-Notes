@@ -131,7 +131,7 @@ void main() {
           key,
           'unified-day-${setting.$1.toInt()}-${setting.$2.toInt()}',
         );
-        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
         await screenshot(
           t,
           key,
@@ -330,7 +330,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
       expect(find.text('Flexk'), findsNothing);
       expect(find.text('Gespräch'), findsOneWidget);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
       expect(find.text('Gespräch'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
       expect(find.text('Flexk'), findsOneWidget);

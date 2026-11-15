@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'models.dart';
 import 'school.dart';
 import 'observation_catalog.dart';
+import 'material_tags.dart';
 
 const templateKinds = {
   'social': 'Sozialverhalten',
@@ -35,6 +36,7 @@ class EntryTemplate {
     'neutral',
     'negative',
     'taskTags',
+    'tags',
     'items',
     'tasks',
   };
@@ -73,7 +75,12 @@ class EntryTemplate {
         if (item.value is! List || (item.value as List).length > 200) {
           throw const DomainError('Die Vorlage enthält zu viele Zeilen.');
         }
-        if (item.key == 'tasks') {
+        if (item.key == 'tags') {
+          if ((item.value as List).any((v) => v is! String)) {
+            throw const DomainError('Ungültige Tags in der Vorlage.');
+          }
+          validateOrgaTags(List<String>.from(item.value as List));
+        } else if (item.key == 'tasks') {
           final tasks = item.value as List;
           for (var i = 0; i < tasks.length; i++) {
             final task = tasks[i];
@@ -100,7 +107,7 @@ class EntryTemplate {
     }
     final kind = json['kind'] as String;
     final allowed = kind.startsWith('orga-')
-        ? {'title', 'body', 'items'}
+        ? {'title', 'body', 'items', if (kind == 'orga-appointment') 'tags'}
         : {
             'title',
             'body',
@@ -161,6 +168,7 @@ class EntryTemplate {
           'title': entry.title,
           'body': entry.body,
           'items': entry.items.map((t) => t.text).toList(),
+          if (entry.isAppointment) 'tags': entry.tags,
         },
       });
   static String orgaKind(OrgaEntry entry) =>
@@ -222,6 +230,10 @@ class EntryTemplate {
           ? fields['title'] as String? ?? ''
           : entry.title,
       body: append(entry.body, fields['body'] as String? ?? ''),
+      tags: normalizeMaterialTags([
+        ...entry.tags,
+        ...List<String>.from(fields['tags'] as List? ?? const []),
+      ]),
       items: [
         ...entry.items,
         for (final text in fields['items'] as List? ?? [])

@@ -125,6 +125,19 @@ enum ReminderState { none, planned, acknowledged, cancelled }
 
 const _unset = Object();
 
+void validateOrgaTags(List<String> tags) {
+  if (tags.length > 30 ||
+      tags.any(
+        (tag) => tag.trim().isEmpty || tag.length > 64 || tag.contains(','),
+      ) ||
+      tags.map((tag) => tag.trim().toLowerCase()).toSet().length !=
+          tags.length) {
+    throw const DomainError(
+      'Bitte bis zu 30 unterschiedliche Tags mit je 1–64 Zeichen ohne Komma verwenden.',
+    );
+  }
+}
+
 class OrgaEntry {
   OrgaEntry({
     required this.id,
@@ -151,7 +164,9 @@ class OrgaEntry {
     required this.createdAtUtc,
     required this.updatedAtUtc,
     List<CheckItem> items = const [],
-  }) : items = List.unmodifiable(items);
+    List<String> tags = const [],
+  }) : items = List.unmodifiable(items),
+       tags = List.unmodifiable(tags);
   factory OrgaEntry.empty({String? pupilId}) {
     final now = utcNow();
     return OrgaEntry(
@@ -172,6 +187,7 @@ class OrgaEntry {
   final int revision;
   final ReminderState reminderState;
   final List<CheckItem> items;
+  final List<String> tags;
   bool get isAppointment => appointmentDate != null;
   bool appointmentIsUpcoming(DateTime now) {
     if (appointmentDate == null) return false;
@@ -224,6 +240,7 @@ class OrgaEntry {
     int? revision,
     String? updatedAtUtc,
     List<CheckItem>? items,
+    List<String>? tags,
   }) => OrgaEntry(
     id: id,
     pupilId: identical(pupilId, _unset) ? this.pupilId : pupilId as String?,
@@ -253,6 +270,7 @@ class OrgaEntry {
     createdAtUtc: createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
     items: items ?? this.items,
+    tags: tags ?? this.tags,
   );
   OrgaEntry complete() {
     if (!isTask) throw const DomainError('Eine Notiz ist keine Aufgabe.');
@@ -283,6 +301,7 @@ class OrgaEntry {
   }
 
   void validate() {
+    validateOrgaTags(tags);
     if (observedOn.isNotEmpty && !validDate(observedOn) ||
         observedTime.isNotEmpty &&
             !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(observedTime)) {
@@ -373,6 +392,7 @@ class OrgaEntry {
     'createdAtUtc': createdAtUtc,
     'updatedAtUtc': updatedAtUtc,
     'items': items.map((i) => i.toJson()).toList(),
+    'tags': tags,
   };
   factory OrgaEntry.fromJson(Json j) => OrgaEntry(
     id: j['id'] as String,
@@ -380,6 +400,7 @@ class OrgaEntry {
     title: j['title'] as String,
     body: j['body'] as String,
     otherParticipants: j['otherParticipants'] as String? ?? '',
+    tags: List<String>.from(j['tags'] as List? ?? const []),
     isTask: j['isTask'] as bool,
     done: j['done'] as bool,
     deleted: j['deleted'] as bool? ?? false,
@@ -413,10 +434,12 @@ class OrgaTypeDraft {
     this.appointmentDate,
     this.appointmentTime = '',
     this.appointmentEndTime = '',
+    this.appointmentTags = const [],
   });
   final String? dueDate, appointmentDate;
   final bool done;
   final String appointmentTime, appointmentEndTime;
+  final List<String> appointmentTags;
 
   OrgaTypeDraft remember(OrgaEntry entry) => OrgaTypeDraft(
     dueDate: entry.isTask ? entry.dueDate : dueDate,
@@ -430,6 +453,7 @@ class OrgaTypeDraft {
     appointmentEndTime: entry.isAppointment
         ? entry.appointmentEndTime
         : appointmentEndTime,
+    appointmentTags: entry.isAppointment ? entry.tags : appointmentTags,
   );
 
   OrgaEntry select(OrgaEntry entry, String kind) {
@@ -445,6 +469,7 @@ class OrgaTypeDraft {
           : null,
       appointmentTime: kind == 'appointment' ? appointmentTime : '',
       appointmentEndTime: kind == 'appointment' ? appointmentEndTime : '',
+      tags: kind == 'appointment' ? appointmentTags : const [],
       reminderState:
           kind == 'task' && done && entry.reminderState == ReminderState.planned
           ? ReminderState.cancelled
@@ -458,6 +483,7 @@ class OrgaTypeDraft {
       'appointmentDate': appointmentDate,
       'appointmentTime': appointmentTime,
       'appointmentEndTime': appointmentEndTime,
+      'appointmentTags': appointmentTags,
     },
   };
 
@@ -468,7 +494,11 @@ class OrgaTypeDraft {
       appointmentDate: json['appointmentDate'] as String?,
       appointmentTime: json['appointmentTime'] as String? ?? '',
       appointmentEndTime: json['appointmentEndTime'] as String? ?? '',
+      appointmentTags: List<String>.unmodifiable(
+        json['appointmentTags'] as List? ?? const [],
+      ),
     );
+    validateOrgaTags(result.appointmentTags);
     if (result.dueDate != null && !validDate(result.dueDate!) ||
         result.appointmentDate != null && !validDate(result.appointmentDate!) ||
         result.appointmentTime.isNotEmpty &&
@@ -659,11 +689,21 @@ class Appearance {
     this.textScale = 1,
     this.defaultObservationTone = 'neutral',
     this.calendarDefaultView = 'day',
+    this.navigationSwipeNext = 'right',
+    this.liveDefaultPage = 1,
+    this.organisationDefaultPage = 0,
+    this.materialDefaultPage = 0,
+    this.moreDefaultPage = 0,
     this.materialGrid = false,
     this.materialSort = 'recent',
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
   final String mode, defaultObservationTone, materialSort, calendarDefaultView;
+  final String navigationSwipeNext;
+  final int liveDefaultPage,
+      organisationDefaultPage,
+      materialDefaultPage,
+      moreDefaultPage;
   final double textScale;
   final bool materialGrid;
   final List<String> shortcutOrder;
@@ -679,6 +719,11 @@ class Appearance {
     'textScale': textScale,
     'defaultObservationTone': defaultObservationTone,
     'calendarDefaultView': calendarDefaultView,
+    'navigationSwipeNext': navigationSwipeNext,
+    'liveDefaultPage': liveDefaultPage,
+    'organisationDefaultPage': organisationDefaultPage,
+    'materialDefaultPage': materialDefaultPage,
+    'moreDefaultPage': moreDefaultPage,
     'materialGrid': materialGrid,
     'materialSort': materialSort,
     'shortcutOrder': shortcutOrder,
@@ -695,6 +740,11 @@ class Appearance {
       defaultObservationTone:
           source['defaultObservationTone'] as String? ?? 'neutral',
       calendarDefaultView: source['calendarDefaultView'] as String? ?? 'day',
+      navigationSwipeNext: source['navigationSwipeNext'] as String? ?? 'right',
+      liveDefaultPage: source['liveDefaultPage'] as int? ?? 1,
+      organisationDefaultPage: source['organisationDefaultPage'] as int? ?? 0,
+      materialDefaultPage: source['materialDefaultPage'] as int? ?? 0,
+      moreDefaultPage: source['moreDefaultPage'] as int? ?? 0,
       materialGrid: source['materialGrid'] == true,
       materialSort:
           const {
@@ -712,6 +762,11 @@ class Appearance {
       ),
     );
     if (!['day', 'week', 'month'].contains(a.calendarDefaultView) ||
+        !['left', 'right'].contains(a.navigationSwipeNext) ||
+        ![0, 1, 2].contains(a.liveDefaultPage) ||
+        ![0, 3, 2, 4].contains(a.organisationDefaultPage) ||
+        ![0, 1, 2, 3].contains(a.materialDefaultPage) ||
+        ![0, 1, 2, 3, 4].contains(a.moreDefaultPage) ||
         !['light', 'dark', 'system'].contains(a.mode) ||
         !a.textScale.isFinite ||
         a.textScale < .8 ||

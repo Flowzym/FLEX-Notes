@@ -338,7 +338,7 @@ void main() {
         if (!showLessons) {
           await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
         }
-        await tap(t, find.byKey(const ValueKey('calendar-mode-day')));
+        await tap(t, find.byKey(const ValueKey('calendar-mode-0')));
         final oldY = t.getTopLeft(line).dy;
         final minuteHeight =
             (t.getTopLeft(find.byKey(const ValueKey('calendar-hour-540'))).dy -
@@ -404,7 +404,14 @@ void main() {
           scale: setting.$2,
         );
         for (final mode in ['day', 'week', 'month']) {
-          await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
+          await tap(
+            t,
+            find.byKey(
+              ValueKey(
+                'calendar-mode-${['day', 'week', 'month'].indexOf(mode)}',
+              ),
+            ),
+          );
           expect(t.takeException(), isNull);
           final toolbar = t.getRect(
             find.byKey(const ValueKey('calendar-toolbar')),
@@ -468,7 +475,7 @@ void main() {
   testWidgets('month selection keeps month then opens selected day', (t) async {
     final c = await controller(seed: true);
     await host(t, c);
-    await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+    await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
     await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-05')));
     expect(find.byType(OrgaEditor), findsOneWidget);
     expect(
@@ -495,7 +502,7 @@ void main() {
       );
       await c.reload();
       await host(t, c);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
       expect(find.text('Sa'), findsOneWidget);
       expect(find.text('So'), findsOneWidget);
       await tap(
@@ -548,7 +555,7 @@ void main() {
                 DateTime(2026, 11, reason == 'selected Sunday' ? 8 : 2),
           ),
         );
-        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
         int dayCount() => t
             .widget<CalendarTimeline>(find.byType(CalendarTimeline))
             .days
@@ -807,7 +814,7 @@ void main() {
         ),
       );
       final key = await host(t, c);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
       expect(find.text('Flexk'), findsOneWidget);
       expect(find.text('Gespräch'), findsOneWidget);
       await capture(t, key, 'calendar-week-overlap');

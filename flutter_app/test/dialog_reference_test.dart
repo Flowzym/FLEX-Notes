@@ -1163,6 +1163,12 @@ void main() {
         ),
         for (final menu in ['drafts', 'class', 'trash', 'drafts-filled'])
           'menu-$menu': (ctx) async {
+            if (menu == 'class') {
+              await t.tap(find.byKey(const ValueKey('bottom-2')));
+              await t.pumpAndSettle();
+              await t.tap(find.byKey(const ValueKey('context-2-4')));
+              return;
+            }
             await t.tap(find.byTooltip('Weitere Bereiche'));
             await t.pumpAndSettle();
             final target = menu.startsWith('drafts')
@@ -1234,6 +1240,34 @@ void main() {
         await t.pumpAndSettle();
         await t.runAsync(() => repo.snapshot());
         await t.pumpAndSettle();
+        if (scenario.key == 'menu-class') {
+          expect(
+            find.byKey(const ValueKey('general-class-page')),
+            findsOneWidget,
+          );
+          final appointments = find.byKey(
+            const ValueKey('general-type-class-appointments'),
+          );
+          await t.scrollUntilVisible(
+            appointments,
+            100,
+            scrollable: find
+                .descendant(
+                  of: find.byKey(const PageStorageKey('general-class')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+          await Scrollable.ensureVisible(
+            t.element(appointments),
+            alignment: .5,
+          );
+          await t.pumpAndSettle();
+          expect(appointments.hitTestable(), findsOneWidget);
+          expect(t.takeException(), isNull);
+          await finish(t);
+          continue;
+        }
         if (scenario.key == 'menu-trash') {
           expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
           expect(find.text('Papierkorb endgültig leeren'), findsOneWidget);

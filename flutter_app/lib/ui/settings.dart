@@ -1,4 +1,5 @@
 import 'entry_templates.dart';
+import 'app_navigation.dart';
 import 'school_year_dialog.dart';
 import 'retention_dialog.dart';
 import 'diagnostics_dialog.dart';
@@ -227,10 +228,22 @@ class _SettingsPageState extends State<SettingsPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Kalender · Standardansicht',
+                'Standardansichten',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
+              const Text('Zum nächsten Reiter wischen'),
+              const SizedBox(height: 6),
+              OptionBar(
+                options: const {'left': 'Nach links', 'right': 'Nach rechts'},
+                value: c.appearance.navigationSwipeNext,
+                keyPrefix: 'navigation-swipe-next',
+                onChanged: (value) =>
+                    c.previewAppearance({'navigationSwipeNext': value}),
+              ),
+              const SizedBox(height: 12),
+              const Text('Kalender'),
+              const SizedBox(height: 6),
               OptionBar(
                 options: const {
                   'day': 'Tag',
@@ -242,6 +255,46 @@ class _SettingsPageState extends State<SettingsPage>
                 onChanged: (value) =>
                     c.previewAppearance({'calendarDefaultView': value}),
               ),
+              for (final section in [
+                (
+                  'Live',
+                  'liveDefaultPage',
+                  livePages,
+                  c.appearance.liveDefaultPage,
+                ),
+                (
+                  'Organisation',
+                  'organisationDefaultPage',
+                  organisationPages,
+                  c.appearance.organisationDefaultPage,
+                ),
+                (
+                  'Material',
+                  'materialDefaultPage',
+                  materialPages,
+                  c.appearance.materialDefaultPage,
+                ),
+                (
+                  'Mehr',
+                  'moreDefaultPage',
+                  morePages,
+                  c.appearance.moreDefaultPage,
+                ),
+              ]) ...[
+                const SizedBox(height: 14),
+                Text(section.$1),
+                const SizedBox(height: 6),
+                OptionBar(
+                  keyPrefix: 'default-${section.$2}',
+                  options: {
+                    for (final e in section.$3.entries) '${e.key}': e.value,
+                  },
+                  value: '${section.$4}',
+                  fontSize: 12,
+                  onChanged: (value) =>
+                      c.previewAppearance({section.$2: int.parse(value)}),
+                ),
+              ],
             ],
           ),
         ),

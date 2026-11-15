@@ -4,8 +4,26 @@ import 'surfaces.dart';
 import 'navigation_icon.dart';
 
 // IDs remain stable when the visual order changes.
-const livePages = {1: 'Notizen', 0: 'Aktuell', 2: 'Ablauf'};
-const organisationPages = {0: 'Orga', 3: 'Aufgaben', 2: 'Notizen'};
+const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
+const organisationPages = {
+  0: 'Orga',
+  3: 'Aufgaben',
+  2: 'Notizen',
+  4: 'Klassen-Orga',
+};
+const materialPages = {
+  0: 'Dateien',
+  1: 'Bereitgelegt',
+  2: 'Pakete',
+  3: 'Planungen',
+};
+const morePages = {
+  0: 'Weitere',
+  1: 'Archiv',
+  2: 'Papierkorb',
+  3: 'Daten',
+  4: 'Einstellungen',
+};
 
 /// Lets the header and pages without their own pager share tab swipes.
 /// Child pagers, text selection and sliders keep their own horizontal gestures.
@@ -128,6 +146,7 @@ class FlexPagePills extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final Map<int, String> pages;
   final String keyPrefix;
+  static const pagePadding = EdgeInsets.fromLTRB(16, 6, 16, 2);
   static const _icons = {
     'Aktuell': Icons.calendar_today_outlined,
     'Notizen': Icons.sticky_note_2_outlined,
@@ -150,15 +169,15 @@ class FlexPagePills extends StatelessWidget {
                   pages.length <= 3 &&
                   constraints.maxWidth >= 350 &&
                   MediaQuery.textScalerOf(context).scale(1) <= 1.2;
-              final style = TextStyle(
+              const style = TextStyle(
                 fontFamily: 'FlexSans',
-                fontSize: pages.length >= 4 ? 12 : 14,
+                fontSize: 12,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
               );
               if (pages.isEmpty) return const SizedBox.shrink();
               final available = math.max(48.0, constraints.maxWidth - 8);
-              final horizontalPadding = pages.length >= 4 ? 4.0 : 8.0;
+              const horizontalPadding = 4.0;
               var minWidth = 48.0;
               for (final label in pages.values) {
                 final text = TextPainter(
@@ -363,15 +382,15 @@ class FlexBottomNavigation extends StatelessWidget {
                       (2, 'Organisation'),
                       (1, 'Live'),
                       (3, 'Material'),
-                      (4, 'Mehr'),
+                      (5, 'Scanner'),
                     ])
                       Expanded(
                         child: Semantics(
                           selected: selected == e.$1,
                           button: true,
                           child: Tooltip(
-                            message: e.$1 == 4 ? 'Weitere Bereiche' : e.$2,
-                            excludeFromSemantics: e.$1 != 4,
+                            message: e.$2,
+                            excludeFromSemantics: true,
                             child: InkWell(
                               key: ValueKey('bottom-${e.$1}'),
                               onTap: () => onSelected(e.$1),

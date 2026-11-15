@@ -53,9 +53,11 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+  static const _modes = ['day', 'week', 'month'];
   DateTime get now => widget.clock?.call() ?? DateTime.now();
   late DateTime selected = schoolDay(dateOnly(now));
   late String mode;
+  late String _configuredDefault;
   int periodDirection = 1;
   int transitionSerial = 0;
   final nowMarker = GlobalKey();
@@ -75,7 +77,8 @@ class _CalendarPageState extends State<CalendarPage>
   @override
   void initState() {
     super.initState();
-    mode = c.appearance.calendarDefaultView;
+    mode = _configuredDefault = c.appearance.calendarDefaultView;
+    c.addListener(_defaultChanged);
     WidgetsBinding.instance.addObserver(this);
     ticker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
@@ -84,10 +87,28 @@ class _CalendarPageState extends State<CalendarPage>
 
   @override
   void dispose() {
+    c.removeListener(_defaultChanged);
     ticker?.cancel();
     scroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(CalendarPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != c) {
+      oldWidget.controller.removeListener(_defaultChanged);
+      c.addListener(_defaultChanged);
+      _defaultChanged();
+    }
+  }
+
+  void _defaultChanged() {
+    final next = c.appearance.calendarDefaultView;
+    if (!mounted || next == _configuredDefault) return;
+    _configuredDefault = next;
+    changeMode(next);
   }
 
   @override
@@ -156,20 +177,18 @@ class _CalendarPageState extends State<CalendarPage>
 
   void changeMode(String value, {int? direction}) {
     periodDirection =
-        direction ??
-        (['day', 'week', 'month'].indexOf(value) >
-                ['day', 'week', 'month'].indexOf(mode)
-            ? 1
-            : -1);
+        direction ?? (_modes.indexOf(value) > _modes.indexOf(mode) ? 1 : -1);
     navigate(() => mode = value);
   }
 
   void swipeMode(bool towardEnd) {
-    const modes = ['day', 'week', 'month'];
-    final step = towardEnd ? 1 : -1;
+    final direction = towardEnd ? 1 : -1;
+    final step = c.appearance.navigationSwipeNext == 'right'
+        ? direction
+        : -direction;
     changeMode(
-      modes[(modes.indexOf(mode) + step) % modes.length],
-      direction: -step,
+      _modes[(_modes.indexOf(mode) + step) % _modes.length],
+      direction: -direction,
     );
   }
 
@@ -885,50 +904,17 @@ class _CalendarPageState extends State<CalendarPage>
             .toList();
         final filtered =
             filters.length != calendarCategories.length || showCompleted;
-        final scheme = Theme.of(ctx).colorScheme;
         final content = Column(
           key: const ValueKey('calendar-view'),
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Container(
+              padding: FlexPagePills.pagePadding,
+              child: FlexPagePills(
                 key: const ValueKey('calendar-mode-navigation'),
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: scheme.outlineVariant, width: .7),
-                ),
-                child: Row(
-                  children: [
-                    for (final e in {
-                      'day': 'Tag',
-                      'week': 'Woche',
-                      'month': 'Monat',
-                    }.entries)
-                      Expanded(
-                        child: Semantics(
-                          selected: mode == e.key,
-                          child: TextButton(
-                            key: ValueKey('calendar-mode-${e.key}'),
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(44, 34),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              backgroundColor: mode == e.key
-                                  ? scheme.primaryContainer
-                                  : Colors.transparent,
-                              foregroundColor: scheme.onSurface,
-                              shape: const StadiumBorder(),
-                            ),
-                            onPressed: () => changeMode(e.key),
-                            child: Text(e.value, textAlign: TextAlign.center),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                keyPrefix: 'calendar-mode',
+                pages: const {0: 'Tag', 1: 'Woche', 2: 'Monat'},
+                selected: _modes.indexOf(mode),
+                onSelected: (index) => changeMode(_modes[index]),
               ),
             ),
             Padding(

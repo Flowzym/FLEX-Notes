@@ -1,7 +1,7 @@
 name: flex_notizbuch
 description: Lokales FLEX-Notizbuch für Windows, Android und Web.
 publish_to: none
-version: 0.29.0+79
+version: 0.30.0+80
 environment:
   sdk: '>=3.10.0 <4.0.0'
   flutter: '>=3.47.0'

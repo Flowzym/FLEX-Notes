@@ -88,7 +88,24 @@ class CalendarToolbar extends StatelessWidget {
             Icons.chevron_right,
             next,
           ),
-          button('calendar-today', 'Heute', Icons.today_outlined, today),
+          Tooltip(
+            message: 'Heute',
+            child: TextButton(
+              key: const ValueKey('calendar-today'),
+              onPressed: today,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                backgroundColor: Colors.transparent,
+                textStyle: const TextStyle(
+                  fontFamily: 'FlexSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: const Text('Heute'),
+            ),
+          ),
           button(
             'calendar-show-lessons',
             'Unterricht anzeigen',

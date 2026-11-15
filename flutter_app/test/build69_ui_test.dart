@@ -170,12 +170,17 @@ void main() {
     (t) async {
       await app(t);
       for (final section in [
-        (1, [1, 0, 2]),
-        (2, [0, 3, 2]),
+        (1, [0, 1, 2]),
+        (2, [0, 3, 2, 4]),
         (3, [0, 1, 2, 3]),
-        (4, [0, 1, 2, 3, 4, 5]),
+        (4, [0, 1, 2, 3, 4]),
       ]) {
-        await tap(t, find.byKey(ValueKey('bottom-${section.$1}')));
+        await tap(
+          t,
+          find.byKey(
+            ValueKey(section.$1 == 4 ? 'header-more' : 'bottom-${section.$1}'),
+          ),
+        );
         for (final direction in [-1, 1]) {
           var index = section.$2.indexOf(
             t.widget<FlexPagePills>(find.byType(FlexPagePills).first).selected,
@@ -192,7 +197,7 @@ void main() {
               Offset(direction * 180, 0),
             );
             await t.pump(const Duration(milliseconds: 30));
-            index = (index - direction) % section.$2.length;
+            index = (index + direction) % section.$2.length;
             expect(
               t
                   .widget<FlexPagePills>(find.byType(FlexPagePills).first)
@@ -231,7 +236,7 @@ void main() {
         t.widget<CalendarTimeline>(find.byType(CalendarTimeline)).week,
         true,
       );
-      for (final pair in [('day', 1), ('week', 7)]) {
+      for (final pair in [(0, 1), (1, 7)]) {
         await tap(t, find.byKey(ValueKey('calendar-mode-${pair.$1}')));
         final before = t
             .widget<CalendarTimeline>(find.byType(CalendarTimeline))
@@ -242,7 +247,8 @@ void main() {
             .widget<CalendarTimeline>(find.byType(CalendarTimeline))
             .selectedDate;
         expect(schoolDay(after).difference(schoolDay(before)).inDays, pair.$2);
-        expect(find.byType(FlexPagePills), findsNothing);
+        expect(find.byKey(const ValueKey('context-0-pills')), findsNothing);
+        expect(find.byType(FlexPagePills), findsOneWidget);
         await t.dragFrom(const Offset(80, 420), const Offset(210, 0));
         await t.pumpAndSettle();
         expect(
@@ -252,7 +258,7 @@ void main() {
           before,
         );
       }
-      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
       final date = DateTime.now();
       await t.dragFrom(const Offset(300, 430), const Offset(-210, 0));
       await t.pumpAndSettle();
@@ -276,7 +282,7 @@ void main() {
       (t) async {
         await app(t, width: size.$1, scale: size.$2);
         await tap(t, find.byKey(const ValueKey('bottom-0')));
-        await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+        await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
         final calendar = t.state(find.byType(CalendarPage));
         if (size.$2 == 1) {
           expect(
@@ -379,7 +385,7 @@ void main() {
       ]);
       await end(t);
       await app(t);
-      await tap(t, find.byKey(const ValueKey('bottom-4')));
+      await tap(t, find.byKey(const ValueKey('header-more')));
       await tap(t, find.byKey(const ValueKey('context-4-4')));
       await tap(t, find.byKey(const ValueKey('settings-tab-1')));
       await t.scrollUntilVisible(

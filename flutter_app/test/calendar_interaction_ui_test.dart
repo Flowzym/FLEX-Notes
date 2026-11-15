@@ -146,7 +146,7 @@ void main() {
     'week touch respects its column; month touch creates an all-day draft',
     (t) async {
       await host(t);
-      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
       final col = t.getRect(
         find.byKey(const ValueKey('calendar-create-2026-11-11')),
       );
@@ -164,7 +164,7 @@ void main() {
         '09:00',
       );
       await tap(t, find.byKey(const ValueKey('cancel-editor')));
-      await tap(t, find.byKey(const ValueKey('calendar-mode-month')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
       await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-20')));
       expect(
         t.widget<OrgaEditor>(find.byType(OrgaEditor)).entry.appointmentDate,
@@ -260,7 +260,7 @@ void main() {
     );
     await c.reload();
     await host(t);
-    await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+    await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
     final block = find.byKey(ValueKey('calendar-drag-orga:${entry.id}'));
     final spec = t.widget<CalendarDragBlock>(find.byType(CalendarDragBlock));
     final original = await t.startGesture(t.getCenter(block));

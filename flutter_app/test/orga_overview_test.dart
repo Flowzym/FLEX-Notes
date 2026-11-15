@@ -13,7 +13,6 @@ import 'package:flex_notizbuch/data/sqlite_notebook.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/flex_modal.dart';
 import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
@@ -433,7 +432,7 @@ void main() {
   );
 
   testWidgets(
-    'class Orga offers compact search and a direct appointment action',
+    'class Orga is a navigation page with visible filters and contextual creation',
     (t) async {
       await c.saveEntry(
         OrgaEntry.empty().copyWith(
@@ -445,28 +444,28 @@ void main() {
         OrgaEntry.empty().copyWith(title: 'Unterlagen', isTask: true),
       );
       await app(t);
-      await tap(t, find.byTooltip('Weitere Bereiche'));
-      await tap(t, find.text('Klassen-Orga'));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-4')));
       Finder inModal(String text) => find.descendant(
-        of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded).last,
+        of: find.byKey(const ValueKey('general-class-page')),
         matching: find.text(text),
       );
-      expect(find.byKey(const ValueKey('class-orga-search')), findsNothing);
-      await tap(t, find.byKey(const ValueKey('class-orga-search-button')));
+      expect(find.byKey(const ValueKey('general-search-class')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('general-search-button-class')));
       await t.enterText(
-        find.byKey(const ValueKey('class-orga-search')),
+        find.byKey(const ValueKey('general-search-class')),
         'Konferenz',
       );
       await t.pumpAndSettle();
       expect(inModal('Unterlagen'), findsNothing);
       await t.testTextInput.receiveAction(TextInputAction.search);
       await t.pumpAndSettle();
-      expect(find.text('Suche: Konferenz'), findsOneWidget);
+      expect(find.byTooltip('Einträge durchsuchen: Konferenz'), findsOneWidget);
       await tap(t, find.byTooltip('Suchtext leeren'));
       expect(inModal('Unterlagen'), findsOneWidget);
       await tap(t, find.text('Termine'));
       expect(inModal('Unterlagen'), findsNothing);
-      await tap(t, find.byKey(const ValueKey('class-add-appointment')));
+      await tap(t, find.byKey(const ValueKey('general-add-class')));
       expect(
         find.byKey(const ValueKey('orga-appointment-date')),
         findsOneWidget,

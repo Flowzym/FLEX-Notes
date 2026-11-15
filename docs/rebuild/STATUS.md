@@ -1,4 +1,20 @@
-# Aktueller Stand: FLEX 0.29.0+79
+# Aktueller Stand: FLEX 0.30.0+80
+
+Vereinheitlichte Navigation mit wählbarer Wischrichtung und Startreiter je
+Bereich. Scanner direkt unten, weitere Bereiche oben; Klassen-Orga unter
+Organisation und direkt sichtbare Filter. Termin-Tags mit Suche, Entwürfen,
+Sicherungen, Vorlagen und ICS-Export.
+
+[Änderungen und Prüfungen](NAVIGATION-BUILD-80.md) ·
+[APKs](../../releases/android/build-80/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 unverändert; neue Felder mit Build 80 oder neuer bearbeiten.
+Hardware-Abnahme und GitHub-Signiersecret-Einrichtung bleiben offen.
+
+---
+
+# Vorheriger Stand: FLEX 0.29.0+79
 
 Kalender mit gleichbleibender Wischrichtung, Terminverschiebung und Zeitgriffen;
 kompaktere Monatsliste und höhere Tages-/Wochenraster. Ausgewählte Review-Punkte

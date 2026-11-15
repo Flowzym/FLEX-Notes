@@ -80,6 +80,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
   );
 
   bool matches(OrgaEntry e) =>
+      (widget.kind != 'class' || e.pupilId == null) &&
       (e.pupilId == null ||
           widget.controller.pupils.any(
             (p) => p.id == e.pupilId && !p.archived,
@@ -106,7 +107,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                       typeFilter == 'tasks' && e.isTask ||
                       typeFilter == 'appointments' && e.isAppointment ||
                       typeFilter == 'notes' && !e.isTask && !e.isAppointment) &&
-                  '${e.title} ${e.body} ${c.owner(e)} ${e.items.map((i) => i.text).join(' ')}'
+                  '${e.title} ${e.body} ${c.owner(e)} ${e.tags.join(' ')} ${e.items.map((i) => i.text).join(' ')}'
                       .toLowerCase()
                       .contains(query.toLowerCase()) &&
                   (filter == 'all' || e.isTask && e.done == (filter == 'done')),
@@ -161,6 +162,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
         final title = switch (widget.kind) {
           'task' => 'Aufgaben',
           'note' => 'Notizen',
+          'class' => 'Klassen-Orga',
           _ => 'Organisation',
         };
         final drafts = c.drafts.where((d) => matches(d.entry)).length;
@@ -168,7 +170,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
           'all': 'Alle Arten',
           'tasks': 'Aufgaben',
           'returns': 'Rückläufe',
-          if (widget.kind == 'all') ...{
+          if (widget.kind == 'all' || widget.kind == 'class') ...{
             'notes': 'Notizen',
             'appointments': 'Termine',
           },
@@ -200,19 +202,26 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   ),
                 IconButton(
                   key: ValueKey('general-add-${widget.kind}'),
-                  tooltip: widget.kind == 'task'
+                  tooltip: typeFilter == 'appointments'
+                      ? 'Termin anlegen'
+                      : widget.kind == 'task'
                       ? 'Aufgabe anlegen'
                       : widget.kind == 'note'
                       ? 'Notiz anlegen'
                       : 'Orga anlegen',
                   onPressed: () => widget.onEdit(
-                    OrgaEntry.empty().copyWith(isTask: widget.kind == 'task'),
+                    OrgaEntry.empty().copyWith(
+                      isTask: widget.kind == 'task' || typeFilter == 'tasks',
+                      appointmentDate: typeFilter == 'appointments'
+                          ? dateOnly(DateTime.now())
+                          : null,
+                    ),
                   ),
                   icon: const Icon(Icons.add),
                 ),
               ],
             ),
-            if (widget.kind != 'note')
+            if (widget.kind != 'note') ...[
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
@@ -227,41 +236,24 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                       selected: filter == option.key,
                       onSelected: (_) => setState(() => filter = option.key),
                     ),
-                  Semantics(
-                    container: true,
-                    button: true,
-                    child: PopupMenuButton<String>(
-                      key: ValueKey('general-type-filter-${widget.kind}'),
-                      tooltip: 'Eintragsart filtern',
-                      initialValue: typeFilter,
-                      onSelected: (value) => setState(() => typeFilter = value),
-                      itemBuilder: (_) => [
-                        for (final type in types.entries)
-                          CheckedPopupMenuItem(
-                            value: type.key,
-                            checked: type.key == typeFilter,
-                            child: Text(type.value),
-                          ),
-                      ],
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.filter_list, size: 18),
-                            const SizedBox(width: 6),
-                            Text(types[typeFilter]!),
-                            const Icon(Icons.expand_more, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Wrap(
+                key: ValueKey('general-type-filter-${widget.kind}'),
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final type in types.entries)
+                    ChoiceChip(
+                      key: ValueKey('general-type-${widget.kind}-${type.key}'),
+                      label: Text(type.value),
+                      selected: typeFilter == type.key,
+                      onSelected: (_) => setState(() => typeFilter = type.key),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             if (items.isEmpty)
               Text(

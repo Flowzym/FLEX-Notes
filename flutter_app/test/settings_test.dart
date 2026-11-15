@@ -96,7 +96,7 @@ void main() {
   }
 
   Future<void> settings(WidgetTester t) async {
-    await tap(t, find.byKey(const ValueKey('bottom-4')));
+    await tap(t, find.byKey(const ValueKey('header-more')));
     await tap(t, find.byKey(const ValueKey('context-4-4')));
     await t.scrollUntilVisible(
       find.byType(AppearanceSettings),

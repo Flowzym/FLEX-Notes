@@ -563,6 +563,8 @@ void main() {
       final field = find.byKey(const ValueKey('orga-note'));
       await t.ensureVisible(field);
       await t.enterText(field, 'Nachgereichter Termin');
+      // Let the focused field finish its caret-scroll before moving to Save.
+      await t.pumpAndSettle();
       await tap(t, find.text('Speichern'));
       expect((await repo.entries()).single.appointmentDate, '2030-04-04');
       expect(t.takeException(), isNull);

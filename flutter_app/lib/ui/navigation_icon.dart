@@ -93,6 +93,23 @@ class _NavigationGlyph extends CustomPainter {
         for (final x in [3.5, 12.0, 20.5]) {
           canvas.drawCircle(Offset(x, 12), 1.7, dot);
         }
+      case 5:
+        path
+          ..moveTo(7, 2)
+          ..lineTo(2, 2)
+          ..lineTo(2, 7)
+          ..moveTo(17, 2)
+          ..lineTo(22, 2)
+          ..lineTo(22, 7)
+          ..moveTo(2, 17)
+          ..lineTo(2, 22)
+          ..lineTo(7, 22)
+          ..moveTo(17, 22)
+          ..lineTo(22, 22)
+          ..lineTo(22, 17)
+          ..addRect(const Rect.fromLTRB(7, 5, 17, 19))
+          ..moveTo(3, 12)
+          ..lineTo(21, 12);
     }
     canvas.drawPath(path, pen);
     canvas.restore();

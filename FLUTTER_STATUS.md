@@ -1,11 +1,16 @@
 # Aktueller Flutter-Stand
 
-**0.29.0+79**, Branch `redesign/cream-olive`.
+**0.30.0+80**, Branch `redesign/cream-olive`.
 
-[Änderungen und Grenzen](docs/rebuild/REVIEW-CALENDAR-BUILD-79.md) ·
+[Änderungen und Grenzen](docs/rebuild/NAVIGATION-BUILD-80.md) ·
 [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/) ·
 [GitHub-PR](https://github.com/Flowzym/FLEX-Notes/pull/1) ·
-[Android-APKs](releases/android/build-79/README.md).
+[Android-APKs](releases/android/build-80/README.md).
+
+Einheitliche Navigationspillen, wählbare Wischrichtung und Standardreiter;
+Notizen mittig unter Live. Weitere Bereiche oben rechts, Scanner unten direkt.
+Klassen-Orga unter Organisation mit sichtbaren Filtern. Termin-Tags bleiben in
+Entwürfen, Vorlagen, Sicherungen und Importkonflikten erhalten und sind suchbar.
 
 Kalendertermine und einzelne Unterrichtsstunden lassen sich per langem Drücken
 verschieben und an den Griffen zeitlich anpassen. Wischrichtung bleibt beim Umlauf

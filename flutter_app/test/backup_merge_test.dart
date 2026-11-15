@@ -58,6 +58,7 @@ void main() {
           title: 'Termin',
           appointmentDate: '2026-11-12',
           appointmentTime: '10:30',
+          tags: ['Schularbeit'],
           items: [const CheckItem(id: 'item', text: 'A')],
         ),
       );
@@ -76,6 +77,7 @@ void main() {
       expect((await local.pupils()).length, 2);
       expect((await local.schoolRecords()).length, 2);
       expect((await local.entries()).single.appointmentTime, '10:30');
+      expect((await local.entries()).single.tags, ['Schularbeit']);
       expect(
         (await local.schoolRecords())
             .singleWhere((r) => r.id == observation.id)
@@ -112,6 +114,7 @@ void main() {
           body: 'Original',
           appointmentDate: '2026-11-10',
           appointmentTime: '09:00',
+          tags: ['Gespräch'],
         ),
       );
       await source.restoreBackup(await local.exportBackup());
@@ -121,20 +124,22 @@ void main() {
           body: 'Andere Notiz',
           appointmentDate: '2026-11-11',
           appointmentTime: '15:30',
+          tags: ['Schularbeit'],
         ),
       );
       final plan = await local.prepareBackupMerge(await source.exportBackup());
       final item = plan.items.singleWhere((i) => i.kind == 'orga');
       expect(
         item.differences,
-        containsAll(['body', 'appointmentDate', 'appointmentTime']),
+        containsAll(['body', 'appointmentDate', 'appointmentTime', 'tags']),
       );
       await local.applyBackupMerge(plan, {
-        item.key: {'appointmentDate', 'appointmentTime'},
+        item.key: {'appointmentDate', 'appointmentTime', 'tags'},
       });
       final result = (await local.entries()).single;
       expect(result.body, 'Lokale Notiz');
       expect(result.appointmentTime, '15:30');
+      expect(result.tags, ['Schularbeit']);
       expect(result.revision, 3);
       expect((await local.history(entry.id)).length, 3);
     },

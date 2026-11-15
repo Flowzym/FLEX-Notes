@@ -73,6 +73,7 @@ List<CalendarItem> calendarItems(
           done: e.done,
           entry: e,
           detail: [
+            for (final tag in e.tags) '#$tag',
             if (e.pupilId != null)
               data.pupils.firstWhere((p) => p.id == e.pupilId).name,
             if (e.otherParticipants.trim().isNotEmpty)

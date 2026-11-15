@@ -450,7 +450,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               e.pupilId == p.id &&
               matches(
                 e.pending,
-                '${e.title} ${e.body} ${e.otherParticipants} ${e.items.map((i) => i.text).join(' ')}',
+                '${e.title} ${e.body} ${e.otherParticipants} ${e.tags.join(' ')} ${e.items.map((i) => i.text).join(' ')}',
                 'orga:${e.id}',
               ),
         ))
@@ -465,6 +465,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               date: e.observedOn,
               summary: [
                 e.body,
+                ...e.tags.map((tag) => '#$tag'),
                 ...e.items.map((i) => i.text),
               ].where((s) => s.isNotEmpty).join(' · '),
               status: e.isTask

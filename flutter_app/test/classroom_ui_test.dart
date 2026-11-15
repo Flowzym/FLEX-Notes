@@ -412,7 +412,12 @@ void main() {
     final c = await controller();
     await host(t, (_) => CalendarPage(controller: c), scale: 2);
     for (final mode in ['day', 'week', 'month']) {
-      await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
+      await tap(
+        t,
+        find.byKey(
+          ValueKey('calendar-mode-${['day', 'week', 'month'].indexOf(mode)}'),
+        ),
+      );
       expect(t.takeException(), isNull);
     }
     await t.pumpWidget(const SizedBox());

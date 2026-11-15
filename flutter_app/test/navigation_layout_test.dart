@@ -17,6 +17,7 @@ void main() {
           for (final pages in [
             livePages,
             organisationPages,
+            {0: 'Tag', 1: 'Woche', 2: 'Monat'},
             {0: 'Dateien', 1: 'Bereitgelegt', 2: 'Pakete', 3: 'Planungen'},
             {
               0: 'Weitere',
@@ -24,7 +25,6 @@ void main() {
               2: 'Papierkorb',
               3: 'Daten',
               4: 'Einstellungen',
-              5: 'Scanner',
             },
           ]) {
             for (final selected in [0, pages.length - 1]) {

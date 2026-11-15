@@ -99,6 +99,7 @@ class _MaterialTagEditorState extends State<MaterialTagEditor> {
                 for (final tag in selected)
                   InputChip(
                     label: Text(tag),
+                    deleteButtonTooltipMessage: '$tag entfernen',
                     onDeleted: !widget.enabled
                         ? null
                         : () {

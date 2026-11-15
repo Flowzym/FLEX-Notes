@@ -934,7 +934,27 @@ class SqliteNotebook
       ORDER BY rank''',
       [expression, pupilId ?? '', pupilId ?? '', pupilId ?? ''],
     );
-    return result.map((row) => '${row['kind']}:${row['entity_id']}').toSet();
+    // Tags live with appointment metadata; include them without rewriting the
+    // user's title or body to feed the text index.
+    final tagged = await _rows(
+      '''SELECT o.id,tag.value AS tag FROM orga o
+      JOIN preferences m ON m.key='orga-time-'||o.id
+      JOIN json_each(m.payload,'\$.tags') tag
+      WHERE o.deleted=0 AND (?='' OR o.pupil_id=?)
+      AND (o.pupil_id IS NULL OR EXISTS
+        (SELECT 1 FROM pupils p WHERE p.id=o.pupil_id AND p.deleted=0 AND (p.archived=0 OR p.id=?)))''',
+      [pupilId ?? '', pupilId ?? '', pupilId ?? ''],
+    );
+    return {
+      ...result.map((row) => '${row['kind']}:${row['entity_id']}'),
+      ...tagged
+          .where(
+            (row) => (row['tag'] as String).toLowerCase().contains(
+              query.trim().toLowerCase(),
+            ),
+          )
+          .map((row) => 'orga:${row['id']}'),
+    };
   }
 
   @override
@@ -1008,6 +1028,7 @@ class SqliteNotebook
       title: row['title'] as String,
       body: row['body'] as String,
       otherParticipants: timeMetadata['otherParticipants'] as String? ?? '',
+      tags: List<String>.from(timeMetadata['tags'] as List? ?? const []),
       isTask: row['is_task'] == 1,
       done: row['done'] == 1,
       deleted: row['deleted'] == 1,
@@ -1123,6 +1144,7 @@ class SqliteNotebook
             'appointmentTime': saved.appointmentTime,
             'appointmentEndTime': saved.appointmentEndTime,
             'otherParticipants': saved.otherParticipants,
+            'tags': saved.tags,
           }),
         ],
       );

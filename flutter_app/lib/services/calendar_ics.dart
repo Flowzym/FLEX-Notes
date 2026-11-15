@@ -51,7 +51,7 @@ String exportCalendarIcs(List<CalendarItem> items, {DateTime? now}) {
     lines.addAll([
       'SUMMARY:${_escape(e.title)}',
       'DESCRIPTION:${_escape(e.detail)}',
-      'CATEGORIES:${_escape(calendarCategories[e.category]!)}',
+      'CATEGORIES:${[calendarCategories[e.category]!, ...?e.entry?.tags].map(_escape).join(',')}',
       'END:VEVENT',
     ]);
   }

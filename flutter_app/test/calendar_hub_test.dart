@@ -54,16 +54,18 @@ void main() {
       expect(find.text('Übersicht'), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
-      expect(find.byType(FlexPagePills), findsNothing);
+      expect(find.byKey(const ValueKey('context-0-pills')), findsNothing);
+      expect(find.byType(FlexPagePills), findsOneWidget);
       final state = t.state(find.byKey(const ValueKey('main-calendar')));
-      await tap(t, find.byKey(const ValueKey('calendar-mode-week')));
+      await tap(t, find.byKey(const ValueKey('calendar-mode-1')));
       await tap(t, find.byKey(const ValueKey('calendar-show-lessons')));
       final before = c.classroom.map((d) => d.toJson()).toList();
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-3')));
       expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      expect(find.byType(FlexPagePills), findsNothing);
+      expect(find.byKey(const ValueKey('context-0-pills')), findsNothing);
+      expect(find.byType(FlexPagePills), findsOneWidget);
       expect(t.state(find.byKey(const ValueKey('main-calendar'))), same(state));
       expect(
         find.byKey(const ValueKey('calendar-time-grid-week')),
@@ -143,7 +145,7 @@ void main() {
       final organisation = t.widget<IndexedStack>(
         find.byKey(const ValueKey('organisation-pages')),
       );
-      expect(organisation.children.length, 3);
+      expect(organisation.children.length, 4);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-2')));
       expect(find.text('Notizinhalt').hitTestable(), findsOneWidget);
@@ -199,8 +201,13 @@ void main() {
       await tap(t, find.byKey(const ValueKey('context-2-3')));
       expect(find.byKey(const ValueKey('context-2-1')), findsNothing);
       Future<void> type(String page, String value) async {
-        await tap(t, find.byKey(ValueKey('general-type-filter-$page')));
-        await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, value));
+        await tap(
+          t,
+          find.descendant(
+            of: find.byKey(ValueKey('general-type-filter-$page')),
+            matching: find.widgetWithText(ChoiceChip, value),
+          ),
+        );
       }
 
       await tap(t, find.text('Offen').hitTestable());
@@ -225,6 +232,16 @@ void main() {
       await tap(t, find.text('Erledigt').hitTestable());
       await type('task', 'Rückläufe');
       expect(find.text('Formular open'), findsOneWidget);
+      await t.scrollUntilVisible(
+        find.text('Formular closed'),
+        180,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const PageStorageKey('general-task')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(find.text('Formular closed'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('context-2-0')));
       await type('all', 'Rückläufe');
