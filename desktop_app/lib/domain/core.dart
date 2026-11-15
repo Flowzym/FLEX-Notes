@@ -9,3 +9,4 @@ export 'package:flex_notizbuch/domain/repository.dart';
 export 'package:flex_notizbuch/application/notebook_controller.dart';
 export 'package:flex_notizbuch/services/material_files.dart';
 export 'package:flex_notizbuch/services/material_storage.dart';
+export 'package:flex_notizbuch/domain/observation_catalog.dart';

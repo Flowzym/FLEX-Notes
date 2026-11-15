@@ -79,6 +79,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   }
 
   final drive = OneDriveClient(useNativeAuthentication: false);
+  final calendarScroll = ScrollController(initialScrollOffset: 7 * 56);
   bool driveLoaded = false;
   String calendarView = 'Woche', orgaFilter = 'Offen';
   bool weekends = false, favoritesOnly = false;
@@ -106,6 +107,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
       windowManager.removeListener(this);
     }
+    calendarScroll.dispose();
     drive.dispose();
     super.dispose();
   }
@@ -291,6 +293,22 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                                               success: 'Eintrag gespeichert',
                                             ),
                                             onPark: () => run(c.parkEditor),
+                                            onTrash: () async {
+                                              if (await confirm(
+                                                'Eintrag in den Papierkorb?',
+                                                'Der Eintrag kann anschließend unter Daten & Einstellungen wiederhergestellt werden.',
+                                                action: 'Verschieben',
+                                              )) {
+                                                c.editor?.patch({
+                                                  'deleted': true,
+                                                });
+                                                await run(
+                                                  c.commitEditor,
+                                                  success:
+                                                      'In den Papierkorb verschoben',
+                                                );
+                                              }
+                                            },
                                             onDiscard: () async {
                                               if (await confirm(
                                                 'Entwurf verwerfen?',

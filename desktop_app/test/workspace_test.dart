@@ -331,4 +331,33 @@ void main() {
       expect(complete.notebook, contains(pupil.id));
     },
   );
+  test('rapid editor switching and saving are serialized', () async {
+    await c.start(EntryKind.note);
+    c.editor!.patch({'title': 'Nicht verlieren'});
+    final save = c.commitEditor();
+    final next = c.start(EntryKind.task);
+    await Future.wait([save, next]);
+    expect((await repo.entries()).single.title, 'Nicht verlieren');
+    expect(c.editor!.kind, EntryKind.task);
+    c.editor!.patch({'title': 'Aufgabe behalten'});
+    await Future.wait([
+      c.start(EntryKind.note),
+      c.start(EntryKind.appointment),
+    ]);
+    expect((await repo.drafts()).single.entry.title, 'Aufgabe behalten');
+    expect(c.editor!.kind, EntryKind.appointment);
+  });
+  test('global actions do not inherit a previous journal pupil', () async {
+    c.selectPupil(pupil.id);
+    c.navigate(WorkspaceSection.journal);
+    await c.start(EntryKind.note);
+    expect(c.editor!.data['pupilId'], pupil.id);
+    c.navigate(WorkspaceSection.calendar);
+    await c.start(EntryKind.appointment);
+    expect(c.editor!.data['pupilId'], isNull);
+    await c.importFiles([
+      (name: 'global.pdf', bytes: Uint8List.fromList('%PDF-1.7\n'.codeUnits)),
+    ]);
+    expect(c.materials.single.strings('pupilIds'), isEmpty);
+  });
 }

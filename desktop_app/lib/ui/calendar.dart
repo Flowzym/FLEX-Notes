@@ -99,10 +99,7 @@ extension _CalendarView on _DesktopWorkspaceState {
               ? monthGrid()
               : LayoutBuilder(
                   builder: (ctx, box) {
-                    final hourHeight = ((box.maxHeight - 96) / 11).clamp(
-                      47.0,
-                      80.0,
-                    );
+                    const hourHeight = 56.0;
                     return Column(
                       children: [
                         Row(
@@ -207,8 +204,9 @@ extension _CalendarView on _DesktopWorkspaceState {
                           ),
                         Expanded(
                           child: SingleChildScrollView(
+                            controller: calendarScroll,
                             child: SizedBox(
-                              height: hourHeight * 11,
+                              height: hourHeight * 24,
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -216,9 +214,9 @@ extension _CalendarView on _DesktopWorkspaceState {
                                     width: 56,
                                     child: Stack(
                                       children: [
-                                        for (var hour = 7; hour <= 17; hour++)
+                                        for (var hour = 0; hour <= 23; hour++)
                                           Positioned(
-                                            top: (hour - 7) * hourHeight + 3,
+                                            top: hour * hourHeight + 3,
                                             left: 12,
                                             child: Text(
                                               '${hour.toString().padLeft(2, '0')}:00',
@@ -270,11 +268,11 @@ extension _CalendarView on _DesktopWorkspaceState {
     final positioned = items
         .where(
           (i) =>
-              clockMinutes(i.time) < 18 * 60 &&
+              clockMinutes(i.time) < 24 * 60 &&
               (i.end.isEmpty
                       ? clockMinutes(i.time) + 45
                       : clockMinutes(i.end)) >
-                  7 * 60,
+                  0,
         )
         .toList();
     final lanes = <String, int>{};
@@ -297,7 +295,7 @@ extension _CalendarView on _DesktopWorkspaceState {
         children: [
           Column(
             children: [
-              for (var slot = 0; slot < 22; slot++)
+              for (var slot = 0; slot < 48; slot++)
                 DragTarget<CalendarItem>(
                   onWillAcceptWithDetails: (detail) =>
                       detail.data.entry?.isAppointment == true,
@@ -305,15 +303,17 @@ extension _CalendarView on _DesktopWorkspaceState {
                     () => c.moveAppointment(
                       detail.data,
                       day,
-                      minutesClock(420 + slot * 30),
+                      minutesClock(slot * 30),
                     ),
                   ),
                   builder: (ctx, candidate, rejected) => InkWell(
                     onTap: () => run(() async {
                       await c.start(EntryKind.appointment, onDate: day);
                       c.editor!.patch({
-                        'appointmentTime': minutesClock(420 + slot * 30),
-                        'appointmentEndTime': minutesClock(480 + slot * 30),
+                        'appointmentTime': minutesClock(slot * 30),
+                        'appointmentEndTime': minutesClock(
+                          (60 + slot * 30).clamp(0, 1440),
+                        ),
                       });
                     }),
                     child: Container(
@@ -340,9 +340,9 @@ extension _CalendarView on _DesktopWorkspaceState {
           ),
           for (final item in positioned)
             Positioned(
-              top: ((clockMinutes(item.time) - 420) * hourHeight / 60).clamp(
+              top: ((clockMinutes(item.time)) * hourHeight / 60).clamp(
                 0,
-                hourHeight * 11,
+                hourHeight * 24,
               ),
               left: 3 + (lanes[item.id] ?? 0) * box.maxWidth / columns,
               width: box.maxWidth / columns - 6,
@@ -353,12 +353,7 @@ extension _CalendarView on _DesktopWorkspaceState {
                               clockMinutes(item.time)) *
                           hourHeight /
                           60)
-                      .clamp(
-                        29.0,
-                        hourHeight * 11 -
-                            ((clockMinutes(item.time) - 420) * hourHeight / 60)
-                                .clamp(0, hourHeight * 11),
-                      ),
+                      .clamp(24.0, hourHeight * 24),
               child: _CalendarEvent(
                 item: item,
                 onOpen: () => run(() => c.openCalendar(item)),
@@ -376,11 +371,11 @@ extension _CalendarView on _DesktopWorkspaceState {
               ),
             ),
           if (dateOnly(day) == dateOnly(DateTime.now()) &&
-              DateTime.now().hour >= 7 &&
-              DateTime.now().hour < 18)
+              DateTime.now().hour >= 0 &&
+              DateTime.now().hour < 24)
             Positioned(
               top:
-                  ((DateTime.now().hour - 7) * 60 + DateTime.now().minute) *
+                  (DateTime.now().hour * 60 + DateTime.now().minute) *
                   hourHeight /
                   60,
               left: 0,

@@ -8,10 +8,11 @@ class EntryEditor extends StatefulWidget {
     required this.onSave,
     required this.onPark,
     required this.onDiscard,
+    required this.onTrash,
   });
   final EditorSession session;
   final WorkspaceController workspace;
-  final VoidCallback onSave, onPark, onDiscard;
+  final VoidCallback onSave, onPark, onDiscard, onTrash;
   @override
   State<EntryEditor> createState() => _EntryEditorState();
 }
@@ -21,6 +22,24 @@ class _EntryEditorState extends State<EntryEditor> {
   WorkspaceController get c => widget.workspace;
   Json get d => s.data;
   String tone = 'neutral';
+  final catalogs = <String, List<String>>{};
+  @override
+  void initState() {
+    super.initState();
+    if (s.kind == EntryKind.social || s.kind == EntryKind.work) {
+      for (final key in observationTones.keys) {
+        unawaited(
+          c.repository
+              .observationCatalog('${s.kind.name}-$key')
+              .then((catalog) {
+                if (mounted) setState(() => catalogs[key] = catalog.options);
+              })
+              .catchError((Object _) {}),
+        );
+      }
+    }
+  }
+
   final newTask = TextEditingController();
   @override
   void dispose() {
@@ -161,7 +180,11 @@ class _EntryEditorState extends State<EntryEditor> {
                         value: '',
                         child: Text('FLEX-Klasse'),
                       ),
-                    for (final p in c.pupils)
+                    for (final p in c.notebook.pupils.where(
+                      (p) =>
+                          (!p.archived && !p.deleted) ||
+                          p.id == text('pupilId'),
+                    ))
                       DropdownMenuItem(value: p.id, child: Text(p.name)),
                   ],
                   onChanged: s.saving
@@ -209,6 +232,47 @@ class _EntryEditorState extends State<EntryEditor> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: addObservation,
+                  icon: const Icon(Icons.add, size: 15),
+                  label: const Text(
+                    'Eigene Beobachtung',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                ),
+                if ([
+                  'positive',
+                  'neutral',
+                  'negative',
+                ].any((v) => ids(v).isNotEmpty))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Wrap(
+                      spacing: 5,
+                      runSpacing: 5,
+                      children: [
+                        for (final value in ['positive', 'neutral', 'negative'])
+                          for (final tag in ids(value))
+                            InputChip(
+                              backgroundColor: toneColor(
+                                value,
+                              ).withValues(alpha: .12),
+                              label: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: toneColor(value),
+                                ),
+                              ),
+                              onDeleted: () => s.patch({
+                                value: ids(
+                                  value,
+                                ).where((t) => t != tag).toList(),
+                              }),
+                            ),
+                      ],
+                    ),
+                  ),
                 field('body', 'Beobachtung', lines: 6, max: 12000),
                 dateField('observedOn', 'Beobachtet am', clear: false),
                 field(
@@ -324,6 +388,12 @@ class _EntryEditorState extends State<EntryEditor> {
                       style: const TextStyle(fontSize: 10, color: muted),
                     ),
                   ),
+                  if ((d['revision'] as int? ?? 0) > 0)
+                    IconButton(
+                      tooltip: 'Eintrag in den Papierkorb',
+                      onPressed: s.saving ? null : widget.onTrash,
+                      icon: const Icon(Icons.delete_outline, size: 17),
+                    ),
                   TextButton(
                     onPressed: s.saving ? null : widget.onDiscard,
                     child: const Text(
@@ -345,24 +415,48 @@ class _EntryEditorState extends State<EntryEditor> {
       ],
     ),
   );
-  List<String> suggestions() => switch (tone) {
-    'positive' =>
-      s.kind == EntryKind.social
-          ? ['Hilft anderen', 'Hält Absprachen ein', 'Hört aufmerksam zu']
-          : [
-              'Arbeitet selbstständig',
-              'Bleibt konzentriert',
-              'Fragt gezielt nach',
-            ],
-    'negative' =>
-      s.kind == EntryKind.social
-          ? ['Unterbricht andere', 'Hält Absprachen nicht ein']
-          : ['Beginnt nicht', 'Verliert den Fokus'],
-    _ =>
-      s.kind == EntryKind.social
-          ? ['Beteiligt sich am Gespräch', 'Beobachtet die Gruppe']
-          : ['Arbeitet an der Aufgabe', 'Nutzt Unterstützung'],
+  List<String> suggestions() =>
+      catalogs[tone] ?? observationDefaults['${s.kind.name}-$tone'] ?? [];
+  Color toneColor(String value) => switch (value) {
+    'positive' => const Color(0xff52735c),
+    'negative' => const Color(0xff97695e),
+    _ => const Color(0xff647b8c),
   };
+  Future<void> addObservation() async {
+    final input = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${observationTones[tone]} · eigene Beobachtung'),
+        content: TextField(
+          controller: input,
+          autofocus: true,
+          maxLength: 1000,
+          decoration: const InputDecoration(labelText: 'Beobachtung'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (input.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, input.text.trim());
+              }
+            },
+            child: const Text('Übernehmen'),
+          ),
+        ],
+      ),
+    );
+    if (value != null && mounted) {
+      s.patch({
+        tone: {...ids(tone), value}.toList(),
+      });
+    }
+  }
+
   Widget tagsField() => Padding(
     padding: const EdgeInsets.only(bottom: 14),
     child: TextFormField(
@@ -469,6 +563,20 @@ class _EntryEditorState extends State<EntryEditor> {
     newTask.clear();
   }
 
+  void toggleParticipant(Pupil pupil, bool selected) => s.patch({
+    'participants': selected
+        ? [
+            ...rows('participants'),
+            {
+              'pupilId': pupil.id,
+              'name': pupil.name,
+              'status': 'open',
+              'note': '',
+              'paid': 0,
+            },
+          ]
+        : rows('participants').where((r) => r['pupilId'] != pupil.id).toList(),
+  });
   List<Widget> returnFields() => [
     DropdownButtonFormField<String>(
       initialValue: text('type'),
@@ -511,26 +619,16 @@ class _EntryEditorState extends State<EntryEditor> {
         padding: const EdgeInsets.only(bottom: 5),
         child: Row(
           children: [
-            Checkbox(
-              value: rows('participants').any((r) => r['pupilId'] == p.id),
-              onChanged: (v) => s.patch({
-                'participants': v == true
-                    ? [
-                        ...rows('participants'),
-                        {
-                          'pupilId': p.id,
-                          'name': p.name,
-                          'status': 'open',
-                          'note': '',
-                          'paid': 0,
-                        },
-                      ]
-                    : rows(
-                        'participants',
-                      ).where((r) => r['pupilId'] != p.id).toList(),
-              }),
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(p.name, style: const TextStyle(fontSize: 11)),
+                value: rows('participants').any((r) => r['pupilId'] == p.id),
+                onChanged: (value) => toggleParticipant(p, value == true),
+              ),
             ),
-            Expanded(child: Text(p.name, style: const TextStyle(fontSize: 11))),
             if (rows('participants').any((r) => r['pupilId'] == p.id))
               DropdownButton<String>(
                 value:

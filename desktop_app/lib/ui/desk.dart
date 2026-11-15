@@ -257,39 +257,55 @@ extension _DeskViews on _DesktopWorkspaceState {
               EntryKind.homework,
               EntryKind.note,
             ])
-              Expanded(
-                child: Tooltip(
-                  message: '${kind.label} für ${p.name}',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => run(() => c.start(kind, pupil: p.id)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 7),
-                      child: Column(
-                        children: [
-                          Icon(entryIcons[kind.index], size: 21, color: olive),
-                          const SizedBox(height: 5),
-                          Text(
-                            switch (kind) {
-                              EntryKind.social => 'Sozial',
-                              EntryKind.work => 'Arbeit',
-                              EntryKind.goal => 'Ziele',
-                              EntryKind.homework => 'HÜ',
-                              _ => 'Orga',
-                            },
-                            style: const TextStyle(fontSize: 10, color: muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              Expanded(child: pupilAction(p, kind)),
           ],
         ),
       ],
     ),
   );
+  Widget pupilAction(Pupil pupil, EntryKind kind) {
+    final face = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Column(
+        children: [
+          Icon(entryIcons[kind.index], size: 21, color: olive),
+          const SizedBox(height: 5),
+          Text(switch (kind) {
+            EntryKind.social => 'Sozial',
+            EntryKind.work => 'Arbeit',
+            EntryKind.goal => 'Ziele',
+            EntryKind.homework => 'HÜ',
+            _ => 'Orga',
+          }, style: const TextStyle(fontSize: 10, color: muted)),
+        ],
+      ),
+    );
+    if (kind == EntryKind.note) {
+      return PopupMenuButton<EntryKind>(
+        tooltip: 'Organisation für ${pupil.name}',
+        onSelected: (value) => run(() => c.start(value, pupil: pupil.id)),
+        itemBuilder: (_) => [
+          for (final value in [
+            EntryKind.note,
+            EntryKind.task,
+            EntryKind.appointment,
+            EntryKind.returnList,
+          ])
+            PopupMenuItem(value: value, child: Text(value.label)),
+        ],
+        child: face,
+      );
+    }
+    return Tooltip(
+      message: '${kind.label} für ${pupil.name}',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => run(() => c.start(kind, pupil: pupil.id)),
+        child: face,
+      ),
+    );
+  }
+
   Widget recordRow(SchoolRecord r) => ListTile(
     contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
     leading: Container(

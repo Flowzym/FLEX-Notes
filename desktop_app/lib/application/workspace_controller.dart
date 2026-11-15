@@ -92,7 +92,9 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> start(EntryKind kind, {String? pupil, DateTime? onDate}) =>
       _sequence(() async {
         final owner =
-            pupil ?? pupilId ?? (kind.school ? pupils.firstOrNull?.id : null);
+            pupil ??
+            (section == WorkspaceSection.journal ? pupilId : null) ??
+            (kind.school ? pupils.firstOrNull?.id : null);
         if (kind.school && owner == null) {
           throw const DomainError(
             'Bitte zuerst einen Schüler zur Klasse hinzufügen.',
@@ -217,8 +219,9 @@ class WorkspaceController extends ChangeNotifier {
   });
 
   Future<void> importFiles(
-    List<({String name, Uint8List bytes})> selected,
-  ) async {
+    List<({String name, Uint8List bytes})> selected, {
+    String? assignTo,
+  }) async {
     // Validate the whole batch before writing, then commit all references once.
     final docs = <ClassroomDocument>[], written = <String>[];
     for (final file in selected) {
@@ -240,7 +243,7 @@ class WorkspaceController extends ChangeNotifier {
             'localKey': key,
             'size': file.bytes.length,
             'documentType': 'other',
-            if (pupilId != null) 'pupilIds': [pupilId],
+            if (assignTo != null) 'pupilIds': [assignTo],
           }),
         );
       }

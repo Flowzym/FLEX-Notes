@@ -43,7 +43,10 @@ extension _MaterialViews on _DesktopWorkspaceState {
         bytes: bytes,
       ));
     }
-    await c.importFiles(batch);
+    await c.importFiles(
+      batch,
+      assignTo: c.section == WorkspaceSection.journal ? c.pupilId : null,
+    );
     c.navigate(WorkspaceSection.materials);
     message(
       '${picked.length} Datei${picked.length == 1 ? '' : 'en'} importiert',
@@ -320,6 +323,47 @@ extension _MaterialViews on _DesktopWorkspaceState {
                 'Dokumentvorschau',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
+            ),
+            IconButton(
+              tooltip: 'Vorschau vergrößern',
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => Dialog(
+                  child: SizedBox(
+                    width: 1000,
+                    height: MediaQuery.sizeOf(ctx).height * .88,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  m.title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Schließen',
+                                onPressed: () => Navigator.pop(ctx),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: DocumentPreview(material: m, files: c.files),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.open_in_full, size: 17),
             ),
             IconButton(
               tooltip: 'Vorschau schließen',
