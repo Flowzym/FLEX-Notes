@@ -218,6 +218,14 @@ class ClassroomDocument {
   String text(String key, [String fallback = '']) =>
       _json[key] as String? ?? fallback;
   int number(String key, [int fallback = 0]) => _json[key] as int? ?? fallback;
+  bool get isTeachingLesson =>
+      kind == ClassroomKind.lesson && calendarCategory == 'lesson';
+  String get calendarCategory =>
+      text('calendarCategory') == 'appointment' ? 'appointment' : 'lesson';
+
+  bool get previewBeforeSharing =>
+      flag('redacted') ||
+      _json['redacted'] == null && (flag('scanner') || flag('scan'));
   bool flag(String key) => _json[key] as bool? ?? false;
   List<String> strings(String key) =>
       List<String>.from(_json[key] as List? ?? []);
@@ -242,7 +250,7 @@ class ClassroomDocument {
   RepeatRule get rule => RepeatRule.fromJson(map('repeat'));
   String get label => switch (kind) {
     ClassroomKind.timetable => 'Stundenplan',
-    ClassroomKind.lesson => 'Unterricht',
+    ClassroomKind.lesson => isTeachingLesson ? 'Unterricht' : 'Termin',
     ClassroomKind.holiday => 'Ferien / Ausfall',
     ClassroomKind.material => 'Material',
     ClassroomKind.materialSet => 'Unterrichtspaket',
@@ -282,6 +290,7 @@ class ClassroomDocument {
         'icsUid',
         'icsSource',
         'icsStamp',
+        'calendarCategory',
         'remindMinutes',
         'timetableId',
         'slotIds',
@@ -300,6 +309,10 @@ class ClassroomDocument {
         'week',
         'localKey',
         'etag',
+        'remoteName',
+        'remoteEtag',
+        'remoteModifiedAt',
+        'cachedAt',
         'sourceModifiedAt',
         'size',
         'documentType',
@@ -312,6 +325,7 @@ class ClassroomDocument {
         'links',
         'scan',
         'scanner',
+        'redacted',
         'versions',
         'pageCount',
       },
@@ -494,6 +508,7 @@ class ClassroomDocument {
       final links = rows('links').map(DocumentLink.fromJson).toList();
       if (links.length > 100 ||
           links.map((l) => l.identity).toSet().length != links.length ||
+          _json.containsKey('redacted') && _json['redacted'] is! bool ||
           _json.containsKey('scan') && _json['scan'] is! bool ||
           _json.containsKey('scanner') && _json['scanner'] is! bool ||
           _json.containsKey('pageCount') &&
@@ -524,6 +539,13 @@ class ClassroomDocument {
       }
     }
     if (kind == ClassroomKind.lesson) {
+      if (_json['calendarCategory'] != null &&
+          !const {
+            'lesson',
+            'appointment',
+          }.contains(_json['calendarCategory'])) {
+        throw const DomainError('Ungültige Kalenderart.');
+      }
       if ((text('start').isNotEmpty || text('end').isNotEmpty) &&
           (!validClock(text('start')) ||
               !validEndClock(text('end')) ||
@@ -714,7 +736,23 @@ const returnTypes = {
 bool returnPending(Json row) =>
     row['status'] == 'open' || row['status'] == 'partial';
 
+enum ReturnListState {
+  pending('Antworten ausständig'),
+  complete('Vollständig'),
+  closed('Abgeschlossen');
+
+  const ReturnListState(this.label);
+  final String label;
+}
+
 extension PupilReturnList on ClassroomDocument {
+  ReturnListState get returnState => flag('closed')
+      ? ReturnListState.closed
+      : rows('participants').any(returnPending)
+      ? ReturnListState.pending
+      : ReturnListState.complete;
+  bool get returnFinished => returnState != ReturnListState.pending;
+
   Json? returnParticipant(String pupilId) => kind == ClassroomKind.returnList
       ? rows(
           'participants',

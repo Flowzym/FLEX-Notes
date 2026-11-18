@@ -3,6 +3,8 @@ part of 'calendar_page.dart';
 Future<void> showCalendarManagement(
   BuildContext context,
   NotebookController c, {
+  VoidCallback? chooseFilter,
+  VoidCallback? materials,
   Future<void> Function()? importCalendar,
   Future<void> Function()? exportCalendar,
   String? date,
@@ -21,6 +23,26 @@ Future<void> showCalendarManagement(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (chooseFilter != null)
+              ListTile(
+                key: const ValueKey('calendar-management-filter'),
+                leading: const Icon(Icons.tune),
+                title: const Text('Filter'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  chooseFilter();
+                },
+              ),
+            if (materials != null)
+              ListTile(
+                key: const ValueKey('calendar-management-materials'),
+                leading: const Icon(Icons.folder_open_outlined),
+                title: const Text('Unterlagen'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  materials();
+                },
+              ),
             if (onWeekendsChanged != null)
               SwitchListTile(
                 key: const ValueKey('calendar-weekends'),
@@ -86,8 +108,7 @@ Future<void> showCalendarManagement(
             ),
             for (final d in c.classroom.where(
               (d) =>
-                  (d.kind == ClassroomKind.lesson &&
-                      d.text('timetableId').isEmpty) ||
+                  (d.isTeachingLesson && d.text('timetableId').isEmpty) ||
                   d.kind == ClassroomKind.holiday,
             ))
               Card(
@@ -192,8 +213,7 @@ Future<void> showCalendarManagement(
               ),
             if (!c.classroom.any(
               (d) =>
-                  (d.kind == ClassroomKind.lesson &&
-                      d.text('timetableId').isEmpty) ||
+                  (d.isTeachingLesson && d.text('timetableId').isEmpty) ||
                   d.kind == ClassroomKind.holiday,
             ))
               const Text('Noch kein Unterricht und keine Ferien erfasst.'),

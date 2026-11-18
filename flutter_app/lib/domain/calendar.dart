@@ -47,7 +47,7 @@ List<CalendarItem> calendarItems(
         time: l.start,
         end: l.end,
         title: l.title,
-        category: 'lesson',
+        category: l.document.calendarCategory,
         detail: [
           l.document.text('subject'),
           l.document.text('teacher'),
@@ -110,9 +110,10 @@ List<CalendarItem> calendarItems(
         title: d.title,
         category: 'return',
         document: d,
-        done: d.flag('closed') || !d.rows('participants').any(returnPending),
-        detail:
-            '${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
+        done: d.returnFinished,
+        detail: d.returnFinished
+            ? d.returnState.label
+            : '${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
       ),
   ];
   for (final h in data.classroom.where(

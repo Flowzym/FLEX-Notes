@@ -24,6 +24,7 @@ Future<void> changeMaterialVersion(
     validateMaterialBytes(bytes, selected['extension'] as String);
     patch = {
       for (final key in versionFileFields) key: selected[key],
+      'redacted': selected['redacted'] ?? document.previewBeforeSharing,
       'versions': [
         materialVersionSnapshot(document.toJson()),
         ...remaining,
@@ -33,6 +34,10 @@ Future<void> changeMaterialVersion(
       'itemId': '',
       'etag': '',
       'sourcePath': '',
+      'remoteName': '',
+      'remoteEtag': '',
+      'remoteModifiedAt': '',
+      'cachedAt': '',
     }..removeWhere((key, value) => value == null);
   }
   await repository.saveClassroomDocument(document.patch(patch));

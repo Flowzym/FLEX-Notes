@@ -140,7 +140,7 @@ void main() {
       await tap(t, find.text('Offen'));
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       expect(find.byKey(const ValueKey('context-0-3')), findsNothing);
-      expect(find.text('Notizen').hitTestable(), findsOneWidget);
+      expect(find.text('Orga-Notizen').hitTestable(), findsOneWidget);
       expect(find.byKey(const ValueKey('calendar-pages')), findsNothing);
       final organisation = t.widget<IndexedStack>(
         find.byKey(const ValueKey('organisation-pages')),
@@ -165,7 +165,7 @@ void main() {
       expect(find.text('Kopien vorbereiten').hitTestable(), findsNothing);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       await tap(t, find.byKey(const ValueKey('context-2-0')));
-      expect(find.text('Orga').hitTestable(), findsOneWidget);
+      expect(find.text('Alle Einträge').hitTestable(), findsOneWidget);
       expect(find.text('Kopien vorbereiten'), findsWidgets);
       expect(find.byKey(const ValueKey('context-2-1')), findsNothing);
       await tap(t, find.byKey(const ValueKey('general-add-all')));

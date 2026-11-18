@@ -66,7 +66,11 @@ class _ReturnListsState extends State<ReturnLists> {
                         ? d.deleted
                         : !d.deleted &&
                               (filter == 'all' ||
-                                  (filter == 'closed') == d.flag('closed'))),
+                                  (filter == 'open' && !d.returnFinished ||
+                                      filter == 'complete' &&
+                                          d.returnState ==
+                                              ReturnListState.complete ||
+                                      filter == 'closed' && d.flag('closed')))),
               )
               .toList()
             ..sort(
@@ -101,6 +105,7 @@ class _ReturnListsState extends State<ReturnLists> {
             children: [
               for (final f in const {
                 'open': 'Offen',
+                'complete': 'Vollständig',
                 'closed': 'Abgeschlossen',
                 'all': 'Alle',
                 'trash': 'Papierkorb',
@@ -150,6 +155,8 @@ class ReturnListCard extends StatelessWidget {
                 ? 'Abgeschlossen'
                 : participant != null
                 ? returnStatuses[d.text('type')]![participant['status']]
+                : d.returnFinished
+                ? d.returnState.label
                 : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
             if (participant != null &&
                 (participant['note'] as String).isNotEmpty)

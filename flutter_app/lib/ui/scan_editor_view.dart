@@ -161,6 +161,19 @@ extension _ScanEditorView on _ScanEditorState {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
+          if ((data['importFailures'] as List? ?? []).isNotEmpty) ...[
+            for (final index
+                in (data['importSuccess'] as List? ?? []).whereType<int>())
+              if (index >= 0 && index < (data['importNames'] as List).length)
+                Text('Übernommen · ${(data['importNames'] as List)[index]}'),
+            for (final failure in (data['importFailures'] as List))
+              Text(failure.toString()),
+            TextButton.icon(
+              onPressed: busy ? null : pick,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Fehlgeschlagene erneut wählen'),
+            ),
+          ],
           if (removedPage != null)
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,

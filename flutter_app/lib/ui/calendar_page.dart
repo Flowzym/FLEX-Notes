@@ -320,12 +320,35 @@ class _CalendarPageState extends State<CalendarPage>
                             chosen.remove(d.id);
                           }
                         }),
+                  secondary: PopupMenuButton<String>(
+                    tooltip: 'Eintragsart wählen',
+                    icon: Icon(
+                      d.calendarCategory == 'lesson'
+                          ? Icons.school_outlined
+                          : Icons.event_outlined,
+                    ),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'appointment',
+                        child: Text('Termin'),
+                      ),
+                      PopupMenuItem(value: 'lesson', child: Text('Unterricht')),
+                    ],
+                    onSelected: (kind) => update(() {
+                      final index = preview.documents.indexOf(d);
+                      preview.documents[index] = d.patch({
+                        'calendarCategory': kind,
+                      });
+                      chosen.add(d.id);
+                    }),
+                  ),
                   subtitle: Text(
-                    same(d)
+                    '${d.calendarCategory == 'lesson' ? 'Unterricht' : 'Termin'} · '
+                    '${same(d)
                         ? 'Bereits vorhanden'
                         : existing.containsKey(d.id)
                         ? 'Bisher: ${existing[d.id]!.title} · ${displayDate(existing[d.id]!.text('date'))}\nImport: ${displayDate(d.text('date'))} ${d.text('start')} – ausgewählte Felder werden ersetzt'
-                        : '${displayDate(d.text('date'))} ${d.text('start')}',
+                        : '${displayDate(d.text('date'))} ${d.text('start').isEmpty ? 'Ganztägig' : d.text('start')}'}',
                   ),
                 ),
             ],
@@ -926,6 +949,11 @@ class _CalendarPageState extends State<CalendarPage>
                     : mode == 'week'
                     ? '${schoolDay(bounds.from).day}.${schoolDay(bounds.from).month == schoolDay(bounds.to).month ? '' : '${schoolDay(bounds.from).month}.'}–${schoolDay(bounds.to).day}.${schoolDay(bounds.to).month}.'
                     : '${calendarWeekday(selected, short: true)}, ${selected.day}.${selected.month}.',
+                compactPeriod: mode == 'week'
+                    ? 'KW\n${isoCalendarWeek(selected)}'
+                    : mode == 'month'
+                    ? '${calendarMonth(selected).substring(0, 3)}\n${(selected.year % 100).toString().padLeft(2, '0')}'
+                    : '${selected.day}.\n${calendarMonth(selected).substring(0, 3)}',
                 periodLabel: mode == 'month'
                     ? '${calendarMonth(selected)} ${selected.year}'
                     : calendarRangeLabel(
@@ -957,6 +985,12 @@ class _CalendarPageState extends State<CalendarPage>
                         ctx,
                         c,
                         date: dateOnly(selected),
+                        chooseFilter: chooseFilters,
+                        materials: () => showPreparedMaterials(
+                          ctx,
+                          c,
+                          date: dateOnly(selected),
+                        ),
                         showWeekends: showWeekends(items),
                         onWeekendsChanged: (value) =>
                             setState(() => weekends = value),

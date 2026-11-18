@@ -43,6 +43,7 @@ class FlexScannerActivity : ComponentActivity() {
     private lateinit var documentMode: Button
     private lateinit var photoModeButton: Button
     @Volatile private var photoMode = false
+    private var replacementToken: String? = null
     private var reviewing = false
     private var thumbnailBitmap: Bitmap? = null
     private var heldMessageUntil = 0L
@@ -69,6 +70,7 @@ class FlexScannerActivity : ComponentActivity() {
             return
         }
         store = ScanCaptureStore(this, owner)
+        replacementToken = savedInstanceState?.getString("replacement")?.takeIf { it == store.lastToken() }
         limit = intent.getIntExtra("limit", 25).coerceIn(1, 25)
         photoMode = intent.getBooleanExtra("photo", false)
         automatic = getPreferences(MODE_PRIVATE).getBoolean("automatic", false)
@@ -361,25 +363,37 @@ class FlexScannerActivity : ComponentActivity() {
         overlay.invalidate()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("replacement", replacementToken)
+    }
+
+    // Project the stored outline onto the preview. The encrypted original stays
+    // available for manual correction in the Flutter editor.
+    private fun capturePreview(maxSide: Int): Bitmap? {
+        val (bytes, outline) = store.lastPreviewInput() ?: return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val sample = ScanFrameGeometry.decodeSample(bounds.outWidth, bounds.outHeight, maxSide)
+        val original = BitmapFactory.decodeByteArray(
+            bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample },
+        ) ?: return null
+        if (outline == null) return original
+        val (corners, width, height) = ScanFrameGeometry.preview(
+            outline, original.width, original.height, maxSide,
+        ) ?: return original
+        val target = floatArrayOf(0f, 0f, width.toFloat(), 0f, width.toFloat(), height.toFloat(), 0f, height.toFloat())
+        val matrix = Matrix()
+        if (!matrix.setPolyToPoly(corners, 0, target, 0, 4)) return original
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        Canvas(result).drawBitmap(original, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
+        original.recycle()
+        return result
+    }
+
     private fun refreshThumbnail() {
         executor.execute {
-            val bitmap =
-                try {
-                    store.lastImage()?.let { bytes ->
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                        var sample = 1
-                        while (max(bounds.outWidth, bounds.outHeight) / sample > 200) sample *= 2
-                        BitmapFactory.decodeByteArray(
-                            bytes,
-                            0,
-                            bytes.size,
-                            BitmapFactory.Options().apply { inSampleSize = sample },
-                        )
-                    }
-                } catch (_: Exception) {
-                    null
-                }
+            val bitmap = try { capturePreview(200) } catch (_: Exception) { null }
             runOnUiThread {
                 if (isDestroyed || isFinishing) {
                     bitmap?.recycle()
@@ -409,7 +423,13 @@ class FlexScannerActivity : ComponentActivity() {
                 .setTitle("Aufnahme ${store.count()}")
                 .setView(picture)
                 .setPositiveButton("Weiter scannen", null)
+                .setNeutralButton("Wiederholen") { _, _ ->
+                    replacementToken = store.lastToken()
+                    updateCount()
+                    message("Seite ${store.count()} erneut aufnehmen")
+                }
                 .setNegativeButton("Entfernen") { _, _ ->
+                    replacementToken = null
                     store.lastToken()?.let { store.acknowledge(it) }
                     updateCount()
                 }
@@ -424,23 +444,7 @@ class FlexScannerActivity : ComponentActivity() {
         dialog.show()
         dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         executor.execute {
-            val bitmap =
-                try {
-                    store.lastImage()?.let { bytes ->
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                        var sample = 1
-                        while (max(bounds.outWidth, bounds.outHeight) / sample > 1200) sample *= 2
-                        BitmapFactory.decodeByteArray(
-                            bytes,
-                            0,
-                            bytes.size,
-                            BitmapFactory.Options().apply { inSampleSize = sample },
-                        )
-                    }
-                } catch (_: Exception) {
-                    null
-                }
+            val bitmap = try { capturePreview(1200) } catch (_: Exception) { null }
             runOnUiThread {
                 if (!dialog.isShowing || isDestroyed) bitmap?.recycle()
                 else if (bitmap != null) {
@@ -484,7 +488,7 @@ class FlexScannerActivity : ComponentActivity() {
                     preview.viewPort?.let { group.setViewPort(it) }
                     camera =
                         p.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, group.build())
-                    shutter.isEnabled = store.count() < limit
+                    shutter.isEnabled = store.count() < limit || replacementToken != null
                     message(
                         if (photoMode) "Foto aufnehmen · Antippen zum Scharfstellen"
                         else "Dokument ins Bild bringen · Ränder werden live erkannt"
@@ -546,6 +550,7 @@ class FlexScannerActivity : ComponentActivity() {
                 if (now >= heldMessageUntil) {
                     showStatus(
                         when {
+                            replacementToken != null -> "Seite $pageCount erneut aufnehmen"
                             pageCount >= limit -> "Serie vollständig · Weiter zur Bearbeitung"
                             photoMode -> "Foto · Antippen zum Scharfstellen"
                             automatic && frame.nextPage -> "Gespeichert · nächste Seite einlegen"
@@ -570,7 +575,8 @@ class FlexScannerActivity : ComponentActivity() {
 
     private fun takePhoto() {
         val still = capture ?: return
-        if (busy || leaving || isFinishing || pageCount >= limit) return
+        if (busy || leaving || isFinishing || (pageCount >= limit && replacementToken == null)) return
+        val replace = replacementToken
         busy = true
         shutter.isEnabled = false
         done.isEnabled = false
@@ -672,9 +678,10 @@ class FlexScannerActivity : ComponentActivity() {
                             else DocumentEdges.detect(luma, small.width, small.height)
                         ByteArrayOutputStream().use { out ->
                             normalized.compress(Bitmap.CompressFormat.JPEG, 92, out)
-                            store.add(out.toByteArray(), edges, takingPhoto)
+                            store.add(out.toByteArray(), edges, takingPhoto, replace)
                         }
                         runOnUiThread {
+                            replacementToken = null
                             busy = false
                             if (leaving) {
                                 setResult(RESULT_OK)
@@ -682,7 +689,7 @@ class FlexScannerActivity : ComponentActivity() {
                                 return@runOnUiThread
                             }
                             updateCount()
-                            message("Aufnahme ${store.count()} gespeichert")
+                            message(if (replace == null) "Aufnahme ${store.count()} gespeichert" else "Seite ${store.count()} ersetzt")
                             overlay
                                 .animate()
                                 .alpha(.2f)
@@ -736,7 +743,7 @@ class FlexScannerActivity : ComponentActivity() {
         done.background = shape(if (count > 0) olive else Color.rgb(231, 231, 220), 24f)
         done.setTextColor(if (count > 0) Color.WHITE else olive)
         thumbnail.isEnabled = count > 0 && !busy
-        shutter.isEnabled = !busy && capture != null && count < limit
+        shutter.isEnabled = !busy && capture != null && (count < limit || replacementToken != null)
         updateModes()
         refreshThumbnail()
     }

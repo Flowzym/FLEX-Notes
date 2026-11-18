@@ -198,7 +198,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
               '${d.title} ${d.text('note')} ${d.text('otherParticipants')} ${d.rows('participants').map((r) => r['name']).join(' ')}'
                   .toLowerCase()
                   .contains(query.toLowerCase()) &&
-              (filter == 'all' || d.flag('closed') == (filter == 'done')),
+              (filter == 'all' || d.returnFinished == (filter == 'done')),
         );
         final items =
             <
@@ -222,7 +222,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                 (
                   entry: null,
                   document: d,
-                  done: d.flag('closed'),
+                  done: d.returnFinished,
                   due: d.text('dueDate').isEmpty ? '9999' : d.text('dueDate'),
                   updated: d.text('updatedAtUtc'),
                 ),
@@ -237,7 +237,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
         });
         final title = switch (widget.kind) {
           'task' => 'Aufgaben',
-          'note' => 'Notizen',
+          'note' => 'Orga-Notizen',
           'class' => 'Klassen-Orga',
           _ => 'Organisation',
         };

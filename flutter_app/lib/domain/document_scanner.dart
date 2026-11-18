@@ -199,6 +199,22 @@ void validateScanData(Json j) {
       )) {
     throw const DomainError('Ungültiger Scanentwurf.');
   }
+  final names = j['importNames'] ?? const [];
+  final successes = j['importSuccess'] ?? const [];
+  final failures = j['importErrors'] ?? const {};
+  final messages = j['importFailures'] ?? const [];
+  if (j['sourceRedacted'] != null && j['sourceRedacted'] is! bool ||
+      j['importBatchId'] != null && j['importBatchId'] is! String ||
+      names is! List ||
+      !names.every((v) => v is String) ||
+      successes is! List ||
+      !successes.every((v) => v is int && v >= 0 && v < names.length) ||
+      failures is! Map ||
+      !failures.entries.every((e) => e.key is String && e.value is String) ||
+      messages is! List ||
+      !messages.every((v) => v is String)) {
+    throw const DomainError('Ungültige Angaben zum Stapelimport.');
+  }
   final undo = j['filterUndo'] ?? const {};
   if (undo is! Map || undo.length > scanPageLimit) {
     throw const DomainError('Ungültiger Filterverlauf.');

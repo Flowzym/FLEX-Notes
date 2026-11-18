@@ -89,6 +89,7 @@ const importedLessonFields = {
   'repeat',
   'note',
   'room',
+  'calendarCategory',
 };
 
 /// An external refresh may change its own fields, but never silently discard
@@ -212,14 +213,17 @@ IcsImport parseCalendarIcs(String text, {String source = 'Kalender'}) {
         ).firstMatch(prop.params)?[1];
         if (zone != null) {
           final location = tz.getLocation(zone);
-          local = tz.TZDateTime(
+          final instant = tz.TZDateTime(
             location,
             int.parse(v.substring(0, 4)),
             int.parse(v.substring(4, 6)),
             int.parse(v.substring(6, 8)),
             int.parse(v.substring(9, 11)),
             int.parse(v.substring(11, 13)),
-          ).toLocal();
+          );
+          local = DateTime.fromMillisecondsSinceEpoch(
+            instant.millisecondsSinceEpoch,
+          );
         } else {
           local = local.toLocal();
         }
@@ -323,6 +327,12 @@ IcsImport parseCalendarIcs(String text, {String source = 'Kalender'}) {
           'materialIds': <String>[],
           'repeat': rule.toJson(),
           'exceptions': <Json>[],
+          'calendarCategory':
+              (fields['CATEGORIES'] ?? [])
+                  .expand((f) => f.value.split(','))
+                  .any((v) => v.trim().toLowerCase() == 'unterricht')
+              ? 'lesson'
+              : 'appointment',
           'icsUid': uid,
           'icsSource': source,
           'icsStamp':

@@ -3,6 +3,12 @@ import 'calendar.dart';
 import 'classroom.dart';
 import 'models.dart';
 
+int isoCalendarWeek(DateTime date) {
+  final day = DateTime.utc(date.year, date.month, date.day);
+  final thursday = day.add(Duration(days: DateTime.thursday - day.weekday));
+  return 1 + thursday.difference(DateTime.utc(thursday.year)).inDays ~/ 7;
+}
+
 int clockMinutes(String clock) =>
     int.parse(clock.substring(0, 2)) * 60 + int.parse(clock.substring(3, 5));
 String minuteClock(int minutes) =>

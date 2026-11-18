@@ -442,20 +442,50 @@ Widget classroomEditor(
           if (kind == ClassroomKind.lesson)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                data['_occurrenceDate'] != null
-                    ? 'Nur diesen Termin'
-                    : data['_splitFrom'] != null
-                    ? 'Stundenplan ab ${displayDate(data['_splitFrom'] as String)}'
-                    : document?.rule.repeats == true
-                    ? 'Gesamte Unterrichtsserie'
-                    : 'Unterricht anlegen',
-                style: Theme.of(ctx).textTheme.titleSmall,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['_occurrenceDate'] != null
+                        ? 'Nur diesen Termin'
+                        : data['_splitFrom'] != null
+                        ? '${data['calendarCategory'] == 'appointment' ? 'Terminserie' : 'Stundenplan'} ab ${displayDate(data['_splitFrom'] as String)}'
+                        : document?.rule.repeats == true
+                        ? (data['calendarCategory'] == 'appointment'
+                              ? 'Gesamte Terminserie'
+                              : 'Gesamte Unterrichtsserie')
+                        : data['calendarCategory'] == 'appointment'
+                        ? 'Termin'
+                        : 'Unterricht anlegen',
+                    style: Theme.of(ctx).textTheme.titleSmall,
+                  ),
+                  Text(
+                    [
+                      if (data['date'] is String &&
+                          validDate(data['date'] as String))
+                        displayDate(data['date'] as String),
+                      for (final pupil in c.pupils)
+                        if ((data['pupilIds'] as List? ?? []).contains(
+                          pupil.id,
+                        ))
+                          pupil.name,
+                      if ((data['otherParticipants'] as String? ?? '')
+                          .isNotEmpty)
+                        data['otherParticipants'] as String,
+                      if ((data['pupilIds'] as List? ?? []).isEmpty &&
+                          (data['otherParticipants'] as String? ?? '').isEmpty)
+                        'FLEX-Klasse',
+                    ].join(' · '),
+                  ),
+                ],
               ),
             ),
           text(
             'title',
-            kind == ClassroomKind.lesson ? 'Thema / Unterricht' : 'Bezeichnung',
+            kind == ClassroomKind.lesson &&
+                    data['calendarCategory'] != 'appointment'
+                ? 'Thema / Unterricht'
+                : 'Bezeichnung',
           ),
           if (data['_occurrenceDate'] == null)
             PersonAssignmentField(

@@ -34,8 +34,11 @@ class _LessonFlowPageState extends State<LessonFlowPage>
   String seedKey = '';
   @override
   bool get wantKeepAlive => true;
-  List<LessonOccurrence> get lessons =>
-      lessonOccurrences(c.classroom, date, date);
+  List<LessonOccurrence> get lessons => lessonOccurrences(
+    c.classroom,
+    date,
+    date,
+  ).where((l) => l.document.isTeachingLesson).toList();
   List<ClassroomDocument> get savedFlows =>
       c.classroom
           .where(

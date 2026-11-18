@@ -37,6 +37,48 @@ String oneDriveMaterialId(
   );
 }
 
+ClassroomDocument indexOneDriveFile(
+  String driveId,
+  Json item,
+  Iterable<ClassroomDocument> existing, {
+  String? path,
+  bool restore = false,
+}) {
+  final id = oneDriveMaterialId(driveId, item['id'] as String, existing);
+  final old = existing.where((d) => d.id == id).firstOrNull;
+  final name = item['name'] as String;
+  final title = name.length <= 160 ? name : name.substring(0, 160);
+  final cached = old != null && old.text('localKey').isNotEmpty;
+  final fields = <String, dynamic>{
+    'driveId': driveId,
+    'itemId': item['id'],
+    'url': item['webUrl'] ?? old?.text('url') ?? '',
+    'remoteName': name,
+    'remoteEtag': item['eTag'] ?? '',
+    'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
+    'sourcePath': ?path,
+    if (cached && old.text('extension') == name.split('.').last.toLowerCase())
+      'name': name,
+    if (restore) 'deleted': false,
+    if (!cached) ...{
+      'name': name,
+      'extension': name.split('.').last.toLowerCase(),
+      'size': item['size'] ?? 0,
+      'sourceModifiedAt': item['lastModifiedDateTime'] ?? '',
+    },
+  };
+  if (old == null) {
+    return ClassroomDocument.create(ClassroomKind.material, title, {
+      ...fields,
+      ...suggestMaterialMetadata(name),
+    }, id: id);
+  }
+  return old.patch({
+    ...fields,
+    if (old.title == old.text('remoteName', old.text('name'))) 'title': title,
+  });
+}
+
 /// Read-only scan, bounded across the whole tree (not only per Graph page).
 /// Identity is drive/item based, so moving or renaming a source keeps all links.
 Future<List<ClassroomDocument>> scanMaterialFolder(
@@ -95,29 +137,8 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
           'Bitte einen kleineren Unterordner wählen (höchstens 2000 Dateien).',
         );
       }
-      final id = oneDriveMaterialId(folder.text('driveId'), itemId, old.values);
-      final previous = old[id];
-      final fields = <String, dynamic>{
-        'name': name, 'driveId': folder.text('driveId'), 'itemId': itemId,
-        'url': item['webUrl'] as String? ?? '', 'extension': extension,
-        'sourcePath': path,
-        // A cached copy's timestamp/size describe its bytes until refreshed.
-        if (previous == null || previous.text('localKey').isEmpty) ...{
-          'size': item['size'] as int? ?? 0,
-          'sourceModifiedAt': item['lastModifiedDateTime'] as String? ?? '',
-        },
-      };
-      final title = name.length <= 160 ? name : name.substring(0, 160);
       result.add(
-        previous == null
-            ? ClassroomDocument.create(ClassroomKind.material, title, {
-                ...fields,
-                ...suggestMaterialMetadata(name),
-              }, id: id)
-            : previous.patch({
-                ...fields,
-                if (previous.title == previous.text('name')) 'title': title,
-              }),
+        indexOneDriveFile(folder.text('driveId'), item, old.values, path: path),
       );
     }
     progress?.call(visited.length, result.length);

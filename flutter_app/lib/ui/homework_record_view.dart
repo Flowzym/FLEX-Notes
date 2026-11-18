@@ -21,6 +21,7 @@ class HomeworkRecordView extends StatelessWidget {
     required this.standalone,
     required this.busy,
     required this.onExpand,
+    required this.onOpenReassigned,
     required this.onEdit,
     required this.onTaskState,
     required this.onComment,
@@ -33,6 +34,7 @@ class HomeworkRecordView extends StatelessWidget {
   final SchoolRecord record;
   final bool expanded, standalone, busy;
   final VoidCallback onExpand, onEdit, onReminder, onDelete, onHistory;
+  final ValueChanged<String> onOpenReassigned;
   final void Function(HomeworkTask, TaskState) onTaskState;
   final void Function(String?) onComment;
   final Widget? error;
@@ -43,9 +45,6 @@ class HomeworkRecordView extends StatelessWidget {
     final theme = Theme.of(context), colors = theme.colorScheme;
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
     final title = r.title.isNotEmpty ? r.title : r.subject;
-    final complete = r.tasks
-        .where((t) => r.taskState(t) == TaskState.complete)
-        .length;
     final generalNotes = r.liveFeedback.where(
       (f) => f.taskId == null && f.note.isNotEmpty,
     );
@@ -111,7 +110,7 @@ class HomeworkRecordView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            '$complete / ${r.tasks.length} erledigt',
+            r.homeworkProgress,
             key: ValueKey('homework-progress-${r.id}'),
             style: theme.textTheme.bodySmall,
           ),
@@ -234,7 +233,7 @@ class HomeworkRecordView extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${r.taskState(task).label}${notes.isEmpty ? '' : ' · ${notes.length} Kommentar${notes.length == 1 ? '' : 'e'}'}',
+                    '${r.taskState(task).label}${task.reassignedTo == null ? '' : ' · Erneut aufgegeben'}${notes.isEmpty ? '' : ' · ${notes.length} Kommentar${notes.length == 1 ? '' : 'e'}'}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: .7),
                     ),
@@ -250,7 +249,9 @@ class HomeworkRecordView extends StatelessWidget {
     final states = HomeworkStatusSelector(
       task: task,
       value: r.taskState(task),
-      onChanged: busy || r.deleted ? null : (value) => onTaskState(task, value),
+      onChanged: busy || r.deleted || task.reassignedTo != null
+          ? null
+          : (value) => onTaskState(task, value),
     );
     return Padding(
       key: ValueKey('homework-task-${task.id}'),
@@ -322,6 +323,15 @@ class HomeworkRecordView extends StatelessWidget {
                       'Stand: ${current.taskState(task).label}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (task.reassignedTo != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => onOpenReassigned(task.reassignedTo!),
+                          icon: const Icon(Icons.redo),
+                          label: const Text('Nacharbeit öffnen'),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     if (!current.deleted)
                       Align(

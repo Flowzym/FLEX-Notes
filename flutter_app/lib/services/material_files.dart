@@ -77,6 +77,31 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   }
 }
 
+/// Build 84 could record the remote extension over an existing offline copy.
+Json? legacyCloudCorrection(Json data, Uint8List bytes) {
+  if ((data['itemId'] ?? '') == '' ||
+      (data['localKey'] ?? '') == '' ||
+      (data['cachedAt'] ?? '') != '') {
+    return null;
+  }
+  final declared = data['extension'];
+  if (declared != 'pdf' && declared != 'docx') return null;
+  final actual =
+      bytes.length >= 5 &&
+          ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-'
+      ? 'pdf'
+      : 'docx';
+  if (actual == declared) return null;
+  validateMaterialBytes(bytes, actual);
+  final name = data['name'] as String? ?? data['title'] as String;
+  return {
+    'remoteName': data['remoteName'] ?? name,
+    'extension': actual,
+    'size': bytes.length,
+    'name': "${name.replaceFirst(RegExp(r'\.[^.]+$'), '')}.$actual",
+  };
+}
+
 /// Optional exchange package for selected materials. The complete notebook
 /// backup includes all referenced binaries through CompleteBackup.
 class MaterialBundle {

@@ -13,7 +13,7 @@ import java.util.UUID
 class StreamFiles(private val context: Context) {
     companion object {
         val methods = setOf("beginBackupWrite", "beginBackupRead", "writeFileChunk", "finishFileWrite", "abortFileWrite", "readFileChunk", "closeFileRead")
-        private const val maxBytes = 220_000_000L
+        private const val maxBytes = 201_000_000_000L
         private val backupName = Regex("FLEX-Auto-[0-9TZ-]+-[a-f0-9-]+\\.(json|flexbackup)")
     }
     private data class Write(val uri: Uri, val output: OutputStream, val finalName: String?,

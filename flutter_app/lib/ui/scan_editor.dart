@@ -4,6 +4,7 @@ import '../services/material_sharing.dart';
 import 'detail_flow.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:cryptography/cryptography.dart' show Sha256;
 import 'dart:typed_data' show BytesBuilder;
 import '../domain/school.dart';
 import '../domain/drafts.dart';
@@ -306,6 +307,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         'tags': source.strings('tags'),
         'outputFormat': source.text('extension') == 'jpg' ? 'jpg' : 'pdf',
         'sourceId': source.id,
+        if (source.previewBeforeSharing) 'sourceRedacted': true,
         'sourceRevision': source.revision,
       };
     }
@@ -520,7 +522,22 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
     final next = pages;
     if (replacement < 0) {
-      next.add(page);
+      final parts = captureToken?.split('/');
+      final later =
+          parts != null && parts.length == 5 && parts.first == 'import'
+          ? next.indexWhere((p) {
+              final other = p.captureToken?.split('/');
+              return other != null &&
+                  other.length == 5 &&
+                  other[0] == 'import' &&
+                  other[1] == parts[1] &&
+                  (other[2].compareTo(parts[2]) > 0 ||
+                      other[2] == parts[2] &&
+                          (int.tryParse(other.last) ?? 0) >
+                              (int.tryParse(parts.last) ?? 0));
+            })
+          : -1;
+      next.insert(later < 0 ? next.length : later, page);
     } else {
       next[replacement] = page;
     }
@@ -549,17 +566,49 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> addPdf(Uint8List bytes) async {
+  // The slot identifies a file in its batch. The digest distinguishes a
+  // corrected copy from a retry of identical bytes.
+  Map<int, ScanPage> importedPages(String slot) => {
+    for (final page in pages)
+      if (page.captureToken?.startsWith(slot) == true)
+        ?int.tryParse(page.captureToken!.split('/').last): page,
+  };
+
+  Future<void> finishImport(String slot, int count) async {
+    final extra = importedPages(
+      slot,
+    ).entries.where((e) => e.key > count).map((e) => e.value.key).toSet();
+    if (extra.isEmpty) return;
+    final undo = filterUndo..removeWhere((key, _) => extra.contains(key));
+    change({
+      'pages': [
+        for (final page in pages)
+          if (!extra.contains(page.key)) page.toJson(),
+      ],
+      'filterUndo': {for (final e in undo.entries) e.key: e.value.toJson()},
+    });
+    await buffer.flush();
+    await cleanupPages();
+  }
+
+  Future<void> addPdf(Uint8List bytes, {String? importToken}) async {
+    final slot = importToken?.substring(0, importToken.lastIndexOf('/') + 1);
+    final existing = slot == null ? <int, ScanPage>{} : importedPages(slot);
     var index = 0;
     await for (final image in importPdfPages(
       bytes,
-      limit: scanPageLimit - pages.length,
+      limit: scanPageLimit - pages.length + existing.length,
     )) {
+      index++;
+      final token = importToken == null ? null : '$importToken/$index';
+      final previous = existing[index];
+      if (token != null && previous?.captureToken == token) continue;
       if (mounted) {
-        setState(() => progress = 'PDF-Seite ${++index} wird eingelesen …');
+        setState(() => progress = 'PDF-Seite $index wird eingelesen …');
       }
-      await addImage(image);
+      await addImage(image, captureToken: token, replaceKey: previous?.key);
     }
+    if (slot != null) await finishImport(slot, index);
   }
 
   Future<void> pick({String? replaceKey}) => action(() async {
@@ -582,30 +631,118 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
     if (replaceKey != null &&
         files.isNotEmpty &&
         (files.length != 1 ||
-            files.single.name.toLowerCase().endsWith('.pdf'))) {
+            files.single.name.toLowerCase().endsWith('.pdf') ||
+            files.single.mimeType == 'application/pdf')) {
       throw const DomainError(
         'Zum Ersetzen bitte genau ein Bild auswählen. PDFs über „Bilder / PDF hinzufügen“ ergänzen.',
       );
     }
-    for (final file in files) {
-      if (await file.length() > 20000000) {
-        throw const DomainError('Bitte Dateien bis zu 20 MB auswählen.');
+    if (files.isEmpty) return;
+    final batch = data['importBatchId'] as String? ?? newId();
+    final names = List<String>.from(data['importNames'] as List? ?? []);
+    final errors = Map<String, String>.from(data['importErrors'] as Map? ?? {});
+    final successful = Set<int>.from(data['importSuccess'] as List? ?? []);
+    final used = <int>{};
+    final ready = <(int, XFile)>[];
+    for (final (position, file) in files.indexed) {
+      final name = file.name.isEmpty ? 'Datei ${position + 1}' : file.name;
+      final matches = names.indexed
+          .where((e) => e.$2 == name && !used.contains(e.$1))
+          .map((e) => e.$1)
+          .toList();
+      final partialSelection =
+          files.where((f) => f.name == name).length <
+          names.where((v) => v == name).length;
+      var slot =
+          (partialSelection
+              ? matches.where((i) => errors.containsKey('$i')).firstOrNull
+              : null) ??
+          matches.firstOrNull;
+      if (slot == null) {
+        slot = names.length;
+        names.add(name);
       }
-      final bytes = BytesBuilder();
-      await for (final chunk in file.openRead()) {
-        if (bytes.length + chunk.length > 20000000) {
-          throw const DomainError('Die Datei überschreitet 20 MB.');
+      used.add(slot);
+      errors.remove('$slot');
+      try {
+        if (await file.length() > 20000000) {
+          throw const DomainError('Größer als 20 MB');
         }
-        bytes.add(chunk);
-      }
-      final content = bytes.takeBytes();
-      if (file.name.toLowerCase().endsWith('.pdf')) {
-        await addPdf(content);
-      } else {
-        await addImage(content, photo: photoOutput, replaceKey: replaceKey);
+        ready.add((slot, file));
+      } catch (e) {
+        successful.remove(slot);
+        errors['$slot'] = scanError(e);
       }
     }
+    change({
+      'importBatchId': batch,
+      'importNames': names,
+      'importErrors': errors,
+    });
+    for (final (slot, file) in ready) {
+      final before = pages.map((p) => p.key).toList();
+      try {
+        final bytes = BytesBuilder(copy: false);
+        await for (final chunk in file.openRead()) {
+          if (bytes.length + chunk.length > 20000000) {
+            throw const DomainError('Größer als 20 MB');
+          }
+          bytes.add(chunk);
+        }
+        final content = bytes.takeBytes();
+        final digest = (await Sha256().hash(
+          content,
+        )).bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+        final prefix = "import/$batch/${slot.toString().padLeft(4, '0')}/";
+        final token = '$prefix$digest';
+        if (file.name.toLowerCase().endsWith('.pdf') ||
+            file.mimeType == 'application/pdf') {
+          await addPdf(content, importToken: token);
+        } else {
+          final previous = importedPages(prefix)[1];
+          if (previous?.captureToken != '$token/1') {
+            await addImage(
+              content,
+              photo: photoOutput,
+              replaceKey: replaceKey ?? previous?.key,
+              captureToken: '$token/1',
+            );
+          }
+          await finishImport(prefix, 1);
+        }
+        successful.add(slot);
+      } catch (e) {
+        // If the draft write failed after adding a page, preserve the buffered
+        // metadata and original file until the next explicit save.
+        if (buffer.dirty &&
+            !listEquals(before, pages.map((p) => p.key).toList())) {
+          rethrow;
+        }
+        successful.remove(slot);
+        errors['$slot'] = scanError(e);
+      }
+    }
+    final failed = [
+      for (var i = 0; i < names.length; i++)
+        if (errors.containsKey('$i')) '${names[i]} – ${errors['$i']}',
+    ];
+    final complete = failed.isEmpty;
+    change({
+      'importBatchId': complete ? null : batch,
+      'importNames': complete ? [] : names,
+      'importErrors': complete ? {} : errors,
+      'importSuccess': complete ? [] : successful.toList(),
+      'importFailures': failed,
+    });
+    await buffer.flush();
+    if (!complete && mounted) {
+      setState(
+        () => error =
+            '${successful.length} ${successful.length == 1 ? 'Datei' : 'Dateien'} übernommen · ${failed.length} ausständig',
+      );
+    }
   });
+
   Future<void> capture({
     String? replaceKey,
     bool photo = false,
@@ -1047,7 +1184,18 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
               'application/pdf',
             ),
           ];
-    if (mounted) await sharePreparedDocuments(context, documents);
+    if (mounted) {
+      await sharePreparedDocuments(
+        context,
+        documents,
+        previewIndices: {
+          if (data['redacted'] == true ||
+              data['sourceRedacted'] == true ||
+              widget.source?.previewBeforeSharing == true)
+            ...List.generate(documents.length, (i) => i),
+        },
+      );
+    }
   });
 
   Future<void> save() => action(() async {

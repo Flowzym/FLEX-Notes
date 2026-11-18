@@ -1,26 +1,8 @@
-# FLEX für Android · Build 79
+# FLEX für Android · 0.34.0+85
 
-**0.29.0+79** ist als signierte ARM64- und ARMv7-APK verfügbar:
-[APK und Prüfnachweise](../releases/android/build-79/README.md).
+Die Android-Ausgabe verwendet die App-Kennung `at.flowzym.flex_notizbuch`. Auf den meisten aktuellen Handys passt die ARM64-APK. ARMv7 ist für Geräte mit 32-Bit-Android vorgesehen. Beide Pakete können FLEX Build 62 bis 84 mit der bestehenden Signatur aktualisieren. Vor der Installation eine vollständige verschlüsselte Sicherung außerhalb der App speichern.
 
-Die neue **FLEX** hat die App-Kennung `at.flowzym.flex_notizbuch` und wird neben
-**FLEX Test** (`at.flowzym.flex_notizbuch.test`) installiert. Die alte Installation
-und ihr Speicher bleiben erhalten. Ein direktes Update der alten Test-App ist
-ohne deren ursprünglichen privaten Signierschlüssel nicht möglich.
-
-**Vor dem Wechsel die [Umzugsanleitung](../docs/rebuild/ANDROID-UMZUG-62.md)
-befolgen.** Eine Installation überträgt keine Daten automatisch. Die alte App
-erst nach geprüftem Import und zusätzlicher Sicherung entfernen.
-
-Build 79 kann direkt über die neue FLEX aus Build 62–78 installiert werden.
-App-Kennung und Signatur bleiben erhalten. Vor dem Update eine vollständige
-verschlüsselte Sicherung außerhalb der App speichern. Bei einem Update aus
-Build 62–76 migriert der erste Start Datenbank und Materialien in die verschlüsselte
-Ablage; danach kein Downgrade und keine App-Daten löschen.
-
-[Build-79-Änderungen und Prüfbericht](../docs/rebuild/REVIEW-CALENDAR-BUILD-79.md) ·
-[Noch offene Geräteabnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md).
-Neue Sicherungen mit Schema 8 benötigen Build 79 oder neuer; alte bleiben lesbar.
+Die frühere „FLEX Test“ hat die eigene Kennung `at.flowzym.flex_notizbuch.test`. Für Daten aus dieser App gilt die [Umzugsanleitung](../docs/rebuild/ANDROID-UMZUG-62.md).
 
 ## Dauerhafte Signatur
 
@@ -48,7 +30,9 @@ Flutter-Version und Abhängigkeiten stehen in der CI-Konfiguration und im Lockfi
 Java 21 und das Android SDK werden benötigt. Nach `flutter pub get`:
 
 ```sh
-FLEX_SIGNING_PROPERTIES=/privater/ordner/signing.properties flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+FLEX_SIGNING_PROPERTIES=/privater/ordner/signing.properties flutter build apk \
+  --release --no-pub --split-per-abi --target-platform android-arm,android-arm64 \
+  --obfuscate --split-debug-info=/privater/ordner/symbole/build-85
 ```
 
 Die Properties-Datei enthält `storeFile`, `storePassword`, `keyAlias` und
@@ -66,19 +50,18 @@ Dieses CI-Ergebnis bleibt unsigniert und ist kein Installationsdownload.
 Debug-Builds verwenden die getrennte Kennung `at.flowzym.flex_notizbuch.dev`
 und heißen **FLEX Dev**.
 
-## Geprüft und noch offen
+## Abnahme auf einem Schulhandy
 
-Signatur, App-Kennung, Version, ZIP-Integrität, unterstützte Architekturen und
-16-KB-Ausrichtung sind geprüft. Das Zertifikat stimmt mit Build 62–76 überein.
-Statische Analyse und Formatprüfung ohne Befunde. 600 Flutter-Tests, 11 Schema- und 2 native Verschlüsselungstests sowie
-3 Servertests und Browserprüfungen sind im aktuellen
-Prüfbericht dokumentiert. Beide APKs enthalten SQLCipher. Native JVM-Tests prüfen
-Dateiverschlüsselung, aber keinen echten Android-Keystore. Live-Randerkennung benötigt die native Android-
-Dokumentkamera und funktionierende Google Play-Dienste.
+Für den Durchlauf eine Testperson und Beispieldateien verwenden. Persönliche Daten bleiben in der produktiven Installation.
 
-Installation und Speichermigration, Kamera, Biometrie und Erinnerungen auf einem echten Handy sowie
-der Umzug des persönlichen Datenbestands sind noch nicht abgenommen.
-[Nachweise](../docs/rebuild/SECURITY-QUALITY-BUILD-77.md).
+| Bereich | Ablauf und erwartetes Ergebnis |
+| --- | --- |
+| Installation | Das passende Paket über die vorhandene FLEX installieren. Die bisherige Testzuordnung eines Materials ist nach dem ersten Öffnen vorhanden. |
+| OneDrive | Mit dem Schulkonto anmelden, zu FLEX zurückkehren und zwei Dateien über die Ordnersuche wählen. Dateien einem Schüler mit Unterrichtsdatum zuordnen. Nach Neustart und im Flugmodus die heruntergeladene Kopie öffnen. |
+| Kamera | Erstmals Kamerazugriff erlauben. Kariertes Heft, reflektierendes Arbeitsblatt und Blatt auf dunklem Tisch aufnehmen. Vorschaukontur mit dem Zuschnitt vergleichen, eine Seite wiederholen und eine Serie unterbrechen. Nach der Rückkehr Anzahl und Reihenfolge prüfen. Die Dokumentkamera erkennt Ränder lokal mit CameraX. |
+| Schwärzung | Ein erfundenes Wort schwärzen, die fertige Vorschau vergrößern und die tatsächlich geteilte PDF auf einem anderen Gerät öffnen. |
+| Benachrichtigung | Testaufgabe in zwei Minuten erinnern lassen und das Handy sperren. FLEX danach öffnen. Die zugestellte Meldung bleibt verfügbar. „Später“ verschiebt sie, „Erledigt“ beendet sie. Mit der schulüblichen Akkuspareinstellung wiederholen. |
+| Homescreen und Bedienung | FLEX über das Widget nach einem Kaltstart öffnen. Mit TalkBack und großer Schrift eine HÜ kontrollieren, den Kalender mit Wochenende eine Woche vorwärts wischen und wieder zum heutigen Tag springen. |
+| Schuljahr | Einen Testeintrag mit Scan archivieren. Vollständige Sicherung in einem leeren Testprofil wiederherstellen. Archiv, Seitenvorschau, Zuordnung und Daten nach Wiederöffnung prüfen. |
 
-Die [ältere Build-61-Dokumentation](../docs/rebuild/ANDROID-BUILD-61.md)
-beschreibt den vorherigen Stand ohne verfügbaren Test-Signierschlüssel.
+Native Android-JVM-Tests und simulierte Microsoft-Antworten decken Teile dieser Abläufe ab. Kameratrefferquote, gerätespezifische Energiesparregeln und der Anmeldedialog des Schulkontos werden auf dem tatsächlichen Gerät beurteilt.

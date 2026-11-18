@@ -350,6 +350,10 @@ void main() {
       await host(t, c);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       expect(find.text('Kopien vorbereiten'), findsOneWidget);
+      expect(find.byTooltip('Erledigen').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Papierkorb'), findsNothing);
+      expect(find.text('0 / 0 Unteraufgaben'), findsNothing);
+      await tap(t, find.byTooltip('Aufgabendetails'));
       for (final label in [
         'Scannen / Foto',
         'Dateien · 0',
@@ -365,9 +369,9 @@ void main() {
           reason: label,
         );
       }
-      await tap(t, find.byTooltip('Erledigen'));
+      await tap(t, find.byTooltip('Erledigen').hitTestable());
       expect(c.entries.single.done, isTrue);
-      await tap(t, find.byTooltip('Wieder öffnen'));
+      await tap(t, find.byTooltip('Wieder öffnen').hitTestable());
       expect(c.entries.single.done, isFalse);
       await t.pumpWidget(const SizedBox());
     },

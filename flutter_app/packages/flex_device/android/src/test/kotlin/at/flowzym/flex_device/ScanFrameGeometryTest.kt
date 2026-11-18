@@ -47,4 +47,16 @@ class ScanFrameGeometryTest {
         assertEquals(1, tiny.width)
         assertEquals(1, tiny.height)
     }
+    @Test
+    fun storedOutlineControlsTheThumbnailAndFullPreviewAspectRatio() {
+        val saved = floatArrayOf(.1f, .2f, .9f, .2f, .9f, .8f, .1f, .8f)
+        val page = requireNotNull(ScanFrameGeometry.preview(saved, 1000, 600, 400))
+        assertEquals(400, page.width)
+        assertEquals(180, page.height)
+        assertEquals(100f, page.corners[0])
+        assertEquals(120f, page.corners[1])
+        assertEquals(null, ScanFrameGeometry.preview(FloatArray(8), 1000, 600, 400))
+        assertEquals(null, ScanFrameGeometry.preview(floatArrayOf(Float.NaN), 1000, 600, 400))
+        assertEquals(8, ScanFrameGeometry.decodeSample(1200, 600, 200))
+    }
 }

@@ -383,12 +383,39 @@ Future<void> showMaterialDetails(
                   icon: const Icon(Icons.download_outlined),
                   label: const Text('Offline laden / aktualisieren'),
                 ),
+              if (d.text('itemId').isNotEmpty &&
+                  d.text('localKey').isNotEmpty) ...[
+                if (DateTime.tryParse(d.text('cachedAt')) case final date?)
+                  Text(
+                    'Offline geladen am ${displayDate(dateOnly(date.toLocal()))}',
+                  ),
+                if (d.text('remoteName').isNotEmpty &&
+                    (d.text('remoteName').split('.').last.toLowerCase() !=
+                            d.text('extension') ||
+                        d.text('remoteEtag').isNotEmpty &&
+                            d.text('remoteEtag') != d.text('etag') ||
+                        d.text('remoteModifiedAt').isNotEmpty &&
+                            d.text('remoteModifiedAt') !=
+                                d.text('sourceModifiedAt')))
+                  const Text('Neuere OneDrive-Fassung verfügbar'),
+              ],
               if (materialDeviceAvailable &&
                   d.text('localKey').isNotEmpty &&
                   d.text('url').isNotEmpty)
                 TextButton.icon(
                   onPressed: () => guarded(ctx, () async {
-                    await c.saveClassroom(d.patch({'localKey': ''}));
+                    final name = d.text('remoteName');
+                    await c.saveClassroom(
+                      d.patch({
+                        'localKey': '',
+                        'etag': '',
+                        'cachedAt': '',
+                        if (name.isNotEmpty) ...{
+                          'name': name,
+                          'extension': name.split('.').last.toLowerCase(),
+                        },
+                      }),
+                    );
                     await removeUnusedMaterialFile(
                       c,
                       const LocalMaterialFiles(),

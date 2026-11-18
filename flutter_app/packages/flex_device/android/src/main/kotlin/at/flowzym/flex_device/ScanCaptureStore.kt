@@ -35,30 +35,39 @@ class ScanCaptureStore(context: Context, val owner: String) {
 
     fun count(): Int = synchronized(PrivateStorage.monitor) { rows().length() }
 
-    fun lastImage(): ByteArray? =
-        synchronized(PrivateStorage.monitor) {
-            lastToken()?.let { vault.read(File(directory, it)) }
-        }
-
-    fun add(bytes: ByteArray, quad: DocumentEdges.Quad?, photo: Boolean = false): String =
+    fun lastPreviewInput(): Pair<ByteArray, FloatArray?>? =
         synchronized(PrivateStorage.monitor) {
             val pages = rows()
-            require(pages.length() < 25 && bytes.size <= 10_000_000)
-            require(
-                directory.listFiles().orEmpty().sumOf { it.length() } + bytes.size <= 40_000_000
-            )
+            if (pages.length() == 0) return@synchronized null
+            val row = pages.getJSONObject(pages.length() - 1)
+            val corners = row.optJSONArray("corners")?.takeIf { it.length() == 4 }?.let { points ->
+                FloatArray(8) { i -> points.getJSONArray(i / 2).getDouble(i % 2).toFloat() }
+            }
+            vault.read(File(directory, row.getString("token"))) to corners
+        }
+
+    fun add(bytes: ByteArray, quad: DocumentEdges.Quad?, photo: Boolean = false, replace: String? = null): String =
+        synchronized(PrivateStorage.monitor) {
+            val pages = rows()
+            val last = pages.length() - 1
+            require(replace == null || last >= 0 && pages.getJSONObject(last).getString("token") == replace)
+            require((pages.length() < 25 || replace != null) && bytes.size <= 10_000_000)
+            val previous = replace?.let { File(directory, it) }
+            require(directory.listFiles().orEmpty().sumOf { it.length() } -
+                (previous?.length() ?: 0L) + bytes.size <= 40_000_000)
             val token = UUID.randomUUID().toString()
             val file = File(directory, token)
             vault.write(file, bytes)
             val row = JSONObject().put("token", token).put("photo", photo)
             if (quad != null) row.put("corners", JSONArray(quad.points.map { listOf(it.x, it.y) }))
-            pages.put(row)
+            if (replace == null) pages.put(row) else pages.put(last, row)
             try {
                 write(pages)
             } catch (e: Exception) {
                 file.delete()
                 throw e
             }
+            previous?.delete()
             token
         }
 

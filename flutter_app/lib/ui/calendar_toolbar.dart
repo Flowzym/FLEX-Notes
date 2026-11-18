@@ -6,6 +6,7 @@ class CalendarToolbar extends StatelessWidget {
     super.key,
     required this.period,
     required this.periodLabel,
+    required this.compactPeriod,
     required this.previous,
     required this.next,
     required this.chooseDate,
@@ -17,7 +18,7 @@ class CalendarToolbar extends StatelessWidget {
     required this.materials,
     required this.manage,
   });
-  final String period, periodLabel;
+  final String period, periodLabel, compactPeriod;
   final bool lessons, filtered;
   final VoidCallback previous, next, chooseDate, today, toggleLessons, filter;
   final VoidCallback? materials, manage;
@@ -25,7 +26,11 @@ class CalendarToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (ctx, box) {
-      final size = box.maxWidth < 350 ? 32.0 : 36.0;
+      const size = 48.0;
+      final inlineFilter =
+          box.maxWidth >= 380 && MediaQuery.textScalerOf(ctx).scale(1) <= 1.4;
+      final inlineMaterials =
+          box.maxWidth >= 460 && MediaQuery.textScalerOf(ctx).scale(1) <= 1.4;
       Widget button(
         String key,
         String label,
@@ -36,7 +41,7 @@ class CalendarToolbar extends StatelessWidget {
         toggled: checked,
         child: SizedBox(
           width: size,
-          height: 44,
+          height: size,
           child: IconButton(
             key: ValueKey(key),
             tooltip: label,
@@ -64,13 +69,17 @@ class CalendarToolbar extends StatelessWidget {
                 key: const ValueKey('calendar-period'),
                 onPressed: chooseDate,
                 style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 44),
+                  minimumSize: const Size(0, 48),
                   padding: const EdgeInsets.symmetric(horizontal: 1),
                   backgroundColor: Colors.transparent,
                   foregroundColor: Theme.of(ctx).colorScheme.onSurface,
                 ),
                 child: Text(
-                  period,
+                  box.maxWidth < 345 &&
+                          MediaQuery.textScalerOf(ctx).scale(1) > 1.4
+                      ? compactPeriod
+                      : period,
+                  semanticsLabel: periodLabel,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -94,7 +103,7 @@ class CalendarToolbar extends StatelessWidget {
               key: const ValueKey('calendar-today'),
               onPressed: today,
               style: TextButton.styleFrom(
-                minimumSize: const Size(44, 44),
+                minimumSize: const Size(48, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 backgroundColor: Colors.transparent,
                 textStyle: const TextStyle(
@@ -113,18 +122,20 @@ class CalendarToolbar extends StatelessWidget {
             toggleLessons,
             checked: lessons,
           ),
-          button(
-            'calendar-filter',
-            filtered ? 'Filter · aktiv' : 'Filter',
-            filtered ? Icons.filter_alt : Icons.tune,
-            filter,
-          ),
-          button(
-            'calendar-materials',
-            'Unterlagen',
-            Icons.folder_open_outlined,
-            materials,
-          ),
+          if (inlineFilter)
+            button(
+              'calendar-filter',
+              filtered ? 'Filter · aktiv' : 'Filter',
+              filtered ? Icons.filter_alt : Icons.tune,
+              filter,
+            ),
+          if (inlineMaterials)
+            button(
+              'calendar-materials',
+              'Unterlagen',
+              Icons.folder_open_outlined,
+              materials,
+            ),
           button(
             'calendar-manage',
             'Verwalten',

@@ -424,10 +424,10 @@ void main() {
           );
           expect(modes.bottom, lessThanOrEqualTo(toolbar.top));
           for (final action in [
-            'materials',
+            if (dates.width >= 460 && setting.$2 <= 1.4) 'materials',
             'manage',
             'show-lessons',
-            'filter',
+            if (dates.width >= 380 && setting.$2 <= 1.4) 'filter',
             'today',
             'previous',
             'next',
@@ -438,8 +438,8 @@ void main() {
             expect(rect.left, greaterThanOrEqualTo(toolbar.left));
             expect(rect.right, lessThanOrEqualTo(toolbar.right));
             expect(rect.center.dy, closeTo(dates.center.dy, .01));
-            expect(rect.width, greaterThanOrEqualTo(31.99));
-            expect(rect.height, greaterThanOrEqualTo(43.99));
+            expect(rect.width, greaterThanOrEqualTo(47.99));
+            expect(rect.height, greaterThanOrEqualTo(47.99));
           }
           expect(
             find.byKey(const ValueKey('calendar-edit-timetable')),
@@ -447,6 +447,16 @@ void main() {
           );
           expect(find.byKey(const ValueKey('calendar-weekends')), findsNothing);
           expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
+          await tap(t, find.byKey(const ValueKey('calendar-manage')));
+          expect(
+            find.byKey(const ValueKey('calendar-management-materials')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('calendar-management-filter')),
+            findsOneWidget,
+          );
+          await tap(t, find.byTooltip('Schließen'));
           await capture(
             t,
             key,

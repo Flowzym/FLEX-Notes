@@ -43,6 +43,56 @@ class StreamingFiles extends MemoryBackupFiles implements StreamingBackupFiles {
 }
 
 void main() {
+  test(
+    'encrypted roundtrip retains more than 100 MB and pupil assignments',
+    () async {
+      final source = classroomMemory(), target = classroomMemory();
+      await source.initialize();
+      await target.initialize();
+      addTearDown(source.close);
+      addTearDown(target.close);
+      await source.savePupil(const Pupil(id: 'p', name: 'Testperson'));
+      final files = MemoryMaterialFiles(), restored = MemoryMaterialFiles();
+      final temp = await Directory.systemTemp.createTemp('flex-backup-');
+      addTearDown(() => temp.delete(recursive: true));
+      final destination = File('${temp.path}/klasse.flexbackup');
+      for (var i = 0; i < 6; i++) {
+        final key = 'blatt$i';
+        final bytes = Uint8List(17000000)
+          ..setAll(0, ascii.encode('%PDF-1.4\n% Blatt $i\n'));
+        await files.write(key, bytes);
+        await source.saveClassroomDocument(
+          ClassroomDocument.create(ClassroomKind.material, 'Blatt $i', {
+            'extension': 'pdf',
+            'name': '$key.pdf',
+            'localKey': key,
+            'size': bytes.length,
+            'pupilIds': ['p'],
+          }),
+        );
+      }
+      await StreamBackup.capture(
+        source,
+        files,
+        password: password,
+      ).pipe(destination.openWrite());
+      expect(await destination.length(), greaterThan(100000000));
+      final prepared = await StreamBackup.prepare(
+        destination.openRead,
+        restored,
+        password: password,
+      );
+      await prepared.commit(() => target.restoreBackup(prepared.notebook));
+      final docs = await target.classroomDocuments();
+      expect(docs, hasLength(6));
+      expect(prepared.fileCount, 6);
+      for (final d in docs) {
+        expect(d.strings('pupilIds'), ['p']);
+        expect((await restored.read(d.text('localKey'))).length, 17000000);
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
   TestWidgetsFlutterBinding.ensureInitialized();
   test('reads independent Python AES-GCM/PBKDF2 v3 fixture', () async {
     final input = File('test/fixtures/stream_v3.bin');

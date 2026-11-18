@@ -6,10 +6,10 @@ import 'navigation_icon.dart';
 // IDs remain stable when the visual order changes.
 const livePages = {0: 'Aktuell', 1: 'Notizen', 2: 'Ablauf'};
 const organisationPages = {
-  0: 'Orga',
+  0: 'Alle Einträge',
   3: 'Aufgaben',
-  2: 'Notizen',
-  4: 'Klassen-Orga',
+  2: 'Orga-Notizen',
+  4: 'Nur Klasse',
 };
 const materialPages = {
   0: 'Dateien',
@@ -424,18 +424,37 @@ class FlexBottomNavigation extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      e.$2,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: selected == e.$1
-                                            ? scheme.primary
-                                            : scheme.onSurface,
-                                        fontSize: 11,
-                                        height: 1.2,
-                                        fontWeight: selected == e.$1
-                                            ? FontWeight.w700
-                                            : FontWeight.w400,
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          e.$1 == 2 &&
+                                                  (MediaQuery.sizeOf(
+                                                            context,
+                                                          ).width <
+                                                          360 ||
+                                                      MediaQuery.textScalerOf(
+                                                            context,
+                                                          ).scale(1) >
+                                                          1.25)
+                                              ? 'Orga'
+                                              : e.$2,
+                                          semanticsLabel: e.$2,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: selected == e.$1
+                                                ? scheme.primary
+                                                : scheme.onSurface,
+                                            fontSize: 11,
+                                            height: 1.2,
+                                            fontWeight: selected == e.$1
+                                                ? FontWeight.w700
+                                                : FontWeight.w400,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 5),

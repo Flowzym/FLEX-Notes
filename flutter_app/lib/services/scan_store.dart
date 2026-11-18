@@ -132,9 +132,21 @@ Future<ClassroomDocument> saveScan(
                   previousVersion!,
                   ...materialVersions(source.toJson()),
                 ].take(materialVersionLimit).toList(),
+        'redacted':
+            data['redacted'] == true ||
+            data['sourceRedacted'] == true ||
+            source?.flag('redacted') == true,
         'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
-        'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
+        'url': '',
+        'driveId': '',
+        'itemId': '',
+        'etag': '',
+        'sourcePath': '',
+        'remoteName': '',
+        'remoteEtag': '',
+        'remoteModifiedAt': '',
+        'cachedAt': '',
       };
       documents.add(
         source == null

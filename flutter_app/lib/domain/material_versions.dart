@@ -6,6 +6,7 @@ const versionFileFields = [
   'extension',
   'size',
   'pageCount',
+  'redacted',
   'name',
 ];
 
@@ -33,6 +34,7 @@ List<Json> materialVersions(Json data) {
         v.keys.any(
           (k) => !{'id', 'createdAtUtc', ...versionFileFields}.contains(k),
         ) ||
+        v['redacted'] != null && v['redacted'] is! bool ||
         v['pageCount'] != null &&
             (v['pageCount'] is! int ||
                 v['pageCount'] < 1 ||

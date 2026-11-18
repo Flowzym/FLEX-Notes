@@ -61,22 +61,6 @@ class _HomeworkControlState extends State<HomeworkControl> {
     }
   }
 
-  Future<void> details(String id) => showFlexDetail<void>(
-    context: context,
-    builder: (ctx) => AnimatedBuilder(
-      animation: c,
-      builder: (ctx, _) {
-        final r = c.records.where((v) => v.id == id && !v.deleted).firstOrNull;
-        return FlexModal(
-          title: const Text('Hausübung'),
-          onClose: () => Navigator.pop(ctx),
-          content: r == null
-              ? const Text('Die Hausübung wurde entfernt.')
-              : SchoolRecordCard(controller: c, record: r, standalone: true),
-        );
-      },
-    ),
-  );
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: c,
@@ -186,12 +170,14 @@ class _HomeworkControlState extends State<HomeworkControl> {
                           tooltip: 'Aufgabendetails: $heading',
                           onPressed: busy.contains(r.id)
                               ? null
-                              : () => details(r.id),
+                              : () => showHomeworkDetail(context, c, r.id),
                           icon: const Icon(Icons.chevron_right),
                         ),
                       ],
                     ),
-                    for (final task in r.tasks)
+                    for (final task in r.tasks.where(
+                      (t) => t.reassignedTo == null,
+                    ))
                       Padding(
                         padding: EdgeInsets.only(
                           left: task.parentId == null ? 0 : 14,

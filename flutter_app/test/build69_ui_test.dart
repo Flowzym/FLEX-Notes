@@ -356,6 +356,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('context-2-3')));
       await tap(t, find.byKey(const ValueKey('subtask-transport')));
       expect(c.entries.single.done, true);
+      await tap(t, find.byTooltip('Aufgabendetails'));
       await tap(t, find.byTooltip('Unteraufgabe hinzufügen'));
       await t.enterText(
         find.byType(TextField).last,
@@ -366,6 +367,7 @@ void main() {
       expect(c.entries.single.items.length, 2);
       expect(c.entries.single.items.first.checked, true);
       await tap(t, find.byTooltip('Erledigen'));
+      await tap(t, find.byTooltip('Schließen').last);
       await tap(t, find.byKey(const ValueKey('bottom-1')));
       await tap(t, find.byKey(const ValueKey('overview-section-overdue')));
       expect(find.text('Nichts überfällig.'), findsOneWidget);

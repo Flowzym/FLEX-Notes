@@ -29,30 +29,35 @@ class HomeworkTask {
     required this.text,
     this.parentId,
     this.initialState = TaskState.open,
+    this.reassignedTo,
   });
   final String id, text;
-  final String? parentId;
+  final String? parentId, reassignedTo;
   final TaskState initialState;
   HomeworkTask copyWith({
     String? text,
     String? parentId,
     bool clearParent = false,
+    String? reassignedTo,
   }) => HomeworkTask(
     id: id,
     text: text ?? this.text,
     parentId: clearParent ? null : parentId ?? this.parentId,
     initialState: initialState,
+    reassignedTo: reassignedTo ?? this.reassignedTo,
   );
   Json toJson() => {
     'id': id,
     'text': text,
     'parentId': parentId,
     'initialState': initialState.name,
+    if (reassignedTo != null) 'reassignedTo': reassignedTo,
   };
   factory HomeworkTask.fromJson(Json j) => HomeworkTask(
     id: j['id'] as String,
     text: j['text'] as String,
     parentId: j['parentId'] as String?,
+    reassignedTo: j['reassignedTo'] as String?,
     initialState: TaskState.values.byName(
       j['initialState'] as String? ?? 'open',
     ),
@@ -258,12 +263,26 @@ class SchoolRecord {
     return changes.isEmpty ? 'unknown' : changes.last.delivery!;
   }
 
+  String get homeworkProgress {
+    final active = tasks.where((t) => t.reassignedTo == null);
+    final reassigned = tasks.length - active.length;
+    return [
+      if (active.isNotEmpty || reassigned == 0)
+        '${active.where((t) => taskState(t) == TaskState.complete).length} / ${active.length} erledigt',
+      if (reassigned > 0) '$reassigned erneut aufgegeben',
+    ].join(' · ');
+  }
+
   bool get pending =>
       !deleted &&
       (kind == SchoolKind.goal
           ? goalStatus == 'active'
           : kind == SchoolKind.homework &&
-                tasks.any((t) => taskState(t) != TaskState.complete));
+                tasks.any(
+                  (t) =>
+                      t.reassignedTo == null &&
+                      taskState(t) != TaskState.complete,
+                ));
   String get searchText => [
     title,
     body,

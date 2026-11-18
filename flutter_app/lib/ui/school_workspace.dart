@@ -52,7 +52,9 @@ class SchoolWorkspace extends StatefulWidget {
     required this.controller,
     required this.pupil,
     required this.kind,
+    this.initiallyOpenOnly = false,
   });
+  final bool initiallyOpenOnly;
   final NotebookController controller;
   final Pupil pupil;
   final SchoolKind kind;
@@ -62,7 +64,7 @@ class SchoolWorkspace extends StatefulWidget {
 
 class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   String query = '';
-  bool onlyOpen = false;
+  late bool onlyOpen = widget.initiallyOpenOnly;
   final search = TextEditingController();
 
   @override
@@ -133,14 +135,17 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
             ),
             actions: [
               if (!widget.pupil.archived)
-                IconButton(
-                  tooltip: 'Hausübung hinzufügen',
-                  onPressed: () => editSchool(
-                    context,
-                    widget.controller,
-                    SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                Tooltip(
+                  message: 'Hausübung hinzufügen',
+                  child: TextButton.icon(
+                    onPressed: () => editSchool(
+                      context,
+                      widget.controller,
+                      SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('HÜ aufgeben'),
                   ),
-                  icon: const Icon(Icons.add),
                 ),
             ],
           ),
@@ -235,6 +240,27 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
     );
   }
 }
+
+Future<void> showHomeworkDetail(
+  BuildContext context,
+  NotebookController c,
+  String id,
+) => showFlexDetail<void>(
+  context: context,
+  builder: (ctx) => AnimatedBuilder(
+    animation: c,
+    builder: (ctx, _) {
+      final r = c.records.where((v) => v.id == id && !v.deleted).firstOrNull;
+      return FlexModal(
+        title: const Text('Hausübung'),
+        onClose: () => Navigator.pop(ctx),
+        content: r == null
+            ? const Text('Die Hausübung wurde entfernt.')
+            : SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+    },
+  ),
+);
 
 class SchoolRecordCard extends StatefulWidget {
   const SchoolRecordCard({
@@ -339,6 +365,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     expanded: homeworkExpanded,
     standalone: widget.standalone,
     busy: busy,
+    onOpenReassigned: (id) => showHomeworkDetail(context, c, id),
     onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
     onEdit: () => editSchool(context, c, r),
     onTaskState: setTask,
@@ -877,7 +904,12 @@ Future<void> showBrief(
   var names = false, pseudonyms = false;
   var additionalNames = '';
   var preview = '', error = '';
-  final selection = <String>{...initialSelection};
+  String reviewId(SchoolRecord r, GoalReview v) => 'review:${r.id}:${v.id}';
+  final selection = <String>{
+    ...initialSelection,
+    for (final r in c.records.where((r) => initialSelection.contains(r.id)))
+      for (final v in r.reviews) reviewId(r, v),
+  };
   final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
   await showDialog<void>(
     context: context,
@@ -920,6 +952,34 @@ Future<void> showBrief(
                     .map((f) => '${displayDate(f.observedOn)} · ${f.note}'),
               ].where((s) => s.isNotEmpty).join('\n'),
             ),
+          if (areas.contains('goal'))
+            for (final r in c.records.where(
+              (r) =>
+                  !r.deleted &&
+                  r.pupilId == pupil.id &&
+                  r.kind == SchoolKind.goal,
+            ))
+              for (final review in r.reviews.where(
+                (v) => inRange(v.observedOn),
+              ))
+                (
+                  id: reviewId(r, review),
+                  date: review.observedOn,
+                  label: 'Zielüberprüfung · ${r.title}',
+                  text: [
+                    switch (review.decision) {
+                      'continue' => 'Ziel weiterverfolgen',
+                      'achieved' => 'Ziel erreicht',
+                      'ended' => 'Ziel beendet',
+                      _ => 'Ziel wieder aufgenommen',
+                    },
+                    if (review.note.isNotEmpty) review.note,
+                    if (review.nextStep.isNotEmpty)
+                      'Nächster Schritt: ${review.nextStep}',
+                    if (review.nextReviewDate != null)
+                      'Wiedervorlage: ${displayDate(review.nextReviewDate)}',
+                  ].join('\n'),
+                ),
           for (final e in c.entries.where(
             (e) =>
                 e.pupilId == pupil.id &&
@@ -1075,10 +1135,13 @@ Future<void> showBrief(
                   value: selection.contains(e.id),
                   onChanged: (v) => update(() {
                     preview = '';
+                    final related = entries
+                        .where((row) => row.id.startsWith('review:${e.id}:'))
+                        .map((row) => row.id);
                     if (v == true) {
-                      selection.add(e.id);
+                      selection.addAll([e.id, ...related]);
                     } else {
-                      selection.remove(e.id);
+                      selection.removeAll([e.id, ...related]);
                     }
                   }),
                 ),

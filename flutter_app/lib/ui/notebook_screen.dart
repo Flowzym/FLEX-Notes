@@ -2,6 +2,7 @@ import '../domain/reminder_action.dart';
 import 'homework_control.dart';
 import 'school_year_dialog.dart';
 import 'detail_flow.dart';
+import 'entry_navigation.dart' show showAssignedHomework;
 import 'incoming_shares.dart';
 import 'quick_add.dart';
 import 'subtask_editor.dart';
@@ -803,10 +804,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
           (d) =>
               !d.deleted &&
               d.kind == ClassroomKind.returnList &&
-              !d.flag('closed') &&
+              !d.returnFinished &&
               d.text('dueDate').isNotEmpty &&
-              d.text('dueDate').compareTo(today) < 0 &&
-              d.rows('participants').any(returnPending),
+              d.text('dueDate').compareTo(today) < 0,
         )
         .toList();
     final counts = {
@@ -1033,7 +1033,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       standalone: true,
                     )
                   : orga != null
-                  ? _entryCard(orga)
+                  ? _entryCard(orga, details: true)
                   : const Text('Dieser Eintrag wurde entfernt.'),
             );
           },
@@ -1103,8 +1103,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   ...r.negative.map((v) => '− $v'),
                 ].where((v) => v.isNotEmpty).join(' · '),
           status: [
-            if (r.kind == SchoolKind.homework)
-              '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} von ${r.tasks.length} Aufgaben vollständig',
+            if (r.kind == SchoolKind.homework) r.homeworkProgress,
             if (r.kind == SchoolKind.goal)
               r.goalStatus == 'active'
                   ? 'In Arbeit'
@@ -1348,6 +1347,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
       await _openPupil(pupil, symbol: symbol);
       return;
     }
+    if (symbol == FlexSymbol.homework &&
+        c.records.any(
+          (r) =>
+              r.pupilId == pupil.id &&
+              r.kind == SchoolKind.homework &&
+              r.pending,
+        )) {
+      await showAssignedHomework(context, c, pupil.id, onlyOpen: true);
+      return;
+    }
     if (symbol == FlexSymbol.orga) {
       await _editor(OrgaEntry.empty(pupilId: pupil.id));
       return;
@@ -1444,7 +1453,27 @@ class _NotebookScreenState extends State<NotebookScreen> {
     builder: (_) => SubtaskEditor(controller: c, entry: entry),
   );
 
-  Widget _entryCard(OrgaEntry e) {
+  Future<void> _taskDetails(OrgaEntry task) => showFlexDetail<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: c,
+      builder: (_, _) {
+        final current = c.entries
+            .where((e) => e.id == task.id && !e.deleted)
+            .firstOrNull;
+        return FlexModal(
+          title: const Text('Aufgabendetails'),
+          onClose: () => Navigator.pop(ctx),
+          content: current == null
+              ? const Text('Diese Aufgabe ist im Papierkorb.')
+              : _entryCard(current, details: true),
+        );
+      },
+    ),
+  );
+
+  Widget _entryCard(OrgaEntry e, {bool details = false}) {
+    final compactTask = e.isTask && !details;
     final busy = _busyIds.contains(e.id);
     return FlexCard(
       key: ValueKey('orga-entry-${e.id}'),
@@ -1472,29 +1501,35 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         e.isAppointment ? Icons.event_outlined : Icons.notes,
                         color: Theme.of(context).colorScheme.primary,
                       );
-                final heading = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      '${c.owner(e)} · ${e.isAppointment
-                          ? 'Termin'
-                          : e.isTask
-                          ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
-                          : 'Notiz'}',
-                    ),
-                  ],
+                final heading = InkWell(
+                  onTap: compactTask ? () => _taskDetails(e) : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${c.owner(e)} · ${e.isAppointment
+                            ? 'Termin'
+                            : e.isTask
+                            ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
+                            : 'Notiz'}',
+                      ),
+                    ],
+                  ),
                 );
                 final edit = IconButton(
-                  tooltip: 'Bearbeiten',
-                  onPressed: () => _editor(e),
-                  icon: const Icon(Icons.edit),
+                  tooltip: compactTask ? 'Aufgabendetails' : 'Bearbeiten',
+                  onPressed: compactTask
+                      ? () => _taskDetails(e)
+                      : () => _editor(e),
+                  icon: Icon(compactTask ? Icons.chevron_right : Icons.edit),
                 );
-                if (constraints.maxWidth < 300 ||
-                    MediaQuery.textScalerOf(ctx).scale(14) > 21) {
+                if (constraints.maxWidth < (compactTask ? 235 : 300) ||
+                    !compactTask &&
+                        MediaQuery.textScalerOf(ctx).scale(14) > 21) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -1514,7 +1549,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 );
               },
             ),
-            if (e.body.trim().isNotEmpty && e.body.trim() != e.title.trim())
+            if (!compactTask &&
+                e.body.trim().isNotEmpty &&
+                e.body.trim() != e.title.trim())
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
@@ -1523,7 +1560,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (e.isTask || e.items.isNotEmpty)
+            if (details && e.isTask || e.items.isNotEmpty)
               Row(
                 children: [
                   Expanded(
@@ -1532,7 +1569,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
-                  if (e.isTask)
+                  if (e.isTask && !compactTask)
                     IconButton(
                       tooltip: 'Unteraufgabe hinzufügen',
                       onPressed: busy ? null : () => _addSubtask(e),
@@ -1600,6 +1637,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             DocumentAttachmentSection(
               controller: c,
               scope: orgaScanContext(c, e),
+              showActions: !compactTask,
               readOnly: e.deleted,
               compact: true,
               actions: [

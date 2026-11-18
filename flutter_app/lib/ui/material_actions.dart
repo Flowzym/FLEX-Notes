@@ -161,6 +161,8 @@ Future<void> browseOneDrive(
     ),
   ];
   var listing = drive.children(drive: driveId, folder: rootId), busy = false;
+  var query = '', selecting = false;
+  final selected = <String, Json>{};
   await showDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
@@ -169,6 +171,16 @@ Future<void> browseOneDrive(
         title: Text(stack.last.title),
         onClose: busy ? null : () => Navigator.pop(ctx),
         headerActions: [
+          IconButton(
+            tooltip: 'Mehrere Dateien auswählen',
+            icon: Icon(selecting ? Icons.check_box : Icons.checklist),
+            onPressed: busy
+                ? null
+                : () => update(() {
+                    selecting = !selecting;
+                    selected.clear();
+                  }),
+          ),
           if (stack.length > 1)
             IconButton(
               tooltip: 'Übergeordneter Ordner',
@@ -176,6 +188,7 @@ Future<void> browseOneDrive(
                   ? null
                   : () => update(() {
                       stack.removeLast();
+                      query = '';
                       listing = drive.children(
                         drive: driveId,
                         folder: stack.last.id,
@@ -223,6 +236,13 @@ Future<void> browseOneDrive(
             final items = s.data!
                 .where(
                   (v) =>
+                      v['remoteItem'] == null &&
+                      (v['name'] as String? ?? '').toLowerCase().contains(
+                        query.toLowerCase(),
+                      ),
+                )
+                .where(
+                  (v) =>
                       v['folder'] != null ||
                       RegExp(
                         r'\.(pdf|docx)$',
@@ -233,6 +253,15 @@ Future<void> browseOneDrive(
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextFormField(
+                  key: ValueKey(stack.last.id),
+                  initialValue: query,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'In diesem Ordner suchen',
+                  ),
+                  onChanged: (v) => update(() => query = v.trim()),
+                ),
                 if (items.isEmpty)
                   const Text('Keine DOCX- oder PDF-Dateien in diesem Ordner.'),
                 for (final item in items)
@@ -244,13 +273,20 @@ Future<void> browseOneDrive(
                     ),
                     title: Text(item['name'] as String),
                     trailing: Icon(
-                      item['folder'] != null ? Icons.chevron_right : Icons.add,
+                      item['folder'] != null
+                          ? Icons.chevron_right
+                          : selecting
+                          ? (selected.containsKey(item['id'])
+                                ? Icons.check_box
+                                : Icons.check_box_outline_blank)
+                          : Icons.add,
                     ),
                     onTap: busy
                         ? null
                         : () async {
                             if (item['folder'] != null) {
                               update(() {
+                                query = '';
                                 stack.add((
                                   id: item['id'] as String,
                                   title: item['name'] as String,
@@ -263,46 +299,26 @@ Future<void> browseOneDrive(
                               });
                               return;
                             }
+                            if (selecting) {
+                              update(() {
+                                final id = item['id'] as String;
+                                if (selected.containsKey(id)) {
+                                  selected.remove(id);
+                                } else {
+                                  selected[id] = item;
+                                }
+                              });
+                              return;
+                            }
                             update(() => busy = true);
                             final ok = await guarded(ctx, () async {
-                              final id = oneDriveMaterialId(
-                                driveId,
-                                item['id'] as String,
-                                c.classroom,
-                              );
-                              final old = c.classroom
-                                  .where((d) => d.id == id)
-                                  .firstOrNull;
-                              final fields = <String, dynamic>{
-                                'driveId': driveId,
-                                'itemId': item['id'],
-                                'url': item['webUrl'],
-                                'name': item['name'],
-                                'extension': (item['name'] as String)
-                                    .split('.')
-                                    .last
-                                    .toLowerCase(),
-                                if (old == null ||
-                                    old.text('localKey').isEmpty) ...{
-                                  'size': item['size'] ?? 0,
-                                  'sourceModifiedAt':
-                                      item['lastModifiedDateTime'] ?? '',
-                                },
-                                if (old == null)
-                                  ...suggestMaterialMetadata(
-                                    item['name'] as String,
-                                  ),
-                                'deleted': false,
-                              };
                               await c.saveClassroom(
-                                old == null
-                                    ? ClassroomDocument.create(
-                                        ClassroomKind.material,
-                                        item['name'] as String,
-                                        fields,
-                                        id: id,
-                                      )
-                                    : old.patch(fields),
+                                indexOneDriveFile(
+                                  driveId,
+                                  item,
+                                  c.classroom,
+                                  restore: true,
+                                ),
                               );
                             });
                             if (ctx.mounted) {
@@ -324,44 +340,84 @@ Future<void> browseOneDrive(
           },
         ),
         actions: [
-          FilledButton.icon(
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Diesen Ordner merken'),
-            onPressed: busy
-                ? null
-                : () async {
-                    update(() => busy = true);
-                    final ok = await guarded(ctx, () async {
-                      final id = const Uuid().v5(
-                        Namespace.url.value,
-                        'flex-folder:$driveId:${stack.last.id}',
-                      );
-                      final old = c.classroom
-                          .where((d) => d.id == id)
-                          .firstOrNull;
-                      await c.saveClassroom(
-                        old?.patch({'deleted': false}) ??
-                            ClassroomDocument.create(
-                              ClassroomKind.folder,
-                              stack.last.title,
-                              {
-                                'driveId': driveId,
-                                'itemId': stack.last.id,
-                                'url': stack.last.url,
-                              },
-                              id: id,
+          if (selecting)
+            FilledButton(
+              onPressed: busy || selected.isEmpty
+                  ? null
+                  : () async {
+                      update(() => busy = true);
+                      final docs = selected.values
+                          .map(
+                            (v) => indexOneDriveFile(
+                              driveId,
+                              v,
+                              c.classroom,
+                              restore: true,
                             ),
+                          )
+                          .toList();
+                      final ok = await guarded(
+                        ctx,
+                        () => c.saveClassroomBatch(docs),
                       );
-                    });
-                    if (ctx.mounted) {
+                      if (!ctx.mounted) return;
                       if (ok) {
+                        final ids = docs.map((d) => d.id).toSet();
                         Navigator.pop(ctx);
+                        if (context.mounted) {
+                          await showMaterialAssignments(
+                            context,
+                            c,
+                            c.classroom
+                                .where((d) => ids.contains(d.id))
+                                .toList(),
+                          );
+                        }
                       } else {
                         update(() => busy = false);
                       }
-                    }
-                  },
-          ),
+                    },
+              child: Text('${selected.length} übernehmen und zuordnen'),
+            ),
+          if (!selecting)
+            FilledButton.icon(
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Diesen Ordner merken'),
+              onPressed: busy
+                  ? null
+                  : () async {
+                      update(() => busy = true);
+                      final ok = await guarded(ctx, () async {
+                        final id = const Uuid().v5(
+                          Namespace.url.value,
+                          'flex-folder:$driveId:${stack.last.id}',
+                        );
+                        final old = c.classroom
+                            .where((d) => d.id == id)
+                            .firstOrNull;
+                        await c.saveClassroom(
+                          old?.patch({'deleted': false}) ??
+                              ClassroomDocument.create(
+                                ClassroomKind.folder,
+                                stack.last.title,
+                                {
+                                  'driveId': driveId,
+                                  'itemId': stack.last.id,
+                                  'url': stack.last.url,
+                                },
+                                id: id,
+                              ),
+                        );
+                      });
+                      if (ctx.mounted) {
+                        if (ok) {
+                          Navigator.pop(ctx);
+                        } else {
+                          update(() => busy = false);
+                        }
+                      }
+                    },
+            ),
         ],
       ),
     ),
@@ -394,15 +450,41 @@ Future<ClassroomDocument> cacheMaterial(
     material.text('itemId'),
   );
   final exists = await files.exists(material.text('localKey'));
-  if (exists && material.text('etag') == info['eTag']) return material;
+  final remoteName =
+      info['name'] as String? ??
+      material.text('remoteName', material.text('name'));
+  final extension = remoteName.contains('.')
+      ? remoteName.split('.').last.toLowerCase()
+      : material.text('extension');
+  if (exists &&
+      material.text('etag').isNotEmpty &&
+      material.text('etag') == info['eTag'] &&
+      extension == material.text('extension')) {
+    return material;
+  }
   final bytes = await drive.download(info);
-  validateMaterialBytes(bytes, material.text('extension'));
+  try {
+    validateMaterialBytes(bytes, extension);
+  } on DomainError catch (error) {
+    throw DomainError(
+      '„$remoteName“ konnte nicht offline gespeichert werden. ${error.message}',
+    );
+  }
   final key = newId();
-  await files.write(key, bytes);
   late ClassroomDocument saved;
   try {
+    await files.write(key, bytes);
+    if (!listEquals(bytes, await files.read(key))) {
+      throw const DomainError('Die Offlinekopie konnte nicht geprüft werden.');
+    }
     saved = await c.repository.saveClassroomDocument(
       material.patch({
+        'extension': extension,
+        'name': remoteName,
+        'remoteName': remoteName,
+        'cachedAt': utcNow(),
+        'remoteEtag': info['eTag'] ?? '',
+        'remoteModifiedAt': info['lastModifiedDateTime'] ?? '',
         'localKey': key,
         'etag': info['eTag'] ?? '',
         'sourceModifiedAt': info['lastModifiedDateTime'] ?? utcNow(),
@@ -411,7 +493,11 @@ Future<ClassroomDocument> cacheMaterial(
       }),
     );
   } catch (_) {
-    await files.remove(key);
+    try {
+      await files.remove(key);
+    } catch (_) {
+      // Preserve the original failure when a staged download cannot be removed.
+    }
     rethrow;
   }
   await c.reload();
@@ -461,6 +547,18 @@ Future<void> openMaterial(
       throw const DomainError(
         'Die lokale Datei fehlt. Bitte die vollständige Sicherung wiederherstellen.',
       );
+    }
+    if (current.text('itemId').isNotEmpty && current.text('cachedAt').isEmpty) {
+      final correction = legacyCloudCorrection(
+        current.toJson(),
+        await files.read(current.text('localKey')),
+      );
+      if (correction != null) {
+        current = await c.repository.saveClassroomDocument(
+          current.patch(correction),
+        );
+        await c.reload();
+      }
     }
     if (!context.mounted) return;
     if (current.text('extension') == 'jpg') {

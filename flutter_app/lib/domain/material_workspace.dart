@@ -168,7 +168,11 @@ List<ClassroomDocument> suggestedMaterials(
   Iterable<ClassroomDocument> docs,
   String date,
 ) {
-  final lessons = lessonOccurrences(docs, date, date);
+  final lessons = lessonOccurrences(
+    docs,
+    date,
+    date,
+  ).where((l) => l.document.isTeachingLesson);
   final day = schoolDay(date);
   final monday = day.subtract(Duration(days: day.weekday - 1));
   final ids = <String>{

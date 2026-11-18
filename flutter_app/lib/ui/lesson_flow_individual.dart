@@ -87,6 +87,19 @@ extension _IndividualFlow on _LessonFlowPageState {
     final active = phases.where((p) => p.status == 'active').firstOrNull;
     final next = active ?? phases.where((p) => p.pending).firstOrNull;
     final name = pupil.name;
+    final planned = {
+      for (final d in c.classroom.where(
+        (d) => d.kind == ClassroomKind.material && !d.deleted,
+      ))
+        d.id: d,
+    };
+    final nextMaterial =
+        [
+          for (final id in next?.materialIds ?? const <String>[]) ?planned[id],
+        ].firstOrNull ??
+        planned.values
+            .where((m) => pupilMaterialDates(m, pupil.id).contains(date))
+            .firstOrNull;
     void open() => updateFlow(() {
       pupilId = pupil.id;
       expanded = next?.id;
@@ -123,6 +136,19 @@ extension _IndividualFlow on _LessonFlowPageState {
             onTap: open,
           ),
           if (active != null && active.minutes > 0) _PhaseClock(phase: active),
+          if (nextMaterial != null)
+            TextButton.icon(
+              onPressed: () => guarded(
+                context,
+                () => openMaterial(context, c, nextMaterial),
+              ),
+              icon: const Icon(Icons.description_outlined),
+              label: Text(
+                nextMaterial.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           Wrap(
             spacing: 4,
             children: [

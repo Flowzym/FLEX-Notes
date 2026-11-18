@@ -311,6 +311,12 @@ extension _SchoolObservationView on _SchoolEditorState {
           ],
           onChanged: (v) => edit({'body': v}),
         ),
+        if (r.body.trim().isNotEmpty &&
+            observationTones.keys.every((tone) => r.observations(tone).isEmpty))
+          Text(
+            'In der Entwicklung unter „Ohne Tag“. Für eine Bewertung einen Beobachtungsbaustein auswählen.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         const SizedBox(height: 24),
 
         optionalSection(
@@ -501,6 +507,12 @@ extension _SchoolObservationView on _SchoolEditorState {
           ],
           onChanged: (v) => edit({'body': v}),
         ),
+        if (r.body.trim().isNotEmpty &&
+            observationTones.keys.every((tone) => r.observations(tone).isEmpty))
+          Text(
+            'In der Entwicklung unter „Ohne Tag“. Für eine Bewertung einen Beobachtungsbaustein auswählen.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         if (r.kind == SchoolKind.work) ...[
           const SizedBox(height: 12),
           const Text('Auftrag'),
