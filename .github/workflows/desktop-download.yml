@@ -108,9 +108,10 @@ jobs:
               ref = api(f'git/ref/tags/{tag}')
           require(ref['object']['type'] == 'commit' and ref['object']['sha'] == source_sha, 'Release tag points to another commit')
           if existing is None:
-              gh('release', 'create', tag, '--target', source_sha, '--draft', '--prerelease',
-                 '--title', 'FLEX Desktop 1.0.0 – Windows-Vorschau', '--notes-file', str(notes))
-              existing = next(r for r in api('releases?per_page=100') if r['tag_name'] == tag)
+              existing = json.loads(gh('api', '--method', 'POST', f'repos/{repo}/releases',
+                  '-f', f'tag_name={tag}', '-f', f'target_commitish={source_sha}',
+                  '-f', 'name=FLEX Desktop 1.0.0 – Windows-Vorschau',
+                  '-F', 'draft=true', '-F', 'prerelease=true', '-F', f'body=@{notes}'))
           release_id = existing['id']
           assets = {a['name']: a for a in api(f'releases/{release_id}/assets?per_page=100')}
           for file in sorted(output_dir.iterdir()):
