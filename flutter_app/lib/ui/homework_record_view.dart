@@ -1,4 +1,5 @@
 import 'detail_flow.dart';
+import 'submission_collection.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -116,6 +117,16 @@ class HomeworkRecordView extends StatelessWidget {
           ),
         ),
         if (expanded || standalone) ...[
+          if (editable)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.move_to_inbox_outlined),
+                label: const Text('Einsammeln'),
+                onPressed: () =>
+                    guarded(context, () => collectHomework(context, c, r)),
+              ),
+            ),
           if (r.tasks.isEmpty)
             const Text('Noch keine Aufgaben.')
           else

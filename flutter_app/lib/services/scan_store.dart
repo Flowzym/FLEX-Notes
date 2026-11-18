@@ -119,6 +119,7 @@ Future<ClassroomDocument> saveScan(
         'title': title,
         'name': scanFilename(title, extension: photo ? 'jpg' : 'pdf'),
         'documentType': data['documentType'], 'subject': data['subject'],
+        if (data['collection'] == true) 'collected': true,
         'pupilIds': data['pupilIds'],
         'links': data['links'],
         'tags': data['tags'] ?? <String>[],

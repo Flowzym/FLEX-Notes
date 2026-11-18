@@ -104,6 +104,23 @@ List<ClassroomDocument> pupilMaterialsOnDay(
     )
     .toList();
 
+List<ClassroomDocument> preparedDayMaterials(
+  Iterable<ClassroomDocument> documents,
+  String date,
+) {
+  final day = preparationFor(documents, date);
+  return {
+    for (final material in [
+      ...resolveMaterials(
+        documents,
+        day.deleted ? [] : day.strings('materialIds'),
+      ),
+      ...pupilMaterialsOnDay(documents, date),
+    ])
+      material.id: material,
+  }.values.toList();
+}
+
 String preparationId(String date) =>
     const Uuid().v5(Namespace.url.value, 'flex-preparation:$date');
 

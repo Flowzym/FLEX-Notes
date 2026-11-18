@@ -350,7 +350,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
               builder: (_) => SchoolEditor(controller: c, record: evidence),
             ),
             child: Text(
-              '${displayDate(evidence.observedOn)} · ${evidence.body.isNotEmpty ? evidence.body : [...evidence.positive, ...evidence.neutral, ...evidence.negative].join(', ')}',
+              '${displayDate(evidence.observedOn)} · ${[if (evidence.lessonQuestion case final q?) q.summary, if (evidence.body.isNotEmpty) evidence.body, ...evidence.positive, ...evidence.neutral, ...evidence.negative].join(' · ')}',
             ),
           ),
         const SizedBox(height: 16),

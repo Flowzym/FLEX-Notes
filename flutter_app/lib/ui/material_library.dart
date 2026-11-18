@@ -39,6 +39,7 @@ import '../services/material_index.dart';
 import 'material_docx.dart';
 
 part 'material_workspace_views.dart';
+part 'prepared_offline.dart';
 part 'pupil_materials.dart';
 part 'material_index_review.dart';
 part 'material_browser.dart';

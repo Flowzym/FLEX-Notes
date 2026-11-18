@@ -673,6 +673,7 @@ class SqliteNotebook
           taskIds[t['id'] as String] = newId();
         }
         final r = SchoolRecord.empty(SchoolKind.values.byName(kind), id).patch({
+          if (kind == 'homework') 'homeworkGroup': draft.id,
           'observedOn': data['observedOn'],
           'observedTime': data['observedTime'] ?? '',
           'subject': data['subject'] ?? '',

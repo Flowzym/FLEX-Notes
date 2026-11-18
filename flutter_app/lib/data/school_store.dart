@@ -315,6 +315,7 @@ mixin SchoolStore {
       final next = record.patch({
         'id': newId(),
         'pupilId': pupil,
+        if (record.kind == SchoolKind.homework) 'homeworkGroup': requestId,
         'situationId': null,
         'tasks': record.tasks
             .map(

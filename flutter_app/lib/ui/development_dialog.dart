@@ -55,6 +55,7 @@ class _DevelopmentDialogState extends State<DevelopmentDialog> {
   };
   String recordLabel(SchoolRecord r) => [
     r.body,
+    if (r.lessonQuestion case final q? when q.answer.isNotEmpty) q.summary,
     tags(r).join(' · '),
     r.assignmentFree,
     ...r.assignmentSources.map(

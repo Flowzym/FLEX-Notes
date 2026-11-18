@@ -501,9 +501,7 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
         c.classroom,
         date,
       ).where(matches).toList();
-      final downloadable = {
-        for (final m in [...materials, ...scheduled]) m.id: m,
-      }.values.toList();
+      final dayMaterials = preparedDayMaterials(c.classroom, date);
       final suggestions = suggestedMaterials(c.classroom, date)
           .where((m) => matches(m) && !scheduled.any((d) => d.id == m.id))
           .toList();
@@ -586,16 +584,15 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                   icon: const Icon(Icons.add),
                   label: const Text('Dateien / Paket'),
                 ),
-                OutlinedButton.icon(
-                  onPressed:
-                      busy || downloadable.isEmpty || !materialDeviceAvailable
-                      ? null
-                      : () => run(() => cacheMaterials(ctx, c, downloadable)),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Offline laden'),
-                ),
               ],
             ),
+            if (dayMaterials.isNotEmpty)
+              PreparedOfflineStatus(
+                key: ValueKey(date),
+                controller: c,
+                materials: dayMaterials,
+                details: true,
+              ),
             if (busy) const LinearProgressIndicator(),
             if (materials.isEmpty && scheduled.isEmpty)
               Padding(
@@ -726,12 +723,20 @@ Future<void> cacheMaterials(
   NotebookController c,
   List<ClassroomDocument> materials, {
   OneDriveClient? drive,
+  bool offerSignIn = false,
 }) async {
   final client = drive ?? OneDriveClient();
   var cached = 0;
   final failed = <String>[];
   try {
-    if (drive == null) await client.load();
+    if (drive == null && materials.any((m) => m.text('itemId').isNotEmpty)) {
+      await client.load();
+    }
+    if (offerSignIn && !client.connected) {
+      if (!context.mounted) return;
+      await connectOneDrive(context, client);
+      if (!client.connected || !context.mounted) return;
+    }
     for (final m in materials) {
       try {
         if (m.text('itemId').isNotEmpty) {
@@ -742,8 +747,8 @@ Future<void> cacheMaterials(
           throw const DomainError('Nur als Link verfügbar');
         }
         cached++;
-      } catch (_) {
-        failed.add(m.title);
+      } catch (e) {
+        failed.add('${m.title} · ${friendlyError(e)}');
       }
     }
   } finally {
@@ -900,37 +905,45 @@ class PreparedMaterialsTile extends StatelessWidget {
   final String query;
   @override
   Widget build(BuildContext context) {
-    final prepared = preparationFor(controller.classroom, date);
-    final materials = {
-      for (final material in [
-        ...resolveMaterials(
-          controller.classroom,
-          prepared.deleted ? [] : prepared.strings('materialIds'),
-        ),
-        ...pupilMaterialsOnDay(controller.classroom, date),
-      ])
-        if (materialMatches(material, query, pupils: controller.pupils))
-          material.id: material,
-    }.values.toList();
+    final dayMaterials = preparedDayMaterials(controller.classroom, date);
+    final materials = dayMaterials
+        .where((m) => materialMatches(m, query, pupils: controller.pupils))
+        .toList();
     final count = materials.length;
+    final now = DateTime.now();
+    final tomorrow = dateOnly(DateTime(now.year, now.month, now.day + 1));
+    final dayLabel = date == dateOnly(now)
+        ? 'Heute · '
+        : date == tomorrow
+        ? 'Morgen · '
+        : '';
     return ListTile(
       key: ValueKey('prepared-day-$date'),
       contentPadding: EdgeInsets.zero,
       leading: materials.isEmpty
           ? const Icon(Icons.folder_open_outlined)
           : MaterialThumbnail(material: materials.first, width: 40, height: 52),
-      title: Text(
-        '${date == dateOnly(DateTime.now()) ? 'Heute · ' : ''}${displayDate(date)}',
-      ),
-      subtitle: Text(
-        [
-          count == 0
-              ? 'Unterlagen bereitlegen'
-              : '$count ${count == 1 ? 'Material' : 'Materialien'}',
-          if (materials.isNotEmpty) materials.map((m) => m.title).join(', '),
-        ].join(' · '),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+      title: Text('$dayLabel${displayDate(date)}'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              count == 0
+                  ? 'Unterlagen bereitlegen'
+                  : '$count ${count == 1 ? 'Material' : 'Materialien'}',
+              if (materials.isNotEmpty)
+                materials.map((m) => m.title).join(', '),
+            ].join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (dayMaterials.isNotEmpty)
+            PreparedOfflineStatus(
+              controller: controller,
+              materials: dayMaterials,
+            ),
+        ],
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () =>

@@ -136,7 +136,18 @@ void main() {
         ).first.minutes,
         10,
       );
-      await tap(t, find.byKey(const ValueKey('flow-materials')));
+      final materialsButton = find.byKey(const ValueKey('flow-materials'));
+      await t.scrollUntilVisible(
+        materialsButton,
+        -200,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const PageStorageKey('lesson-flow')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tap(t, materialsButton);
       await tap(t, find.text('Alle Materialien'));
       await tap(t, find.byTooltip('Zuordnen: Leseblatt'));
       await tap(t, find.text('Ankommen').last);

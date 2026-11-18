@@ -243,6 +243,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   bool pageEditorOpen = false, pageGrid = true;
   String? sourceSignature;
   bool loadingSource = false;
+  bool get collecting => data['collection'] == true;
   bool get photoOutput => data['outputFormat'] == 'jpg';
   bool get nativeCamera =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -349,6 +350,15 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
         });
       });
     }
+    if (collecting &&
+        nativeCamera &&
+        widget.draft == null &&
+        widget.initialImages.isEmpty &&
+        !widget.importOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(capture());
+      });
+    }
     if (widget.importOnOpen &&
         source == null &&
         widget.draft == null &&
@@ -389,7 +399,7 @@ class _ScanEditorState extends State<ScanEditor> with WidgetsBindingObserver {
   }
 
   void change(Json patch) {
-    data = {...data, ...patch};
+    data = {...data, ...patch, if (collecting) 'outputFormat': 'pdf'};
     if (data['filterUndo'] is Map) {
       final keys = pages.map((p) => p.key).toSet();
       data['filterUndo'] = {

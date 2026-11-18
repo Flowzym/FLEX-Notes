@@ -14,8 +14,9 @@ class LessonPhase {
     this.elapsed = 0,
     this.startedAt = '',
     this.carriedTo = '',
+    this.resumeNote = '',
   });
-  final String id, title, body, kind, status, startedAt, carriedTo;
+  final String id, title, body, kind, status, startedAt, carriedTo, resumeNote;
   final int minutes, elapsed;
   final List<String> materialIds, pupilIds;
   bool get running => startedAt.isNotEmpty;
@@ -41,6 +42,7 @@ class LessonPhase {
     'elapsed': elapsed,
     'startedAt': startedAt,
     'carriedTo': carriedTo,
+    if (resumeNote.isNotEmpty) 'resumeNote': resumeNote,
   };
   factory LessonPhase.fromJson(Json j) {
     const keys = {
@@ -55,8 +57,10 @@ class LessonPhase {
       'elapsed',
       'startedAt',
       'carriedTo',
+      'resumeNote',
     };
-    if (j.keys.any((k) => !keys.contains(k)) ||
+    if ((j.containsKey('resumeNote') && j['resumeNote'] is! String) ||
+        j.keys.any((k) => !keys.contains(k)) ||
         [
           'id',
           'title',
@@ -91,12 +95,14 @@ class LessonPhase {
       elapsed: j['elapsed'],
       startedAt: j['startedAt'],
       carriedTo: j['carriedTo'],
+      resumeNote: j['resumeNote'] as String? ?? '',
     );
     if (p.id.isEmpty ||
         p.id.length > 250 ||
         p.title.trim().isEmpty ||
         p.title.length > 160 ||
         p.body.length > 12000 ||
+        p.resumeNote.length > 300 ||
         p.minutes < 0 ||
         p.minutes > 600 ||
         p.elapsed < 0 ||
@@ -122,6 +128,7 @@ class LessonPhase {
     'elapsed': 0,
     'startedAt': '',
     'carriedTo': '',
+    'resumeNote': '',
   });
 }
 
@@ -153,7 +160,8 @@ void validateLessonFlow(Json data) {
                     p.status != 'open' ||
                     p.elapsed != 0 ||
                     p.running ||
-                    p.carriedTo.isNotEmpty,
+                    p.carriedTo.isNotEmpty ||
+                    p.resumeNote.isNotEmpty,
               ))) {
     throw const DomainError(
       'Ein Ablauf darf nur eine aktuelle Phase haben. Vorlagen enthalten keinen Fortschritt.',

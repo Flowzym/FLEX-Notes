@@ -402,6 +402,145 @@ class _LessonFlowPageState extends State<LessonFlowPage>
     });
   }
 
+  Future<void> continuePhase(LessonPhase phase) async {
+    final baseline = current;
+    final following = schoolDay(date).add(const Duration(days: 1));
+    final lessons = lessonOccurrences(
+      c.classroom,
+      dateOnly(following),
+      dateOnly(following.add(const Duration(days: 56))),
+    ).where((l) => l.document.isTeachingLesson).toList();
+    var day = lessons.firstOrNull?.date ?? dateOnly(following);
+    LessonOccurrence? targetLesson = lessons.firstOrNull;
+    var note = phase.resumeNote;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, refresh) {
+          final choices = lessonOccurrences(
+            c.classroom,
+            day,
+            day,
+          ).where((l) => l.document.isTeachingLesson);
+          return FlexModal(
+            title: const Text('Hier weitermachen'),
+            onClose: () => Navigator.pop(ctx),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(phase.title, style: Theme.of(ctx).textTheme.titleMedium),
+                TextFormField(
+                  initialValue: note,
+                  maxLength: 300,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Wo geht es weiter?',
+                    hintText: 'Seite 12, bei Aufgabe 4',
+                  ),
+                  onChanged: (v) => note = v,
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.event_outlined),
+                  label: Text(displayDate(day)),
+                  onPressed: () async {
+                    final result = await pickFlexDate(
+                      ctx,
+                      date: day,
+                      allowTime: false,
+                      allowDateClear: false,
+                    );
+                    if (result == null || !ctx.mounted) return;
+                    refresh(() {
+                      day = result.$1;
+                      targetLesson = lessonOccurrences(
+                        c.classroom,
+                        day,
+                        day,
+                      ).where((l) => l.document.isTeachingLesson).firstOrNull;
+                    });
+                  },
+                ),
+                if (choices.isNotEmpty)
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: targetLesson?.target ?? '',
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('Ohne feste Stunde'),
+                      ),
+                      for (final l in choices)
+                        DropdownMenuItem(
+                          value: l.target,
+                          child: Text(
+                            '${l.start} · ${l.title}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => refresh(
+                      () => targetLesson = choices
+                          .where((l) => l.target == v)
+                          .firstOrNull,
+                    ),
+                  ),
+                if (day.compareTo(baseline.text('date')) <= 0)
+                  const Text('Bitte einen späteren Tag wählen.'),
+              ],
+            ),
+            actions: [
+              FilledButton(
+                onPressed: day.compareTo(baseline.text('date')) <= 0
+                    ? null
+                    : () => Navigator.pop(ctx, true),
+                child: const Text('Vormerken'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ok = await run(() async {
+      final next = lessonFlowFor(
+        c.classroom,
+        day,
+        pupilId: lessonFlowPupil(baseline),
+        lesson: targetLesson,
+      );
+      await c.saveClassroomBatch(
+        carryLessonPhases(
+          baseline,
+          next,
+          DateTime.now(),
+          phaseId: phase.id,
+          resumeNote: note,
+        ),
+      );
+    });
+    if (ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Weiter am ${displayDate(day)} · ${phase.title}'),
+          action: SnackBarAction(
+            label: 'Öffnen',
+            onPressed: () {
+              if (!mounted) return;
+              setState(() {
+                date = day;
+                target = targetLesson?.target ?? '';
+                individual = true;
+                pupilId = lessonFlowPupil(baseline);
+                expanded = lessonPhases(current).firstOrNull?.id;
+              });
+            },
+          ),
+        ),
+      );
+    }
+  }
+
   void homework() => showHomeworkControl(context, c, date, pupilId: pupilId);
 
   @override
@@ -743,6 +882,11 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               ),
             ),
           ),
+          if (p.resumeNote.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 34, bottom: 6),
+              child: Text(p.resumeNote),
+            ),
           if (!show && p.body.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 34, bottom: 6),
@@ -833,6 +977,12 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                     icon: const Icon(Icons.delete_outline, size: 20),
                   ),
                 ],
+                if (pupilId != null && p.pending)
+                  TextButton.icon(
+                    onPressed: busy ? null : () => continuePhase(p),
+                    icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                    label: const Text('Hier weitermachen'),
+                  ),
               ],
             ),
           ],

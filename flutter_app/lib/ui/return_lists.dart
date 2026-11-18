@@ -1,5 +1,6 @@
 import 'homework_record_view.dart';
 import 'detail_flow.dart';
+import 'submission_collection.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 
@@ -558,6 +559,15 @@ class _ReturnDetailState extends State<ReturnDetail> {
               '${rows.where(returnPending).length} offen · ${rows.where((r) => r['status'] == 'exempt').length} ausgenommen',
             ),
             if (d.text('note').isNotEmpty) Text(d.text('note')),
+            if (!d.deleted)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: busy ? null : () => collectReturn(ctx, c, d),
+                  icon: const Icon(Icons.move_to_inbox_outlined),
+                  label: const Text('Einsammeln'),
+                ),
+              ),
             if (d.text('type') == 'payment')
               Text(
                 'Eingegangen: ${(rows.fold(0, (n, r) => n + (r['paid'] as int)) / 100).toStringAsFixed(2)} € · Soll: ${(rows.where((r) => r['status'] != 'exempt').length * d.number('amountDue') / 100).toStringAsFixed(2)} €',

@@ -1,6 +1,6 @@
-# FLEX für Android · 0.34.0+85
+# FLEX für Android · 0.35.0+86
 
-Die Android-Ausgabe verwendet die App-Kennung `at.flowzym.flex_notizbuch`. Auf den meisten aktuellen Handys passt die ARM64-APK. ARMv7 ist für Geräte mit 32-Bit-Android vorgesehen. Beide Pakete können FLEX Build 62 bis 84 mit der bestehenden Signatur aktualisieren. Vor der Installation eine vollständige verschlüsselte Sicherung außerhalb der App speichern.
+Die Android-Ausgabe verwendet die App-Kennung `at.flowzym.flex_notizbuch`. Build 86 ist für ARM64-Geräte signiert und aktualisiert dort bestehende FLEX-Installationen mit derselben Signatur. Die Webvorschau verwendet denselben Flutter-Quellstand. Vor der Installation eine vollständige verschlüsselte Sicherung außerhalb der App speichern.
 
 Die frühere „FLEX Test“ hat die eigene Kennung `at.flowzym.flex_notizbuch.test`. Für Daten aus dieser App gilt die [Umzugsanleitung](../docs/rebuild/ANDROID-UMZUG-62.md).
 
@@ -31,8 +31,8 @@ Java 21 und das Android SDK werden benötigt. Nach `flutter pub get`:
 
 ```sh
 FLEX_SIGNING_PROPERTIES=/privater/ordner/signing.properties flutter build apk \
-  --release --no-pub --split-per-abi --target-platform android-arm,android-arm64 \
-  --obfuscate --split-debug-info=/privater/ordner/symbole/build-85
+  --release --no-pub --split-per-abi --target-platform android-arm64 \
+  --obfuscate --split-debug-info=/privater/ordner/symbole/build-86
 ```
 
 Die Properties-Datei enthält `storeFile`, `storePassword`, `keyAlias` und

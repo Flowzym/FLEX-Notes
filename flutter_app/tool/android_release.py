@@ -61,13 +61,15 @@ def prepare(directory):
     write('signing.properties','\n'.join(f'{k}={prop(v)}' for k,v in properties.items()).encode())
     write('symbols-password',values['FLEX_SYMBOLS_PASSWORD'].encode())
 
-def verify(out):
+def verify(out, selected_abi='all'):
     name, code = version()
     sdk=Path(os.environ.get('ANDROID_HOME') or os.environ['ANDROID_SDK_ROOT'])/'build-tools'/'36.0.0'
     expected=(APP/'android/release-certificate.sha256').read_text().strip()
     out.mkdir(parents=True,exist_ok=True)
     artifacts=[]
     for abi,label in [('arm64-v8a','arm64'),('armeabi-v7a','armv7')]:
+        if selected_abi not in ('all', abi):
+            continue
         apk=APP/f'build/app/outputs/flutter-apk/app-{abi}-release.apk'
         signature=run(str(sdk/'apksigner'),'verify','--verbose','--print-certs',str(apk))
         if f'Signer #1 certificate SHA-256 digest: {expected}' not in signature or 'Verified using v3 scheme (APK Signature Scheme v3): true' not in signature:
@@ -98,12 +100,14 @@ if __name__ == '__main__':
     sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('check-tag').add_argument('--tag',required=True)
     sub.add_parser('prepare').add_argument('--private',required=True,type=Path)
-    sub.add_parser('verify').add_argument('--out',required=True,type=Path)
+    verification=sub.add_parser('verify')
+    verification.add_argument('--out',required=True,type=Path)
+    verification.add_argument('--abi',choices=('all','arm64-v8a','armeabi-v7a'),default='all')
     args=parser.parse_args()
     try:
         if args.action=='check-tag': check_tag(args.tag)
         elif args.action=='prepare': prepare(args.private.resolve())
-        else: verify(args.out.resolve())
+        else: verify(args.out.resolve(), args.abi)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         # Do not print subprocess stderr: external signing tools may include paths.
         raise SystemExit(str(error) if isinstance(error,ValueError) else 'Release verification or tool execution failed.')

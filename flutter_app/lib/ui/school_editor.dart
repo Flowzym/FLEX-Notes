@@ -1,6 +1,7 @@
 import 'entry_templates.dart';
 import '../domain/entry_template.dart';
 import 'dictation.dart';
+import 'lesson_question.dart';
 import 'work_assignment_sources.dart';
 import 'document_attachments.dart';
 import 'observation_tone_colors.dart';
@@ -233,7 +234,15 @@ class _SchoolEditorState extends State<SchoolEditor>
   void edit(Json changes) {
     if (busy) return;
     setState(() {
-      r = r.patch(changes);
+      final question = r.lessonQuestion;
+      final reassigned = ['pupilId', 'kind', 'goalId', 'observedOn'].any(
+        (key) => changes.containsKey(key) && changes[key] != r.toJson()[key],
+      );
+      r = r.patch({
+        if (question != null && question.answer.isNotEmpty && reassigned)
+          'lessonQuestion': null,
+        ...changes,
+      });
       dirty = true;
       editGeneration++;
       draftStatus = 'Entwurf wird gesichert …';

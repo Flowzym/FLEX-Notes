@@ -13,6 +13,7 @@ import 'reminder_actions.dart';
 import 'draft_buffer.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
+import 'lesson_question.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
@@ -632,6 +633,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                   date: r.observedOn,
                   values: r.assignmentSources,
                 ),
+              if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                Text(q.summary),
               if (r.body.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -651,6 +654,18 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 Text('Zielbezug: ${r.goalSnapshot}'),
             ],
             if (r.kind == SchoolKind.goal) ...[
+              if (!r.deleted && r.goalStatus == 'active')
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => editLessonQuestion(context, c, r),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: Text(
+                    r.lessonQuestion == null
+                        ? 'Beobachtungsfrage vormerken'
+                        : '${displayDate(r.lessonQuestion!.date)} · ${r.lessonQuestion!.text}',
+                  ),
+                ),
               if (r.criterion.isNotEmpty) Text('Kriterium: ${r.criterion}'),
               Text(
                 'Stand: ${const {'active': 'Aktiv', 'achieved': 'Erreicht', 'ended': 'Beendet'}[r.goalStatus]}',
@@ -934,6 +949,8 @@ Future<void> showBrief(
                 r.title,
                 r.subject,
                 r.body,
+                if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                  q.summary,
                 ...r.positive.map((s) => '+ $s'),
                 ...r.neutral.map((s) => '• $s'),
                 ...r.negative.map((s) => '− $s'),

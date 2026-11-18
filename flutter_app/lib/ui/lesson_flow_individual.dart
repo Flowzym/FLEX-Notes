@@ -135,6 +135,7 @@ extension _IndividualFlow on _LessonFlowPageState {
             trailing: const Icon(Icons.chevron_right),
             onTap: open,
           ),
+          if (next != null && next.resumeNote.isNotEmpty) Text(next.resumeNote),
           if (active != null && active.minutes > 0) _PhaseClock(phase: active),
           if (nextMaterial != null)
             TextButton.icon(

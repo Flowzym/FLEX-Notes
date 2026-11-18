@@ -4,6 +4,7 @@ import '../domain/models.dart';
 import '../domain/school.dart';
 import '../domain/homework_control.dart';
 import 'common.dart';
+import 'submission_collection.dart';
 import 'detail_flow.dart';
 import 'flex_modal.dart';
 import 'homework_record_view.dart';
@@ -164,6 +165,14 @@ class _HomeworkControlState extends State<HomeworkControl> {
                           child: Text(
                             '$heading · ${displayDate(r.dueDate ?? r.observedOn)}',
                             style: Theme.of(ctx).textTheme.bodySmall,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Hausübung einsammeln',
+                          icon: const Icon(Icons.move_to_inbox_outlined),
+                          onPressed: () => guarded(
+                            context,
+                            () => collectHomework(context, c, r),
                           ),
                         ),
                         IconButton(

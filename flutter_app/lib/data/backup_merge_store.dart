@@ -172,12 +172,28 @@ mixin BackupMergeStore on SchoolStore {
         ),
       );
     }
+    // Earlier backups only recorded HÜ membership in the group operation.
+    // Merge imports archive that operation, so preserve the association on new records.
+    final oldGroups = {
+      for (final row in (source.tables['group_saves'] as List).cast<Map>())
+        if (row['undone_at_utc'] == null)
+          for (final id in homeworkGroupRecordIds(
+            jsonDecode(row['request'] as String) as Map,
+          ))
+            id: row['id'] as String,
+    };
     for (final record in source.data.records) {
       final incoming = _references(record.toJson(), pupilLinks);
       final old = local.records
           .where((r) => r.id == record.id)
           .firstOrNull
           ?.toJson();
+      if ((old == null || old.containsKey('homeworkGroup')) &&
+          record.kind == SchoolKind.homework &&
+          record.homeworkGroup.isEmpty &&
+          oldGroups.containsKey(record.id)) {
+        incoming['homeworkGroup'] = oldGroups[record.id];
+      }
       if (old != null && old['pupilId'] != incoming['pupilId']) {
         throw const DomainError(
           'Dieselbe Eintrags-ID ist unterschiedlichen Schülern zugeordnet. Der Import wurde gestoppt.',

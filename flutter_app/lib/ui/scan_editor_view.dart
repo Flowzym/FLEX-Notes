@@ -132,7 +132,11 @@ extension _ScanEditorView on _ScanEditorState {
     child: FlexModal(
       maxWidth: 900,
       closeLabel: 'Schließen · Änderungen als Entwurf sichern',
-      title: const Text('Scan & Foto'),
+      title: Text(
+        collecting
+            ? 'Einsammeln · ${c.pupils.where((p) => pupilIds.contains(p.id)).firstOrNull?.name ?? 'Schüler'}'
+            : 'Scan & Foto',
+      ),
       onClose: busy ? null : close,
       headerActions: [
         if (buffer.hasContent || buffer.draft.revision > 0)
@@ -392,23 +396,24 @@ extension _ScanEditorView on _ScanEditorState {
             ),
             onChanged: (v) => change({'title': v}),
           ),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final format in const [
-                ('pdf', 'PDF'),
-                ('jpg', 'Fotos (JPG)'),
-              ])
-                ChoiceChip(
-                  key: ValueKey('scan-format-${format.$1}'),
-                  label: Text(format.$2),
-                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
-                  onSelected: busy
-                      ? null
-                      : (_) => change({'outputFormat': format.$1}),
-                ),
-            ],
-          ),
+          if (!collecting)
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final format in const [
+                  ('pdf', 'PDF'),
+                  ('jpg', 'Fotos (JPG)'),
+                ])
+                  ChoiceChip(
+                    key: ValueKey('scan-format-${format.$1}'),
+                    label: Text(format.$2),
+                    selected: (data['outputFormat'] ?? 'pdf') == format.$1,
+                    onSelected: busy
+                        ? null
+                        : (_) => change({'outputFormat': format.$1}),
+                  ),
+              ],
+            ),
           const SizedBox(height: 12),
           const Divider(),
           const Text(
@@ -436,62 +441,63 @@ extension _ScanEditorView on _ScanEditorState {
             onChanged: busy ? null : (v) => change({'documentType': v}),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final ids = await chooseMaterialPupils(
-                          context,
-                          c,
-                          pupilIds,
-                        );
-                        if (ids != null && mounted) {
-                          change({
-                            'pupilIds': {
-                              ...ids,
-                              ...documentLinkPupils(c, links),
-                            }.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.people_outline),
-                label: Text(
-                  pupilIds.isEmpty
-                      ? (links.any((l) => l.kind.endsWith('Draft'))
-                            ? 'Über Entwurf zugeordnet'
-                            : 'FLEX-Klasse')
-                      : '${pupilIds.length} Schüler',
+          if (!collecting)
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final ids = await chooseMaterialPupils(
+                            context,
+                            c,
+                            pupilIds,
+                          );
+                          if (ids != null && mounted) {
+                            change({
+                              'pupilIds': {
+                                ...ids,
+                                ...documentLinkPupils(c, links),
+                              }.toList(),
+                            });
+                          }
+                        },
+                  icon: const Icon(Icons.people_outline),
+                  label: Text(
+                    pupilIds.isEmpty
+                        ? (links.any((l) => l.kind.endsWith('Draft'))
+                              ? 'Über Entwurf zugeordnet'
+                              : 'FLEX-Klasse')
+                        : '${pupilIds.length} Schüler',
+                  ),
                 ),
-              ),
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final next = await chooseDocumentLinks(
-                          context,
-                          c,
-                          links,
-                        );
-                        if (next != null && mounted) {
-                          final owners = {
-                            ...pupilIds,
-                            ...documentLinkPupils(c, next),
-                          };
-                          change({
-                            'links': next.map((l) => l.toJson()).toList(),
-                            'pupilIds': owners.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.link),
-                label: Text('Einträge · ${links.length}'),
-              ),
-            ],
-          ),
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final next = await chooseDocumentLinks(
+                            context,
+                            c,
+                            links,
+                          );
+                          if (next != null && mounted) {
+                            final owners = {
+                              ...pupilIds,
+                              ...documentLinkPupils(c, next),
+                            };
+                            change({
+                              'links': next.map((l) => l.toJson()).toList(),
+                              'pupilIds': owners.toList(),
+                            });
+                          }
+                        },
+                  icon: const Icon(Icons.link),
+                  label: Text('Einträge · ${links.length}'),
+                ),
+              ],
+            ),
           if (pupilIds.isNotEmpty)
             Text(
               c.pupils

@@ -325,6 +325,7 @@ class ClassroomDocument {
         'links',
         'scan',
         'scanner',
+        'collected',
         'redacted',
         'versions',
         'pageCount',
@@ -521,6 +522,7 @@ class ClassroomDocument {
     if (kind == ClassroomKind.material &&
         (!materialTypes.containsKey(text('documentType', 'other')) ||
             !materialAudiences.containsKey(text('audience', 'all')) ||
+            _json.containsKey('collected') && _json['collected'] is! bool ||
             _json.containsKey('favorite') && _json['favorite'] is! bool ||
             text('sourcePath').length > 5000)) {
       throw const DomainError('Ungültige Materialangaben.');
