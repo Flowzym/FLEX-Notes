@@ -74,18 +74,24 @@ class CalendarToolbar extends StatelessWidget {
                   backgroundColor: Colors.transparent,
                   foregroundColor: Theme.of(ctx).colorScheme.onSurface,
                 ),
-                child: Text(
-                  box.maxWidth < 345 &&
-                          MediaQuery.textScalerOf(ctx).scale(1) > 1.4
-                      ? compactPeriod
-                      : period,
-                  semanticsLabel: periodLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                child: SizedBox(
+                  height: 48,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      box.maxWidth < 345 &&
+                              MediaQuery.textScalerOf(ctx).scale(1) > 1.4
+                          ? compactPeriod
+                          : period,
+                      semanticsLabel: periodLabel,
+                      maxLines: 2,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),

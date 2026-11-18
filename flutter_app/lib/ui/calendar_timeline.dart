@@ -202,12 +202,17 @@ class CalendarTimeline extends StatelessWidget {
                 top: headHeight + (minute - hours.start) * pixels,
                 left: 0,
                 width: axis - 6,
-                child: Text(
-                  minuteClock(minute),
-                  textAlign: TextAlign.right,
-                  style: Theme.of(
-                    ctx,
-                  ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topRight,
+                  child: Text(
+                    minuteClock(minute),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: Theme.of(
+                      ctx,
+                    ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                  ),
                 ),
               ),
               Positioned(
@@ -470,14 +475,19 @@ class CalendarTimeline extends StatelessWidget {
                         color: nowColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        minuteClock(nowMinutes),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.2,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onError,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          minuteClock(nowMinutes),
+                          maxLines: 1,
+                          softWrap: false,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onError,
+                          ),
                         ),
                       ),
                     ),

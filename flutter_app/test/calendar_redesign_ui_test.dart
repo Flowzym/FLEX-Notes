@@ -446,6 +446,24 @@ void main() {
             findsNothing,
           );
           expect(find.byKey(const ValueKey('calendar-weekends')), findsNothing);
+          if (setting.$1 == 320 && setting.$2 == 2 && mode == 'week') {
+            final label = find.descendant(
+              of: find.byKey(const ValueKey('calendar-period')),
+              matching: find.byType(Text),
+            );
+            final text = t.widget<Text>(label);
+            expect(text.data, contains('KW\n'));
+            expect(text.softWrap, false);
+            expect(
+              find.ancestor(of: label, matching: find.byType(FittedBox)),
+              findsOneWidget,
+            );
+            final hour = find.descendant(
+              of: find.byKey(const ValueKey('calendar-hour-480')),
+              matching: find.byType(Text),
+            );
+            expect(t.widget<Text>(hour).maxLines, 1);
+          }
           expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
           await tap(t, find.byKey(const ValueKey('calendar-manage')));
           expect(
