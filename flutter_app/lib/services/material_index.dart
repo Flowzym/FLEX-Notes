@@ -12,79 +12,87 @@ String cloudExtension(String name) {
 bool cloudFileSupported(String name) =>
     {'pdf', 'docx', 'jpg', 'png'}.contains(cloudExtension(name));
 
-/// A detached, edited copy keeps its identity and all its pupil/entry links.
-/// Re-importing the cloud original must create/reuse a separate material.
+/// Index a snapshot once while browsing or walking a folder tree. A detached
+/// local edit keeps its ID, so the cloud original can reappear independently.
+class OneDriveMaterialIndex {
+  OneDriveMaterialIndex(Iterable<ClassroomDocument> existing) {
+    for (final d in existing) {
+      _documents[d.id] = d;
+      if (d.kind == ClassroomKind.material &&
+          d.text('driveId').isNotEmpty &&
+          d.text('itemId').isNotEmpty) {
+        _sources.putIfAbsent((d.text('driveId'), d.text('itemId')), () => d);
+      }
+    }
+  }
+  final _documents = <String, ClassroomDocument>{};
+  final _sources = <(String, String), ClassroomDocument>{};
+  bool available(String id) => _documents[id]?.deleted == false;
+  String idFor(String driveId, String itemId) {
+    final linked = _sources[(driveId, itemId)];
+    if (linked != null) return linked.id;
+    var id = const Uuid().v5(
+      Namespace.url.value,
+      'flex-onedrive:$driveId:$itemId',
+    );
+    for (var i = 0; i <= _documents.length; i++) {
+      if (!_documents.containsKey(id)) return id;
+      id = const Uuid().v5(
+        Namespace.url.value,
+        'flex-onedrive:$driveId:$itemId:after:$id',
+      );
+    }
+    throw const DomainError(
+      'Die OneDrive-Datei konnte nicht eindeutig zugeordnet werden.',
+    );
+  }
+
+  ClassroomDocument material(
+    String driveId,
+    Json item, {
+    String? path,
+    bool restore = false,
+  }) {
+    final id = idFor(driveId, item['id'] as String);
+    final old = _documents[id];
+    final name = item['name'] as String;
+    final title = name.length <= 160 ? name : name.substring(0, 160);
+    final cached = old != null && old.text('localKey').isNotEmpty;
+    final fields = <String, dynamic>{
+      'driveId': driveId,
+      'itemId': item['id'],
+      'url': item['webUrl'] ?? old?.text('url') ?? '',
+      'remoteName': name,
+      'remoteEtag': item['eTag'] ?? '',
+      'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
+      'sourcePath': ?path,
+      if (cached && old.text('extension') == cloudExtension(name)) 'name': name,
+      if (restore) 'deleted': false,
+      if (!cached) ...{
+        'name': name,
+        'extension': cloudExtension(name),
+        'size': item['size'] ?? 0,
+        'sourceModifiedAt': item['lastModifiedDateTime'] ?? '',
+      },
+    };
+    if (old == null) {
+      return ClassroomDocument.create(ClassroomKind.material, title, {
+        ...fields,
+        ...suggestMaterialMetadata(name),
+      }, id: id);
+    }
+    return old.patch({
+      ...fields,
+      if (old.title == old.text('remoteName', old.text('name'))) 'title': title,
+    });
+  }
+}
+
 String oneDriveMaterialId(
   String driveId,
   String itemId,
   Iterable<ClassroomDocument> existing,
-) {
-  final documents = {for (final d in existing) d.id: d};
-  final linked = documents.values
-      .where(
-        (d) =>
-            d.kind == ClassroomKind.material &&
-            d.text('driveId') == driveId &&
-            d.text('itemId') == itemId,
-      )
-      .firstOrNull;
-  if (linked != null) return linked.id;
-  var id = const Uuid().v5(
-    Namespace.url.value,
-    'flex-onedrive:$driveId:$itemId',
-  );
-  for (var i = 0; i <= documents.length; i++) {
-    if (!documents.containsKey(id)) return id;
-    id = const Uuid().v5(
-      Namespace.url.value,
-      'flex-onedrive:$driveId:$itemId:after:$id',
-    );
-  }
-  throw const DomainError(
-    'Die OneDrive-Datei konnte nicht eindeutig zugeordnet werden.',
-  );
-}
-
-ClassroomDocument indexOneDriveFile(
-  String driveId,
-  Json item,
-  Iterable<ClassroomDocument> existing, {
-  String? path,
-  bool restore = false,
-}) {
-  final id = oneDriveMaterialId(driveId, item['id'] as String, existing);
-  final old = existing.where((d) => d.id == id).firstOrNull;
-  final name = item['name'] as String;
-  final title = name.length <= 160 ? name : name.substring(0, 160);
-  final cached = old != null && old.text('localKey').isNotEmpty;
-  final fields = <String, dynamic>{
-    'driveId': driveId,
-    'itemId': item['id'],
-    'url': item['webUrl'] ?? old?.text('url') ?? '',
-    'remoteName': name,
-    'remoteEtag': item['eTag'] ?? '',
-    'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
-    'sourcePath': ?path,
-    if (cached && old.text('extension') == cloudExtension(name)) 'name': name,
-    if (restore) 'deleted': false,
-    if (!cached) ...{
-      'name': name,
-      'extension': cloudExtension(name),
-      'size': item['size'] ?? 0,
-      'sourceModifiedAt': item['lastModifiedDateTime'] ?? '',
-    },
-  };
-  if (old == null) {
-    return ClassroomDocument.create(ClassroomKind.material, title, {
-      ...fields,
-      ...suggestMaterialMetadata(name),
-    }, id: id);
-  }
-  return old.patch({
-    ...fields,
-    if (old.title == old.text('remoteName', old.text('name'))) 'title': title,
-  });
-}
+) => OneDriveMaterialIndex(existing).idFor(driveId, itemId);
 
 /// Read-only scan, bounded across the whole tree (not only per Graph page).
 /// Identity is drive/item based, so moving or renaming a source keeps all links.
@@ -98,10 +106,7 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
   int maxFiles = 2000,
   int maxFolders = 250,
 }) async {
-  final old = {
-    for (final d in existing.where((d) => d.kind == ClassroomKind.material))
-      d.id: d,
-  };
+  final materials = OneDriveMaterialIndex(existing);
   final queue = <({String id, String path})>[
     (id: folder.text('itemId'), path: folder.title),
   ];
@@ -146,9 +151,7 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
           'Bitte einen kleineren Unterordner wählen (höchstens 2000 Dateien).',
         );
       }
-      result.add(
-        indexOneDriveFile(folder.text('driveId'), item, old.values, path: path),
-      );
+      result.add(materials.material(folder.text('driveId'), item, path: path));
     }
     progress?.call(visited.length, result.length);
   }

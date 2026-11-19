@@ -166,13 +166,16 @@ class _DriveExplorerState extends State<_DriveExplorer> {
     }
   }
 
-  ClassroomDocument material(Json item) => indexOneDriveFile(
-    item['_drive'] as String,
-    item,
-    widget.c.classroom,
-    restore: true,
-    path: item['_path'] as String?,
-  );
+  List<ClassroomDocument>? _indexedDocuments;
+  late OneDriveMaterialIndex _index;
+  OneDriveMaterialIndex get materials {
+    if (!identical(_indexedDocuments, widget.c.classroom)) {
+      _indexedDocuments = widget.c.classroom;
+      _index = OneDriveMaterialIndex(widget.c.classroom);
+    }
+    return _index;
+  }
+
   Future<void> take(List<ClassroomDocument> items) async {
     final ok = await showMaterialAssignments(
       context,
@@ -367,10 +370,13 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                   else
                     Builder(
                       builder: (ctx) {
-                        final d = material(j);
-                        final linked = widget.c.classroom.any(
-                          (v) => v.id == d.id && !v.deleted,
+                        final d = materials.material(
+                          j['_drive'] as String,
+                          j,
+                          restore: true,
+                          path: j['_path'] as String?,
                         );
+                        final linked = materials.available(d.id);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: MaterialThumbnail(

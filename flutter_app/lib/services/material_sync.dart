@@ -154,7 +154,9 @@ class MaterialSync {
                 'cloudReview': '',
                 'sourceMissing': false,
                 'pupilIds': target,
-                if (m.text('subject').isEmpty) 'subject': f.text('subject'),
+                if (f.text('subject').isNotEmpty &&
+                    (old == null || old.text('subject').isEmpty))
+                  'subject': f.text('subject'),
               });
             }
           } else {
