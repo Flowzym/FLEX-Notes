@@ -251,6 +251,14 @@ Future<void> openMaterial(
     // action in material details, so poor reception cannot delay a lesson.
     if (!await files.exists(current.text('localKey'))) {
       if (ownDrive) await client.load();
+      if (current.text('itemId').isNotEmpty &&
+          current.text('url').isEmpty &&
+          !client.connected &&
+          !current.flag('sourceMissing')) {
+        if (!context.mounted) return;
+        await connectOneDrive(context, client);
+        if (!client.connected) return;
+      }
       if (current.text('itemId').isNotEmpty && client.connected) {
         current = await cacheMaterial(c, current, client, files);
       }

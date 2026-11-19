@@ -107,12 +107,14 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
             'Verfügbarkeit prüfen …'
           else if (snapshot.data == true)
             'Offline'
-          else if (d.text('url').isNotEmpty)
+          else if (d.flag('sourceMissing'))
+            'Quelle fehlt'
+          else if (hasMaterialSource(d))
             'Online'
           else
             'Datei fehlt',
           if (uploadLabel(d).isNotEmpty) uploadLabel(d),
-          if (d.flag('sourceMissing')) 'Quelle fehlt',
+          if (snapshot.data == true && d.flag('sourceMissing')) 'Quelle fehlt',
         ].where((text) => text.isNotEmpty).join(' · '),
         lines: 2,
       ),

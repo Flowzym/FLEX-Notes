@@ -117,9 +117,11 @@ class _MaterialRowState extends State<MaterialRow> {
                               builder: (_, s) => Text(
                                 s.data == true
                                     ? 'Offline verfügbar'
-                                    : d.text('url').isEmpty
-                                    ? 'Datei auf diesem Gerät nicht verfügbar'
-                                    : 'Online',
+                                    : d.flag('sourceMissing')
+                                    ? 'Quelle fehlt'
+                                    : hasMaterialSource(d)
+                                    ? 'Online'
+                                    : 'Datei auf diesem Gerät nicht verfügbar',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),

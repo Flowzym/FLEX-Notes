@@ -239,6 +239,7 @@ void main() {
       );
       for (final m in c.classroom) {
         expect(pupilMaterialDates(m, pupil.id), [dateOnly(DateTime.now())]);
+        expect(hasMaterialSource(m.patch({'url': ''})), isTrue);
       }
     },
   );

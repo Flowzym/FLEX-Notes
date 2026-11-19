@@ -3,6 +3,10 @@ import 'classroom.dart';
 import 'models.dart';
 import 'document_scanner.dart';
 
+bool hasMaterialSource(ClassroomDocument material) =>
+    material.text('url').isNotEmpty ||
+    material.text('driveId').isNotEmpty && material.text('itemId').isNotEmpty;
+
 List<String> pupilMaterialDates(ClassroomDocument material, String pupilId) =>
     (material
         .rows('pupilDates')
