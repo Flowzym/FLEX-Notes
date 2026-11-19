@@ -627,6 +627,8 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               ..._pupilRows(),
             ] else ...[
               if (pupilId != null) _pupilHeading(),
+              if (active != null && !editing)
+                _phase(value, active, phases.indexOf(active)),
               Row(
                 children: [
                   Expanded(
@@ -785,7 +787,8 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                   ),
                 ),
               const SizedBox(height: 10),
-              for (final (i, p) in phases.indexed) _phase(value, p, i),
+              for (final (i, p) in phases.indexed)
+                if (editing || p.id != active?.id) _phase(value, p, i),
               if (phases.isEmpty)
                 const EmptyState(
                   'Noch keine Phasen. Füge eine Phase hinzu oder wähle eine Vorlage.',

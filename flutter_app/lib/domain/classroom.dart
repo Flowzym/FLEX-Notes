@@ -235,6 +235,12 @@ class ClassroomDocument {
   Json toJson() => Json.from(jsonDecode(jsonEncode(_json)) as Map);
   ClassroomDocument patch(Json fields) {
     final next = {...toJson(), ...fields};
+    if (kind == ClassroomKind.material &&
+        fields.containsKey('localKey') &&
+        fields['localKey'] != text('localKey') &&
+        !fields.containsKey('cloudUpload')) {
+      next.remove('cloudUpload');
+    }
     // Removing a pupil assignment also removes only that pupil's teaching dates.
     if (kind == ClassroomKind.material &&
         fields.containsKey('pupilIds') &&
@@ -309,6 +315,11 @@ class ClassroomDocument {
         'week',
         'localKey',
         'etag',
+        'cloudRule',
+        'cloudBinding',
+        'cloudReview',
+        'sourceMissing',
+        'cloudUpload',
         'remoteName',
         'remoteEtag',
         'remoteModifiedAt',
@@ -351,7 +362,20 @@ class ClassroomDocument {
         'status',
         'followUp',
       },
-      ClassroomKind.folder => {'driveId', 'itemId', 'url'},
+      ClassroomKind.folder => {
+        'driveId',
+        'itemId',
+        'url',
+        'accountDrive',
+        'personal',
+        'incoming',
+        'outgoing',
+        'appRoot',
+        'purpose',
+        'subject',
+        'lastSync',
+        'syncError',
+      },
       ClassroomKind.returnList => {
         'type',
         'dueDate',
@@ -411,6 +435,62 @@ class ClassroomDocument {
           values.toSet().length != values.length ||
           values.any((v) => v.trim().isEmpty || v.length > 250)) {
         throw const DomainError('Ungültige oder doppelte Zuordnung.');
+      }
+    }
+    if (kind == ClassroomKind.folder) {
+      for (final key in ['personal', 'incoming', 'outgoing']) {
+        if (_json.containsKey(key) && _json[key] is! bool) {
+          throw const DomainError('Ungültige Ordnerregel.');
+        }
+      }
+      if (_json.containsKey('lastSync') &&
+          text('lastSync').isNotEmpty &&
+          DateTime.tryParse(text('lastSync')) == null) {
+        throw const DomainError('Ungültige Abgleichzeit.');
+      }
+      if ((flag('incoming') || flag('outgoing')) &&
+              (text('accountDrive').isEmpty ||
+                  (flag('outgoing') && text('appRoot').isEmpty)) ||
+          !{
+            'all',
+            'homework',
+            'return',
+            'observation',
+            'orga',
+          }.contains(text('purpose', 'all'))) {
+        throw const DomainError('Bitte Konto und Ziel der Ordnerregel prüfen.');
+      }
+    }
+    if (kind == ClassroomKind.material && _json.containsKey('cloudUpload')) {
+      if (_json['cloudUpload'] is! Map) {
+        throw const DomainError('Ungültiger OneDrive-Auftrag.');
+      }
+      final job = map('cloudUpload'), state = job['state'], name = job['name'];
+      bool invalidList(String key) =>
+          job.containsKey(key) &&
+          (job[key] is! List ||
+              (job[key] as List).any(
+                (v) => v is! String || v.isEmpty || v.length > 250,
+              ));
+      if (job.isNotEmpty &&
+          (!{'entry', 'pending', 'review', 'sent'}.contains(state) ||
+              text('localKey').isEmpty ||
+              job['key'] != text('localKey') ||
+              name is! String ||
+              name.trim().isEmpty ||
+              name.length > 255 ||
+              name.contains(RegExp(r'[/\\\x00-\x1f]')) ||
+              invalidList('targetPupils') ||
+              invalidList('pupilIds') ||
+              (state == 'pending' || state == 'sent') &&
+                  (job['ruleId'] is! String ||
+                      (job['ruleId'] as String).isEmpty ||
+                      job['accountDrive'] is! String ||
+                      (job['accountDrive'] as String).isEmpty ||
+                      job['personal'] is! bool ||
+                      job['pupilIds'] is! List ||
+                      job['targetPupils'] is! List))) {
+        throw const DomainError('Ungültiger OneDrive-Auftrag.');
       }
     }
     if (kind == ClassroomKind.timetable) {
@@ -627,7 +707,13 @@ class ClassroomDocument {
         throw const DomainError('Der OneDrive-Ordner fehlt.');
       }
       if (kind == ClassroomKind.material) {
-        if (!{'pdf', 'jpg', 'docx', 'link'}.contains(text('extension')) ||
+        if (!{
+              'pdf',
+              'jpg',
+              'png',
+              'docx',
+              'link',
+            }.contains(text('extension')) ||
             number('size') < 0 ||
             text('localKey').contains(RegExp(r'[/\\.]')) ||
             (text('url').isEmpty &&

@@ -132,6 +132,30 @@ class _HomeworkControlState extends State<HomeworkControl> {
               ],
             ),
             const SizedBox(height: 8),
+            if (values.isNotEmpty)
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                children: [
+                  for (final pair in const [
+                    (Icons.radio_button_unchecked, 'Offen'),
+                    (Icons.check_circle_outline, 'Vollständig'),
+                    (Icons.contrast, 'Teilweise'),
+                    (Icons.cancel_outlined, 'Fehlt'),
+                  ])
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(pair.$1, size: 14),
+                        const SizedBox(width: 3),
+                        Text(
+                          pair.$2,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ...List<Widget>.generate(values.isEmpty ? 1 : values.length, (i) {
               final ctx = context;
               if (values.isEmpty) {

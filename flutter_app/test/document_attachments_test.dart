@@ -597,7 +597,8 @@ void main() {
     (t) async {
       await open(t, SchoolEditor(controller: c, record: taskRecord('p')));
       await tap(t, find.byKey(const ValueKey('pupil-tag-q')));
-      await tap(t, action('editor-attachments-child', 'attachment-scan'));
+      await tap(t, action('editor-attachments-child', 'attachment-menu'));
+      await tap(t, find.byKey(const ValueKey('attachment-scan')).last);
       final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
       expect(await repo.schoolRecords(), isEmpty);
       final draft = (await repo.schoolDrafts()).single;
@@ -634,7 +635,8 @@ void main() {
     );
     unawaited(showBulk(t.element(find.byType(Scaffold)), c, draft: d));
     await t.pumpAndSettle();
-    await tap(t, action('homework-row-child', 'attachment-scan'));
+    await tap(t, action('homework-row-child', 'attachment-menu'));
+    await tap(t, find.byKey(const ValueKey('attachment-scan')).last);
     final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
     expect(await repo.schoolRecords(), isEmpty);
     expect(scope.links.single.kind, 'bulkDraft');

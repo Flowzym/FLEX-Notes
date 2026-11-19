@@ -7,6 +7,11 @@ import '../domain/models.dart';
 import 'secret_store.dart';
 import 'onedrive_native.dart';
 
+class OneDriveResponseError extends DomainError {
+  const OneDriveResponseError(this.status, super.message);
+  final int status;
+}
+
 class OneDriveAuthorization {
   const OneDriveAuthorization(
     this.code,
@@ -24,6 +29,7 @@ class OneDriveAuthorization {
 /// Neither authentication path includes credentials in notebook backups.
 class OneDriveClient extends ChangeNotifier {
   OneDriveClient({
+    this.appFolderAccess = false,
     SecretStore? store,
     http.Client? client,
     String? clientId,
@@ -42,9 +48,13 @@ class OneDriveClient extends ChangeNotifier {
            (useNativeAuthentication ??
                (nativeAuth != null ||
                    !kIsWeb && defaultTargetPlatform == TargetPlatform.android))
-           ? nativeAuth ?? const MsalOneDriveAuth()
+           ? nativeAuth ?? MsalOneDriveAuth(appFolderAccess: appFolderAccess)
            : null,
        now = now ?? DateTime.now;
+  final bool appFolderAccess;
+  String get scopes => appFolderAccess || _tokens?['appFolder'] == true
+      ? 'offline_access Files.Read Files.ReadWrite.AppFolder'
+      : 'offline_access Files.Read';
   final SecretStore store;
   final http.Client client;
   final NativeOneDriveAuth? _native;
@@ -196,7 +206,7 @@ class OneDriveClient extends ChangeNotifier {
     }
     final response = await _post('devicecode', {
       'client_id': clientId,
-      'scope': 'offline_access Files.Read',
+      'scope': scopes,
     });
     if (flow != _flow || _disposed) {
       throw const DomainError('Anmeldung abgebrochen.');
@@ -264,6 +274,11 @@ class OneDriveClient extends ChangeNotifier {
     final next = {
       'clientId': clientId,
       'access': response['access_token'],
+      'appFolder':
+          (response['scope'] as String?)?.toLowerCase().contains(
+            'files.readwrite.appfolder',
+          ) ??
+          (appFolderAccess || _tokens?['appFolder'] == true),
       'refresh': response['refresh_token'] ?? _tokens?['refresh'],
       'expires': now()
           .add(
@@ -311,6 +326,9 @@ class OneDriveClient extends ChangeNotifier {
         rethrow;
       }
     }
+    if (appFolderAccess && _tokens?['appFolder'] != true) {
+      throw const OneDriveSignInRequired();
+    }
     if (!force &&
         DateTime.parse(
           _tokens!['expires'] as String,
@@ -328,7 +346,7 @@ class OneDriveClient extends ChangeNotifier {
         'client_id': clientId,
         'grant_type': 'refresh_token',
         'refresh_token': _tokens!['refresh'] as String,
-        'scope': 'offline_access Files.Read',
+        'scope': scopes,
       });
       if (response['access_token'] is! String) {
         if ({
@@ -355,7 +373,73 @@ class OneDriveClient extends ChangeNotifier {
     }
   }
 
-  Future<Json> graph(String path, {bool retried = false}) async {
+  Future<Json> graph(String path, {bool retried = false}) =>
+      _graphRequest('GET', path, retried: retried);
+
+  Future<Json> createFolder(String drive, String parent, String name) =>
+      _graphRequest(
+        'POST',
+        '${itemPath(drive, parent)}/children',
+        body: utf8.encode(
+          jsonEncode({
+            'name': name,
+            'folder': {},
+            '@microsoft.graph.conflictBehavior': 'fail',
+          }),
+        ),
+        contentType: 'application/json',
+      );
+
+  Future<void> verifyAppFolder(
+    String driveId,
+    String folderId,
+    String expectedRoot,
+  ) async {
+    final app = await graph('/me/drive/special/approot');
+    final root = app['id'];
+    if (root == null ||
+        root != expectedRoot ||
+        (app['parentReference'] as Map?)?['driveId'] != driveId) {
+      throw const DomainError('Konto oder FLEX-App-Ordner hat sich geändert.');
+    }
+    var ancestor = folderId;
+    final visited = <String>{};
+    while (ancestor != root) {
+      if (ancestor.isEmpty || !visited.add(ancestor) || visited.length > 128) {
+        throw const DomainError(
+          'Der Zielordner liegt außerhalb des FLEX-App-Ordners.',
+        );
+      }
+      final node = await item(driveId, ancestor);
+      ancestor = (node['parentReference'] as Map?)?['id'] as String? ?? '';
+    }
+  }
+
+  String childPath(String drive, String parent, String name) =>
+      '${itemPath(drive, parent)}:/${Uri.encodeComponent(name)}';
+
+  Future<Json> uploadNew(
+    String drive,
+    String parent,
+    String name,
+    Uint8List bytes,
+  ) => _graphRequest(
+    'PUT',
+    '${childPath(drive, parent, name)}:/content?%40microsoft.graph.conflictBehavior=fail',
+    body: bytes,
+    contentType: 'application/octet-stream',
+  );
+
+  Future<Json> _graphRequest(
+    String method,
+    String path, {
+    List<int>? body,
+    String? contentType,
+    bool retried = false,
+  }) async {
+    if (method != 'GET' && !appFolderAccess) {
+      throw const DomainError('Bitte die Ablage im FLEX-Ordner aktivieren.');
+    }
     final epoch = _sessionEpoch, accountId = _account?.id;
     final uri = path.startsWith('https://')
         ? Uri.parse(path)
@@ -366,20 +450,29 @@ class OneDriveClient extends ChangeNotifier {
         uri.userInfo.isNotEmpty) {
       throw const DomainError('Ungültiger OneDrive-Verweis.');
     }
+    final request = http.Request(method, uri)..followRedirects = false;
+    request.headers['Authorization'] = 'Bearer ${await _token(force: retried)}';
+    if (body != null) request.bodyBytes = body;
+    if (contentType != null) request.headers['Content-Type'] = contentType;
     final response = await client
-        .get(
-          uri,
-          headers: {'Authorization': 'Bearer ${await _token(force: retried)}'},
-        )
-        .timeout(const Duration(seconds: 30));
+        .send(request)
+        .then(http.Response.fromStream)
+        .timeout(const Duration(seconds: 40));
     if (epoch != _sessionEpoch || _disposed || _account?.id != accountId) {
       throw const DomainError('Die OneDrive-Verbindung wurde beendet.');
     }
     if (response.statusCode == 401 && !retried) {
-      return graph(path, retried: true);
+      return _graphRequest(
+        method,
+        path,
+        body: body,
+        contentType: contentType,
+        retried: true,
+      );
     }
     if (response.statusCode == 404) {
-      throw const DomainError(
+      throw const OneDriveResponseError(
+        404,
         'Die OneDrive-Datei wurde verschoben, gelöscht oder ist nicht mehr freigegeben.',
       );
     }
@@ -388,6 +481,18 @@ class OneDriveClient extends ChangeNotifier {
       _nativeReady = false;
       if (!_disposed) notifyListeners();
       throw const OneDriveSignInRequired();
+    }
+    if (response.statusCode == 409 || response.statusCode == 412) {
+      throw OneDriveResponseError(
+        response.statusCode,
+        'Im Zielordner existiert bereits eine gleichnamige Datei.',
+      );
+    }
+    if (response.statusCode == 403 && appFolderAccess) {
+      throw const OneDriveResponseError(
+        403,
+        'Kein Zugriff auf den FLEX-App-Ordner. Microsoft-Anmeldung und die Berechtigung Files.ReadWrite.AppFolder prüfen.',
+      );
     }
     if (response.statusCode == 403) {
       throw const DomainError(

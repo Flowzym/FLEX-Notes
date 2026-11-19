@@ -170,6 +170,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
       schoolScanContext(c, [r], taskIds: {r.id: ?forTask}, includeTasks: false),
     ],
     compact: forTask != null,
+    attachmentMenu: forTask != null,
     showActions: showActions,
     showFiles: showFiles,
     onScan: () => openAttachments(forTask: forTask, scan: true),

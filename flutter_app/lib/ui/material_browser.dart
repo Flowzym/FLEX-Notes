@@ -88,9 +88,10 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
           ),
         ),
         const SizedBox(height: 4),
-        if (details.isNotEmpty) smallText(details, lines: 2),
-        if (d.text('topic').isNotEmpty) smallText(d.text('topic')),
-        if (d.strings('tags').isNotEmpty)
+        if (widget.grid && details.isNotEmpty) smallText(details, lines: 2),
+        if (widget.grid && d.text('topic').isNotEmpty)
+          smallText(d.text('topic')),
+        if (widget.grid && d.strings('tags').isNotEmpty)
           smallText(d.strings('tags').map((tag) => '#$tag').join(' ')),
       ],
     );
@@ -98,7 +99,8 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
       future: available,
       builder: (_, snapshot) => smallText(
         [
-          d.text('extension') == 'jpg'
+          if (!widget.grid && details.isNotEmpty) details,
+          {'jpg', 'png'}.contains(d.text('extension'))
               ? 'Foto'
               : d.text('extension').toUpperCase(),
           if (snapshot.connectionState != ConnectionState.done)
@@ -109,6 +111,8 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
             'Online'
           else
             'Datei fehlt',
+          if (uploadLabel(d).isNotEmpty) uploadLabel(d),
+          if (d.flag('sourceMissing')) 'Quelle fehlt',
         ].where((text) => text.isNotEmpty).join(' · '),
         lines: 2,
       ),
@@ -135,45 +139,48 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                 ),
               ),
             )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          : PopupMenuButton<String>(
+              tooltip: 'Materialangaben und Aktionen',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (v) {
+                switch (v) {
+                  case 'details':
+                    widget.onEdit();
+                  case 'favorite':
+                    widget.onFavorite?.call();
+                  case 'today':
+                    widget.onPrepare?.call();
+                  case 'restore':
+                    widget.onRestore?.call();
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'details',
+                  child: Text('Materialangaben'),
+                ),
                 if (widget.onFavorite != null)
-                  IconButton(
-                    tooltip: d.flag('favorite')
-                        ? 'Favorit entfernen'
-                        : 'Als Favorit merken',
-                    onPressed: widget.onFavorite,
-                    icon: Icon(
-                      d.flag('favorite') ? Icons.star : Icons.star_border,
-                      color: d.flag('favorite')
-                          ? theme.colorScheme.primary
-                          : null,
+                  PopupMenuItem(
+                    value: 'favorite',
+                    child: Text(
+                      d.flag('favorite')
+                          ? 'Favorit entfernen'
+                          : 'Als Favorit merken',
                     ),
                   ),
                 if (widget.onPrepare != null)
-                  IconButton(
-                    tooltip: widget.prepared
-                        ? 'Von heute entfernen'
-                        : 'Für heute bereitlegen',
-                    onPressed: widget.onPrepare,
-                    isSelected: widget.prepared,
-                    icon: const Icon(Icons.today_outlined),
-                    selectedIcon: Icon(
-                      Icons.event_available,
-                      color: theme.colorScheme.primary,
+                  PopupMenuItem(
+                    value: 'today',
+                    child: Text(
+                      widget.prepared
+                          ? 'Von heute entfernen'
+                          : 'Für heute bereitlegen',
                     ),
                   ),
-                IconButton(
-                  tooltip: 'Materialangaben und Aktionen',
-                  onPressed: widget.onEdit,
-                  icon: const Icon(Icons.edit_outlined),
-                ),
                 if (widget.onRestore != null)
-                  IconButton(
-                    tooltip: 'Wiederherstellen',
-                    onPressed: widget.onRestore,
-                    icon: const Icon(Icons.restore),
+                  const PopupMenuItem(
+                    value: 'restore',
+                    child: Text('Wiederherstellen'),
                   ),
               ],
             ),
@@ -212,7 +219,7 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
             ? widget.onOpen
             : () => widget.onSelect?.call(!widget.selected!),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: LayoutBuilder(
             builder: (_, constraints) {
               if (widget.grid) {
@@ -235,43 +242,23 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                   ],
                 );
               }
-              final wide =
-                  constraints.maxWidth >= 540 &&
-                  MediaQuery.textScalerOf(context).scale(1) <= 1.3;
               return Row(
-                crossAxisAlignment: wide
-                    ? CrossAxisAlignment.center
-                    : CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   MaterialThumbnail(
                     material: d,
                     files: widget.files,
-                    width: 48,
-                    height: 64,
+                    width: 42,
+                    height: 56,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        description,
-                        const SizedBox(height: 4),
-                        availability,
-                        if (assignment != null || !wide)
-                          Row(
-                            children: [
-                              if (assignment != null)
-                                Expanded(child: assignment)
-                              else
-                                const Spacer(),
-                              if (!wide) actions,
-                            ],
-                          ),
-                      ],
+                      children: [description, availability, ?assignment],
                     ),
                   ),
-                  if (wide) ...[const SizedBox(width: 8), actions],
+                  actions,
                 ],
               );
             },

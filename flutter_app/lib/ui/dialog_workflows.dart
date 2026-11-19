@@ -634,6 +634,7 @@ Future<void> showBulk(
             taskId: task?.id,
           ),
           compact: task != null,
+          attachmentMenu: task != null,
           showActions: showActions,
           showFiles: task == null || !showActions,
           onScan: () =>

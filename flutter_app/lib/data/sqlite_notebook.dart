@@ -16,6 +16,7 @@ import '../domain/repository.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import '../domain/classroom.dart';
+import '../domain/drive_rules.dart';
 import '../domain/document_scanner.dart';
 import '../domain/material_tags.dart';
 import '../domain/material_versions.dart';

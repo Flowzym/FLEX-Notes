@@ -22,7 +22,8 @@ abstract interface class NativeOneDriveAuth {
 }
 
 class MsalOneDriveAuth implements NativeOneDriveAuth {
-  const MsalOneDriveAuth();
+  const MsalOneDriveAuth({this.appFolderAccess = false});
+  final bool appFolderAccess;
   static const _channel = MethodChannel('at.flowzym.flex_notizbuch/device');
 
   Future<T?> _invoke<T>(String method, [Map<String, Object>? arguments]) async {
@@ -55,7 +56,10 @@ class MsalOneDriveAuth implements NativeOneDriveAuth {
   }
 
   Future<OneDriveAccount?> _account(String method) async {
-    final value = await _invoke<Map>(method);
+    final value = await _invoke<Map>(
+      method,
+      appFolderAccess ? {'appFolder': true} : null,
+    );
     if (value == null) return null;
     final id = value['id'];
     if (id is! String || id.isEmpty) {
@@ -73,6 +77,7 @@ class MsalOneDriveAuth implements NativeOneDriveAuth {
     final value = await _invoke<String>('msalToken', {
       'accountId': accountId,
       'forceRefresh': forceRefresh,
+      if (appFolderAccess) 'appFolder': true,
     });
     if (value == null || value.isEmpty) throw const OneDriveSignInRequired();
     return value;

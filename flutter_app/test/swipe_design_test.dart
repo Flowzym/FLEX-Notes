@@ -281,7 +281,7 @@ void main() {
           .getTranslation()
           .x;
       final samples = <double>[];
-      for (final section in [(1, 0, 1), (2, 0, 3), (3, 0, 1), (4, 0, 1)]) {
+      for (final section in [(1, 0, 1), (2, 0, 3), (3, 1, 0), (4, 0, 1)]) {
         await tap(
           t,
           find.byKey(
@@ -319,8 +319,8 @@ void main() {
       await app(t, size: const Size(390, 844));
       for (final section in [
         (1, [0, 1, 2]),
-        (2, [0, 3, 2, 4]),
-        (3, [0, 1, 2, 3]),
+        (2, [0, 3, 2]),
+        (3, [1, 0, 4]),
         (4, [0, 1, 2, 3, 4]),
       ]) {
         await tap(

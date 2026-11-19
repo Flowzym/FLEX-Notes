@@ -25,7 +25,7 @@ List<Json> materialVersions(Json data) {
         DateTime.tryParse(v['createdAtUtc'] as String) == null ||
         v['localKey'] is! String ||
         !RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(v['localKey'] as String) ||
-        !{'pdf', 'jpg', 'docx'}.contains(v['extension']) ||
+        !{'pdf', 'jpg', 'png', 'docx'}.contains(v['extension']) ||
         v['size'] is! int ||
         v['size'] < 1 ||
         v['size'] > 20000000 ||

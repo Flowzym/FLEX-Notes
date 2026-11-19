@@ -774,7 +774,7 @@ class Appearance {
         !['left', 'right'].contains(a.navigationSwipeNext) ||
         ![0, 1, 2].contains(a.liveDefaultPage) ||
         ![0, 3, 2, 4].contains(a.organisationDefaultPage) ||
-        ![0, 1, 2, 3].contains(a.materialDefaultPage) ||
+        ![0, 1, 2, 3, 4].contains(a.materialDefaultPage) ||
         ![0, 1, 2, 3, 4].contains(a.moreDefaultPage) ||
         !['light', 'dark', 'system'].contains(a.mode) ||
         !a.textScale.isFinite ||

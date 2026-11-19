@@ -1166,7 +1166,7 @@ void main() {
             if (menu == 'class') {
               await t.tap(find.byKey(const ValueKey('bottom-2')));
               await t.pumpAndSettle();
-              await t.tap(find.byKey(const ValueKey('context-2-4')));
+              await t.tap(find.byKey(const ValueKey('general-class-only-all')));
               return;
             }
             await t.tap(find.byTooltip('Weitere Bereiche'));
@@ -1242,18 +1242,18 @@ void main() {
         await t.pumpAndSettle();
         if (scenario.key == 'menu-class') {
           expect(
-            find.byKey(const ValueKey('general-class-page')),
+            find.byKey(const ValueKey('general-all-page')),
             findsOneWidget,
           );
           final appointments = find.byKey(
-            const ValueKey('general-type-class-appointments'),
+            const ValueKey('general-type-all-appointments'),
           );
           await t.scrollUntilVisible(
             appointments,
             100,
             scrollable: find
                 .descendant(
-                  of: find.byKey(const PageStorageKey('general-class')),
+                  of: find.byKey(const PageStorageKey('general-all')),
                   matching: find.byType(Scrollable),
                 )
                 .first,

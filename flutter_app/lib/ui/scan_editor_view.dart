@@ -498,6 +498,26 @@ extension _ScanEditorView on _ScanEditorState {
                 ),
               ],
             ),
+          if (c.classroom.any((f) => isDriveRule(f) && f.flag('outgoing')))
+            Builder(
+              builder: (ctx) {
+                final targets = scanTargets(
+                  data,
+                  c.classroom.where((f) => usableDriveRule(f, c.pupils)),
+                );
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.cloud_outlined),
+                  title: Text(
+                    scanAwaitsEntry(data)
+                        ? 'OneDrive-Ziel nach Speichern des Eintrags'
+                        : targets.length == 1
+                        ? 'OneDrive · ${targets.single.title}'
+                        : 'Auf Gerät · Ablageziel in OneDrive prüfen',
+                  ),
+                );
+              },
+            ),
           if (pupilIds.isNotEmpty)
             Text(
               c.pupils

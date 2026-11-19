@@ -1,4 +1,4 @@
-# OneDrive in FLEX · Build 82
+# OneDrive in FLEX · Build 87
 
 Die öffentliche Microsoft-Registrierung ist hinterlegt:
 `299f0cd6-a732-425b-8318-e7d7364dd2e3`. Sie unterstützt persönliche Microsoft-Konten
@@ -7,16 +7,16 @@ und Organisationskonten. Zugriff entsteht erst nach Anmeldung und Zustimmung.
 ## Android verbinden
 
 1. Die mit dem bisherigen FLEX-Zertifikat signierte APK installieren.
-2. **Material → OneDrive** antippen.
+2. **Material → OneDrive → OneDrive verbinden** antippen.
 3. Im Microsoft-Anmeldefenster das Konto wählen und den Lesezugriff bestätigen.
-4. In FLEX den gewünschten Ordner öffnen und PDF/DOCX-Material übernehmen.
+4. Im Explorer eine PDF-, DOCX-, JPG- oder PNG-Datei zur Vorschau öffnen. Mit **Übernehmen** lassen sich Schüler und Einsatzdaten zuordnen. FLEX speichert beim Bestätigen.
 
 Android verwendet die offizielle **MSAL 8.7.0** mit einem Konto zur Zeit.
 Microsoft verwaltet Anmeldesitzung und Token-Erneuerung. Der manuelle
 Anmeldecode entfällt. Bei abgelaufener Zustimmung bietet FLEX erneutes Anmelden
 an; Hintergrundanfragen öffnen keine Anmeldefenster.
 
-Unter **Material → Ablage & Sicherung → Trennen** wird der MSAL-Kontozugang
+Unter **Material → OneDrive → Konto trennen** wird der MSAL-Kontozugang
 entfernt. Bereits importierte Materialien und alle Schüler-/Unterrichtsdaten
 bleiben erhalten. Für ein anderes Konto anschließend erneut verbinden.
 Eine vorhandene Microsoft-Browsersitzung kann bestehen bleiben; „Trennen“
@@ -26,6 +26,14 @@ Beim ersten Öffnen nach dem Update wird nur die bisherige Device-Code-
 Anmeldeinformation aus dem Android-Geheimnisspeicher entfernt. Sie kann nicht
 in MSAL übernommen werden; eine einmalige neue Anmeldung ist erforderlich.
 Datenbankschema, Paketname und Signierschlüssel ändern sich nicht.
+
+## Ordner für den Unterricht verbinden
+
+Im Explorer den gewünschten Ordner öffnen und **Ordner verknüpfen** wählen. Schüler oder FLEX-Klasse, Fach und Abgleichrichtung festlegen. Bei **Einlesen** zeigt FLEX vor dem Bestätigen die Anzahl und eine Auswahl vorhandener Dateien. Unterordner übernehmen die Regel, bis eine eigene Verknüpfung beginnt.
+
+Für die Scanablage **FLEX-App-Ordner** öffnen. Hier lassen sich Schülerordner anlegen und als Ziel für Hausübungen, Rückläufe oder Beobachtungen verbinden. Beim Speichern bleibt die fertige PDF oder das Foto mit dem Eintrag verbunden. Ohne Netz wartet die Ablage auf den nächsten Abgleich. Bei Entwürfen gilt die beim endgültigen Speichern bestätigte Schülerauswahl.
+
+Der Abgleich läuft beim Öffnen und bei Rückkehr in die App. **Jetzt abgleichen** startet ihn sofort. Android plant zusätzliche Abgleiche bei bestehender Verbindung. Unter **OneDrive** erscheinen offene Übertragungen, unklare Zuordnungen und entfernte Quellen.
 
 ## Webvorschau
 
@@ -38,12 +46,9 @@ Standard; die native Registrierung ist fest an die signierte Android-App gebunde
 
 ## Berechtigungen und Registrierung
 
-- Microsoft Graph, **delegiert: `Files.Read`**, zum Lesen vorhandener eigener
-  OneDrive-Ordner und Dateien. Es werden keine OneDrive-Schreibrechte angefordert.
-- MSAL ergänzt die Standardscopes `openid`, `profile` und `offline_access` selbst.
-  Im Web fordert FLEX `offline_access Files.Read` an.
-- `Files.ReadWrite.AppFolder` allein genügt nicht für die vorhandene Materialablage
-  außerhalb des FLEX-Appordners. Es ist für diesen Lesezugriff nicht erforderlich.
+- Der Explorer verwendet die delegierte Microsoft-Graph-Berechtigung `Files.Read` für lesbare OneDrive-Ordner.
+- Für die Ablage von Scans im FLEX-App-Ordner zusätzlich die delegierte Berechtigung `Files.ReadWrite.AppFolder` in Entra eintragen. FLEX fordert sie beim Einrichten dieses Ordners an. Die Freigaberegeln des Schulkontos gelten.
+- MSAL ergänzt `openid`, `profile` und `offline_access`. Die Webvorschau fordert `offline_access` zusammen mit den Dateiberechtigungen an.
 - Kein Client-Geheimnis. Die App enthält nur öffentliche Registrierungsdaten.
 
 Android-Paket: `at.flowzym.flex_notizbuch`.

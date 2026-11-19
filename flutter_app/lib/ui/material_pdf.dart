@@ -13,16 +13,20 @@ class MaterialPdf extends StatefulWidget {
     super.key,
     required this.fileKey,
     required this.title,
+    this.preview,
     this.files = const LocalMaterialFiles(),
   });
   final String fileKey, title;
+  final Uint8List? preview;
   final MaterialFiles files;
   @override
   State<MaterialPdf> createState() => _MaterialPdfState();
 }
 
 class _MaterialPdfState extends State<MaterialPdf> {
-  late final Future<Uint8List> bytes = widget.files.read(widget.fileKey);
+  late final Future<Uint8List> bytes = widget.preview == null
+      ? widget.files.read(widget.fileKey)
+      : Future.value(widget.preview);
   @override
   Widget build(BuildContext context) => FlexModal(
     maxWidth: 1100,

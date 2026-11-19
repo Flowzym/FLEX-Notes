@@ -167,6 +167,12 @@ Future<void> showMaterialDetails(
         final d =
             c.classroom.where((m) => m.id == material.id).firstOrNull ??
             material;
+        final folder = c.classroom
+            .where((f) => isDriveRule(f) && f.id == d.text('cloudRule'))
+            .firstOrNull;
+        final lastSync = DateTime.tryParse(
+          folder?.text('lastSync') ?? '',
+        )?.toLocal();
         return FlexModal(
           title: Text(d.title),
           onClose: () => Navigator.pop(ctx),
@@ -184,7 +190,7 @@ Future<void> showMaterialDetails(
                       children: [
                         Text(
                           [
-                            d.text('extension') == 'jpg'
+                            {'jpg', 'png'}.contains(d.text('extension'))
                                 ? 'Foto'
                                 : d.text('extension').toUpperCase(),
                             materialTypes[d.text('documentType', 'other')]!,
@@ -299,6 +305,9 @@ Future<void> showMaterialDetails(
                   child: Text(d.text('note')),
                 ),
               const Divider(height: 24),
+              if (d.flag('sourceMissing'))
+                const Text('Die Quelle fehlt im verknüpften Ordner.'),
+              if (uploadLabel(d).isNotEmpty) Text(uploadLabel(d)),
               Text('Datei', style: Theme.of(ctx).textTheme.titleSmall),
               const SizedBox(height: 8),
               Wrap(
@@ -313,6 +322,15 @@ Future<void> showMaterialDetails(
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Öffnen'),
                   ),
+                  if (d.text('itemId').isNotEmpty &&
+                      d.text('url').isNotEmpty &&
+                      !d.flag('sourceMissing'))
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => _launchMaterial(d.text('url'))),
+                      icon: const Icon(Icons.cloud_outlined),
+                      label: const Text('In OneDrive öffnen'),
+                    ),
                   if ({'pdf', 'jpg'}.contains(d.text('extension')) &&
                       d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
@@ -341,11 +359,7 @@ Future<void> showMaterialDetails(
                         await saveBytesFile(
                           d.text('name', '${d.title}.${d.text('extension')}'),
                           bytes,
-                          mime: d.text('extension') == 'pdf'
-                              ? 'application/pdf'
-                              : d.text('extension') == 'jpg'
-                              ? 'image/jpeg'
-                              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          mime: materialMime(d.text('extension')),
                         );
                       }),
                       icon: const Icon(Icons.download_outlined),
@@ -359,6 +373,10 @@ Future<void> showMaterialDetails(
                     ),
                 ],
               ),
+              if (lastSync != null)
+                Text(
+                  'Ordnerabgleich am ${displayDate(dateOnly(lastSync))} · ${TimeOfDay.fromDateTime(lastSync).format(ctx)}',
+                ),
               if (d.text('sourcePath').isNotEmpty)
                 Text(
                   d.text('sourcePath'),
@@ -390,7 +408,7 @@ Future<void> showMaterialDetails(
                     'Offline geladen am ${displayDate(dateOnly(date.toLocal()))}',
                   ),
                 if (d.text('remoteName').isNotEmpty &&
-                    (d.text('remoteName').split('.').last.toLowerCase() !=
+                    (cloudExtension(d.text('remoteName')) !=
                             d.text('extension') ||
                         d.text('remoteEtag').isNotEmpty &&
                             d.text('remoteEtag') != d.text('etag') ||
@@ -412,7 +430,7 @@ Future<void> showMaterialDetails(
                         'cachedAt': '',
                         if (name.isNotEmpty) ...{
                           'name': name,
-                          'extension': name.split('.').last.toLowerCase(),
+                          'extension': cloudExtension(name),
                         },
                       }),
                     );

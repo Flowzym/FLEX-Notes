@@ -108,8 +108,8 @@ void main() {
       for (final choice in [
         'calendar-default-week',
         'default-liveDefaultPage-2',
-        'default-organisationDefaultPage-4',
-        'default-materialDefaultPage-3',
+        'default-organisationDefaultPage-3',
+        'default-materialDefaultPage-4',
         'default-moreDefaultPage-4',
         'navigation-swipe-next-right',
       ]) {
@@ -144,7 +144,7 @@ void main() {
           -1,
         );
       }
-      for (final destination in [(2, 4), (3, 3), (4, 4)]) {
+      for (final destination in [(2, 3), (3, 4), (4, 4)]) {
         await tap(
           find.byKey(
             ValueKey(

@@ -14,12 +14,14 @@ class GeneralOrgaPage extends StatefulWidget {
     super.key,
     required this.controller,
     required this.kind,
+    this.returnRequest = 0,
     required this.onEdit,
     required this.entryBuilder,
     required this.onEditDraft,
   });
   final NotebookController controller;
   final String kind;
+  final int returnRequest;
   final Future<void> Function(OrgaEntry) onEdit;
   final Widget Function(OrgaEntry) entryBuilder;
   final ValueChanged<EditDraft> onEditDraft;
@@ -31,10 +33,30 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+  bool classOnly = false;
   String query = '', filter = 'all', typeFilter = 'all';
   final search = TextEditingController();
   Iterable<DialogDraft> get returnDrafts => widget.controller.dialogDrafts
       .where((d) => widget.kind != 'note' && isReturnDraft(d));
+
+  @override
+  void initState() {
+    super.initState();
+    classOnly = widget.kind == 'class';
+    if (widget.returnRequest > 0) typeFilter = 'returns';
+  }
+
+  @override
+  void didUpdateWidget(covariant GeneralOrgaPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.returnRequest != oldWidget.returnRequest) {
+      classOnly = false;
+      filter = 'all';
+      typeFilter = 'returns';
+      query = '';
+      search.clear();
+    }
+  }
 
   Future<void> revealSavedReturn(Future<void> Function() edit) async {
     final before = widget.controller.classroom.map((d) => d.id).toSet();
@@ -156,7 +178,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
   );
 
   bool matches(OrgaEntry e) =>
-      (widget.kind != 'class' || e.pupilId == null) &&
+      (!classOnly || e.pupilId == null) &&
       (e.pupilId == null ||
           widget.controller.pupils.any(
             (p) => p.id == e.pupilId && !p.archived,
@@ -246,7 +268,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
             returnDrafts.length;
         final types = {
           'all': 'Alle Arten',
-          'tasks': 'Aufgaben',
+          'tasks': widget.kind == 'task' ? 'Nur Aufgaben' : 'Aufgaben',
           'returns': 'Rückläufe',
           if (widget.kind == 'all' || widget.kind == 'class') ...{
             'notes': 'Notizen',
@@ -299,6 +321,12 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                 spacing: 6,
                 runSpacing: 4,
                 children: [
+                  FilterChip(
+                    key: ValueKey('general-class-only-${widget.kind}'),
+                    label: const Text('Nur Klasse'),
+                    selected: classOnly,
+                    onSelected: (v) => setState(() => classOnly = v),
+                  ),
                   for (final option in {
                     'all': 'Alle',
                     'open': 'Offen',

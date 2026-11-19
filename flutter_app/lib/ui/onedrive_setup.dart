@@ -51,8 +51,10 @@ Future<void> connectNativeOneDrive(
                 ],
                 if (error != null) Text(error!),
                 const SizedBox(height: 12),
-                const Text(
-                  'FLEX liest deine OneDrive-Materialien. Dateien in OneDrive werden nicht verändert.',
+                Text(
+                  drive.appFolderAccess
+                      ? 'FLEX liest deine Materialien und legt fertige Scans in den von dir verbundenen Unterordnern des FLEX-App-Ordners ab.'
+                      : 'FLEX liest die Materialien in den von dir geöffneten oder verknüpften OneDrive-Ordnern.',
                 ),
               ],
             ),
@@ -115,7 +117,7 @@ Future<bool> setupOneDrive(BuildContext context, OneDriveClient drive) async {
                 ),
               const SizedBox(height: 12),
               const Text(
-                '1. App „FLEX“ registrieren; persönliche Microsoft-Konten zulassen.\n2. Unter Authentifizierung öffentliche Clientflows aktivieren.\n3. Microsoft Graph: delegierte Berechtigung Files.Read.\n4. Die Anwendungs-/Client-ID hier einfügen.',
+                '1. App „FLEX“ registrieren; persönliche Microsoft-Konten zulassen.\n2. Unter Authentifizierung öffentliche Clientflows aktivieren.\n3. Unter Microsoft Graph den delegierten Zugriff Files.Read aktivieren. Für die Scanablage zusätzlich Files.ReadWrite.AppFolder freigeben.\n4. Die Anwendungs-/Client-ID hier einfügen.',
               ),
               TextButton.icon(
                 onPressed: busy

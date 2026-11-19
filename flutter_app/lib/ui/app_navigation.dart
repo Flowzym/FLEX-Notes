@@ -9,14 +9,9 @@ const organisationPages = {
   0: 'Alle Einträge',
   3: 'Aufgaben',
   2: 'Orga-Notizen',
-  4: 'Nur Klasse',
 };
-const materialPages = {
-  0: 'Dateien',
-  1: 'Bereitgelegt',
-  2: 'Pakete',
-  3: 'Planungen',
-};
+const materialPages = {1: 'Bereitgelegt', 0: 'Bibliothek', 4: 'OneDrive'};
+int materialParent(int id) => id == 2 || id == 3 ? 1 : id;
 const morePages = {
   0: 'Weitere',
   1: 'Archiv',

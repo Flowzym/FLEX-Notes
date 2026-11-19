@@ -432,7 +432,7 @@ void main() {
   );
 
   testWidgets(
-    'class Orga is a navigation page with visible filters and contextual creation',
+    'class scope is available on the Orga page with visible filters and contextual creation',
     (t) async {
       await c.saveEntry(
         OrgaEntry.empty().copyWith(
@@ -445,15 +445,15 @@ void main() {
       );
       await app(t);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
-      await tap(t, find.byKey(const ValueKey('context-2-4')));
+      await tap(t, find.byKey(const ValueKey('general-class-only-all')));
       Finder inModal(String text) => find.descendant(
-        of: find.byKey(const ValueKey('general-class-page')),
+        of: find.byKey(const ValueKey('general-all-page')),
         matching: find.text(text),
       );
-      expect(find.byKey(const ValueKey('general-search-class')), findsNothing);
-      await tap(t, find.byKey(const ValueKey('general-search-button-class')));
+      expect(find.byKey(const ValueKey('general-search-all')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('general-search-button-all')));
       await t.enterText(
-        find.byKey(const ValueKey('general-search-class')),
+        find.byKey(const ValueKey('general-search-all')),
         'Konferenz',
       );
       await t.pumpAndSettle();
@@ -465,7 +465,7 @@ void main() {
       expect(inModal('Unterlagen'), findsOneWidget);
       await tap(t, find.text('Termine'));
       expect(inModal('Unterlagen'), findsNothing);
-      await tap(t, find.byKey(const ValueKey('general-add-class')));
+      await tap(t, find.byKey(const ValueKey('general-add-all')));
       expect(
         find.byKey(const ValueKey('orga-appointment-date')),
         findsOneWidget,

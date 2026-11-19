@@ -247,7 +247,10 @@ class _DevelopmentDialogState extends State<DevelopmentDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Entwicklung'),
-            Text(widget.pupil.name, style: Theme.of(ctx).textTheme.bodySmall),
+            Text(
+              '${widget.pupil.name} · ${displayDate(from)} – ${displayDate(to)}',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
           ],
         ),
         onClose: () => Navigator.pop(ctx),
@@ -255,112 +258,122 @@ class _DevelopmentDialogState extends State<DevelopmentDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            OptionBar(
-              keyPrefix: 'development-period',
-              options: presets,
-              value: preset,
-              onChanged: (v) => filter(() {
-                to = dateOnly(DateTime.now());
-                from = dateOnly(
-                  DateTime.now().subtract(Duration(days: int.parse(v) - 1)),
-                );
-              }),
-            ),
-            Row(
+            ExpansionTile(
+              key: const ValueKey('development-filters'),
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Zeitraum und Filter'),
               children: [
-                Expanded(
-                  child: TextButton(
-                    key: const ValueKey('development-from'),
-                    onPressed: () => choose(true),
-                    child: Text('Von ${displayDate(from)}'),
-                  ),
+                OptionBar(
+                  keyPrefix: 'development-period',
+                  options: presets,
+                  value: preset,
+                  onChanged: (v) => filter(() {
+                    to = dateOnly(DateTime.now());
+                    from = dateOnly(
+                      DateTime.now().subtract(Duration(days: int.parse(v) - 1)),
+                    );
+                  }),
                 ),
-                const Text('–'),
-                Expanded(
-                  child: TextButton(
-                    key: const ValueKey('development-to'),
-                    onPressed: () => choose(false),
-                    child: Text('Bis ${displayDate(to)}'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        key: const ValueKey('development-from'),
+                        onPressed: () => choose(true),
+                        child: Text('Von ${displayDate(from)}'),
+                      ),
+                    ),
+                    const Text('–'),
+                    Expanded(
+                      child: TextButton(
+                        key: const ValueKey('development-to'),
+                        onPressed: () => choose(false),
+                        child: Text('Bis ${displayDate(to)}'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            OptionBar(
-              keyPrefix: 'development-area',
-              options: const {
-                'all': 'Alle',
-                'social': 'Sozial',
-                'work': 'Arbeit',
-              },
-              value: area,
-              onChanged: (v) => filter(() {
-                area = v;
-                topic = '';
-              }),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final t in const {
-                  'positive': 'Positiv',
-                  'neutral': 'Neutral',
-                  'negative': 'Negativ',
-                  'free': 'Ohne Tag',
-                }.entries)
-                  if (t.key != 'free' ||
-                      topicRows.any((r) => hasTone(r, 'free')) ||
-                      tone == 'free')
-                    FilterChip(
-                      key: ValueKey('development-tone-${t.key}'),
-                      avatar: Icon(
-                        Icons.circle,
-                        size: 8,
-                        color:
-                            observationToneColors[t.key] ??
-                            Theme.of(ctx).colorScheme.outline,
-                      ),
-                      label: Text(
-                        '${topicRows.where((r) => hasTone(r, t.key)).length} ${t.value}',
-                      ),
-                      selected: tone == t.key,
-                      onSelected: (_) =>
-                          filter(() => tone = tone == t.key ? '' : t.key),
-                    ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Dokumentierte Einträge · Mehrfachzuordnung möglich',
-              style: Theme.of(ctx).textTheme.bodySmall,
-            ),
-            if (orderedTopics.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text('Häufige Themen', style: Theme.of(ctx).textTheme.titleSmall),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  for (final t in orderedTopics.take(4))
-                    FilterChip(
-                      key: ValueKey('development-topic-${t.key}'),
-                      label: Text('${t.key} · ${t.value}'),
-                      selected: topic == t.key,
-                      onSelected: (_) =>
-                          filter(() => topic = topic == t.key ? '' : t.key),
-                    ),
+                OptionBar(
+                  keyPrefix: 'development-area',
+                  options: const {
+                    'all': 'Alle',
+                    'social': 'Sozial',
+                    'work': 'Arbeit',
+                  },
+                  value: area,
+                  onChanged: (v) => filter(() {
+                    area = v;
+                    topic = '';
+                  }),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t in const {
+                      'positive': 'Positiv',
+                      'neutral': 'Neutral',
+                      'negative': 'Negativ',
+                      'free': 'Ohne Tag',
+                    }.entries)
+                      if (t.key != 'free' ||
+                          topicRows.any((r) => hasTone(r, 'free')) ||
+                          tone == 'free')
+                        FilterChip(
+                          key: ValueKey('development-tone-${t.key}'),
+                          avatar: Icon(
+                            Icons.circle,
+                            size: 8,
+                            color:
+                                observationToneColors[t.key] ??
+                                Theme.of(ctx).colorScheme.outline,
+                          ),
+                          label: Text(
+                            '${topicRows.where((r) => hasTone(r, t.key)).length} ${t.value}',
+                          ),
+                          selected: tone == t.key,
+                          onSelected: (_) =>
+                              filter(() => tone = tone == t.key ? '' : t.key),
+                        ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Dokumentierte Einträge · Mehrfachzuordnung möglich',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+                if (orderedTopics.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Häufige Themen',
+                    style: Theme.of(ctx).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final t in orderedTopics.take(4))
+                        FilterChip(
+                          key: ValueKey('development-topic-${t.key}'),
+                          label: Text('${t.key} · ${t.value}'),
+                          selected: topic == t.key,
+                          onSelected: (_) =>
+                              filter(() => topic = topic == t.key ? '' : t.key),
+                        ),
+                    ],
+                  ),
                 ],
-              ),
-            ],
-            if (topic.isNotEmpty &&
-                !orderedTopics.take(4).any((t) => t.key == topic))
-              InputChip(
-                label: Text(topic),
-                onDeleted: () => filter(() => topic = ''),
-              ),
-            const SizedBox(height: 10),
+                if (topic.isNotEmpty &&
+                    !orderedTopics.take(4).any((t) => t.key == topic))
+                  InputChip(
+                    label: Text(topic),
+                    onDeleted: () => filter(() => topic = ''),
+                  ),
+                const SizedBox(height: 10),
+              ],
+            ),
             CollapsibleSearch(
               controller: search,
               fieldKey: const ValueKey('development-search'),

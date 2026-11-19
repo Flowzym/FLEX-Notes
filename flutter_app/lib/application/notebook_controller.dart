@@ -1,4 +1,7 @@
 import '../domain/school_year.dart';
+import '../domain/drive_rules.dart';
+import '../services/material_sync.dart';
+import '../services/material_storage.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
@@ -43,6 +46,53 @@ class NotebookController extends ChangeNotifier {
   Future<void> _appearanceWrites = Future.value();
   int _appearanceGeneration = 0, _appearancePending = 0;
   bool _disposed = false;
+  String syncMessage = '';
+  Future<void>? _syncing;
+  bool get syncingMaterials => _syncing != null;
+  String _pendingSignature = '';
+  bool _rulesActive = false;
+  Future<void> syncMaterials() {
+    if (_disposed || !classroom.any(isDriveRule)) return Future.value();
+    final current = _syncing;
+    if (current != null) return current;
+    final pendingBefore = _pendingSignature.split('|').toSet();
+    final next = Future<void>(() async {
+      try {
+        final result = await syncNotebookMaterials(
+          repository,
+          const LocalMaterialFiles(),
+        );
+        syncMessage = result.errors.isEmpty
+            ? result.summary
+            : result.errors.join('\n');
+      } catch (e) {
+        syncMessage = e is DomainError
+            ? e.message
+            : 'OneDrive ist derzeit nicht erreichbar.';
+      } finally {
+        try {
+          await reload();
+        } finally {
+          _syncing = null;
+          if (!_disposed) {
+            notifyListeners();
+            if (_rulesActive &&
+                _pendingSignature
+                    .split('|')
+                    .any(
+                      (key) => key.isNotEmpty && !pendingBefore.contains(key),
+                    )) {
+              unawaited(syncMaterials());
+            }
+          }
+        }
+      }
+    });
+    _syncing = next;
+    notifyListeners();
+    return next;
+  }
+
   String? appearanceError;
   bool get appearanceSaving =>
       _appearanceTimer != null || _appearancePending > 0;
@@ -88,6 +138,27 @@ class NotebookController extends ChangeNotifier {
       _savedAppearance = appearance;
     }
     stagedLegacyCount = next.legacyCount;
+    final rules = classroom.any(
+      (f) => isDriveRule(f) && (f.flag('incoming') || f.flag('outgoing')),
+    );
+    final pending = classroom
+        .where(
+          (d) =>
+              !d.deleted &&
+              d.kind == ClassroomKind.material &&
+              d.map('cloudUpload')['state'] == 'pending',
+        )
+        .map((d) => d.text('localKey'))
+        .join('|');
+    final shouldSync =
+        rules &&
+        (!_rulesActive || pending.isNotEmpty && _pendingSignature != pending);
+    if (services != null && rules != _rulesActive) {
+      unawaited(scheduleMaterialSync(rules).catchError((Object _) {}));
+    }
+    _pendingSignature = pending;
+    _rulesActive = rules;
+    if (shouldSync && _syncing == null) unawaited(syncMaterials());
     services?.updated(next);
     notifyListeners();
   }

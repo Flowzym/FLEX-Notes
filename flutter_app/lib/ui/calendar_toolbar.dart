@@ -28,7 +28,7 @@ class CalendarToolbar extends StatelessWidget {
     builder: (ctx, box) {
       const size = 48.0;
       final inlineFilter =
-          box.maxWidth >= 380 && MediaQuery.textScalerOf(ctx).scale(1) <= 1.4;
+          box.maxWidth >= 470 && MediaQuery.textScalerOf(ctx).scale(1) <= 1.4;
       final inlineMaterials =
           box.maxWidth >= 460 && MediaQuery.textScalerOf(ctx).scale(1) <= 1.4;
       Widget button(
@@ -105,29 +105,76 @@ class CalendarToolbar extends StatelessWidget {
           ),
           Tooltip(
             message: 'Heute',
-            child: TextButton(
-              key: const ValueKey('calendar-today'),
-              onPressed: today,
-              style: TextButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                backgroundColor: Colors.transparent,
-                textStyle: const TextStyle(
-                  fontFamily: 'FlexSans',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+            child: SizedBox(
+              width: MediaQuery.textScalerOf(ctx).scale(46).clamp(48.0, 76.0),
+              child: TextButton(
+                key: const ValueKey('calendar-today'),
+                onPressed: today,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  backgroundColor: Colors.transparent,
+                  textStyle: const TextStyle(
+                    fontFamily: 'FlexSans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Heute'),
                 ),
               ),
-              child: const Text('Heute'),
             ),
           ),
-          button(
-            'calendar-show-lessons',
-            'Unterricht anzeigen',
-            lessons ? Icons.check_box_outlined : Icons.check_box_outline_blank,
-            toggleLessons,
-            checked: lessons,
-          ),
+          if (box.maxWidth >= 365 &&
+              MediaQuery.textScalerOf(ctx).scale(1) <= 1.25)
+            Semantics(
+              toggled: lessons,
+              child: Tooltip(
+                message: 'Unterricht anzeigen',
+                child: SizedBox(
+                  width: 86,
+                  height: size,
+                  child: TextButton(
+                    key: const ValueKey('calendar-show-lessons'),
+                    onPressed: toggleLessons,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            lessons
+                                ? Icons.check_box_outlined
+                                : Icons.check_box_outline_blank,
+                            size: 17,
+                          ),
+                          const SizedBox(width: 3),
+                          const Text(
+                            'Unterricht',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            button(
+              'calendar-show-lessons',
+              'Unterricht anzeigen',
+              lessons
+                  ? Icons.check_box_outlined
+                  : Icons.check_box_outline_blank,
+              toggleLessons,
+              checked: lessons,
+            ),
           if (inlineFilter)
             button(
               'calendar-filter',

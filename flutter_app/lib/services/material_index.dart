@@ -4,6 +4,14 @@ import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'onedrive.dart';
 
+String cloudExtension(String name) {
+  final extension = name.toLowerCase().split('.').last;
+  return extension == 'jpeg' ? 'jpg' : extension;
+}
+
+bool cloudFileSupported(String name) =>
+    {'pdf', 'docx', 'jpg', 'png'}.contains(cloudExtension(name));
+
 /// A detached, edited copy keeps its identity and all its pupil/entry links.
 /// Re-importing the cloud original must create/reuse a separate material.
 String oneDriveMaterialId(
@@ -57,12 +65,11 @@ ClassroomDocument indexOneDriveFile(
     'remoteEtag': item['eTag'] ?? '',
     'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
     'sourcePath': ?path,
-    if (cached && old.text('extension') == name.split('.').last.toLowerCase())
-      'name': name,
+    if (cached && old.text('extension') == cloudExtension(name)) 'name': name,
     if (restore) 'deleted': false,
     if (!cached) ...{
       'name': name,
-      'extension': name.split('.').last.toLowerCase(),
+      'extension': cloudExtension(name),
       'size': item['size'] ?? 0,
       'sourceModifiedAt': item['lastModifiedDateTime'] ?? '',
     },
@@ -87,6 +94,7 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
   Iterable<ClassroomDocument> existing, {
   bool Function()? cancelled,
   void Function(int folders, int files)? progress,
+  Set<String> boundaryFolders = const {},
   int maxFiles = 2000,
   int maxFolders = 250,
 }) async {
@@ -127,11 +135,12 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
       if (itemId.isEmpty || item['remoteItem'] != null) continue;
       final path = '${current.path}/$name';
       if (item['folder'] != null) {
-        queue.add((id: itemId, path: path));
+        if (!boundaryFolders.contains(itemId)) {
+          queue.add((id: itemId, path: path));
+        }
         continue;
       }
-      final extension = name.split('.').last.toLowerCase();
-      if (!{'pdf', 'docx'}.contains(extension) || !seen.add(itemId)) continue;
+      if (!cloudFileSupported(name) || !seen.add(itemId)) continue;
       if (result.length >= maxFiles) {
         throw const DomainError(
           'Bitte einen kleineren Unterordner wählen (höchstens 2000 Dateien).',

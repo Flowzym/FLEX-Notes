@@ -40,8 +40,9 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   if (bytes.isEmpty || bytes.length > 20000000) {
     throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
   }
-  if (extension == 'jpg') {
-    final info = img.JpegDecoder().startDecode(bytes);
+  if (extension == 'jpg' || extension == 'png') {
+    final info = (extension == 'png' ? img.PngDecoder() : img.JpegDecoder())
+        .startDecode(bytes);
     if (info == null ||
         info.width < 1 ||
         info.height < 1 ||
@@ -55,10 +56,8 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
                   '%PDF-') ||
       extension == 'docx' &&
           (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4b) ||
-      !{'pdf', 'jpg', 'docx'}.contains(extension)) {
-    throw const DomainError(
-      'Die Datei ist kein gültiges PDF-, JPG- oder DOCX-Dokument.',
-    );
+      !{'pdf', 'jpg', 'png', 'docx'}.contains(extension)) {
+    throw const DomainError('PDF, DOCX, JPG oder PNG auswählen.');
   }
   if (extension == 'docx') {
     try {

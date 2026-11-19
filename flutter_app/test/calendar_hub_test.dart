@@ -226,7 +226,7 @@ void main() {
       Navigator.of(t.element(find.byType(ReturnDetail))).pop();
       await t.pumpAndSettle();
       expect(find.text('Formular open'), findsNothing);
-      await type('task', 'Aufgaben');
+      await type('task', 'Nur Aufgaben');
       expect(find.text('Bus buchen'), findsWidgets);
       expect(find.byType(ReturnListCard), findsNothing);
       await tap(t, find.text('Erledigt').hitTestable());

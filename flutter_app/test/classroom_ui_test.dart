@@ -445,6 +445,7 @@ void main() {
         scale: 1.5,
       );
       await tap(t, find.text('Start'));
+      await tap(t, find.byKey(const ValueKey('development-filters')));
       await tap(t, find.text('Arbeit'));
       expect(find.text('Gemeinsam gelesen'), findsNothing);
       await tap(t, find.text('Sozial'));

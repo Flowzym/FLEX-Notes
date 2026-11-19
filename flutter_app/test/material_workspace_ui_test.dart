@@ -146,8 +146,10 @@ void main() {
       await t.enterText(find.byType(TextField), 'Brüche');
       await t.pumpAndSettle();
       expect(find.text('Englisch'), findsNothing);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Pakete'));
-      await tap(t, find.widgetWithText(ChoiceChip, 'Dateien'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Pakete').last);
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bibliothek'));
       await c.reload();
       await t.pumpAndSettle();
       expect(
@@ -247,23 +249,31 @@ void main() {
         t,
         (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
       );
-      Finder action(String tooltip) => find.descendant(
-        of: find.byKey(ValueKey(a.id)),
-        matching: find.byTooltip(tooltip),
-      );
-      await tap(t, action('Für heute bereitlegen'));
+      Future<void> action(String label) async {
+        await tap(
+          t,
+          find.descendant(
+            of: find.byKey(ValueKey(a.id)),
+            matching: find.byTooltip('Materialangaben und Aktionen'),
+          ),
+        );
+        await tap(t, find.text(label));
+      }
+
+      await action('Für heute bereitlegen');
       expect(preparationFor(c.classroom, today).strings('materialIds'), [
         b.id,
         a.id,
       ]);
-      await tap(t, action('Als Favorit merken'));
+      await action('Als Favorit merken');
       expect(
         c.classroom.singleWhere((d) => d.id == a.id).flag('favorite'),
         isTrue,
       );
-      await tap(t, action('Von heute entfernen'));
+      await action('Von heute entfernen');
       expect(preparationFor(c.classroom, today).strings('materialIds'), [b.id]);
       expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
+      await tap(t, find.widgetWithText(TextButton, 'Filter'));
       await tap(t, find.widgetWithText(FilterChip, 'Favoriten'));
       expect(find.byKey(ValueKey(a.id)), findsOneWidget);
       expect(find.byKey(ValueKey(b.id)), findsNothing);
@@ -286,7 +296,8 @@ void main() {
         ),
       );
       expect(find.byTooltip('Für heute bereitlegen'), findsNothing);
-      await tap(t, find.byTooltip('Wiederherstellen'));
+      await tap(t, find.byTooltip('Materialangaben und Aktionen'));
+      await tap(t, find.text('Wiederherstellen'));
       expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
       expect(find.byKey(ValueKey(a.id)), findsNothing);
       await tap(t, find.widgetWithText(FilterChip, 'Papierkorb'));
@@ -519,7 +530,9 @@ void main() {
       await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
       expect(t.takeException(), isNull);
       await tap(t, find.text('Fertig'));
-      await tap(t, find.widgetWithText(ChoiceChip, 'Planungen'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Planungen').last);
       expect(t.takeException(), isNull);
     });
   }

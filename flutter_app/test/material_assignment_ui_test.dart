@@ -238,9 +238,11 @@ void main() {
       await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Anna'));
       expect(find.text('Anna Blatt'), findsOneWidget);
       expect(find.text('Allgemein'), findsNothing);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Pakete'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Pakete').last);
       expect(find.text('Lesepaket'), findsOneWidget);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Dateien'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bibliothek'));
       await tap(t, find.byKey(const ValueKey('material-pupil-filter')));
       await tap(
         t,

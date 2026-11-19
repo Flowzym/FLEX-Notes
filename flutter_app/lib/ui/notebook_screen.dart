@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../domain/reminder_action.dart';
 import 'homework_control.dart';
 import 'school_year_dialog.dart';
@@ -56,10 +57,11 @@ class NotebookScreen extends StatefulWidget {
   State<NotebookScreen> createState() => _NotebookScreenState();
 }
 
-class _NotebookScreenState extends State<NotebookScreen> {
+class _NotebookScreenState extends State<NotebookScreen>
+    with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
-  int _orgaView = 0;
+  int _orgaView = 0, _returnsRequest = 0;
   final _visited = <int>{1};
   final _appliedDefaults = <int, int>{};
   final _dataLayout = SettingsLayoutState()..tab = 2;
@@ -78,8 +80,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
   int get _contextPage => switch (_destination) {
     0 => 0,
     1 => _primary,
-    2 => _orgaView,
-    3 => _materialView,
+    2 => _orgaView == 4 ? 0 : _orgaView,
+    3 => materialParent(_materialView),
     4 => _moreView,
     _ => 0,
   };
@@ -127,6 +129,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _primary = c.appearance.liveDefaultPage;
     _appliedDefaults[1] = _primary;
     c.services?.reminders.addListener(_notification);
@@ -311,7 +314,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(c.syncMaterials());
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     c.services?.quickAccess?.removeListener(_quickAccess);
     c.services?.lock.removeListener(_quickAccess);
     c.services?.incoming?.removeListener(_incoming);
@@ -361,6 +370,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
     key: ValueKey('general-$kind-page'),
     controller: c,
     kind: kind,
+    returnRequest: kind == 'task' ? _returnsRequest : 0,
     onEdit: (entry) => _editor(entry, defaultToClassTask: false),
     entryBuilder: _entryCard,
     onEditDraft: (draft) => _editor(draft.entry, draftId: draft.id),
@@ -416,7 +426,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ),
   );
 
-  static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
+  static const _materialViews = [
+    'files',
+    'prepared',
+    'packages',
+    'plans',
+    'drive',
+  ];
   Widget _moreHome() => ListView(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
@@ -425,7 +441,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
         (
           'Rückläufe',
           Icons.fact_check_outlined,
-          () => showReturnLists(context, c),
+          () {
+            _sectionTo(2);
+            _changeView(() {
+              _orgaView = 3;
+              _returnsRequest++;
+            });
+          },
         ),
         (
           'Für mehrere erfassen',
@@ -529,10 +551,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (!didPop) _main(c.appearance.liveDefaultPage);
     },
     child: Scaffold(
-      floatingActionButton: QuickAddButton(
-        controller: c,
-        date: _destination == 0 ? _creationDate : null,
-      ),
+      floatingActionButton: _destination == 3 || _destination == 5
+          ? null
+          : QuickAddButton(
+              controller: c,
+              date: _destination == 0 ? _creationDate : null,
+            ),
       bottomNavigationBar: FlexBottomNavigation(
         selected: _destination,
         onSelected: _sectionTo,
@@ -642,9 +666,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                           if (_visited.contains(2))
                             IndexedStack(
                               key: const ValueKey('organisation-pages'),
-                              index: organisationPages.keys.toList().indexOf(
-                                _orgaView,
-                              ),
+                              index: const [0, 3, 2, 4].indexOf(_orgaView),
                               children: [
                                 _generalOrga('all'),
                                 _generalOrga('task'),

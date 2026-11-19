@@ -252,6 +252,31 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                     ? a.title.toLowerCase().compareTo(b.title.toLowerCase())
                     : b.text('updatedAtUtc').compareTo(a.text('updatedAtUtc')),
               );
+        if (all.isEmpty && !c.dialogDrafts.any((d) => d.type == 'scan')) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 88),
+            children: [
+              Text(
+                'Scans & Fotos',
+                style: Theme.of(ctx).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  key: const ValueKey('scanner-first-capture'),
+                  onPressed: () => scanAndShow(ctx, c, const ScanContext()),
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('Scannen oder fotografieren'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Gespeicherte Aufnahmen und Entwürfe findest du hier.',
+              ),
+            ],
+          );
+        }
         final chosen = documents.where((d) => selected.contains(d.id)).toList();
         final drafts = c.dialogDrafts
             .where(

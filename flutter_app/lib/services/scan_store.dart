@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
+import '../domain/drive_rules.dart';
 import '../domain/models.dart';
 import '../domain/material_versions.dart';
 import '../domain/repository.dart';
@@ -105,6 +106,10 @@ Future<ClassroomDocument> saveScan(
           ...source.toJson(),
           'size': (await files.read(source.text('localKey'))).length,
         });
+  final pupils = await repo.pupils();
+  final rules = (await repo.classroomDocuments())
+      .where((f) => usableDriveRule(f, pupils))
+      .toList();
   final outputs = photo ? inputs : [await compute(scanPdf, inputs)];
   final keys = <String>[];
   final documents = <ClassroomDocument>[];
@@ -149,6 +154,17 @@ Future<ClassroomDocument> saveScan(
         'remoteModifiedAt': '',
         'cachedAt': '',
       };
+      fields['cloudUpload'] = scanUploadJob(
+        data,
+        key,
+        fields['name'] as String,
+        rules,
+      );
+      fields.addAll({
+        'cloudRule': '',
+        'cloudReview': '',
+        'sourceMissing': false,
+      });
       documents.add(
         source == null
             ? ClassroomDocument.create(

@@ -269,14 +269,14 @@ class _SettingsPageState extends State<SettingsPage>
                 (
                   'Organisation',
                   'organisationDefaultPage',
-                  organisationPages,
+                  {...organisationPages, 4: 'Nur Klasse'},
                   c.appearance.organisationDefaultPage,
                 ),
                 (
                   'Material',
                   'materialDefaultPage',
                   materialPages,
-                  c.appearance.materialDefaultPage,
+                  materialParent(c.appearance.materialDefaultPage),
                 ),
                 (
                   'Mehr',
