@@ -95,7 +95,7 @@ Future<bool> _configureDriveFolder(
                     ),
                     const DropdownMenuItem(
                       value: 'planning',
-                      child: Text('Unterrichtsplanung nach Ordnerstruktur'),
+                      child: Text('Unterrichtsplanung'),
                     ),
                     if (pupil == 'missing')
                       const DropdownMenuItem(
