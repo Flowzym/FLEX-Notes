@@ -244,7 +244,7 @@ void main() {
       );
       expect(find.text('Formular closed'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('context-2-0')));
-      await type('all', 'Rückläufe');
+      await tap(t, find.byKey(const ValueKey('general-type-all-returns')));
       await t.drag(
         find.byKey(const PageStorageKey('general-all')),
         const Offset(0, 700),
