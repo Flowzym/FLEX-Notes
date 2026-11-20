@@ -360,8 +360,9 @@ class PlanningRoster {
         }
       }
     }
-    if (numberedOwners.isEmpty && result.owners.length > 1)
+    if (numberedOwners.isEmpty && result.owners.length > 1) {
       result.ambiguous = true;
+    }
     if (!includeDecided) {
       result.owners.removeAll({
         ...d.strings('planningDecisions'),
