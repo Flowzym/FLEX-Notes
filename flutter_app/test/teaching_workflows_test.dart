@@ -217,12 +217,15 @@ void main() {
       await tap(find.byKey(const ValueKey('material-assignment-review-p')));
       await tap(find.text('Abbrechen'));
       expect(await c.repository.classroomDocuments(), isEmpty);
-      await tap(find.byTooltip('Mehrere Dateien auswählen'));
+      await t.longPress(find.text('Lesen.pdf'));
+      await t.pumpAndSettle();
+      expect(find.text('1 ausgewählt'), findsOneWidget);
       final search = find.widgetWithText(TextField, 'In diesem Ordner suchen');
       await t.enterText(search, 'Lesen');
       await t.pumpAndSettle();
       expect(find.text('Textarbeit'), findsNothing);
-      await tap(find.text('Lesen.pdf'));
+      await tap(find.byTooltip('Angezeigte abwählen'));
+      await tap(find.byTooltip('Alle angezeigten auswählen'));
       await t.enterText(search, '');
       await t.pumpAndSettle();
       await tap(find.text('Textarbeit'));

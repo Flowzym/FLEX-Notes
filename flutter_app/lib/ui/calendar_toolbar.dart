@@ -56,52 +56,67 @@ class CalendarToolbar extends StatelessWidget {
       return Row(
         key: const ValueKey('calendar-date-navigation'),
         children: [
-          button(
-            'calendar-previous',
-            'Vorheriger Zeitraum',
-            Icons.chevron_left,
-            previous,
-          ),
           Expanded(
-            child: Tooltip(
-              message: '$periodLabel · Datum wählen',
-              child: TextButton(
-                key: const ValueKey('calendar-period'),
-                onPressed: chooseDate,
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Theme.of(ctx).colorScheme.onSurface,
-                ),
-                child: SizedBox(
-                  height: 48,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      box.maxWidth < 345 &&
-                              MediaQuery.textScalerOf(ctx).scale(1) > 1.4
-                          ? compactPeriod
-                          : period,
-                      semanticsLabel: periodLabel,
-                      maxLines: 2,
-                      softWrap: false,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  ctx,
+                ).colorScheme.primary.withValues(alpha: .045),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  button(
+                    'calendar-previous',
+                    'Vorheriger Zeitraum',
+                    Icons.chevron_left,
+                    previous,
+                  ),
+                  Expanded(
+                    child: Tooltip(
+                      message: '$periodLabel · Datum wählen',
+                      child: TextButton(
+                        key: const ValueKey('calendar-period'),
+                        onPressed: chooseDate,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 1),
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Theme.of(ctx).colorScheme.onSurface,
+                        ),
+                        child: SizedBox(
+                          height: 48,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              box.maxWidth < 345 &&
+                                      MediaQuery.textScalerOf(ctx).scale(1) >
+                                          1.4
+                                  ? compactPeriod
+                                  : period,
+                              semanticsLabel: periodLabel,
+                              maxLines: 2,
+                              softWrap: false,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  button(
+                    'calendar-next',
+                    'Nächster Zeitraum',
+                    Icons.chevron_right,
+                    next,
+                  ),
+                ],
               ),
             ),
-          ),
-          button(
-            'calendar-next',
-            'Nächster Zeitraum',
-            Icons.chevron_right,
-            next,
           ),
           Tooltip(
             message: 'Heute',

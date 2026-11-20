@@ -500,6 +500,40 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'adjacent dates in the month grid change months in both directions',
+    (t) async {
+      final c = await controller();
+      await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
+      await tap(t, find.byKey(const ValueKey('calendar-month-2026-10-31')));
+      expect(find.text('Oktober 2026'), findsOneWidget);
+      expect(find.text('Samstag, 31. Oktober'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-01')));
+      expect(find.text('November 2026'), findsOneWidget);
+      expect(find.text('Sonntag, 1. November'), findsOneWidget);
+      expect(find.byType(OrgaEditor), findsNothing);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'month long press shows the chosen agenda without starting a draft',
+    (t) async {
+      final c = await controller(seed: true);
+      await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
+      final cell = find.byKey(const ValueKey('calendar-month-2026-11-03'));
+      await t.longPress(cell);
+      await t.pumpAndSettle();
+      expect(find.byType(OrgaEditor), findsNothing);
+      expect(find.text('Dienstag, 3. November'), findsOneWidget);
+      expect(c.drafts, isEmpty);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('month selection keeps month then opens selected day', (t) async {
     final c = await controller(seed: true);
     await host(t, c);
@@ -511,7 +545,7 @@ void main() {
       '2026-11-05',
     );
     await tap(t, find.text('Abbrechen'));
-    expect(find.text('Nov 2026'), findsOneWidget);
+    expect(find.text('November 2026'), findsOneWidget);
     await tap(t, find.byTooltip('Tagesansicht öffnen'));
     expect(find.text('Do, 5.11.'), findsOneWidget);
     expect(t.takeException(), isNull);

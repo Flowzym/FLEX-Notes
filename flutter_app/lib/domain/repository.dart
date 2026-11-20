@@ -52,6 +52,10 @@ abstract interface class NotebookRepository {
   Future<Pupil> savePupil(Pupil pupil);
   Future<Set<String>> searchEntryKeys(String query, {String? pupilId});
   Future<List<OrgaEntry>> entries();
+  Future<void> saveOrganisationSelection(
+    List<OrgaEntry> entries,
+    List<ClassroomDocument> returns,
+  );
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {
     String? draftId,

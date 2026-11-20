@@ -1,3 +1,4 @@
+import 'selection_controls.dart';
 import 'dart:async';
 import '../domain/reminder_action.dart';
 import 'homework_control.dart';
@@ -333,6 +334,7 @@ class _NotebookScreenState extends State<NotebookScreen>
 
   final _busyIds = <String>{};
   void _sectionTo(int index) {
+    if (index != 1) _endPupilSelection();
     FocusManager.instance.primaryFocus?.unfocus();
     _changeView(() {
       final start = switch (index) {
@@ -362,6 +364,7 @@ class _NotebookScreenState extends State<NotebookScreen>
   }
 
   void _main(int index) {
+    if (index != 1) _endPupilSelection();
     _sectionTo(1);
     _changeView(() => _primary = index);
   }
@@ -373,6 +376,7 @@ class _NotebookScreenState extends State<NotebookScreen>
     returnRequest: kind == 'task' ? _returnsRequest : 0,
     onEdit: (entry) => _editor(entry, defaultToClassTask: false),
     entryBuilder: _entryCard,
+    onOpen: _taskDetails,
     onEditDraft: (draft) => _editor(draft.entry, draftId: draft.id),
   );
 
@@ -724,6 +728,13 @@ class _NotebookScreenState extends State<NotebookScreen>
   );
 
   String? _selectedPupil;
+  bool _choosingPupils = false;
+  final _markedPupils = <String>{};
+  void _endPupilSelection() {
+    _choosingPupils = false;
+    _markedPupils.clear();
+  }
+
   Widget _pupilWorkspace(
     Pupil current, {
     FlexSymbol? area,
@@ -1270,6 +1281,8 @@ class _NotebookScreenState extends State<NotebookScreen>
         .where((p) => p.name.toLowerCase().contains(_pupilQuery.toLowerCase()))
         .toList();
     final width = MediaQuery.sizeOf(context).width;
+    final chosen = pupils.where((p) => _markedPupils.contains(p.id)).toList();
+    final choosing = !archived && _choosingPupils;
     final gutter = inSplit && width >= 1000
         ? 12.0
         : width <= 360
@@ -1292,15 +1305,52 @@ class _NotebookScreenState extends State<NotebookScreen>
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           actions: [
-            if (!archived)
+            if (!archived && !choosing)
               FlexCircleButton(
                 tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
                 icon: const Icon(Icons.person_add_alt_1_outlined),
               ),
+            if (!archived && !choosing && pupils.isNotEmpty)
+              IconButton(
+                tooltip: 'Schüler auswählen',
+                onPressed: () => _changeView(() => _choosingPupils = true),
+                icon: const Icon(Icons.checklist),
+              ),
           ],
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
+        if (choosing)
+          SelectionControls(
+            count: chosen.length,
+            allVisibleSelected:
+                pupils.isNotEmpty && chosen.length == pupils.length,
+            onToggleAll: pupils.isEmpty
+                ? null
+                : () => _changeView(() {
+                    if (chosen.length == pupils.length) {
+                      _markedPupils.clear();
+                    } else {
+                      _markedPupils.addAll(pupils.map((p) => p.id));
+                    }
+                  }),
+            onFinish: () => _changeView(_endPupilSelection),
+            actions: [
+              TextButton.icon(
+                onPressed: chosen.isEmpty
+                    ? null
+                    : () async {
+                        await showBulk(
+                          context,
+                          c,
+                          initialRecipients: chosen.map((p) => p.id).toList(),
+                        );
+                      },
+                icon: const Icon(Icons.note_add_outlined),
+                label: const Text('Gemeinsamer Eintrag'),
+              ),
+            ],
+          ),
         if (archived) ...[
           for (final year in c.schoolYears)
             ListTile(
@@ -1330,31 +1380,46 @@ class _NotebookScreenState extends State<NotebookScreen>
             child: Column(
               children: [
                 for (final pupil in pupils)
-                  PupilCard(
-                    key: ValueKey('pupil-card-${pupil.id}'),
-                    pupil: pupil,
-                    selected:
-                        !archived &&
-                        inSplit &&
-                        width >= 1000 &&
-                        MediaQuery.textScalerOf(context).scale(1) <= 1.5 &&
-                        pupil.id == (_selectedPupil ?? all.firstOrNull?.id),
-                    onOpen: () {
-                      if (!archived &&
+                  SelectableEntry(
+                    key: ValueKey('pupil-select-${pupil.id}'),
+                    title: pupil.name,
+                    selected: choosing
+                        ? _markedPupils.contains(pupil.id)
+                        : null,
+                    onSelect: archived
+                        ? null
+                        : () => _changeView(() {
+                            _choosingPupils = true;
+                            if (!_markedPupils.add(pupil.id)) {
+                              _markedPupils.remove(pupil.id);
+                            }
+                          }),
+                    child: PupilCard(
+                      key: ValueKey('pupil-card-${pupil.id}'),
+                      pupil: pupil,
+                      selected:
+                          !archived &&
+                          inSplit &&
                           width >= 1000 &&
-                          MediaQuery.textScalerOf(context).scale(1) <= 1.5) {
-                        setState(() => _selectedPupil = pupil.id);
-                      } else {
-                        _openPupil(pupil);
-                      }
-                    },
-                    onShortcut: (symbol) => _entryShortcut(pupil, symbol),
-                    counts: _shortcutCounts(pupil),
-                    draftCounts: {
-                      for (final symbol in FlexSymbol.values)
-                        symbol: _pupilDraftCount(pupil.id, symbol),
-                    },
-                    due: _dueShortcuts(pupil),
+                          MediaQuery.textScalerOf(context).scale(1) <= 1.5 &&
+                          pupil.id == (_selectedPupil ?? all.firstOrNull?.id),
+                      onOpen: () {
+                        if (!archived &&
+                            width >= 1000 &&
+                            MediaQuery.textScalerOf(context).scale(1) <= 1.5) {
+                          setState(() => _selectedPupil = pupil.id);
+                        } else {
+                          _openPupil(pupil);
+                        }
+                      },
+                      onShortcut: (symbol) => _entryShortcut(pupil, symbol),
+                      counts: _shortcutCounts(pupil),
+                      draftCounts: {
+                        for (final symbol in FlexSymbol.values)
+                          symbol: _pupilDraftCount(pupil.id, symbol),
+                      },
+                      due: _dueShortcuts(pupil),
+                    ),
                   ),
               ],
             ),
@@ -1484,10 +1549,16 @@ class _NotebookScreenState extends State<NotebookScreen>
             .where((e) => e.id == task.id && !e.deleted)
             .firstOrNull;
         return FlexModal(
-          title: const Text('Aufgabendetails'),
+          title: Text(
+            task.isAppointment
+                ? 'Termin'
+                : task.isTask
+                ? 'Aufgabendetails'
+                : 'Notiz',
+          ),
           onClose: () => Navigator.pop(ctx),
           content: current == null
-              ? const Text('Diese Aufgabe ist im Papierkorb.')
+              ? const Text('Dieser Eintrag ist im Papierkorb.')
               : _entryCard(current, details: true),
         );
       },

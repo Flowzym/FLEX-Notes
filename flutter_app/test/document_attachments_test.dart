@@ -333,6 +333,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'checking a homework selection updates only the marked tasks in one revision',
+    (t) async {
+      final r = await repo.saveSchoolRecord(taskRecord('p'));
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+      final title = find.byKey(const ValueKey('homework-task-details-child'));
+      await t.ensureVisible(title);
+      await t.longPress(title);
+      await t.pumpAndSettle();
+      await tap(t, find.widgetWithText(CheckboxListTile, 'Weitere Aufgabe'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.byTooltip('Status für Auswahl'));
+      await tap(
+        t,
+        find.widgetWithText(PopupMenuItem<TaskState>, TaskState.complete.label),
+      );
+      final saved = (await repo.schoolRecords()).single;
+      expect(saved.revision, r.revision + 1);
+      expect(saved.taskState(saved.tasks.first), TaskState.open);
+      expect(saved.taskState(saved.tasks[1]), TaskState.complete);
+      expect(saved.taskState(saved.tasks[2]), TaskState.complete);
+      expect(
+        saved.liveFeedback.map((v) => v.taskId),
+        unorderedEquals(['child', 'other']),
+      );
+      await finish(t);
+    },
+  );
+
   for (final layout in [(390.0, 1.0), (320.0, 2.0)]) {
     testWidgets(
       'homework summary survives collapse and actions remain reachable at $layout',

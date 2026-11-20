@@ -1,18 +1,12 @@
 part of 'material_library.dart';
 
 extension _MaterialSelectionView on _MaterialLibraryPageState {
-  Widget selectionBar(BuildContext ctx) {
+  Widget selectionBar(BuildContext ctx, List<ClassroomDocument> visible) {
     final canAct = !busy && selection.isNotEmpty;
-    final count = Text('${selection.length} ausgewählt');
-    final finish = TextButton(
-      onPressed: busy
-          ? null
-          : () => updateLibrary(() {
-              selection.clear();
-              selecting = false;
-            }),
-      child: const Text('Fertig'),
-    );
+    void finish() => updateLibrary(() {
+      selection.clear();
+      selecting = false;
+    });
     final assign = OutlinedButton.icon(
       onPressed: canAct
           ? () => action(assignSelection, showProgress: false)
@@ -28,6 +22,12 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
         final ids = selection.toList();
         final docs = resolveMaterials(c.classroom, ids);
         switch (value) {
+          case 'favorite':
+            final add = docs.any((d) => !d.flag('favorite'));
+            await c.saveClassroomBatch([
+              for (final d in docs)
+                if (d.flag('favorite') != add) d.patch({'favorite': add}),
+            ]);
           case 'prepare':
             await prepareForDate(ctx, c, ids);
           case 'package':
@@ -52,6 +52,16 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
         }
       }, showProgress: value == 'offline'),
       itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'favorite',
+          child: Text(
+            visible
+                    .where((d) => selection.contains(d.id))
+                    .every((d) => d.flag('favorite'))
+                ? 'Favoriten entfernen'
+                : 'Als Favoriten merken',
+          ),
+        ),
         const PopupMenuItem(value: 'prepare', child: Text('Bereitlegen')),
         const PopupMenuItem(
           value: 'package',
@@ -68,45 +78,44 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
         const PopupMenuItem(value: 'trash', child: Text('In den Papierkorb')),
       ],
     );
-    return Material(
-      color: Theme.of(ctx).colorScheme.surfaceContainerHigh,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: LayoutBuilder(
-            builder: (_, constraints) {
-              if (constraints.maxWidth <
-                  MediaQuery.textScalerOf(ctx).scale(310)) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: count),
-                        finish,
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(child: assign),
-                        options,
-                      ],
-                    ),
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: count),
-                  assign,
-                  options,
-                  finish,
-                ],
-              );
-            },
-          ),
-        ),
+    final all =
+        visible.isNotEmpty && visible.every((d) => selection.contains(d.id));
+    return SafeArea(
+      top: false,
+      child: SelectionControls(
+        count: selection.length,
+        allVisibleSelected: all,
+        onFinish: busy ? null : finish,
+        onToggleAll: busy || visible.isEmpty
+            ? null
+            : () => updateLibrary(() {
+                if (all) {
+                  selection.removeAll(visible.map((d) => d.id));
+                } else {
+                  selection.addAll(visible.map((d) => d.id));
+                }
+              }),
+        actions: [
+          if (trash)
+            TextButton.icon(
+              onPressed: canAct
+                  ? () => action(() async {
+                      await c.saveClassroomBatch([
+                        for (final d in visible)
+                          if (selection.contains(d.id))
+                            d.patch({'deleted': false}),
+                      ]);
+                      if (mounted) finish();
+                    }, showProgress: false)
+                  : null,
+              icon: const Icon(Icons.restore),
+              label: const Text('Wiederherstellen'),
+            )
+          else ...[
+            assign,
+            options,
+          ],
+        ],
       ),
     );
   }
@@ -152,11 +161,6 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
     enabled: !busy,
     onSelected: (value) {
       switch (value) {
-        case 'select':
-          updateLibrary(() {
-            selecting = !selecting;
-            selection.clear();
-          });
         case 'trash':
           openFileTrash(true);
         case 'tags':
@@ -168,12 +172,6 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
       }
     },
     itemBuilder: (_) => [
-      PopupMenuItem(
-        value: 'select',
-        child: Text(
-          selecting ? 'Auswahl beenden' : 'Mehrere Dateien auswählen',
-        ),
-      ),
       const PopupMenuItem(value: 'tags', child: Text('Tags verwalten')),
       const PopupMenuItem(value: 'trash', child: Text('Papierkorb')),
       if (materialDeviceAvailable) ...[
@@ -366,7 +364,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
       grid: grid,
       prepared: prepared.contains(d.id),
       selected: selecting ? selection.contains(d.id) : null,
-      onSelect: trash || busy
+      onSelect: busy
           ? null
           : (value) => updateLibrary(() {
               if (value) {

@@ -305,59 +305,63 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   }
 
   Future<void> setTask(HomeworkTask task, TaskState state) async {
-    if (busy) return;
-    if (r.taskState(task) == state) {
-      if (state == TaskState.missing) {
-        await suggestHomeworkReassignment(context, c, r, task.id);
-      }
-      return;
-    }
-    final now = DateTime.now();
-    final f = SchoolFeedback(
-      id: newId(),
-      observedOn: dateOnly(now),
-      observedTime:
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-      createdAtUtc: utcNow(),
-      taskId: task.id,
-      taskText: task.text,
-      state: state,
-    );
-    final future = r.liveFeedback.where(
-      (v) =>
-          v.taskId == task.id &&
-          v.state != null &&
-          v.sortKey.compareTo(f.sortKey) > 0,
-    );
-    if (future.isNotEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => FlexModal(
-          title: const Text('Spätere Rückmeldung vorhanden'),
-          content: const Text(
-            'Für diese Aufgabe gibt es bereits einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Schließen'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-    final saved = await mutate(
-      r.patch({
-        'feedback': [...r.feedback.map((f) => f.toJson()), f.toJson()],
-      }),
-    );
+    final saved = await setTasks([task], state);
     if (saved && mounted && state == TaskState.missing) {
       final current = c.records.where((v) => v.id == r.id).firstOrNull;
       if (current != null) {
         await suggestHomeworkReassignment(context, c, current, task.id);
       }
     }
+  }
+
+  Future<bool> setTasks(List<HomeworkTask> tasks, TaskState state) async {
+    if (busy || r.deleted) return false;
+    final now = DateTime.now(), date = dateOnly(now), created = utcNow();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final updates = <SchoolFeedback>[];
+    for (final task in tasks) {
+      if (task.reassignedTo != null || r.taskState(task) == state) continue;
+      final feedback = SchoolFeedback(
+        id: newId(),
+        observedOn: date,
+        observedTime: time,
+        createdAtUtc: created,
+        taskId: task.id,
+        taskText: task.text,
+        state: state,
+      );
+      if (r.liveFeedback.any(
+        (v) =>
+            v.taskId == task.id &&
+            v.state != null &&
+            v.sortKey.compareTo(feedback.sortKey) > 0,
+      )) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => FlexModal(
+            title: const Text('Spätere Rückmeldung vorhanden'),
+            content: Text(
+              'Für „${task.text}“ gibt es einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Schließen'),
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+      updates.add(feedback);
+    }
+    if (updates.isEmpty) return true;
+    return mutate(
+      r.patch({
+        'feedback': [...r.feedback, ...updates].map((v) => v.toJson()).toList(),
+      }),
+    );
   }
 
   Widget homeworkView(BuildContext context) => HomeworkRecordView(
@@ -370,6 +374,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
     onEdit: () => editSchool(context, c, r),
     onTaskState: setTask,
+    onBatchState: setTasks,
     onComment: (taskId) =>
         editSchool(context, c, r, mode: 'comment', taskId: taskId),
     onReminder: () => showReminderActions(

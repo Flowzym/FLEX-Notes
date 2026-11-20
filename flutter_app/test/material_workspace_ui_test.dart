@@ -86,8 +86,7 @@ void main() {
   }
 
   Future<void> selectFiles(WidgetTester t) async {
-    await tap(t, find.byTooltip('Bibliotheksoptionen'));
-    await tap(t, find.text('Mehrere Dateien auswählen'));
+    await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
   }
 
   final filterButton = find.byKey(const ValueKey('library-filter'));
@@ -180,7 +179,7 @@ void main() {
       await c.reload();
       await host(t, (_) => MaterialLibraryPage(controller: c));
       await selectFiles(t);
-      await tap(t, find.text('Alle angezeigten auswählen'));
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
       expect(find.text('2 ausgewählt'), findsOneWidget);
       await tap(t, find.widgetWithText(OutlinedButton, 'Zuordnen'));
       await tap(t, find.text('Kind'));
@@ -327,7 +326,10 @@ void main() {
       final a = material('Aktiv A', fields: {'favorite': true}),
           b = material('Aktiv B');
       final removed = material('Entfernte Datei').patch({'deleted': true});
-      await c.repository.saveClassroomDocuments([a, b, removed]);
+      final otherRemoved = material(
+        'Zweite entfernte Datei',
+      ).patch({'deleted': true});
+      await c.repository.saveClassroomDocuments([a, b, removed, otherRemoved]);
       await c.reload();
       await host(
         t,
@@ -335,15 +337,21 @@ void main() {
       );
       await t.longPress(find.byKey(ValueKey(a.id)));
       await t.pumpAndSettle();
-      await tap(t, find.text('Alle angezeigten auswählen'));
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
       await tap(t, filterButton);
       await tap(t, find.widgetWithText(FilterChip, 'Favoriten'));
       await tap(t, applyFilter);
       expect(find.text('1 ausgewählt'), findsOneWidget);
-      await tap(t, find.text('Fertig'));
+      await tap(t, find.byTooltip('Auswahl beenden'));
       await tap(t, find.byTooltip('Bibliotheksoptionen'));
       await tap(t, find.text('Papierkorb'));
       expect(find.byKey(ValueKey(removed.id)), findsOneWidget);
+      await t.longPress(find.byKey(ValueKey(removed.id)));
+      await t.pumpAndSettle();
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.widgetWithText(TextButton, 'Wiederherstellen'));
+      expect(c.classroom.where((d) => d.deleted), isEmpty);
       await tap(t, find.byTooltip('Zur Bibliothek'));
       expect(find.byKey(ValueKey(removed.id)), findsNothing);
       expect(find.byKey(ValueKey(b.id)), findsNothing);
@@ -649,7 +657,7 @@ void main() {
       await host(t, (_) => MaterialLibraryPage(controller: c), scale: scale);
       await selectFiles(t);
       expect(t.takeException(), isNull);
-      await tap(t, find.text('Fertig'));
+      await tap(t, find.byTooltip('Auswahl beenden'));
       await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
       await tap(t, find.byTooltip('Unterricht planen'));
       await tap(t, find.text('Planungen').last);

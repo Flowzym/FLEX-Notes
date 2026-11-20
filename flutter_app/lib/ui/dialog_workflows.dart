@@ -579,6 +579,7 @@ Future<void> showBulk(
   DialogDraft? draft,
   String initialKind = 'social',
   String initialSubject = '',
+  List<String> initialRecipients = const [],
 }) async {
   final editorKey = GlobalKey<ProtectedDialogState>();
   final catalogs = <String, List<String>>{};
@@ -600,7 +601,11 @@ Future<void> showBulk(
       accept: 'Für ausgewählte Schüler speichern',
       initial: {
         'kind': initialKind,
-        'recipients': <String>[],
+        'recipients': [
+          for (final p in c.pupils)
+            if (!p.archived && !p.deleted && initialRecipients.contains(p.id))
+              p.id,
+        ],
         'context': '',
         'subject': initialSubject,
         'body': '',

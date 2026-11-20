@@ -1,3 +1,4 @@
+import 'selection_controls.dart';
 import 'incoming_shares.dart';
 import 'quick_add.dart';
 import '../domain/drive_rules.dart';
@@ -157,7 +158,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   void pruneSelection() {
     if (!selecting || selection.isEmpty) return;
     selection.retainAll(
-      folderContents(ClassroomKind.material, false)
+      folderContents(ClassroomKind.material, trash)
           .where(
             (d) =>
                 selection.contains(d.id) &&
@@ -605,9 +606,16 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                               _ => 'Bibliothek',
                             }, style: Theme.of(ctx).textTheme.headlineSmall),
                       actions: [
-                        if (view == 'files' && !trash) ...[
-                          addMaterialMenu(ctx),
-                          libraryOptions(ctx),
+                        if (view == 'files' && !selecting) ...[
+                          if (!trash) addMaterialMenu(ctx),
+                          IconButton(
+                            tooltip: 'Mehrere Dateien auswählen',
+                            icon: const Icon(Icons.checklist),
+                            onPressed: busy || documents.isEmpty
+                                ? null
+                                : () => setState(() => selecting = true),
+                          ),
+                          if (!trash) libraryOptions(ctx),
                         ],
                         if (view != 'files')
                           IconButton(
@@ -777,14 +785,6 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         librarySearchBar(ctx),
                         if (!trash && !selecting) _PlanningInbox(c),
                         materialBrowserToolbar(ctx, documents.length),
-                        if (selecting)
-                          TextButton(
-                            onPressed: () => setState(
-                              () =>
-                                  selection.addAll(documents.map((d) => d.id)),
-                            ),
-                            child: const Text('Alle angezeigten auswählen'),
-                          ),
                       ] else
                         Wrap(
                           spacing: 8,
@@ -888,7 +888,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   ],
                 ),
               ),
-              if (selecting) selectionBar(ctx),
+              if (selecting) selectionBar(ctx, documents),
             ],
           );
         },

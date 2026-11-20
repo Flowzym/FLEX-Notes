@@ -413,7 +413,20 @@ class _ReturnDetailState extends State<ReturnDetail> {
     final statusLabel = returnStatuses[d.text('type')]![row['status']]!;
     final title = InkWell(
       key: ValueKey('return-pupil-${row['pupilId']}'),
-      onTap: () => editRow(d, row),
+      onLongPress: busy
+          ? null
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
+      onTap: busy
+          ? null
+          : selected.isEmpty
+          ? () => editRow(d, row)
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -544,6 +557,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
                 ),
           )
           .toList();
+      selected.retainAll(
+        visible.map((row) => row['pupilId'] as String).toSet(),
+      );
       return FlexModal(
         maxWidth: 950,
         title: Text(d.title),
@@ -648,7 +664,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
             ),
             if (selected.isNotEmpty) ...[
               Text(
-                'Für ${selected.length} ausgewählte Schüler',
+                selected.length == 1
+                    ? 'Für den ausgewählten Schüler'
+                    : 'Für ${selected.length} ausgewählte Schüler',
                 style: Theme.of(ctx).textTheme.titleSmall,
               ),
               Wrap(

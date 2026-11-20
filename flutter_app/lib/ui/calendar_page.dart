@@ -36,6 +36,7 @@ import 'timetable.dart';
 
 part 'calendar_detail.dart';
 part 'calendar_management.dart';
+part 'calendar_month.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({
@@ -61,6 +62,7 @@ class _CalendarPageState extends State<CalendarPage>
   int periodDirection = 1;
   int transitionSerial = 0;
   final nowMarker = GlobalKey();
+  final agendaHeading = GlobalKey();
   final scroll = ScrollController();
   Timer? ticker;
   bool? weekends;
@@ -687,228 +689,131 @@ class _CalendarPageState extends State<CalendarPage>
     );
   }
 
+  void previewMonthDay(DateTime day) {
+    final sameMonth = day.month == selected.month && day.year == selected.year;
+    if (!sameMonth) periodDirection = day.isBefore(selected) ? -1 : 1;
+    navigate(() => selected = day);
+    if (!sameMonth) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final heading = agendaHeading.currentContext;
+      if (heading != null) {
+        Scrollable.ensureVisible(
+          heading,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+          duration: FlexTabTransition.duration,
+        );
+      }
+    });
+  }
+
   Widget monthBody(List<CalendarItem> items) {
-    final first = DateTime.utc(selected.year, selected.month, 1);
-    final length = DateTime.utc(selected.year, selected.month + 1, 0).day;
+    final theme = Theme.of(context), colors = theme.colorScheme;
     final dayItems = items.where((i) => i.date == dateOnly(selected)).toList();
+    final timed = dayItems.where(calendarTimed).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            for (final d in const ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'])
-              Expanded(
-                child: Text(
-                  d,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-          ],
-        ),
         periodSurface(
-          LayoutBuilder(
-            builder: (ctx, box) {
-              final cellWidth = box.maxWidth / 7;
-              final cellHeight = math.max(
-                50.0,
-                MediaQuery.textScalerOf(ctx).scale(34),
-              );
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 7,
-                  childAspectRatio: cellWidth / cellHeight,
-                ),
-                itemCount: ((first.weekday - 1 + length + 6) ~/ 7) * 7,
-                itemBuilder: (ctx, index) {
-                  Widget gridCell(Widget child) {
-                    final line = BorderSide(
-                      color: Theme.of(ctx).colorScheme.outlineVariant,
-                      width: .7,
-                    );
-                    return DecoratedBox(
-                      key: ValueKey('calendar-month-cell-$index'),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: index < 7 ? line : BorderSide.none,
-                          left: index % 7 == 0 ? line : BorderSide.none,
-                          right: line,
-                          bottom: line,
-                        ),
+          _MonthGrid(
+            selected: selected,
+            today: now,
+            items: items,
+            onCreate: (day) => createAppointment(day, ''),
+            onPreview: previewMonthDay,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 10),
+          child: Wrap(
+            spacing: 14,
+            children: [
+              for (final marker in [
+                ('Termine', calendarAccent(colors, 'appointment')),
+                ('Fällig', calendarAccent(colors, 'due')),
+              ])
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.circle, size: 6, color: marker.$2),
+                    const SizedBox(width: 5),
+                    Text(
+                      marker.$1,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
                       ),
-                      child: child,
-                    );
-                  }
-
-                  if (index < first.weekday - 1 ||
-                      index >= first.weekday - 1 + length) {
-                    return gridCell(const SizedBox.shrink());
-                  }
-                  final day = DateTime.utc(
-                    selected.year,
-                    selected.month,
-                    index - first.weekday + 2,
-                  );
-                  final entries = items
-                      .where(
-                        (i) =>
-                            i.date == dateOnly(day) && i.category != 'lesson',
-                      )
-                      .toList();
-                  final scheme = Theme.of(ctx).colorScheme;
-                  final today = dateOnly(day) == dateOnly(now);
-                  return gridCell(
-                    Semantics(
-                      label:
-                          '${calendarWeekday(day)}, ${displayDate(dateOnly(day))}, ${entries.length} Einträge',
-                      selected: day == selected,
-                      button: true,
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Material(
-                          color: day == selected
-                              ? scheme.primary.withValues(alpha: .2)
-                              : Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            side: BorderSide(
-                              color: today
-                                  ? scheme.primary
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: InkWell(
-                            key: ValueKey('calendar-month-${dateOnly(day)}'),
-                            onTap: () => createAppointment(day, ''),
-                            borderRadius: BorderRadius.circular(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${day.day}',
-                                  maxLines: 1,
-                                  style: Theme.of(ctx).textTheme.bodyMedium
-                                      ?.copyWith(fontSize: 13),
-                                ),
-                                if (entries.isNotEmpty)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      for (final category in [
-                                        'appointment',
-                                        'due',
-                                      ])
-                                        if (entries.any(
-                                          (i) => category == 'due'
-                                              ? calendarDue(i)
-                                              : i.category == category,
-                                        ))
-                                          Container(
-                                            width: 5,
-                                            height: 5,
-                                            margin: const EdgeInsets.symmetric(
-                                              horizontal: 1,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: category == 'lesson'
-                                                  ? scheme.primary
-                                                  : category == 'appointment'
-                                                  ? const Color(0xff829fb8)
-                                                  : scheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                      if (entries.every(
-                                        (i) => i.category == 'holiday',
-                                      ))
-                                        const Icon(Icons.remove, size: 12),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        Material(
+          color: colors.surfaceContainerLowest,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: .75),
+              width: .7,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                key: agendaHeading,
+                padding: const EdgeInsetsDirectional.only(start: 12, end: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${calendarWeekday(selected)}, ${selected.day}. ${calendarMonth(selected)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        Wrap(
-          spacing: 14,
-          runSpacing: 4,
-          children: [
-            for (final marker in [
-              ('Termine', const Color(0xff829fb8)),
-              ('Fällig', Theme.of(context).colorScheme.onSurfaceVariant),
-            ])
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.circle, size: 6, color: marker.$2),
-                  const SizedBox(width: 5),
-                  Text(marker.$1, style: Theme.of(context).textTheme.bodySmall),
-                ],
+                    IconButton(
+                      tooltip: 'Tagesansicht öffnen',
+                      onPressed: () => openDay(selected),
+                      icon: const Icon(Icons.open_in_full, size: 17),
+                    ),
+                  ],
+                ),
               ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${calendarWeekday(selected)} · ${displayDate(dateOnly(selected))}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Tagesansicht öffnen',
-              onPressed: () => openDay(selected),
-              icon: const Icon(Icons.open_in_full, size: 18),
-            ),
-          ],
-        ),
-        dueStrip(dayItems),
-        dayExtras(dayItems),
-        if (dayItems.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text('Keine Einträge an diesem Tag.'),
-          ),
-        for (final item in dayItems.where(calendarTimed))
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            key: ValueKey('calendar-month-entry-${item.id}'),
-            dense: true,
-            minVerticalPadding: 0,
-            visualDensity: VisualDensity.compact,
-            leading: SizedBox(
-              width: 46,
-              child: Text(
-                item.time,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ),
-            horizontalTitleGap: 8,
-            title: Text(
-              item.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: item.detail.isEmpty
-                ? null
-                : Text(
-                    item.detail,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              if (dayItems.any((i) => !calendarTimed(i)))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [dueStrip(dayItems), dayExtras(dayItems)],
                   ),
-            trailing: const Icon(Icons.chevron_right, size: 18),
-            onTap: () => showCalendarItem(context, c, item),
+                ),
+              if (dayItems.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Text(
+                    'Keine Einträge an diesem Tag.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              for (final item in timed) ...[
+                Divider(
+                  height: 1,
+                  thickness: .6,
+                  indent: 12,
+                  endIndent: 12,
+                  color: colors.outlineVariant.withValues(alpha: .7),
+                ),
+                _AgendaRow(
+                  key: ValueKey('calendar-month-entry-${item.id}'),
+                  item: item,
+                  onOpen: () => openItem(item),
+                ),
+              ],
+            ],
           ),
+        ),
       ],
     );
   }
@@ -945,7 +850,7 @@ class _CalendarPageState extends State<CalendarPage>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: CalendarToolbar(
                 period: mode == 'month'
-                    ? '${calendarMonth(selected).substring(0, 3)} ${selected.year}'
+                    ? '${calendarMonth(selected)} ${selected.year}'
                     : mode == 'week'
                     ? '${schoolDay(bounds.from).day}.${schoolDay(bounds.from).month == schoolDay(bounds.to).month ? '' : '${schoolDay(bounds.from).month}.'}–${schoolDay(bounds.to).day}.${schoolDay(bounds.to).month}.'
                     : '${calendarWeekday(selected, short: true)}, ${selected.day}.${selected.month}.',

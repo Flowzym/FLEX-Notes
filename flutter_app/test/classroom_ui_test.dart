@@ -176,28 +176,44 @@ void main() {
   testWidgets(
     'three organisation page buttons remain visible and usable at large text on phone',
     (t) async {
-      var selected = -1;
+      var selected = 0;
       await host(
         t,
-        (_) => FlexPagePills(
-          selected: 0,
-          pages: organisationPages,
-          onSelected: (v) => selected = v,
+        (_) => StatefulBuilder(
+          builder: (ctx, update) => FlexPagePills(
+            selected: selected,
+            pages: organisationPages,
+            onSelected: (v) => update(() => selected = v),
+          ),
         ),
         scale: 2,
       );
       final shell = t.getRect(find.byKey(const ValueKey('page-pills')));
-      final active = t.getRect(find.byKey(const ValueKey('page-0')));
+      final active = t.getRect(find.byKey(const ValueKey('page-active')));
       final track = t.getRect(find.byKey(const ValueKey('page-track-0')));
-      expect(active.top, greaterThanOrEqualTo(track.top));
-      expect(active.bottom, lessThanOrEqualTo(track.bottom));
-      expect(active.left, greaterThanOrEqualTo(track.left));
+      expect(active.top, lessThan(track.top));
+      expect(active.bottom, greaterThan(track.bottom));
+      expect(active.left, lessThan(track.left));
+      expect(
+        active.right,
+        greaterThan(t.getRect(find.byKey(const ValueKey('page-0'))).right),
+      );
       for (final i in organisationPages.keys) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);
         expect(shell.contains(button.bottomRight), isTrue);
         await tap(t, find.byKey(ValueKey('page-$i')));
         expect(selected, i);
+        final highlight = t.getRect(find.byKey(const ValueKey('page-active')));
+        expect(highlight.left, lessThan(button.left));
+        expect(highlight.right, greaterThan(button.right));
+        if (i == organisationPages.keys.last) {
+          final rowTrack = find.byKey(ValueKey('page-track-$i'));
+          final lastTrack = rowTrack.evaluate().isEmpty
+              ? track
+              : t.getRect(rowTrack);
+          expect(highlight.right, greaterThan(lastTrack.right));
+        }
       }
       expect(t.takeException(), isNull);
     },

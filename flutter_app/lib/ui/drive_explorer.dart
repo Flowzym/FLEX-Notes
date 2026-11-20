@@ -226,6 +226,34 @@ class _DriveExplorerState extends State<_DriveExplorer> {
     }
   }
 
+  ({ClassroomDocument file, ClassroomDocument? rule}) pick(Json j) {
+    final d = materials.material(
+      j['_drive'] as String,
+      j,
+      restore: true,
+      path:
+          j['_path'] as String? ??
+          (j['_shared'] != true && folder.drive == widget.account
+              ? '$folderPath/${j['name']}'
+              : null),
+    );
+    final rule = across
+        ? widget.c.classroom.where((r) => r.id == j['_rule']).firstOrNull
+        : currentRule;
+    return (file: d, rule: rule);
+  }
+
+  void choose(
+    ({ClassroomDocument file, ClassroomDocument? rule}) item,
+    bool mark,
+  ) {
+    if (mark) {
+      selected[item.file.id] = item;
+    } else {
+      selected.remove(item.file.id);
+    }
+  }
+
   Future<void> preview(Json item) async {
     final info = await widget.client.item(
       item['_drive'] as String,
@@ -390,8 +418,35 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                 ),
               );
             }
+            final visible = choosing
+                ? [
+                    for (final j in matches)
+                      if (j['folder'] == null) pick(j),
+                  ]
+                : const <({ClassroomDocument file, ClassroomDocument? rule})>[];
+            final all =
+                visible.isNotEmpty &&
+                visible.every((e) => selected.containsKey(e.file.id));
             return Column(
               children: [
+                if (choosing)
+                  SelectionControls(
+                    count: selected.length,
+                    allVisibleSelected: all,
+                    onToggleAll: busy || visible.isEmpty
+                        ? null
+                        : () => setState(() {
+                            for (final e in visible) {
+                              choose(e, !all);
+                            }
+                          }),
+                    onFinish: busy
+                        ? null
+                        : () => setState(() {
+                            selected.clear();
+                            choosing = false;
+                          }),
+                  ),
                 for (final j in matches)
                   if (j['folder'] != null)
                     ListTile(
@@ -414,30 +469,7 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                   else
                     Builder(
                       builder: (ctx) {
-                        final d = materials.material(
-                          j['_drive'] as String,
-                          j,
-                          restore: true,
-                          path:
-                              j['_path'] as String? ??
-                              (j['_shared'] != true &&
-                                      folder.drive == widget.account
-                                  ? '$folderPath/${j['name']}'
-                                  : null),
-                        );
-                        final rule = across
-                            ? widget.c.classroom
-                                  .where((r) => r.id == j['_rule'])
-                                  .firstOrNull
-                            : currentRule;
-                        void choose(bool value) {
-                          if (value) {
-                            selected[d.id] = (file: d, rule: rule);
-                          } else {
-                            selected.remove(d.id);
-                          }
-                        }
-
+                        final item = pick(j), d = item.file, rule = item.rule;
                         final linked = materials.available(d.id);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -459,11 +491,19 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                                         j['name'] as String,
                                       ).toUpperCase()),
                           ),
+                          selected: choosing && selected.containsKey(d.id),
+                          onLongPress: busy
+                              ? null
+                              : () => setState(() {
+                                  choosing = true;
+                                  choose(item, !selected.containsKey(d.id));
+                                }),
                           onTap: busy
                               ? null
                               : choosing
                               ? () => setState(
-                                  () => choose(!selected.containsKey(d.id)),
+                                  () =>
+                                      choose(item, !selected.containsKey(d.id)),
                                 )
                               : () => act(() => preview(j)),
                           trailing: choosing
@@ -471,8 +511,9 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                                   value: selected.containsKey(d.id),
                                   onChanged: busy
                                       ? null
-                                      : (v) =>
-                                            setState(() => choose(v == true)),
+                                      : (v) => setState(
+                                          () => choose(item, v == true),
+                                        ),
                                 )
                               : IconButton(
                                   tooltip: linked

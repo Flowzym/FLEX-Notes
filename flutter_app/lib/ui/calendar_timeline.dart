@@ -6,6 +6,7 @@ import '../domain/calendar_layout.dart';
 import '../domain/models.dart';
 import 'flex_modal.dart';
 import 'calendar_drag.dart';
+import 'surfaces.dart';
 import '../domain/calendar_edit.dart';
 
 IconData calendarIcon(String category) => switch (category) {
@@ -17,6 +18,19 @@ IconData calendarIcon(String category) => switch (category) {
   'task' => Icons.task_alt,
   _ => Icons.event_outlined,
 };
+
+Color calendarAccent(ColorScheme colors, String category) {
+  return switch (category) {
+    'appointment' => FlexDesign.appointmentColor(colors),
+    'due' => FlexDesign.dueColor(colors),
+    _ => colors.primary,
+  };
+}
+
+String calendarDetails(CalendarItem item) => item.detail
+    .split(' · ')
+    .where((value) => value.isNotEmpty && value != item.title)
+    .join(' · ');
 
 /// A shared time axis gives day and week the same vertical geometry. Large text
 /// uses wider week columns with horizontal scrolling instead of shrinking text.
@@ -86,7 +100,7 @@ class CalendarTimeline extends StatelessWidget {
               ),
             )
           : baseHours;
-      final headHeight = week ? 48.0 * scale : 0.0;
+      final headHeight = week ? (showDates ? 54.0 : 42.0) * scale : 0.0;
       final endMinute = math.min(
         1440,
         math.max(
@@ -180,6 +194,20 @@ class CalendarTimeline extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
+            for (var index = 0; week && index < days.length; index++)
+              if (days[index].weekday >= DateTime.saturday &&
+                  index != todayIndex)
+                Positioned(
+                  top: headHeight,
+                  bottom: 20,
+                  left: axis + index * colWidth,
+                  width: colWidth,
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      color: scheme.onSurface.withValues(alpha: .025),
+                    ),
+                  ),
+                ),
             if (week && todayIndex >= 0)
               Positioned(
                 top: headHeight,
@@ -188,7 +216,7 @@ class CalendarTimeline extends StatelessWidget {
                 width: colWidth,
                 child: IgnorePointer(
                   child: ColoredBox(
-                    color: scheme.primaryContainer.withValues(alpha: .14),
+                    color: scheme.primary.withValues(alpha: .047),
                   ),
                 ),
               ),
@@ -209,9 +237,14 @@ class CalendarTimeline extends StatelessWidget {
                     minuteClock(minute),
                     maxLines: 1,
                     softWrap: false,
-                    style: Theme.of(
-                      ctx,
-                    ).textTheme.bodySmall?.copyWith(fontSize: 11),
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                      fontSize: 10.5,
+                      height: 1.15,
+                      fontWeight: minute % 60 == 0
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
@@ -219,7 +252,13 @@ class CalendarTimeline extends StatelessWidget {
                 top: headHeight + (minute - hours.start) * pixels,
                 left: axis,
                 right: 0,
-                child: Divider(height: 1, color: scheme.outlineVariant),
+                child: Divider(
+                  height: 1,
+                  thickness: minute % 60 == 0 ? .8 : .5,
+                  color: scheme.outlineVariant.withValues(
+                    alpha: minute % 60 == 0 ? .88 : .56,
+                  ),
+                ),
               ),
             ],
             for (var dayIndex = 0; dayIndex < days.length; dayIndex++) ...[
@@ -257,11 +296,7 @@ class CalendarTimeline extends StatelessWidget {
                     label:
                         '${calendarWeekday(days[dayIndex])}${showDates ? ', ${dateOnly(days[dayIndex])}' : ''}, Tagesansicht öffnen',
                     child: Material(
-                      color:
-                          highlightNow &&
-                              dateOnly(days[dayIndex]) == dateOnly(now)
-                          ? scheme.primary.withValues(alpha: .14)
-                          : Colors.transparent,
+                      color: Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                       child: InkWell(
                         onTap: () => onDay(days[dayIndex]),
@@ -273,14 +308,45 @@ class CalendarTimeline extends StatelessWidget {
                               calendarWeekday(days[dayIndex], short: true),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(ctx).textTheme.labelLarge,
+                              style: Theme.of(ctx).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    height: 1.2,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                             if (showDates)
-                              Text(
-                                '${days[dayIndex].day}.${days[dayIndex].month}.',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(ctx).textTheme.bodySmall,
+                              Container(
+                                margin: const EdgeInsets.only(top: 2),
+                                height: 26 * scale,
+                                width: 26 * scale,
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: dayIndex == todayIndex
+                                      ? scheme.primary
+                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '${days[dayIndex].day}',
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    style: Theme.of(ctx).textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.15,
+                                          color: dayIndex == todayIndex
+                                              ? scheme.onPrimary
+                                              : scheme.onSurface,
+                                        ),
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -292,7 +358,11 @@ class CalendarTimeline extends StatelessWidget {
                 top: headHeight,
                 bottom: 20,
                 left: axis + dayIndex * colWidth,
-                child: VerticalDivider(width: 1, color: scheme.outlineVariant),
+                child: VerticalDivider(
+                  width: 1,
+                  thickness: .7,
+                  color: scheme.outlineVariant.withValues(alpha: .65),
+                ),
               ),
               for (final cluster in calendarClusters(
                 items.where((i) => i.date == dateOnly(days[dayIndex])),
@@ -600,96 +670,143 @@ class _TimeBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final tint = item.category == 'appointment'
-        ? const Color(0xff829fb8)
-        : scheme.primary;
+    final accent = calendarAccent(scheme, item.category);
     final time = '${item.time}${item.end.isEmpty ? '' : '–${item.end}'}';
+    final detail = calendarDetails(item);
+    final radius = BorderRadius.circular(compact ? 7 : 12);
+    final surface = Color.alphaBlend(
+      accent.withValues(alpha: item.category == 'appointment' ? .14 : .065),
+      scheme.surface,
+    );
     return Semantics(
       button: true,
       label:
           '${item.title}, $time${current ? ', jetzt' : ''}${next ? ', als Nächstes' : ''}',
       child: Tooltip(
         message: '${item.title} · $time',
-        // Long presses belong to time-field creation; hover still shows details.
         triggerMode: TooltipTriggerMode.manual,
         child: Material(
-          color: Color.alphaBlend(
-            tint.withValues(alpha: item.category == 'lesson' ? .10 : .24),
-            scheme.surface,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(9),
-            side: BorderSide(
-              color: tint.withValues(alpha: current ? .6 : .25),
-              width: .8,
+          color: surface,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: BoxDecoration(
+              border: BorderDirectional(
+                start: BorderSide(
+                  color: accent.withValues(alpha: current ? 1 : .82),
+                  width: compact ? 2.5 : 3.5,
+                ),
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(9),
-            child: LayoutBuilder(
-              builder: (ctx, box) {
-                final scale = MediaQuery.textScalerOf(ctx).scale(1);
-                final narrow = box.maxWidth < 100;
-                final titleStyle = Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                  fontSize: compact && narrow ? 11 : 15,
-                  fontWeight: FontWeight.w600,
-                  height: 1.15,
-                );
-                final rangeOnTwoLines =
-                    compact &&
-                    narrow &&
-                    item.end.isNotEmpty &&
-                    box.maxHeight >= 36 * scale;
-                return Padding(
-                  padding: EdgeInsets.all(
-                    narrow
-                        ? 2
-                        : box.maxHeight < 60 * scale
-                        ? 4
-                        : 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        maxLines:
-                            (compact && box.maxHeight > 50 * scale) ||
-                                (!compact && box.maxHeight > 85 * scale)
-                            ? 2
-                            : 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: titleStyle,
-                      ),
-                      if (box.maxHeight > (compact && narrow ? 25 : 40) * scale)
-                        Text(
-                          rangeOnTwoLines
-                              ? '${item.time}–\n${item.end}'
-                              : compact && narrow
-                              ? item.time
-                              : time,
-                          maxLines: rangeOnTwoLines ? 2 : 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                            fontSize: compact && narrow ? 9 : 12,
-                            height: compact && narrow ? 1.05 : 1.2,
+            child: InkWell(
+              onTap: onTap,
+              child: LayoutBuilder(
+                builder: (ctx, box) {
+                  final scale = MediaQuery.textScalerOf(ctx).scale(1);
+                  final narrow = box.maxWidth < 100;
+                  final tight = box.maxHeight < 64 * scale;
+                  final side = narrow
+                      ? 4.0
+                      : tight
+                      ? 8.0
+                      : 12.0;
+                  final titleSize = compact && narrow
+                      ? 11.0
+                      : tight
+                      ? 14.0
+                      : 17.0;
+                  final timeSize = compact && narrow ? 9.0 : 12.0;
+                  final vertical = narrow || tight ? 2.0 : 8.0;
+                  final usableHeight = box.maxHeight - 2 * vertical;
+                  final showTime =
+                      usableHeight >=
+                      (titleSize * 1.2 + timeSize * 1.2 + 2) * scale;
+                  final titleLines =
+                      compact &&
+                          usableHeight >=
+                              (2 * titleSize * 1.2 + timeSize * 1.2 + 3) * scale
+                      ? 2
+                      : 1;
+                  final split =
+                      showTime &&
+                      compact &&
+                      box.maxWidth < 67 * scale &&
+                      item.end.isNotEmpty &&
+                      usableHeight >=
+                          (titleLines * titleSize * 1.2 + timeSize * 2.4 + 2) *
+                              scale;
+                  final showDetail =
+                      (!compact || details) &&
+                      !narrow &&
+                      detail.isNotEmpty &&
+                      usableHeight >= 64 * scale;
+                  final textTheme = Theme.of(ctx).textTheme;
+                  return Padding(
+                    padding: EdgeInsetsDirectional.fromSTEB(
+                      side + 2,
+                      vertical,
+                      narrow ? 2 : side,
+                      vertical,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                maxLines: titleLines,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontSize: titleSize,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            if (!compact &&
+                                box.maxWidth > 180 * scale &&
+                                !tight)
+                              Icon(
+                                calendarIcon(item.category),
+                                size: 16,
+                                color: accent,
+                              ),
+                          ],
+                        ),
+                        if (showTime)
+                          Text(
+                            split
+                                ? '${item.time}–\n${item.end}'
+                                : compact && box.maxWidth < 67 * scale
+                                ? item.time
+                                : time,
+                            maxLines: split ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.labelMedium?.copyWith(
+                              fontSize: timeSize,
+                              height: 1.15,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                      if ((!compact || details) &&
-                          !narrow &&
-                          box.maxHeight > 65 * scale &&
-                          item.detail.isNotEmpty)
-                        Text(
-                          item.detail,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(ctx).textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                );
-              },
+                        if (showDetail)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              detail,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

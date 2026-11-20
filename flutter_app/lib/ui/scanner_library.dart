@@ -574,24 +574,13 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                         );
                       }
                       final d = documents[index - 1];
-                      return Row(
-                        children: [
-                          if (selecting)
-                            Checkbox(
-                              value: selected.contains(d.id),
-                              onChanged: busy ? null : (_) => toggle(d.id),
-                              semanticLabel: '${d.title} auswählen',
-                            ),
-                          Expanded(
-                            child: MaterialRow(
-                              material: d,
-                              onOpen: () => selecting
-                                  ? toggle(d.id)
-                                  : guarded(ctx, () => openMaterial(ctx, c, d)),
-                              trailing: selecting ? null : fileActions(d),
-                            ),
-                          ),
-                        ],
+                      return MaterialRow(
+                        material: d,
+                        selected: selecting ? selected.contains(d.id) : null,
+                        onSelect: busy ? null : (_) => toggle(d.id),
+                        onOpen: () =>
+                            guarded(ctx, () => openMaterial(ctx, c, d)),
+                        trailing: selecting ? null : fileActions(d),
                       );
                     },
                   );
@@ -637,6 +626,23 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                                 ),
                           icon: const Icon(Icons.ios_share),
                           label: const Text('Teilen'),
+                        ),
+                      if (!trash)
+                        TextButton.icon(
+                          onPressed: busy || chosen.isEmpty
+                              ? null
+                              : () async {
+                                  final saved = await showMaterialAssignments(
+                                    ctx,
+                                    c,
+                                    chosen,
+                                  );
+                                  if (saved && mounted) {
+                                    setState(resetSelection);
+                                  }
+                                },
+                          icon: const Icon(Icons.people_outline),
+                          label: const Text('Zuordnen'),
                         ),
                       if (!trash)
                         TextButton.icon(

@@ -1104,6 +1104,22 @@ class SqliteNotebook
     return Future.wait(rows.map(_entry));
   });
   @override
+  Future<void> saveOrganisationSelection(
+    List<OrgaEntry> entries,
+    List<ClassroomDocument> returns,
+  ) => db.transaction(() async {
+    for (final entry in entries) {
+      await saveEntry(entry);
+    }
+    if (returns.isNotEmpty) {
+      if (returns.any((d) => d.kind != ClassroomKind.returnList)) {
+        throw const DomainError('Bitte die ausgewählten Rückläufe prüfen.');
+      }
+      await saveClassroomDocuments(returns);
+    }
+  });
+
+  @override
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {
     String? draftId,

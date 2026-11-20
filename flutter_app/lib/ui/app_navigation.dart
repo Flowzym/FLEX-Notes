@@ -234,101 +234,125 @@ class FlexPagePills extends StatelessWidget {
                 children: [
                   for (final row in rows)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: DecoratedBox(
-                        key: ValueKey('$keyPrefix-track-${row.first.key}'),
-                        decoration: FlexDesign.capsule(context),
-                        child: Padding(
-                          padding: const EdgeInsets.all(3),
-                          child: SizedBox(
-                            width: width * row.length,
-                            child: Row(
-                              children: [
-                                for (final e in row)
-                                  Expanded(
-                                    child: Semantics(
-                                      selected: selected == e.key,
-                                      inMutuallyExclusiveGroup: true,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(24),
-                                        child: Ink(
-                                          decoration: BoxDecoration(
-                                            gradient: selected == e.key
-                                                ? FlexDesign.wash(
-                                                    scheme.primaryContainer,
-                                                  )
-                                                : null,
-                                            borderRadius: BorderRadius.circular(
-                                              24,
-                                            ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 4,
+                      ),
+                      child: SizedBox(
+                        width: width * row.length,
+                        height: height + 6,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              left: 4,
+                              right: 4,
+                              top: 7,
+                              bottom: 7,
+                              child: DecoratedBox(
+                                key: ValueKey(
+                                  '$keyPrefix-track-${row.first.key}',
+                                ),
+                                decoration: FlexDesign.capsule(context),
+                              ),
+                            ),
+                            for (final (i, e) in row.indexed)
+                              if (e.key == selected)
+                                PositionedDirectional(
+                                  start: i * width - 3,
+                                  width: width + 6,
+                                  top: 1,
+                                  bottom: 1,
+                                  child: DecoratedBox(
+                                    key: ValueKey('$keyPrefix-active'),
+                                    decoration: BoxDecoration(
+                                      gradient: FlexDesign.wash(
+                                        scheme.primaryContainer,
+                                      ),
+                                      borderRadius: BorderRadius.circular(32),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: scheme.shadow.withValues(
+                                            alpha: .11,
                                           ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            Positioned.fill(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (final e in row)
+                                    Expanded(
+                                      child: Semantics(
+                                        selected: selected == e.key,
+                                        inMutuallyExclusiveGroup: true,
+                                        child: Material(
+                                          color: Colors.transparent,
                                           child: InkWell(
                                             key: ValueKey(
                                               '$keyPrefix-${e.key}',
                                             ),
                                             borderRadius: BorderRadius.circular(
-                                              24,
+                                              28,
                                             ),
                                             onTap: () => onSelected(e.key),
-                                            child: ConstrainedBox(
-                                              constraints: BoxConstraints(
-                                                minHeight: height,
-                                              ),
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: horizontalPadding,
-                                                  vertical: 8,
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    if (iconsFit &&
-                                                        _icons.containsKey(
-                                                          e.value,
-                                                        )) ...[
-                                                      Icon(
-                                                        _icons[e.value],
-                                                        size: 18,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        horizontalPadding,
+                                                  ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  if (iconsFit &&
+                                                      _icons.containsKey(
+                                                        e.value,
+                                                      )) ...[
+                                                    Icon(
+                                                      _icons[e.value],
+                                                      size: 18,
+                                                      color: selected == e.key
+                                                          ? scheme
+                                                                .onPrimaryContainer
+                                                          : scheme.primary,
+                                                    ),
+                                                    const SizedBox(width: 7),
+                                                  ],
+                                                  Flexible(
+                                                    child: Text(
+                                                      e.value,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: style.copyWith(
+                                                        fontWeight:
+                                                            selected == e.key
+                                                            ? FontWeight.w600
+                                                            : FontWeight.w400,
                                                         color: selected == e.key
                                                             ? scheme
                                                                   .onPrimaryContainer
-                                                            : scheme.primary,
-                                                      ),
-                                                      const SizedBox(width: 7),
-                                                    ],
-                                                    Flexible(
-                                                      child: Text(
-                                                        e.value,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: style.copyWith(
-                                                          fontWeight:
-                                                              selected == e.key
-                                                              ? FontWeight.w600
-                                                              : FontWeight.w400,
-                                                          color:
-                                                              selected == e.key
-                                                              ? scheme
-                                                                    .onPrimaryContainer
-                                                              : scheme
-                                                                    .onSurface,
-                                                        ),
+                                                            : scheme.onSurface,
                                                       ),
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),

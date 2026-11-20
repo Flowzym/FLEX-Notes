@@ -10,6 +10,14 @@ Color legibleOn(Color background) {
 
 /// Fixed tokens shared by every page, editor, sheet and preview.
 class FlexDesign {
+  static Color appointmentColor(ColorScheme colors) =>
+      colors.brightness == Brightness.dark
+      ? const Color(0xff9cbdce)
+      : const Color(0xff4e7187);
+  static Color dueColor(ColorScheme colors) =>
+      colors.brightness == Brightness.dark
+      ? const Color(0xffd6ac82)
+      : const Color(0xff906741);
   static const fieldRadius = 14.0;
   static const buttonRadius = 24.0;
   static const modalRadius = 24.0;

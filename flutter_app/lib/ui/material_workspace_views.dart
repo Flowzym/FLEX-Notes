@@ -81,6 +81,9 @@ class _MaterialRowState extends State<MaterialRow> {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
+                onLongPress: widget.selected == null && widget.onSelect != null
+                    ? () => widget.onSelect!(true)
+                    : null,
                 onTap: widget.selected == null
                     ? widget.onOpen
                     : () => widget.onSelect?.call(!widget.selected!),
