@@ -357,14 +357,12 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
         documents.add(
           next.patch({
             if (next.map('planning').isNotEmpty) ...{
-              'planningDecisions': next
-                  .strings('planningDecisions')
-                  .where(knownPupils.contains)
-                  .toList(),
-              'planningAutoDates': next
-                  .strings('planningAutoDates')
-                  .where(knownPupils.contains)
-                  .toList(),
+              for (final field in [
+                'planningDecisions',
+                'planningAutoDates',
+                'planningDeferred',
+              ])
+                field: next.strings(field).where(knownPupils.contains).toList(),
             },
             'pupilIds': next
                 .strings('pupilIds')

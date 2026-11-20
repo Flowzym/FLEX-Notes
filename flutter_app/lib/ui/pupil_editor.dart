@@ -262,6 +262,7 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
           ],
         );
         final matches = c.classroom
+            .map(roster.prepare)
             .where(
               (d) =>
                   d.kind == ClassroomKind.material &&
@@ -275,6 +276,7 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
             pupil.id,
             pupil.name,
             matches,
+            roster,
           );
           if (picked == null) {
             if (mounted) setState(() => busy = false);

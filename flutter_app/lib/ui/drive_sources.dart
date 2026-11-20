@@ -120,7 +120,7 @@ Future<bool> _configureDriveFolder(
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
                     child: Text(
-                      'Schuljahr, Kalenderwoche und Datumsordner bestimmen den Einsatz. Bestätigte Materialkürzel verknüpfen neue Dateien mit Schülern.',
+                      'FLEX liest Schuljahr und Unterrichtstag aus dem Ordner. Eindeutige Materialkürzel ordnen auch vorhandene Dateien den Schülern zu.',
                     ),
                   ),
                 const SizedBox(height: 12),
@@ -136,7 +136,7 @@ Future<bool> _configureDriveFolder(
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Neue Dateien in FLEX zuordnen'),
+                  title: const Text('Dateien in FLEX zuordnen'),
                   value: incoming,
                   onChanged: busy ? null : (v) => update(() => incoming = v),
                 ),
@@ -194,10 +194,7 @@ Future<bool> _configureDriveFolder(
                                 base.flag('planningFolder') &&
                                 base.flag('planningReady') &&
                                 base.flag('incoming'),
-                            'folderPath': base.text(
-                              'folderPath',
-                              folderPath ?? folder.name,
-                            ),
+                            'folderPath': folderPath ?? driveFolderPath(base),
                             'outgoing': outgoing,
                             'personal': pupil.isNotEmpty,
                             'pupilIds': [if (pupil.isNotEmpty) pupil],
@@ -230,8 +227,14 @@ Future<bool> _configureDriveFolder(
                             if (!await confirmFlex(
                               ctx,
                               'Ordner verbinden?',
-                              planning
-                                  ? _planningPreview(items, c)
+                              planning ||
+                                      pupil.isEmpty &&
+                                          items.any(
+                                            (d) => isPlanningSourcePath(
+                                              d.text('sourcePath'),
+                                            ),
+                                          )
+                                  ? _planningPreview(items, c, next)
                                   : '${items.length} vorhandene Dateien in „${folder.name}“. Neue Materialien werden „$dest“ zugeordnet.\n\n${items.take(4).map((d) => d.title).join('\n')}',
                               accept: 'Verbinden',
                             )) {
@@ -513,10 +516,10 @@ class _DriveSources extends StatelessWidget {
           ActionHeading(
             leading: const Text('Verknüpfte Ordner'),
             actions: [
-              IconButton(
-                tooltip: 'Jetzt abgleichen',
+              TextButton.icon(
                 onPressed: c.syncingMaterials ? null : c.syncMaterials,
                 icon: const Icon(Icons.sync),
+                label: const Text('Jetzt abgleichen'),
               ),
             ],
           ),

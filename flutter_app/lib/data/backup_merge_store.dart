@@ -87,6 +87,7 @@ mixin BackupMergeStore on SchoolStore {
               'pupilIds',
               'planningAutoDates',
               'planningDecisions',
+              'planningDeferred',
             }.contains(key)
             ? values.toSet().toList()
             : values;
@@ -97,6 +98,7 @@ mixin BackupMergeStore on SchoolStore {
             'pupilIds',
             'planningAutoDates',
             'planningDecisions',
+            'planningDeferred',
             'pupil_id',
             'participantIds',
             'recipients',

@@ -156,6 +156,8 @@ Future<ClassroomDocument> saveScan(
           'planningDecisions': <String>[],
           'planningAutoDates': <String>[],
           'planningDismissed': false,
+          'planningDeferred': <String>[],
+          'planningReviewedCodes': <String>[],
           'remoteCreatedAt': '',
         },
         'remoteEtag': '',

@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'classroom.dart';
+import 'drive_rules.dart';
 import 'models.dart';
 import 'planning_fields.dart';
 
@@ -9,7 +10,10 @@ final _isoDate = RegExp(r'(?:^|[^\d])(\d{4}-\d{2}-\d{2})(?!\d)');
 final _weekFolder = RegExp(r'^KW[\s_-]*(\d{1,2})$', caseSensitive: false);
 final _weekInName = RegExp(r'\bKW[\s_-]*(\d{1,2})\b', caseSensitive: false);
 final _word = RegExp(r'[\p{L}\p{N}]+', unicode: true);
-final _numbered = RegExp(r'^([A-ZÄÖÜ]{1,12})(\d{2})(L?)$');
+final _numbered = RegExp(
+  r'(?:^|[^\p{L}\p{N}])([A-ZÄÖÜ]{1,12})[-_]?(\d{1,2})(L?)(?![\p{L}\p{N}])',
+  unicode: true,
+);
 final _group = RegExp(
   r'(?:^|[^\p{L}\p{N}])([A-ZÄÖÜ]{1,12}(?:(?:\s+und\s+|\s*[+&]\s*)[A-ZÄÖÜ]{1,12})+)(?![\p{L}\p{N}])',
   unicode: true,
@@ -50,9 +54,13 @@ String _stem(String name) =>
 class PlanningFilename {
   PlanningFilename(this.name) {
     final stem = _stem(name);
-    for (final word in _word.allMatches(stem)) {
-      final m = _numbered.firstMatch(word[0]!);
-      if (m == null || !validMaterialCode(m[1]!)) continue;
+    for (final m in _numbered.allMatches(stem)) {
+      if (!validMaterialCode(m[1]!)) continue;
+      if (m[2]!.length == 1) {
+        // A4 and B5 are also paper sizes.
+        if (!{'A', 'B', 'C'}.contains(m[1])) bare.add(m[1]!);
+        continue;
+      }
       codes.add(m[1]!);
       numbers.add('${m[1]}${m[2]}');
       if (m[3] == 'L') solution = true;
@@ -61,10 +69,45 @@ class PlanningFilename {
       final parts = match[1]!.split(RegExp(r'\s+und\s+|\s*[+&]\s*'));
       if (parts.every(validMaterialCode)) groups.addAll(parts);
     }
+    final words = _word.allMatches(stem).map((m) => m[0]!).toList();
+    for (var i = 0; i < words.length; i++) {
+      final before = i == 0 ? '' : _fold(words[i - 1]);
+      final after = i + 1 == words.length ? '' : _fold(words[i + 1]);
+      if (validMaterialCode(words[i]) &&
+          (words[i].length == 1 ||
+              i == 0 ||
+              i == words.length - 1 ||
+              before == 'fuer') &&
+          !{
+            'teil',
+            'gruppe',
+            'klasse',
+            'variante',
+            'vitamin',
+            'plan',
+            'bis',
+            'din',
+          }.contains(before) &&
+          after != 'bis') {
+        bare.add(words[i]);
+      }
+    }
   }
   final String name;
-  final codes = <String>{}, numbers = <String>{}, groups = <String>{};
+  final codes = <String>{},
+      numbers = <String>{},
+      groups = <String>{},
+      bare = <String>{};
   bool solution = false;
+}
+
+/// A class folder can contain both ordinary material and a planning tree.
+/// Only interpret dated school material in a recognizable planning context.
+bool isPlanningSourcePath(String path) {
+  final folders = path.replaceAll('\\', '/').split('/')..removeLast();
+  if (folders.any((s) => _fold(s) == 'planung')) return true;
+  final year = folders.indexWhere((s) => normalizedSchoolYear(s).isNotEmpty);
+  return year >= 0 && folders.skip(year + 1).any(_weekFolder.hasMatch);
 }
 
 /// The folder describes the actual lesson. A date printed on a reusable
@@ -269,10 +312,41 @@ void checkCodeReservations(Iterable<ClassroomDocument> docs) {
   }
 }
 
+bool planningSource(ClassroomDocument? rule, String path) =>
+    (rule == null ||
+        !rule.deleted && rule.flag('incoming') && !rule.flag('personal')) &&
+    (rule?.flag('planningFolder') == true || isPlanningSourcePath(path));
+
+ClassroomDocument classifyOneDriveMaterial(
+  ClassroomDocument m, {
+  required bool existing,
+}) {
+  final classification = classifyPlanningFile(m.text('sourcePath'));
+  final use = classification['use'];
+  return updateTeachingPlan(m, {
+    'planning': classification,
+    if (m.map('planning').isEmpty &&
+        m.map('planningOverride').isEmpty &&
+        m.text('week').isNotEmpty)
+      'planningOverride': {
+        'week': weekOfDay(m.text('week')),
+        if (weekOfDay(m.text('week')) != classification['week']) 'day': '',
+      },
+    if (!existing) ...{
+      if (use == 'solution' || use == 'template') 'documentType': use,
+      if (use == 'weekPlan') 'documentType': 'weekPlan',
+      if (use == 'dayPlan') 'documentType': 'planning',
+      if ({'solution', 'teacher', 'dayPlan', 'weekPlan'}.contains(use))
+        'audience': 'teacher',
+    },
+  });
+}
+
 class PlanningMatch {
   final owners = <String>{}, unknown = <String>{};
   bool ambiguous = false;
   bool get needsReview => owners.isNotEmpty || unknown.isNotEmpty || ambiguous;
+  bool get clear => owners.isNotEmpty && unknown.isEmpty && !ambiguous;
 }
 
 Map<String, int> planningRosterRevisions(
@@ -291,19 +365,21 @@ Map<String, int> planningRosterRevisions(
 class PlanningRoster {
   PlanningRoster(Iterable<ClassroomDocument> docs, Iterable<Pupil> pupils) {
     for (final f in docs.where((d) => d.kind == ClassroomKind.folder)) {
-      if (f.deleted || !f.flag('planningFolder') || !f.flag('incoming')) {
+      _folders[f.id] = f;
+      if (f.deleted || f.flag('personal') || !f.flag('incoming')) {
         _inactiveFolders.add(f.id);
       }
     }
-    final active = pupils
-        .where((p) => !p.archived && !p.deleted)
-        .map((p) => p.id)
-        .toSet();
+    for (final p in pupils.where((p) => !p.archived && !p.deleted)) {
+      _activePupils.add(p.id);
+      final name = _words(p.name);
+      if (name.length >= 3) (_names[name] ??= {}).add(p.id);
+    }
     for (final profile in docs.where(
       (d) => !d.deleted && d.kind == ClassroomKind.materialProfile,
     )) {
       final id = profile.strings('pupilIds').firstOrNull;
-      if (!active.contains(id) || id == null) continue;
+      if (id == null || !_activePupils.contains(id)) continue;
       final year = profile.text('schoolYear'), code = profile.text('code');
       if (code.isNotEmpty) (_codes[year] ??= {})[code] = id;
       for (final alias in profile.strings('aliases')) {
@@ -311,7 +387,63 @@ class PlanningRoster {
       }
     }
   }
+  final _folders = <String, ClassroomDocument>{};
+  final _activePupils = <String>{};
+
+  /// Older library entries may have only their remote path and rule.
+  ClassroomDocument prepare(ClassroomDocument d, {ClassroomDocument? rule}) {
+    if (d.kind != ClassroomKind.material ||
+        d.deleted ||
+        d.flag('sourceMissing') ||
+        d.text('cloudReview').isNotEmpty ||
+        d.text('driveId').isEmpty ||
+        d.text('itemId').isEmpty ||
+        d.map('planning').isNotEmpty) {
+      return d;
+    }
+    final source = rule ?? _folders[d.text('cloudRule')];
+    if (!planningSource(source, d.text('sourcePath'))) return d;
+    return classifyOneDriveMaterial(d, existing: d.revision > 0);
+  }
+
+  ClassroomDocument suggestedImport(
+    ClassroomDocument d, {
+    ClassroomDocument? rule,
+  }) {
+    if (rule != null) {
+      if (rule.deleted ||
+          !rule.flag('incoming') ||
+          d.deleted ||
+          d.flag('sourceMissing') ||
+          d.text('cloudReview').isNotEmpty ||
+          d.text('cloudRule').isNotEmpty && d.text('cloudRule') != rule.id) {
+        return d;
+      }
+      if (rule.flag('personal')) {
+        final id = rule.strings('pupilIds').singleOrNull;
+        if (id == null ||
+            !_activePupils.contains(id) ||
+            d.text('cloudRule').isNotEmpty ||
+            d.strings('pupilIds').isNotEmpty ||
+            d.strings('planningDecisions').contains(id)) {
+          return d;
+        }
+        return d.patch({
+          'cloudRule': rule.id,
+          'cloudBinding': driveBinding(rule),
+          'pupilIds': [id],
+        });
+      }
+    }
+    final planned = prepare(d, rule: rule);
+    final owners = automaticOwners(planned);
+    return owners.isEmpty
+        ? planned
+        : decidePlanningPupils(planned, owners, owners);
+  }
+
   final _inactiveFolders = <String>{};
+  final _names = <String, Set<String>>{};
   final _codes = <String, Map<String, String>>{};
   final _aliases = <String, Map<String, Set<String>>>{};
   PlanningMatch match(ClassroomDocument d, {bool includeDecided = false}) {
@@ -326,14 +458,17 @@ class PlanningRoster {
       return result;
     }
     final year = d.map('planning')['year'] as String? ?? '';
-    final name = d.text('remoteName', d.text('name'));
+    final remoteName = d.text('remoteName');
+    final name = remoteName.isEmpty ? d.text('name', d.title) : remoteName;
     final file = PlanningFilename(name);
     final codes = _codes[year] ?? {};
     final groupCodes = file.groups.any(codes.containsKey)
         ? file.groups
         : <String>{};
     if (groupCodes.isNotEmpty) result.ambiguous = true;
+    final reviewedCodes = d.strings('planningReviewedCodes');
     for (final key in {...file.codes, ...groupCodes}) {
+      if (!includeDecided && reviewedCodes.contains(key)) continue;
       final id = codes[key];
       if (id == null) {
         result.unknown.add(key);
@@ -348,6 +483,12 @@ class PlanningRoster {
       result.ambiguous = true;
     }
     final numberedOwners = result.owners.toSet();
+    final folders = d.text('sourcePath').replaceAll('\\', '/').split('/')
+      ..removeLast();
+    for (final key in {...file.bare, ...folders}.where(codes.containsKey)) {
+      final owner = codes[key]!;
+      if (result.owners.add(owner)) result.ambiguous = true;
+    }
     final nameWords = ' ${_words(_stem(name))} ';
     final aliases = _aliases[year] ?? {};
     for (final entry in aliases.entries) {
@@ -363,16 +504,34 @@ class PlanningRoster {
     if (numberedOwners.isEmpty && result.owners.length > 1) {
       result.ambiguous = true;
     }
-    if (!includeDecided) {
-      result.owners.removeAll({
-        ...d.strings('planningDecisions'),
-        ...d.strings('pupilIds'),
-      });
-      if (result.owners.isEmpty && result.unknown.isEmpty) {
-        result.ambiguous = false;
+    if (year.isNotEmpty) {
+      for (final entry in _names.entries) {
+        if (nameWords.contains(' ${entry.key} ') &&
+            !result.owners.containsAll(entry.value)) {
+          result.owners.addAll(entry.value);
+          result.ambiguous = true;
+        }
       }
     }
+    // An existing assignment to a different pupil always needs confirmation.
+    if (d.strings('pupilIds').any((id) => !result.owners.contains(id))) {
+      result.ambiguous = true;
+    }
+    result.owners.removeAll(d.strings('pupilIds'));
+    if (!includeDecided) {
+      result.owners.removeAll(d.strings('planningDecisions'));
+    }
+    if (result.owners.isEmpty && result.unknown.isEmpty) {
+      result.ambiguous = false;
+    }
     return result;
+  }
+
+  Set<String> automaticOwners(ClassroomDocument d) {
+    final m = match(d);
+    return m.clear
+        ? m.owners.difference(d.strings('planningDeferred').toSet())
+        : {};
   }
 }
 
@@ -398,6 +557,11 @@ ClassroomDocument decidePlanningPupils(
     'pupilIds': ids.toList(),
     'pupilDates': dates,
     'planningAutoDates': auto.toList(),
+    if (d.strings('planningDeferred').isNotEmpty)
+      'planningDeferred': d
+          .strings('planningDeferred')
+          .where((id) => !considered.contains(id))
+          .toList(),
     'planningDecisions': {
       ...d.strings('planningDecisions'),
       ...considered,

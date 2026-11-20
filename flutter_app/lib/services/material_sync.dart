@@ -10,10 +10,12 @@ import 'material_index.dart';
 import 'onedrive.dart';
 
 class MaterialSyncResult {
-  int imported = 0, uploaded = 0, paused = 0;
+  int imported = 0, uploaded = 0, paused = 0, assigned = 0, linked = 0;
   final List<String> errors = [];
   String get summary => [
     '$imported aktualisiert',
+    if (linked > 0) '$linked mit Schülerzuordnung',
+    if (assigned > 0) '$assigned neu zugeordnet',
     '$uploaded hochgeladen',
     if (paused > 0) '$paused Ordner pausiert (Konto oder Schüler prüfen)',
   ].join(' · ');
@@ -30,7 +32,12 @@ class MaterialSync {
     final result = MaterialSyncResult();
     var docs = await repo.classroomDocuments();
     final pupils = await repo.pupils();
-    final all = docs.where(isDriveRule).toList();
+    final archived = {
+      for (final y in await repo.schoolYears()) ...y.documentIds,
+    };
+    final all = docs
+        .where((f) => isDriveRule(f) && !archived.contains(f.id))
+        .toList();
     if (all.isEmpty) return result;
     final account = (await drive.graph('/me/drive'))['id'] as String;
     final rules = all
@@ -46,6 +53,7 @@ class MaterialSync {
       (d) =>
           d.kind == ClassroomKind.material &&
           !d.deleted &&
+          !archived.contains(d.id) &&
           d.map('cloudUpload')['state'] == 'pending',
     )) {
       final job = m.map('cloudUpload');
@@ -119,10 +127,12 @@ class MaterialSync {
     };
     for (final f in rules.where((f) => f.flag('incoming'))) {
       try {
+        final directFileIds = <String>{};
         final values = await scanMaterialFolder(
           drive,
           f,
           docs,
+          directFileIds: directFileIds,
           boundaryFolders: {
             for (final other in all)
               if (other.id != f.id &&
@@ -134,15 +144,17 @@ class MaterialSync {
             .where((d) => d.id == f.id)
             .firstOrNull;
         if (current?.revision != f.revision) continue;
+        final folderChanges = <String, ClassroomDocument>{};
+        var newlyAssigned = 0, linked = 0;
         for (var m in values) {
           final old = known[m.id];
-          found.add(m.id);
           if (m.deleted ||
+              archived.contains(m.id) ||
               pendingNames.contains((f.id, m.text('remoteName'))) &&
-                  m.text('sourcePath') ==
-                      '${f.title}/${m.text('remoteName')}') {
+                  directFileIds.contains(m.text('itemId'))) {
             continue;
           }
+          final planning = planningSource(f, m.text('sourcePath'));
           final previous = old?.text('cloudRule') ?? '';
           if (previous != f.id ||
               old != null &&
@@ -151,7 +163,7 @@ class MaterialSync {
             final existing = old?.strings('pupilIds') ?? [];
             final target = f.strings('pupilIds');
             if (previous.isNotEmpty ||
-                !f.flag('planningFolder') &&
+                !planning &&
                     existing.isNotEmpty &&
                     !setEquals(existing.toSet(), target.toSet())) {
               m = m.patch({'cloudReview': f.id, 'sourceMissing': false});
@@ -161,7 +173,7 @@ class MaterialSync {
                 'cloudBinding': driveBinding(f),
                 'cloudReview': '',
                 'sourceMissing': false,
-                if (!f.flag('planningFolder')) 'pupilIds': target,
+                if (!planning) 'pupilIds': target,
                 if (f.text('subject').isNotEmpty &&
                     (old == null || old.text('subject').isEmpty))
                   'subject': f.text('subject'),
@@ -170,62 +182,27 @@ class MaterialSync {
           } else {
             m = m.patch({'sourceMissing': false, 'cloudReview': ''});
           }
-          if (f.flag('planningFolder') && m.text('cloudReview').isEmpty) {
-            final classification = classifyPlanningFile(m.text('sourcePath'));
-            final use = classification['use'];
-            m = updateTeachingPlan(m, {
-              'planning': classification,
-              if (old != null &&
-                  old.map('planning').isEmpty &&
-                  old.text('week').isNotEmpty)
-                'planningOverride': {
-                  'week': weekOfDay(old.text('week')),
-                  if (weekOfDay(old.text('week')) != classification['week'])
-                    'day': '',
-                },
-              if (old == null) ...{
-                if (use == 'solution' || use == 'template') 'documentType': use,
-                if (use == 'weekPlan') 'documentType': 'weekPlan',
-                if (use == 'dayPlan') 'documentType': 'planning',
-                if ({
-                  'solution',
-                  'teacher',
-                  'dayPlan',
-                  'weekPlan',
-                }.contains(use))
-                  'audience': 'teacher',
-              },
-            });
-            final match = roster.match(m);
-            if (old == null &&
-                f.flag('planningReady') &&
-                !match.ambiguous &&
-                match.unknown.isEmpty &&
-                match.owners.isNotEmpty) {
-              final created = DateTime.tryParse(m.text('remoteCreatedAt'));
-              final profiles = materialProfiles(
-                docs,
-                classification['year'] as String,
-              );
-              final historical =
-                  created != null &&
-                  profiles.any(
-                    (p) =>
-                        p.strings('pupilIds').any(match.owners.contains) &&
-                        !created.isAfter(
-                          DateTime.parse(p.text('updatedAtUtc')),
-                        ),
-                  );
-              if (!historical) {
-                m = decidePlanningPupils(m, match.owners, match.owners);
-              }
+          if (planning && m.text('cloudReview').isEmpty) {
+            m = classifyOneDriveMaterial(m, existing: old != null);
+            final owners = roster.automaticOwners(m);
+            if (owners.isNotEmpty) {
+              m = decidePlanningPupils(m, owners, owners);
+              newlyAssigned++;
             }
+          }
+          if (m.text('cloudReview').isEmpty &&
+              m.strings('pupilIds').isNotEmpty) {
+            linked++;
           }
           if (old == null ||
               jsonEncode(old.toJson()) != jsonEncode(m.toJson())) {
-            changes[m.id] = m;
+            folderChanges[m.id] = m;
           }
         }
+        changes.addAll(folderChanges);
+        found.addAll(values.map((d) => d.id));
+        result.assigned += newlyAssigned;
+        result.linked += linked;
         complete.add(f.id);
         changes[f.id] = f.patch({
           'lastSync': utcNow(),
@@ -244,6 +221,7 @@ class MaterialSync {
       (m) =>
           m.kind == ClassroomKind.material &&
           !m.deleted &&
+          !archived.contains(m.id) &&
           complete.contains(m.text('cloudRule')) &&
           !found.contains(m.id) &&
           !m.flag('sourceMissing'),
@@ -251,11 +229,7 @@ class MaterialSync {
       changes[m.id] = m.patch({'sourceMissing': true, 'cloudReview': ''});
     }
     if (changes.isNotEmpty) {
-      if (rules.any((f) => f.flag('incoming') && f.flag('planningFolder'))) {
-        await repo.savePlanningSync(changes.values.toList(), revisions);
-      } else {
-        await repo.saveClassroomDocuments(changes.values.toList());
-      }
+      await repo.savePlanningSync(changes.values.toList(), revisions);
     }
     result.imported = changes.values
         .where((d) => d.kind == ClassroomKind.material)
@@ -319,7 +293,7 @@ class MaterialSync {
         'cachedAt': utcNow(),
         'remoteModifiedAt': remote['lastModifiedDateTime'] ?? '',
         'sourceModifiedAt': remote['lastModifiedDateTime'] ?? '',
-        'sourcePath': '${rule.title}/$name',
+        'sourcePath': '${driveFolderPath(rule)}/$name',
         'cloudRule': rule.id,
         'cloudBinding': driveBinding(rule),
         'sourceMissing': false,

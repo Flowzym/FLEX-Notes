@@ -1,21 +1,31 @@
 part of 'material_library.dart';
 
-String _planningPreview(List<ClassroomDocument> items, NotebookController c) {
+String _planningPreview(
+  List<ClassroomDocument> items,
+  NotebookController c,
+  ClassroomDocument rule,
+) {
   final uses = <String, int>{};
-  var withDates = 0, personal = 0;
+  var withDates = 0, clear = 0, review = 0;
   final roster = PlanningRoster(c.classroom, c.pupils);
   for (final item in items) {
+    if (!planningSource(rule, item.text('sourcePath'))) continue;
     final plan = classifyPlanningFile(item.text('sourcePath'));
     final use = planningUses[plan['use']]!;
     uses.update(use, (n) => n + 1, ifAbsent: () => 1);
     if ((plan['day'] as String).isNotEmpty) withDates++;
-    if (roster.match(item.patch({'planning': plan})).needsReview) personal++;
+    final candidate = item.patch({'planning': plan});
+    if (roster.automaticOwners(candidate).isNotEmpty) {
+      clear++;
+    } else if (roster.match(candidate).needsReview) {
+      review++;
+    }
   }
   return [
     '${items.length} Dateien · $withDates mit Unterrichtstag',
     for (final e in uses.entries) '${e.value} · ${e.key}',
-    if (personal > 0) '$personal mögliche Schülerzuordnungen',
-    'FLEX verknüpft die Originale. Vorhandene Schülerzuordnungen kannst du nach dem Einlesen einzeln prüfen.',
+    if (clear > 0) '$clear Dateien mit eindeutiger Schülerzuordnung',
+    if (review > 0) '$review Dateien zur Prüfung',
   ].join('\n');
 }
 
@@ -25,26 +35,38 @@ class _PlanningInbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roster = PlanningRoster(c.classroom, c.pupils);
-    final count = c.classroom
-        .where(
-          (d) =>
-              d.kind == ClassroomKind.material && roster.match(d).needsReview,
-        )
-        .length;
-    if (count == 0) return const SizedBox.shrink();
+    var open = 0, earlier = false;
+    for (final source in c.classroom.where(
+      (d) => d.kind == ClassroomKind.material,
+    )) {
+      final d = roster.prepare(source);
+      if (roster.match(d).needsReview) {
+        open++;
+      } else if (!earlier &&
+          roster.match(d, includeDecided: true).needsReview) {
+        earlier = true;
+      }
+    }
+    if (open == 0 && !earlier) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
         onPressed: () => showDialog<void>(
           context: context,
-          builder: (_) => _PlanningQueue(c),
+          builder: (_) => _PlanningQueue(c, includeEarlier: open == 0),
         ),
         icon: const Icon(Icons.person_search_outlined, size: 18),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Flexible(child: Text('Zuordnung prüfen')),
-            Text(' · $count'),
+            Flexible(
+              child: Text(
+                open == 0
+                    ? 'Frühere Entscheidungen prüfen'
+                    : 'Zuordnung prüfen',
+              ),
+            ),
+            if (open > 0) Text(' · $open'),
           ],
         ),
       ),
@@ -52,9 +74,17 @@ class _PlanningInbox extends StatelessWidget {
   }
 }
 
-class _PlanningQueue extends StatelessWidget {
-  const _PlanningQueue(this.c);
+class _PlanningQueue extends StatefulWidget {
+  const _PlanningQueue(this.c, {required this.includeEarlier});
   final NotebookController c;
+  final bool includeEarlier;
+  @override
+  State<_PlanningQueue> createState() => _PlanningQueueState();
+}
+
+class _PlanningQueueState extends State<_PlanningQueue> {
+  NotebookController get c => widget.c;
+  late bool earlier = widget.includeEarlier;
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: c,
@@ -62,10 +92,13 @@ class _PlanningQueue extends StatelessWidget {
       final roster = PlanningRoster(c.classroom, c.pupils);
       final items =
           [
-            for (final d in c.classroom.where(
-              (d) => d.kind == ClassroomKind.material,
-            ))
-              if (roster.match(d) case final m when m.needsReview) (d, m),
+            for (final d
+                in c.classroom
+                    .where((d) => d.kind == ClassroomKind.material)
+                    .map(roster.prepare))
+              if (roster.match(d, includeDecided: earlier) case final m
+                  when m.needsReview)
+                (d, m),
           ]..sort(
             (a, b) =>
                 a.$1.text('sourcePath').compareTo(b.$1.text('sourcePath')),
@@ -73,6 +106,16 @@ class _PlanningQueue extends StatelessWidget {
       return FlexModal(
         title: const Text('Zuordnung prüfen'),
         onClose: () => Navigator.pop(ctx),
+        headerActions: [
+          IconButton(
+            tooltip: earlier
+                ? 'Nur offene Zuordnungen'
+                : 'Frühere Entscheidungen prüfen',
+            isSelected: earlier,
+            icon: const Icon(Icons.history),
+            onPressed: () => setState(() => earlier = !earlier),
+          ),
+        ],
         scrollable: false,
         content: SizedBox(
           height: MediaQuery.sizeOf(ctx).height * .55,
@@ -176,17 +219,9 @@ Future<void> _reviewPlanningGroups(
   String id = key;
   if (!known) {
     final profiles = materialProfiles(c.classroom, year).toList();
-    if (profiles.any((d) => d.strings('reserved').contains(key))) {
-      throw DomainError(
-        '„$key“ ist im Schuljahr $year reserviert. Einzelne Dateien kannst du in der Zuordnungsprüfung auswählen.',
-      );
-    }
-    final eligible = c.pupils.where(
-      (p) =>
-          !p.archived &&
-          !p.deleted &&
-          (pupilProfile(profiles, p.id, year)?.text('code') ?? '').isEmpty,
-    );
+    final reserved = profiles.any((d) => d.strings('reserved').contains(key));
+    final eligible = c.pupils.where((p) => !p.archived && !p.deleted).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => FlexModal(
@@ -195,19 +230,28 @@ Future<void> _reviewPlanningGroups(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (eligible.isEmpty)
-              Text(
-                'Für $year gibt es noch keinen aktiven Schüler mit freiem Materialkürzel.',
-              ),
-            ListTile(
-              leading: const Icon(Icons.person_add_alt_outlined),
-              title: const Text('Neuen Schüler anlegen'),
-              onTap: () => Navigator.pop(ctx, ''),
-            ),
             for (final p in eligible)
               ListTile(
                 title: Text(p.name),
+                subtitle: Text(
+                  reserved ||
+                          (pupilProfile(profiles, p.id, year)?.text('code') ??
+                                  '')
+                              .isNotEmpty
+                      ? 'Nur diesen Dateien zuordnen'
+                      : 'Kürzel $key für $year übernehmen',
+                ),
                 onTap: () => Navigator.pop(ctx, p.id),
+              ),
+            if (!reserved)
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_outlined),
+                title: const Text('Neuen Schüler anlegen'),
+                onTap: () => Navigator.pop(ctx, ''),
+              ),
+            if (reserved && eligible.isEmpty)
+              const Text(
+                'Für diese Dateien ist kein aktiver Schüler verfügbar.',
               ),
           ],
         ),
@@ -227,13 +271,15 @@ Future<void> _reviewPlanningGroups(
     }
     id = picked;
     final old = pupilProfile(c.classroom, id, year);
-    profile = buildMaterialProfile(
-      c.classroom,
-      id,
-      year,
-      key,
-      old?.strings('aliases') ?? [],
-    );
+    if (!reserved && (old?.text('code') ?? '').isEmpty) {
+      profile = buildMaterialProfile(
+        c.classroom,
+        id,
+        year,
+        key,
+        old?.strings('aliases') ?? [],
+      );
+    }
   }
   final pupil = c.pupils
       .where((p) => p.id == id && !p.archived && !p.deleted)
@@ -244,6 +290,12 @@ Future<void> _reviewPlanningGroups(
     id,
     pupil.name,
     groups[choice]!,
+    PlanningRoster([
+      for (final d in c.classroom)
+        if (d.id != profile?.id) d,
+      ?profile,
+    ], c.pupils),
+    reviewedCode: !known && profile == null ? key : null,
   );
   if (updates == null) return;
   if (profile != null || updates.isNotEmpty) {
@@ -259,7 +311,7 @@ Future<void> _resolvePlanningFile(
   PlanningMatch match,
 ) async {
   final ids = <String>{
-    if (!match.ambiguous && match.unknown.isEmpty) ...match.owners,
+    ...PlanningRoster(c.classroom, c.pupils).automaticOwners(d),
   };
   final next = await showDialog<ClassroomDocument>(
     context: context,
@@ -278,7 +330,7 @@ Future<void> _resolvePlanningFile(
               ),
             if (match.ambiguous)
               const Text(
-                'Mehrere Namen oder Kürzel sind möglich. Wer soll das Material erhalten?',
+                'Wem gehört diese Datei? Bitte prüfe die vorgeschlagene Zuordnung.',
               ),
             for (final p in c.pupils.where((p) => !p.archived && !p.deleted))
               CheckboxListTile(

@@ -83,7 +83,11 @@ void validatePlanningFields(Json data) {
       throw const DomainError('Ungültiger Unterrichtseinsatz.');
     }
   }
-  for (final key in ['planningDecisions', 'planningAutoDates']) {
+  for (final key in [
+    'planningDecisions',
+    'planningAutoDates',
+    'planningDeferred',
+  ]) {
     final ids = data[key];
     if (ids != null &&
         (ids is! List ||
@@ -92,6 +96,14 @@ void validatePlanningFields(Json data) {
             ids.toSet().length != ids.length)) {
       throw const DomainError('Ungültige Materialzuordnung.');
     }
+  }
+  final reviewed = data['planningReviewedCodes'];
+  if (reviewed != null &&
+      (reviewed is! List ||
+          reviewed.length > 200 ||
+          reviewed.any((c) => c is! String || !validMaterialCode(c)) ||
+          reviewed.toSet().length != reviewed.length)) {
+    throw const DomainError('Ungültige Materialkürzel.');
   }
   if (data.containsKey('planningDismissed') &&
       data['planningDismissed'] is! bool) {

@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 import '../domain/classroom.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
+import '../domain/planning_import.dart';
 import 'onedrive.dart';
 
 String cloudExtension(String name) {
@@ -14,6 +15,41 @@ bool cloudLearningLink(String name) =>
 bool cloudFileSupported(String name) =>
     {'pdf', 'docx', 'jpg', 'png'}.contains(cloudExtension(name)) ||
     cloudLearningLink(name);
+
+String driveFolderPath(ClassroomDocument folder) {
+  final path = folder.text('folderPath');
+  return path.isEmpty ? folder.title : path;
+}
+
+// Older folder links can start at "Materialien" or a single calendar week.
+// Graph's parent path restores the year above that starting point.
+String? _sourcePath(String driveId, Json item, String name, String? path) {
+  final parent = item['parentReference'];
+  if (parent is! Map ||
+      parent['driveId'] != driveId ||
+      parent['path'] is! String) {
+    return path;
+  }
+  final location = parent['path'] as String;
+  final root = location.indexOf('/root:');
+  if (root < 0) return path;
+  final parts = location
+      .substring(root + '/root:'.length)
+      .split('/')
+      .where((s) => s.isNotEmpty);
+  final String full;
+  try {
+    full = [...parts.map(Uri.decodeComponent), name].join('/');
+  } on FormatException {
+    return path;
+  } on ArgumentError {
+    return path;
+  }
+  return path == null ||
+          (!isPlanningSourcePath(path) && isPlanningSourcePath(full))
+      ? full
+      : path;
+}
 
 /// Index a snapshot once while browsing or walking a folder tree. A detached
 /// local edit keeps its ID, so the cloud original can reappear independently.
@@ -70,7 +106,7 @@ class OneDriveMaterialIndex {
         'remoteCreatedAt': item['createdDateTime'],
       'remoteEtag': item['eTag'] ?? '',
       'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
-      'sourcePath': ?path,
+      'sourcePath': ?_sourcePath(driveId, item, name, path),
       if (cached && old.text('extension') == cloudExtension(name)) 'name': name,
       if (restore) 'deleted': false,
       if (!cached) ...{
@@ -108,17 +144,13 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
   bool Function()? cancelled,
   void Function(int folders, int files)? progress,
   Set<String> boundaryFolders = const {},
+  Set<String>? directFileIds,
   int maxFiles = 2000,
   int maxFolders = 250,
 }) async {
   final materials = OneDriveMaterialIndex(existing);
   final queue = <({String id, String path})>[
-    (
-      id: folder.text('itemId'),
-      path: folder.flag('planningFolder')
-          ? folder.text('folderPath', folder.title)
-          : folder.title,
-    ),
+    (id: folder.text('itemId'), path: driveFolderPath(folder)),
   ];
   final visited = <String>{}, seen = <String>{};
   final result = <ClassroomDocument>[];
@@ -156,6 +188,7 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
         continue;
       }
       if (!cloudFileSupported(name) || !seen.add(itemId)) continue;
+      if (current.id == folder.text('itemId')) directFileIds?.add(itemId);
       if (result.length >= maxFiles) {
         throw const DomainError(
           'Bitte einen kleineren Unterordner wählen (höchstens 2000 Dateien).',

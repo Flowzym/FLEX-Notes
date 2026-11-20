@@ -355,6 +355,8 @@ class ClassroomDocument {
         'planningDecisions',
         'planningAutoDates',
         'planningDismissed',
+        'planningDeferred',
+        'planningReviewedCodes',
         'remoteCreatedAt',
         'cloudReview',
         'sourceMissing',

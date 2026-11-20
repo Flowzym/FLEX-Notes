@@ -46,6 +46,7 @@ Future<void> browseOneDrive(
       client: drive,
       account: account,
       appRoot: rootId,
+      firstPath: folder == null ? null : driveFolderPath(folder),
       first: (
         id: folder?.text('itemId') ?? root!['id'] as String,
         drive:
@@ -67,11 +68,13 @@ class _DriveExplorer extends StatefulWidget {
     required this.account,
     required this.appRoot,
     required this.first,
+    this.firstPath,
   });
   final NotebookController c;
   final OneDriveClient client;
   final String account, appRoot;
   final _DriveFolder first;
+  final String? firstPath;
   @override
   State<_DriveExplorer> createState() => _DriveExplorerState();
 }
@@ -79,11 +82,29 @@ class _DriveExplorer extends StatefulWidget {
 class _DriveExplorerState extends State<_DriveExplorer> {
   late final stack = [widget.first];
   late Future<List<Json>> listing = children();
-  final selected = <String, ClassroomDocument>{};
+  final selected =
+      <String, ({ClassroomDocument file, ClassroomDocument? rule})>{};
   final search = TextEditingController();
   bool choosing = false, across = false, busy = false;
   String query = '', error = '';
   _DriveFolder get folder => stack.last;
+  String get folderPath => [
+    widget.firstPath ?? stack.first.name,
+    ...stack.skip(1).map((f) => f.name),
+  ].join('/');
+  ClassroomDocument? get currentRule {
+    final rules = widget.c.classroom.where(isDriveRule);
+    for (final f in stack.reversed) {
+      final match = rules
+          .where(
+            (r) => r.text('driveId') == f.drive && r.text('itemId') == f.id,
+          )
+          .firstOrNull;
+      if (match != null) return match;
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     search.dispose();
@@ -105,6 +126,12 @@ class _DriveExplorerState extends State<_DriveExplorer> {
           widget.client,
           rule,
           widget.c.classroom,
+          boundaryFolders: {
+            for (final other in widget.c.classroom.where(isDriveRule))
+              if (other.id != rule.id &&
+                  other.text('driveId') == rule.text('driveId'))
+                other.text('itemId'),
+          },
         )) {
           results[d.id] = {
             'id': d.text('itemId'),
@@ -115,6 +142,7 @@ class _DriveExplorerState extends State<_DriveExplorer> {
             'lastModifiedDateTime': d.text('remoteModifiedAt'),
             '_drive': d.text('driveId'),
             '_path': d.text('sourcePath'),
+            '_rule': rule.id,
           };
         }
       }
@@ -176,11 +204,18 @@ class _DriveExplorerState extends State<_DriveExplorer> {
     return _index;
   }
 
-  Future<void> take(List<ClassroomDocument> items) async {
+  Future<void> take(
+    Iterable<({ClassroomDocument file, ClassroomDocument? rule})> items,
+  ) async {
+    final roster = PlanningRoster(widget.c.classroom, widget.c.pupils);
+    final suggested = [
+      for (final item in items)
+        roster.suggestedImport(item.file, rule: item.rule),
+    ];
     final ok = await showMaterialAssignments(
       context,
       widget.c,
-      items,
+      suggested,
       importing: true,
     );
     if (mounted && ok) {
@@ -383,8 +418,26 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                           j['_drive'] as String,
                           j,
                           restore: true,
-                          path: j['_path'] as String?,
+                          path:
+                              j['_path'] as String? ??
+                              (j['_shared'] != true &&
+                                      folder.drive == widget.account
+                                  ? '$folderPath/${j['name']}'
+                                  : null),
                         );
+                        final rule = across
+                            ? widget.c.classroom
+                                  .where((r) => r.id == j['_rule'])
+                                  .firstOrNull
+                            : currentRule;
+                        void choose(bool value) {
+                          if (value) {
+                            selected[d.id] = (file: d, rule: rule);
+                          } else {
+                            selected.remove(d.id);
+                          }
+                        }
+
                         final linked = materials.available(d.id);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -409,26 +462,17 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                           onTap: busy
                               ? null
                               : choosing
-                              ? () => setState(() {
-                                  if (selected.containsKey(d.id)) {
-                                    selected.remove(d.id);
-                                  } else {
-                                    selected[d.id] = d;
-                                  }
-                                })
+                              ? () => setState(
+                                  () => choose(!selected.containsKey(d.id)),
+                                )
                               : () => act(() => preview(j)),
                           trailing: choosing
                               ? Checkbox(
                                   value: selected.containsKey(d.id),
                                   onChanged: busy
                                       ? null
-                                      : (v) => setState(() {
-                                          if (v == true) {
-                                            selected[d.id] = d;
-                                          } else {
-                                            selected.remove(d.id);
-                                          }
-                                        }),
+                                      : (v) =>
+                                            setState(() => choose(v == true)),
                                 )
                               : IconButton(
                                   tooltip: linked
@@ -439,7 +483,9 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                                   ),
                                   onPressed: busy
                                       ? null
-                                      : () => act(() => take([d])),
+                                      : () => act(
+                                          () => take([(file: d, rule: rule)]),
+                                        ),
                                 ),
                         );
                       },
@@ -455,7 +501,7 @@ class _DriveExplorerState extends State<_DriveExplorer> {
         FilledButton(
           onPressed: busy || selected.isEmpty
               ? null
-              : () => act(() => take(selected.values.toList())),
+              : () => act(() => take(selected.values)),
           child: Text('${selected.length} übernehmen und zuordnen'),
         )
       else if (!across && folder.drive == widget.account) ...[
@@ -519,7 +565,7 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                     folder,
                     widget.account,
                     widget.appRoot,
-                    folderPath: stack.map((f) => f.name).join('/'),
+                    folderPath: folderPath,
                   );
                   if (saved && context.mounted) Navigator.pop(context);
                 }),

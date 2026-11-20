@@ -327,6 +327,7 @@ mixin PrivacyStore on SchoolStore {
         if ({
           'pupilIds',
           'planningDecisions',
+          'planningDeferred',
           'planningAutoDates',
         }.contains(key)) {
           return value.where((v) => !people.contains(v)).toList();
@@ -457,7 +458,11 @@ mixin PrivacyStore on SchoolStore {
         fields.addAll({'code': '', 'aliases': <String>[]});
       }
       if (d.kind == ClassroomKind.material) {
-        for (final key in ['planningDecisions', 'planningAutoDates']) {
+        for (final key in [
+          'planningDecisions',
+          'planningAutoDates',
+          'planningDeferred',
+        ]) {
           if (d.strings(key).any(ids.contains)) {
             fields[key] = d
                 .strings(key)

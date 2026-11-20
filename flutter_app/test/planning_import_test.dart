@@ -6,6 +6,7 @@ import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/planning_import.dart';
 import 'package:flex_notizbuch/domain/material_workspace.dart';
 import 'package:flex_notizbuch/services/material_sync.dart';
+import 'package:flex_notizbuch/services/material_index.dart';
 import 'package:flex_notizbuch/services/onedrive.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/material_library.dart';
@@ -104,7 +105,13 @@ void main() {
       expect(match('M01 und MI01').owners, {'p', 'q'});
       expect(match('M und MI').ambiguous, true);
       expect(match('Arbeitsblätter A bis E').needsReview, false);
-      expect(match('M Text').needsReview, false);
+      expect(match('M Text').owners, {'q'});
+      expect(match('M Text').ambiguous, true);
+      expect(match('MI-01 Lösung').owners, {'p'});
+      expect(match('Mathe M_09L').clear, true);
+      expect(match('Text für Mila Beispiel').ambiguous, true);
+      expect(match('Text für Mila Beispiel').owners, {'p'});
+      expect(match('Material Teil M').needsReview, false);
       expect(match('TeamMI01').needsReview, false);
       expect(match('M010').needsReview, false);
       expect(match('Mathe mit Mika').owners, {'q'});
@@ -134,6 +141,82 @@ void main() {
       );
     },
   );
+  test(
+    'Frühere Ordnerverknüpfungen und Einzelimport erhalten den vollständigen Planungspfad aus Graph',
+    () {
+      final roster = PlanningRoster(
+        [buildMaterialProfile([], mila.id, year, 'M', [])],
+        [mila],
+      );
+      final entry = OneDriveMaterialIndex([]).material('drive', {
+        'id': 'blatt',
+        'name': 'M36.pdf',
+        'parentReference': {
+          'driveId': 'drive',
+          'path':
+              '/drives/drive/root:/FLEX-Klasse/Planung/2026-27/KW47/Materialien/2026-11-18',
+        },
+      }, path: 'Materialien/2026-11-18/M36.pdf');
+      final planned = roster.suggestedImport(entry);
+      expect(planned.text('sourcePath'), contains('Planung/2026-27/KW47'));
+      expect(planned.strings('pupilIds'), [mila.id]);
+      expect(pupilMaterialDates(planned, mila.id), ['2026-11-18']);
+      final removed = assignMaterialPupils(planned, [], {});
+      expect(roster.automaticOwners(removed), isEmpty);
+      expect(roster.match(removed, includeDecided: true).owners, {mila.id});
+    },
+  );
+
+  test(
+    'Direkter Explorer-Import übernimmt die persönliche Ordnerregel und respektiert spätere Änderungen',
+    () {
+      final rule = ClassroomDocument.create(
+        ClassroomKind.folder,
+        'Persönlich',
+        {
+          'driveId': 'drive',
+          'itemId': 'private',
+          'accountDrive': 'drive',
+          'personal': true,
+          'incoming': true,
+          'pupilIds': [mila.id],
+        },
+        id: 'personal',
+      );
+      final roster = PlanningRoster([rule], [mila, mika]);
+      final d = OneDriveMaterialIndex([]).material('drive', {
+        'id': 'one',
+        'name': 'Klassenblatt.pdf',
+      }, path: 'Persönlich/Klassenblatt.pdf');
+      final suggested = roster.suggestedImport(d, rule: rule);
+      expect(suggested.strings('pupilIds'), [mila.id]);
+      expect(suggested.text('cloudRule'), rule.id);
+      final removed = assignMaterialPupils(suggested, [], {});
+      expect(
+        roster.suggestedImport(removed, rule: rule).strings('pupilIds'),
+        isEmpty,
+      );
+      expect(
+        roster
+            .suggestedImport(
+              d.patch({
+                'pupilIds': [mika.id],
+              }),
+              rule: rule,
+            )
+            .strings('pupilIds'),
+        [mika.id],
+      );
+      expect(
+        PlanningRoster(
+          [rule],
+          [mila.copyWith(archived: true)],
+        ).suggestedImport(d, rule: rule).strings('pupilIds'),
+        isEmpty,
+      );
+    },
+  );
+
   test(
     'Abgleich behandelt Bestand, neue Dateien, Lösungen, persönliche Termine und geänderte Pfade',
     () async {
@@ -165,14 +248,14 @@ void main() {
             (d) => d.kind == ClassroomKind.material && d.text('itemId') == id,
           );
       await sync();
-      expect((await get('a')).strings('pupilIds'), isEmpty);
+      expect((await get('a')).strings('pupilIds'), ['p']);
       final roster = PlanningRoster(
         await repo.classroomDocuments(),
         await repo.pupils(),
       );
-      expect(roster.match(await get('a')).owners, {'p'});
+      expect(roster.match(await get('a')).needsReview, false);
       await repo.saveClassroomDocument(
-        decidePlanningPupils(await get('a'), ['p'], []),
+        (await get('a')).patch({'pupilIds': <String>[]}),
       );
       drive.childrenById['day']!.addAll([
         {'id': 'b', 'name': 'Mathe MI02.pdf'},
@@ -197,7 +280,7 @@ void main() {
       expect(b.strings('pupilIds'), ['p']);
       expect(pupilMaterialDates(b, 'p'), ['2026-11-24']);
       expect((await get('a')).strings('pupilIds'), isEmpty);
-      expect((await get('old')).strings('pupilIds'), isEmpty);
+      expect((await get('old')).strings('pupilIds'), ['p']);
       expect((await get('solution')).text('audience'), 'teacher');
       expect(
         relatedPlanningFiles(b, documents).map((m) => m.text('itemId')),
@@ -218,8 +301,6 @@ void main() {
         ).any((m) => m.text('itemId') == 'weekly'),
         false,
       );
-      final old = await get('old');
-      await repo.saveClassroomDocument(decidePlanningPupils(old, ['p'], ['p']));
       await repo.saveClassroomDocument(
         planPupilMaterial(
           await get('old'),
@@ -266,6 +347,160 @@ void main() {
       final before = await get('old');
       await sync();
       expect((await get('old')).revision, before.revision);
+    },
+  );
+
+  test(
+    'Klassenordner ordnet den Altbestand nach bestätigten Kürzeln nachträglich zu',
+    () async {
+      final repo = classroomMemory(), drive = _PlanningDrive();
+      addTearDown(repo.close);
+      addTearDown(drive.dispose);
+      await repo.initialize();
+      final counts = {'M': 50, 'B': 26, 'A': 29};
+      final pupils = [
+        for (final code in counts.keys)
+          Pupil(id: 'p-$code', name: 'Schüler $code'),
+      ];
+      for (final p in pupils) {
+        await repo.savePupil(p);
+      }
+      Json folder(String id, String name) => {
+        'id': id,
+        'name': name,
+        'folder': {},
+      };
+      final fixtures = [
+        for (final entry in counts.entries)
+          for (var i = 1; i <= entry.value; i++)
+            {
+              'id': '${entry.key}$i',
+              'name':
+                  'Blatt ${entry.key}${i.toString().padLeft(2, '0')}${i == 1 ? 'L' : ''}.pdf',
+              'createdDateTime': '2026-09-01T07:00:00Z',
+            },
+      ];
+      drive.childrenById
+        ..clear()
+        ..addAll({
+          'root': [folder('plan', 'Planung'), folder('class', 'Klasse')],
+          'class': [
+            {'id': 'general', 'name': 'M01.pdf'},
+          ],
+          'plan': [folder('year', year), folder('previous', '2025-26')],
+          'previous': [
+            {'id': 'previous-year', 'name': 'M01.pdf'},
+          ],
+          'year': [folder('week', 'KW47')],
+          'week': [folder('materials', 'Materialien')],
+          'materials': [
+            folder('day', '2026-11-18'),
+            folder('private', 'Persönlich'),
+          ],
+          'private': [
+            {'id': 'personal', 'name': 'Blatt M01.pdf'},
+          ],
+          'day': [
+            ...fixtures,
+            {'id': 'group', 'name': 'Übung A und M.pdf'},
+            {'id': 'deferred', 'name': 'Text M36.pdf'},
+            {'id': 'denied', 'name': 'Text A09.pdf'},
+            {'id': 'conflict', 'name': 'Test B13.pdf'},
+            {'id': 'no-code', 'name': 'Gemeinsam.pdf'},
+          ],
+        });
+      await repo.saveClassroomDocuments([
+        ClassroomDocument.create(ClassroomKind.folder, 'FLEX-Klasse', {
+          'accountDrive': 'drive',
+          'driveId': 'drive',
+          'itemId': 'root',
+          'incoming': true,
+        }, id: 'class-rule'),
+        ClassroomDocument.create(ClassroomKind.folder, 'Persönlich', {
+          'accountDrive': 'drive',
+          'driveId': 'drive',
+          'itemId': 'private',
+          'incoming': true,
+          'personal': true,
+          'pupilIds': ['p-A'],
+        }, id: 'personal-rule'),
+      ]);
+      final sync = MaterialSync(repo, drive, MemoryMaterialFiles());
+      expect((await sync.run()).assigned, 0);
+      Future<Map<String, ClassroomDocument>> files() async => {
+        for (final d in (await repo.classroomDocuments()).where(
+          (d) => d.kind == ClassroomKind.material,
+        ))
+          d.text('itemId'): d,
+      };
+      final before = await files();
+      await repo.saveClassroomDocuments([
+        before['M1']!.patch({
+          'planning': <String, dynamic>{},
+          'title': 'Eigene Bezeichnung',
+        }),
+        before['denied']!.patch({
+          'planningDecisions': ['p-A'],
+        }),
+        before['deferred']!.patch({
+          'planningDeferred': ['p-M'],
+        }),
+        before['conflict']!.patch({
+          'pupilIds': ['p-A'],
+          'pupilDates': [
+            {'pupilId': 'p-A', 'date': '2026-12-01'},
+          ],
+        }),
+        for (final p in pupils)
+          buildMaterialProfile([], p.id, year, p.id.substring(2), []),
+      ]);
+      final result = await sync.run();
+      expect(result.errors, isEmpty);
+      expect(result.assigned, 105);
+      final after = await files();
+      for (final item in fixtures) {
+        final id = item['id']!, owner = 'p-${id[0]}', doc = after[id]!;
+        expect(doc.id, before[id]!.id);
+        expect(doc.strings('pupilIds'), [owner]);
+        expect(pupilMaterialDates(doc, owner), ['2026-11-18']);
+      }
+      expect(after['M1']!.title, 'Eigene Bezeichnung');
+      expect(after['personal']!.strings('pupilIds'), ['p-A']);
+      expect(after['conflict']!.strings('pupilIds'), ['p-A']);
+      expect(pupilMaterialDates(after['conflict']!, 'p-A'), ['2026-12-01']);
+      for (final id in [
+        'previous-year',
+        'general',
+        'group',
+        'denied',
+        'deferred',
+        'no-code',
+      ]) {
+        expect(after[id]!.strings('pupilIds'), isEmpty, reason: id);
+      }
+      expect((await sync.run()).imported, 0);
+      expect((await files()).length, before.length);
+      final roster = PlanningRoster(
+        await repo.classroomDocuments(),
+        await repo.pupils(),
+      );
+      expect(roster.match(after['denied']!).needsReview, false);
+      expect(roster.match(after['denied']!, includeDecided: true).owners, {
+        'p-A',
+      });
+      expect(roster.match(after['conflict']!).ambiguous, true);
+      expect(roster.match(after['deferred']!).owners, {'p-M'});
+      final restored = classroomMemory();
+      addTearDown(restored.close);
+      await restored.initialize();
+      await restored.restoreBackup(await repo.exportBackup());
+      expect(
+        pupilMaterialsOnDay(
+          await restored.classroomDocuments(),
+          '2026-11-18',
+        ).length,
+        105,
+      );
     },
   );
 
@@ -386,7 +621,7 @@ void main() {
       await tap('Nach Kürzel oder Schüler prüfen');
       await tap('Kürzel MI');
       await tap(mila.name);
-      await tap('Mathe MI01.pdf');
+      await tap('Mathe MI02L.pdf');
       await tap('Auswahl übernehmen (1)');
       expect(
         c.classroom.firstWhere((d) => d.id == 'first').strings('pupilIds'),
@@ -419,7 +654,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tap('Hinzufügen');
-      await tap('Alle auswählen');
       await tap('Auswahl übernehmen (1)');
       final added = c.pupils.firstWhere((p) => p.name == 'Val Beispiel');
       expect(pupilProfile(c.classroom, added.id, year)!.text('code'), 'V');
@@ -430,6 +664,67 @@ void main() {
         [added.id],
       );
       expect(find.text('Alle Zuordnungen sind geprüft.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      c.dispose();
+      await repo.close();
+    },
+  );
+
+  testWidgets(
+    'Frühere Entscheidungen und weitere Kürzel lassen sich einem bestehenden Schüler zuordnen',
+    (tester) async {
+      final repo = classroomMemory(), c = NotebookController(repo);
+      await c.initialize();
+      await repo.savePupilDialog(
+        mila,
+        null,
+        materialProfile: buildMaterialProfile([], mila.id, year, 'M', []),
+      );
+      await repo.saveClassroomDocuments([
+        decidePlanningPupils(file('$prefix/Material M08.pdf', id: 'skipped'), [
+          mila.id,
+        ], []),
+        file('$prefix/Material V01.pdf', id: 'other-code'),
+      ]);
+      await c.reload();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MaterialLibraryPage(controller: c, externalView: 'files'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Future<void> tap(String value) async {
+        final f = find.text(value).last;
+        await tester.ensureVisible(f);
+        await tester.tap(f);
+        await tester.pumpAndSettle();
+      }
+
+      await tap('Zuordnung prüfen');
+      await tap('Nach Kürzel oder Schüler prüfen');
+      await tap('Kürzel V');
+      await tap(mila.name);
+      await tap('Material V01.pdf');
+      await tap('Auswahl übernehmen (1)');
+      expect(pupilProfile(c.classroom, mila.id, year)!.text('code'), 'M');
+      expect(
+        c.classroom.firstWhere((d) => d.id == 'other-code').strings('pupilIds'),
+        [mila.id],
+      );
+      expect(find.text('Alle Zuordnungen sind geprüft.'), findsOneWidget);
+      await tester.tap(find.byTooltip('Frühere Entscheidungen prüfen'));
+      await tester.pumpAndSettle();
+      await tap('Nach Kürzel oder Schüler prüfen');
+      await tap(mila.name);
+      expect(find.text('Auswahl übernehmen (0)'), findsOneWidget);
+      await tap('Material M08.pdf');
+      await tap('Auswahl übernehmen (1)');
+      expect(
+        c.classroom.firstWhere((d) => d.id == 'skipped').strings('pupilIds'),
+        [mila.id],
+      );
       await tester.pumpWidget(const SizedBox());
       c.dispose();
       await repo.close();
@@ -476,8 +771,6 @@ void main() {
       await tester.tap(find.text('Hinzufügen'));
       await tester.pumpAndSettle();
       expect(find.text('Vorhandene Dateien für Mila Beispiel'), findsOneWidget);
-      await tester.tap(find.text('Alle auswählen'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Auswahl übernehmen (1)'));
       await tester.pumpAndSettle();
       final pupil = c.pupils.firstWhere((p) => p.name == 'Mila Beispiel');
