@@ -145,8 +145,10 @@ ClassroomDocument flowTemplate(ClassroomDocument source, String title) =>
 List<ClassroomDocument> carryLessonPhases(
   ClassroomDocument source,
   ClassroomDocument target,
-  DateTime now,
-) {
+  DateTime now, {
+  String? phaseId,
+  String? resumeNote,
+}) {
   if (source.id == target.id || source.text('date') == target.text('date')) {
     throw const DomainError('Bitte einen anderen Unterrichtstag wählen.');
   }
@@ -155,24 +157,36 @@ List<ClassroomDocument> carryLessonPhases(
       'Offene Phasen müssen beim selben Schüler bleiben.',
     );
   }
-  final pending = lessonPhases(source).where((p) => p.pending).toList();
+  if (phaseId != null &&
+      (lessonFlowPupil(source).isEmpty ||
+          target.text('date').compareTo(source.text('date')) <= 0)) {
+    throw const DomainError(
+      'Bitte einen späteren Unterrichtstag für diesen Schüler wählen.',
+    );
+  }
+  bool selected(LessonPhase p) =>
+      p.pending && (phaseId == null || p.id == phaseId);
+  final pending = lessonPhases(source).where(selected).toList();
   if (pending.isEmpty) {
     throw const DomainError('Keine offenen Phasen vorhanden.');
   }
   return [
     withLessonPhases(source, [
       for (final p in lessonPhases(source))
-        if (p.pending)
+        if (selected(p))
           p.pause(now).patch({
             'status': 'skipped',
             'carriedTo': target.text('date'),
+            if (resumeNote != null) 'resumeNote': resumeNote.trim(),
           })
         else
           p,
     ]),
     withLessonPhases(target, [
-      ...lessonPhases(target),
-      ...pending.map((p) => p.fresh()),
+      if (phaseId == null) ...lessonPhases(target),
+      for (final p in pending)
+        p.fresh().patch({'resumeNote': resumeNote?.trim() ?? p.resumeNote}),
+      if (phaseId != null) ...lessonPhases(target),
     ]),
   ];
 }

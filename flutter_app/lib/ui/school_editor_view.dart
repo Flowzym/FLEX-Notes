@@ -73,6 +73,12 @@ extension _SchoolEditorView on _SchoolEditorState {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
+                  if (mode == 'entry' && r.kind == SchoolKind.work)
+                    LessonQuestionPrompt(
+                      controller: c,
+                      record: r,
+                      onChanged: edit,
+                    ),
                   if (mode == 'comment')
                     comment()
                   else if (mode == 'review')

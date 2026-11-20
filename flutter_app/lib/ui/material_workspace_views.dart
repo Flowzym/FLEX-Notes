@@ -81,6 +81,9 @@ class _MaterialRowState extends State<MaterialRow> {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
+                onLongPress: widget.selected == null && widget.onSelect != null
+                    ? () => widget.onSelect!(true)
+                    : null,
                 onTap: widget.selected == null
                     ? widget.onOpen
                     : () => widget.onSelect?.call(!widget.selected!),
@@ -107,7 +110,10 @@ class _MaterialRowState extends State<MaterialRow> {
                               [
                                 d.text('extension').toUpperCase(),
                                 d.text('subject'),
-                                if (d.text('documentType', 'other') != 'other')
+                                if (teachingUse(d).isNotEmpty)
+                                  planningUses[teachingUse(d)]!
+                                else if (d.text('documentType', 'other') !=
+                                    'other')
                                   materialTypes[d.text('documentType')]!,
                               ].where((s) => s.isNotEmpty).join(' · '),
                               style: Theme.of(context).textTheme.bodySmall,
@@ -117,9 +123,11 @@ class _MaterialRowState extends State<MaterialRow> {
                               builder: (_, s) => Text(
                                 s.data == true
                                     ? 'Offline verfügbar'
-                                    : d.text('url').isEmpty
-                                    ? 'Datei auf diesem Gerät nicht verfügbar'
-                                    : 'Online',
+                                    : d.flag('sourceMissing')
+                                    ? 'Quelle fehlt'
+                                    : hasMaterialSource(d)
+                                    ? 'Online'
+                                    : 'Datei auf diesem Gerät nicht verfügbar',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),
@@ -167,6 +175,12 @@ Future<void> showMaterialDetails(
         final d =
             c.classroom.where((m) => m.id == material.id).firstOrNull ??
             material;
+        final folder = c.classroom
+            .where((f) => isDriveRule(f) && f.id == d.text('cloudRule'))
+            .firstOrNull;
+        final lastSync = DateTime.tryParse(
+          folder?.text('lastSync') ?? '',
+        )?.toLocal();
         return FlexModal(
           title: Text(d.title),
           onClose: () => Navigator.pop(ctx),
@@ -184,7 +198,7 @@ Future<void> showMaterialDetails(
                       children: [
                         Text(
                           [
-                            d.text('extension') == 'jpg'
+                            {'jpg', 'png'}.contains(d.text('extension'))
                                 ? 'Foto'
                                 : d.text('extension').toUpperCase(),
                             materialTypes[d.text('documentType', 'other')]!,
@@ -207,6 +221,7 @@ Future<void> showMaterialDetails(
                 ],
               ),
               const SizedBox(height: 12),
+              if (d.map('planning').isNotEmpty) _PlanningDetails(c, d),
               ListTile(
                 key: const ValueKey('material-detail-assign'),
                 contentPadding: EdgeInsets.zero,
@@ -299,6 +314,9 @@ Future<void> showMaterialDetails(
                   child: Text(d.text('note')),
                 ),
               const Divider(height: 24),
+              if (d.flag('sourceMissing'))
+                const Text('Die Quelle fehlt im verknüpften Ordner.'),
+              if (uploadLabel(d).isNotEmpty) Text(uploadLabel(d)),
               Text('Datei', style: Theme.of(ctx).textTheme.titleSmall),
               const SizedBox(height: 8),
               Wrap(
@@ -313,6 +331,15 @@ Future<void> showMaterialDetails(
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Öffnen'),
                   ),
+                  if (d.text('itemId').isNotEmpty &&
+                      d.text('url').isNotEmpty &&
+                      !d.flag('sourceMissing'))
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => _launchMaterial(d.text('url'))),
+                      icon: const Icon(Icons.cloud_outlined),
+                      label: const Text('In OneDrive öffnen'),
+                    ),
                   if ({'pdf', 'jpg'}.contains(d.text('extension')) &&
                       d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
@@ -341,11 +368,7 @@ Future<void> showMaterialDetails(
                         await saveBytesFile(
                           d.text('name', '${d.title}.${d.text('extension')}'),
                           bytes,
-                          mime: d.text('extension') == 'pdf'
-                              ? 'application/pdf'
-                              : d.text('extension') == 'jpg'
-                              ? 'image/jpeg'
-                              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          mime: materialMime(d.text('extension')),
                         );
                       }),
                       icon: const Icon(Icons.download_outlined),
@@ -359,12 +382,18 @@ Future<void> showMaterialDetails(
                     ),
                 ],
               ),
+              if (lastSync != null)
+                Text(
+                  'Ordnerabgleich am ${displayDate(dateOnly(lastSync))} · ${TimeOfDay.fromDateTime(lastSync).format(ctx)}',
+                ),
               if (d.text('sourcePath').isNotEmpty)
                 Text(
                   d.text('sourcePath'),
                   style: Theme.of(ctx).textTheme.bodySmall,
                 ),
-              if (materialDeviceAvailable && d.text('itemId').isNotEmpty)
+              if (materialDeviceAvailable &&
+                  d.text('itemId').isNotEmpty &&
+                  d.text('extension') != 'link')
                 OutlinedButton.icon(
                   onPressed: () => guarded(ctx, () async {
                     final client = drive ?? OneDriveClient();
@@ -383,12 +412,39 @@ Future<void> showMaterialDetails(
                   icon: const Icon(Icons.download_outlined),
                   label: const Text('Offline laden / aktualisieren'),
                 ),
+              if (d.text('itemId').isNotEmpty &&
+                  d.text('localKey').isNotEmpty) ...[
+                if (DateTime.tryParse(d.text('cachedAt')) case final date?)
+                  Text(
+                    'Offline geladen am ${displayDate(dateOnly(date.toLocal()))}',
+                  ),
+                if (d.text('remoteName').isNotEmpty &&
+                    (cloudExtension(d.text('remoteName')) !=
+                            d.text('extension') ||
+                        d.text('remoteEtag').isNotEmpty &&
+                            d.text('remoteEtag') != d.text('etag') ||
+                        d.text('remoteModifiedAt').isNotEmpty &&
+                            d.text('remoteModifiedAt') !=
+                                d.text('sourceModifiedAt')))
+                  const Text('Neuere OneDrive-Fassung verfügbar'),
+              ],
               if (materialDeviceAvailable &&
                   d.text('localKey').isNotEmpty &&
                   d.text('url').isNotEmpty)
                 TextButton.icon(
                   onPressed: () => guarded(ctx, () async {
-                    await c.saveClassroom(d.patch({'localKey': ''}));
+                    final name = d.text('remoteName');
+                    await c.saveClassroom(
+                      d.patch({
+                        'localKey': '',
+                        'etag': '',
+                        'cachedAt': '',
+                        if (name.isNotEmpty) ...{
+                          'name': name,
+                          'extension': cloudExtension(name),
+                        },
+                      }),
+                    );
                     await removeUnusedMaterialFile(
                       c,
                       const LocalMaterialFiles(),
@@ -474,11 +530,34 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
         c.classroom,
         date,
       ).where(matches).toList();
-      final downloadable = {
-        for (final m in [...materials, ...scheduled]) m.id: m,
-      }.values.toList();
+      final dayMaterials = preparedDayMaterials(c.classroom, date);
+      final planned = dayMaterials
+          .where(
+            (d) =>
+                teachingDay(d) == date &&
+                !ids.contains(d.id) &&
+                !scheduled.any((s) => s.id == d.id) &&
+                matches(d),
+          )
+          .toList();
+      final weekly = c.classroom
+          .where(
+            (d) =>
+                !d.deleted &&
+                d.kind == ClassroomKind.material &&
+                teachingDay(d).isEmpty &&
+                teachingWeek(d) == weekOfDay(date) &&
+                !ids.contains(d.id) &&
+                matches(d),
+          )
+          .toList();
       final suggestions = suggestedMaterials(c.classroom, date)
-          .where((m) => matches(m) && !scheduled.any((d) => d.id == m.id))
+          .where(
+            (m) =>
+                matches(m) &&
+                !dayMaterials.any((d) => d.id == m.id) &&
+                !weekly.any((d) => d.id == m.id),
+          )
           .toList();
       return FlexModal(
         title: const Text('Bereitgelegt'),
@@ -559,18 +638,20 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                   icon: const Icon(Icons.add),
                   label: const Text('Dateien / Paket'),
                 ),
-                OutlinedButton.icon(
-                  onPressed:
-                      busy || downloadable.isEmpty || !materialDeviceAvailable
-                      ? null
-                      : () => run(() => cacheMaterials(ctx, c, downloadable)),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Offline laden'),
-                ),
               ],
             ),
+            if (dayMaterials.isNotEmpty)
+              PreparedOfflineStatus(
+                key: ValueKey(date),
+                controller: c,
+                materials: dayMaterials,
+                details: true,
+              ),
             if (busy) const LinearProgressIndicator(),
-            if (materials.isEmpty && scheduled.isEmpty)
+            if (materials.isEmpty &&
+                scheduled.isEmpty &&
+                planned.isEmpty &&
+                weekly.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
@@ -632,6 +713,9 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
             ),
             if (ids.length > allMaterials.length)
               const Text('Dateien im Papierkorb werden hier ausgeblendet.'),
+            if (planned.isNotEmpty)
+              _PlanningFiles(c, 'Für diesen Unterrichtstag', planned),
+            if (weekly.isNotEmpty) _PlanningFiles(c, 'Für diese Woche', weekly),
             if (scheduled.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text(
@@ -699,12 +783,20 @@ Future<void> cacheMaterials(
   NotebookController c,
   List<ClassroomDocument> materials, {
   OneDriveClient? drive,
+  bool offerSignIn = false,
 }) async {
   final client = drive ?? OneDriveClient();
   var cached = 0;
   final failed = <String>[];
   try {
-    if (drive == null) await client.load();
+    if (drive == null && materials.any((m) => m.text('itemId').isNotEmpty)) {
+      await client.load();
+    }
+    if (offerSignIn && !client.connected) {
+      if (!context.mounted) return;
+      await connectOneDrive(context, client);
+      if (!client.connected || !context.mounted) return;
+    }
     for (final m in materials) {
       try {
         if (m.text('itemId').isNotEmpty) {
@@ -715,8 +807,8 @@ Future<void> cacheMaterials(
           throw const DomainError('Nur als Link verfügbar');
         }
         cached++;
-      } catch (_) {
-        failed.add(m.title);
+      } catch (e) {
+        failed.add('${m.title} · ${friendlyError(e)}');
       }
     }
   } finally {
@@ -873,37 +965,45 @@ class PreparedMaterialsTile extends StatelessWidget {
   final String query;
   @override
   Widget build(BuildContext context) {
-    final prepared = preparationFor(controller.classroom, date);
-    final materials = {
-      for (final material in [
-        ...resolveMaterials(
-          controller.classroom,
-          prepared.deleted ? [] : prepared.strings('materialIds'),
-        ),
-        ...pupilMaterialsOnDay(controller.classroom, date),
-      ])
-        if (materialMatches(material, query, pupils: controller.pupils))
-          material.id: material,
-    }.values.toList();
+    final dayMaterials = preparedDayMaterials(controller.classroom, date);
+    final materials = dayMaterials
+        .where((m) => materialMatches(m, query, pupils: controller.pupils))
+        .toList();
     final count = materials.length;
+    final now = DateTime.now();
+    final tomorrow = dateOnly(DateTime(now.year, now.month, now.day + 1));
+    final dayLabel = date == dateOnly(now)
+        ? 'Heute · '
+        : date == tomorrow
+        ? 'Morgen · '
+        : '';
     return ListTile(
       key: ValueKey('prepared-day-$date'),
       contentPadding: EdgeInsets.zero,
       leading: materials.isEmpty
           ? const Icon(Icons.folder_open_outlined)
           : MaterialThumbnail(material: materials.first, width: 40, height: 52),
-      title: Text(
-        '${date == dateOnly(DateTime.now()) ? 'Heute · ' : ''}${displayDate(date)}',
-      ),
-      subtitle: Text(
-        [
-          count == 0
-              ? 'Unterlagen bereitlegen'
-              : '$count ${count == 1 ? 'Material' : 'Materialien'}',
-          if (materials.isNotEmpty) materials.map((m) => m.title).join(', '),
-        ].join(' · '),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+      title: Text('$dayLabel${displayDate(date)}'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              count == 0
+                  ? 'Unterlagen bereitlegen'
+                  : '$count ${count == 1 ? 'Material' : 'Materialien'}',
+              if (materials.isNotEmpty)
+                materials.map((m) => m.title).join(', '),
+            ].join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (dayMaterials.isNotEmpty)
+            PreparedOfflineStatus(
+              controller: controller,
+              materials: dayMaterials,
+            ),
+        ],
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () =>

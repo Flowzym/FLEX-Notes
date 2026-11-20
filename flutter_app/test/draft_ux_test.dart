@@ -393,7 +393,8 @@ void main() {
       expect(find.text('2.'), findsOneWidget);
       final rows = find.byType(TextFormField);
       await t.enterText(rows.at(1), 'Schreiben');
-      await tap(t, find.byTooltip('Teilaufgabe hinzufügen').at(1));
+      await tap(t, find.byTooltip('Aufgabe verwalten').at(1));
+      await tap(t, find.text('Teilaufgabe hinzufügen'));
       await t.enterText(rows.at(2), 'Satz ergänzen');
       await autosave(t);
       final draft = (await repo.schoolDrafts()).single;
@@ -411,6 +412,10 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('1.'), findsOneWidget);
       expect(find.text('2.'), findsOneWidget);
+      await tap(
+        t,
+        find.byKey(ValueKey('task-menu-${draft.record.tasks[1].id}')),
+      );
       await tap(
         t,
         find.byKey(ValueKey('task-remove-${draft.record.tasks[1].id}')),

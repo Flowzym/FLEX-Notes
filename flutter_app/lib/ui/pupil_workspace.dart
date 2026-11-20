@@ -437,8 +437,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                       ...r.negative.map((t) => '− $t'),
                     ].where((s) => s.isNotEmpty).join(' · '),
               status: [
-                if (r.kind == SchoolKind.homework)
-                  '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} / ${r.tasks.length} erledigt',
+                if (r.kind == SchoolKind.homework) r.homeworkProgress,
                 if (r.kind == SchoolKind.goal)
                   r.goalStatus == 'active'
                       ? 'In Arbeit'

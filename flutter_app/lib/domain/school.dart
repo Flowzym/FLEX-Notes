@@ -12,6 +12,18 @@ extension SchoolKindLabel on SchoolKind {
   };
 }
 
+Set<String> homeworkGroupRecordIds(Map request) =>
+    request['type'] == 'dialog-bulk'
+    ? {
+        for (final row in request['school'] as List? ?? [])
+          if (row is Map && row['kind'] == 'homework' && row['id'] is String)
+            row['id'] as String,
+      }
+    : {
+        for (final id in request['ids'] as List? ?? [])
+          if (id is String) id,
+      };
+
 enum TaskState { open, complete, partial, missing }
 
 extension TaskStateLabel on TaskState {
@@ -29,30 +41,35 @@ class HomeworkTask {
     required this.text,
     this.parentId,
     this.initialState = TaskState.open,
+    this.reassignedTo,
   });
   final String id, text;
-  final String? parentId;
+  final String? parentId, reassignedTo;
   final TaskState initialState;
   HomeworkTask copyWith({
     String? text,
     String? parentId,
     bool clearParent = false,
+    String? reassignedTo,
   }) => HomeworkTask(
     id: id,
     text: text ?? this.text,
     parentId: clearParent ? null : parentId ?? this.parentId,
     initialState: initialState,
+    reassignedTo: reassignedTo ?? this.reassignedTo,
   );
   Json toJson() => {
     'id': id,
     'text': text,
     'parentId': parentId,
     'initialState': initialState.name,
+    if (reassignedTo != null) 'reassignedTo': reassignedTo,
   };
   factory HomeworkTask.fromJson(Json j) => HomeworkTask(
     id: j['id'] as String,
     text: j['text'] as String,
     parentId: j['parentId'] as String?,
+    reassignedTo: j['reassignedTo'] as String?,
     initialState: TaskState.values.byName(
       j['initialState'] as String? ?? 'open',
     ),
@@ -154,6 +171,55 @@ class GoalReview {
 
 /// Newly reconstructed payload. Unknown historical formats are never silently
 /// interpreted as this format or rewritten by opening the application.
+const focusAnswers = ['Selbstständig', 'Nach einem Hinweis', 'Mit Begleitung'];
+
+class LessonQuestion {
+  const LessonQuestion(
+    this.text,
+    this.date, {
+    this.start = '',
+    this.end = '',
+    this.answer = '',
+  });
+  final String text, date, start, end, answer;
+  String get summary => answer.isEmpty ? text : '$text · $answer';
+  Json toJson() => {
+    'text': text,
+    'date': date,
+    if (start.isNotEmpty) 'start': start,
+    if (end.isNotEmpty) 'end': end,
+    if (answer.isNotEmpty) 'answer': answer,
+  };
+  factory LessonQuestion.fromJson(Json data) {
+    final question = LessonQuestion(
+      data['text'] as String,
+      data['date'] as String,
+      start: data['start'] as String? ?? '',
+      end: data['end'] as String? ?? '',
+      answer: data['answer'] as String? ?? '',
+    );
+    if (question.text.trim().isEmpty ||
+        question.text.length > 300 ||
+        !validDate(question.date) ||
+        !validTime(question.start) ||
+        !validTime(question.end) ||
+        question.start.isEmpty != question.end.isEmpty ||
+        question.start.isNotEmpty &&
+            question.start.compareTo(question.end) >= 0 ||
+        question.answer.isNotEmpty && !focusAnswers.contains(question.answer)) {
+      throw const DomainError(
+        'Bitte Frage, Unterrichtszeit und Antwort prüfen.',
+      );
+    }
+    return question;
+  }
+  bool applies(String day, String time) =>
+      day == date &&
+      (start.isEmpty ||
+          time.isEmpty ||
+          time.compareTo(start) >= 0 && time.compareTo(end) < 0);
+}
+
 class SchoolRecord {
   SchoolRecord({
     required this.id,
@@ -176,6 +242,8 @@ class SchoolRecord {
     this.criterion = '',
     this.pupilPerspective = '',
     this.goalStatus = 'active',
+    this.lessonQuestion,
+    this.homeworkGroup = '',
     this.dueDate,
     this.nextReviewDate,
     this.goalId,
@@ -225,6 +293,8 @@ class SchoolRecord {
       goalSnapshot,
       otherParticipants;
   final String? dueDate, nextReviewDate, goalId, situationId;
+  final LessonQuestion? lessonQuestion;
+  final String homeworkGroup;
   // Old free-form assignments remain whole; never split narrative on " · ".
   final String? taskFree;
   final List<String> taskTags;
@@ -258,12 +328,26 @@ class SchoolRecord {
     return changes.isEmpty ? 'unknown' : changes.last.delivery!;
   }
 
+  String get homeworkProgress {
+    final active = tasks.where((t) => t.reassignedTo == null);
+    final reassigned = tasks.length - active.length;
+    return [
+      if (active.isNotEmpty || reassigned == 0)
+        '${active.where((t) => taskState(t) == TaskState.complete).length} / ${active.length} erledigt',
+      if (reassigned > 0) '$reassigned erneut aufgegeben',
+    ].join(' · ');
+  }
+
   bool get pending =>
       !deleted &&
       (kind == SchoolKind.goal
           ? goalStatus == 'active'
           : kind == SchoolKind.homework &&
-                tasks.any((t) => taskState(t) != TaskState.complete));
+                tasks.any(
+                  (t) =>
+                      t.reassignedTo == null &&
+                      taskState(t) != TaskState.complete,
+                ));
   String get searchText => [
     title,
     body,
@@ -272,6 +356,7 @@ class SchoolRecord {
     support,
     criterion,
     goalSnapshot,
+    if (lessonQuestion != null) lessonQuestion!.summary,
     otherParticipants,
     ...positive,
     ...neutral,
@@ -302,6 +387,8 @@ class SchoolRecord {
     'criterion': criterion,
     'pupilPerspective': pupilPerspective,
     'goalStatus': goalStatus,
+    if (homeworkGroup.isNotEmpty) 'homeworkGroup': homeworkGroup,
+    if (lessonQuestion != null) 'lessonQuestion': lessonQuestion!.toJson(),
     'dueDate': dueDate,
     'nextReviewDate': nextReviewDate,
     'goalId': goalId,
@@ -347,6 +434,10 @@ class SchoolRecord {
       criterion: j['criterion'] as String,
       pupilPerspective: j['pupilPerspective'] as String,
       goalStatus: j['goalStatus'] as String,
+      homeworkGroup: j['homeworkGroup'] as String? ?? '',
+      lessonQuestion: j['lessonQuestion'] == null
+          ? null
+          : LessonQuestion.fromJson(Json.from(j['lessonQuestion'] as Map)),
       dueDate: j['dueDate'] as String?,
       nextReviewDate: j['nextReviewDate'] as String?,
       goalId: j['goalId'] as String?,
@@ -390,12 +481,28 @@ class SchoolRecord {
         !['self', 'reported', 'interpretation'].contains(source)) {
       throw const DomainError('Der gespeicherte Eintrag ist ungültig.');
     }
+    if (homeworkGroup.length > 250 ||
+        homeworkGroup.isNotEmpty && kind != SchoolKind.homework) {
+      throw const DomainError('Ungültige Hausübungsgruppe.');
+    }
+    if (lessonQuestion case final q?) {
+      if (!(kind == SchoolKind.goal && q.answer.isEmpty ||
+          kind == SchoolKind.work &&
+              q.answer.isNotEmpty &&
+              goalId != null &&
+              q.date == observedOn)) {
+        throw const DomainError(
+          'Diese Beobachtungsfrage gehört zu einem anderen Eintrag.',
+        );
+      }
+    }
     if (!draft && kind == SchoolKind.goal && title.trim().isEmpty) {
       throw const DomainError('Bitte ein Ziel formulieren.');
     }
     if (!draft &&
         [SchoolKind.social, SchoolKind.work].contains(kind) &&
         body.trim().isEmpty &&
+        lessonQuestion == null &&
         positive.isEmpty &&
         neutral.isEmpty &&
         negative.isEmpty &&

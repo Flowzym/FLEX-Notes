@@ -92,6 +92,7 @@ class FakeReminders implements ReminderPort {
   Future<void> apply(
     List<ReminderRequest> requests, {
     required bool exact,
+    Set<int> retainDelivered = const {},
   }) async {
     applied.add(requests);
   }

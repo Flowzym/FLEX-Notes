@@ -1,4 +1,5 @@
 import 'quick_access.dart';
+import 'material_sync.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flex_device/flex_device.dart';
@@ -16,6 +17,23 @@ import 'stream_backup.dart';
 import 'material_storage.dart';
 import 'reminders.dart';
 import 'secret_store.dart';
+
+const materialSyncTask = 'flex.material-folders.v1';
+Future<void> scheduleMaterialSync(bool enabled) async {
+  if (!enabled) {
+    await Workmanager().cancelByUniqueName(materialSyncTask);
+    return;
+  }
+  await Workmanager().registerPeriodicTask(
+    materialSyncTask,
+    materialSyncTask,
+    frequency: const Duration(minutes: 30),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    constraints: Constraints(networkType: NetworkType.connected),
+    backoffPolicy: BackoffPolicy.exponential,
+    backoffPolicyDelay: const Duration(minutes: 5),
+  );
+}
 
 const backupTask = 'flex.encrypted-backup.v1';
 Future<void> scheduleBackup(int? hours) async {
@@ -54,7 +72,7 @@ AutomaticBackup makeBackup(NotebookRepository repository) => AutomaticBackup(
 @pragma('vm:entry-point')
 void backgroundDispatcher() {
   Workmanager().executeTask((task, input) async {
-    if (task != backupTask) return true;
+    if (task != backupTask && task != materialSyncTask) return true;
     WidgetsFlutterBinding.ensureInitialized();
     DartPluginRegistrant.ensureInitialized();
     NotebookRepository? repository;
@@ -62,6 +80,13 @@ void backgroundDispatcher() {
     try {
       repository = await openNotebook();
       await repository.initialize();
+      if (task == materialSyncTask) {
+        final result = await syncNotebookMaterials(
+          repository,
+          const LocalMaterialFiles(),
+        );
+        return result.errors.isEmpty;
+      }
       backup = makeBackup(repository);
       await backup.run();
       return true;

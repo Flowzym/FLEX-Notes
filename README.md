@@ -1,13 +1,13 @@
 # FLEX-Notes
 
-Aktueller Stand: **0.33.0+84**, Branch **`redesign/cream-olive`**.
+Version **0.38.0+90** auf dem Branch **`redesign/cream-olive`**.
 Flutter-App für Notizen, Unterricht, Kalender, Organisation und Materialien der FLEX-Klasse.
 
 - [Materialverwaltung und individuelle Schülerzuordnung](docs/rebuild/MATERIAL-BUILD-83.md)
-- [Native OneDrive-Anmeldung](docs/rebuild/ONEDRIVE-SETUP.md)
+- [OneDrive einrichten, Unterricht planen und Materialkürzel vergeben](docs/rebuild/ONEDRIVE-SETUP.md)
 - [Aktueller Funktions- und Prüfstand](FLUTTER_STATUS.md)
 - [Integrationsprüfung, Rückläufe und Scanner](docs/rebuild/INTEGRATION-SCANNER-BUILD-84.md)
-- [Android-APKs Build 84](releases/android/build-84/README.md)
+- [Aktuelle Android-App für ARM64 herunterladen](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/android/)
 - [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
 - [Entwicklung und lokaler Start](flutter_app/README.md)
 - [Navigation, Standardansichten und Termin-Tags](docs/rebuild/NAVIGATION-BUILD-80.md)

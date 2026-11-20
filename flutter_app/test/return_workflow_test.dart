@@ -126,6 +126,39 @@ void main() {
   );
 
   testWidgets(
+    'long press on a return participant allows marking multiple replies together',
+    (t) async {
+      final form = ClassroomDocument.fromJson({
+        ...classroomInitial(ClassroomKind.returnList, c),
+        'title': 'Ausflugszettel',
+      });
+      await c.saveClassroom(form);
+      await host(t);
+      await tasks(t);
+      await tap(t, find.text('Ausflugszettel'));
+      final anna = find.text('Anna');
+      await t.ensureVisible(anna);
+      await t.longPress(anna);
+      await t.pumpAndSettle();
+      expect(find.text('Für den ausgewählten Schüler'), findsOneWidget);
+      await tap(t, find.text('Ben'));
+      expect(find.text('Für 2 ausgewählte Schüler'), findsOneWidget);
+      await tap(
+        t,
+        find.widgetWithText(TextButton, returnStatuses['form']!['received']!),
+      );
+      await c.reload();
+      expect(
+        c.classroom.single
+            .rows('participants')
+            .every((r) => r['status'] == 'received'),
+        isTrue,
+      );
+      await finish(t);
+    },
+  );
+
+  testWidgets(
     'new return is visible even after task, done and search filters',
     (t) async {
       await host(t);

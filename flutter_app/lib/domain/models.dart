@@ -584,6 +584,17 @@ class DialogDraft {
       validateScanData(data);
     } else if (j['type'] == 'pupil') {
       final pupil = Pupil.fromJson(data);
+      final edit = data['_materialEdit'];
+      if (edit != null &&
+          (edit is! Map ||
+              edit['year'] is! String ||
+              !RegExp(r'^\d{4}-\d{2}$').hasMatch(edit['year'] as String) ||
+              edit['code'] is! String ||
+              edit['aliases'] is! String ||
+              edit['revision'] is! int ||
+              (edit['revision'] as int) < 0)) {
+        throw const DomainError('Ungültiger Entwurf für das Materialkürzel.');
+      }
       if (pupil.id != j['ownerId'] ||
           pupil.color < 0 ||
           pupil.color > 0xffffffff ||
@@ -774,7 +785,7 @@ class Appearance {
         !['left', 'right'].contains(a.navigationSwipeNext) ||
         ![0, 1, 2].contains(a.liveDefaultPage) ||
         ![0, 3, 2, 4].contains(a.organisationDefaultPage) ||
-        ![0, 1, 2, 3].contains(a.materialDefaultPage) ||
+        ![0, 1, 2, 3, 4].contains(a.materialDefaultPage) ||
         ![0, 1, 2, 3, 4].contains(a.moreDefaultPage) ||
         !['light', 'dark', 'system'].contains(a.mode) ||
         !a.textScale.isFinite ||

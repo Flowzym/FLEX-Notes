@@ -53,13 +53,18 @@ Future<void> showCalendarItem(
               ).where((l) => l.target == lesson.target).firstOrNull;
         if (doc == null || current == null) {
           return FlexModal(
-            title: const Text('Unterricht'),
+            title: Text(
+              lesson.document.calendarCategory == 'appointment'
+                  ? 'Termin'
+                  : 'Unterricht',
+            ),
             onClose: () => Navigator.pop(ctx),
             content: const Text(
-              'Diese Unterrichtsstunde wurde geändert oder abgesagt.',
+              'Dieser Kalendereintrag wurde geändert oder abgesagt.',
             ),
           );
         }
+        final appointment = doc.calendarCategory == 'appointment';
         return FlexModal(
           maxWidth: 800,
           title: Text(current.title),
@@ -75,7 +80,12 @@ Future<void> showCalendarItem(
                 [
                   doc.text('subject'),
                   doc.text('teacher'),
-                  'FLEX-Klasse',
+                  if (doc.strings('pupilIds').isEmpty &&
+                      doc.text('otherParticipants').isEmpty)
+                    'FLEX-Klasse',
+                  for (final p in c.pupils)
+                    if (doc.strings('pupilIds').contains(p.id)) p.name,
+                  doc.text('otherParticipants'),
                   doc.text('room'),
                 ].where((v) => v.isNotEmpty).join(' · '),
               ),
@@ -136,7 +146,11 @@ Future<void> showCalendarItem(
                 children: [
                   OutlinedButton.icon(
                     icon: const Icon(Icons.attach_file),
-                    label: const Text('Dateien dieser Stunde'),
+                    label: Text(
+                      appointment
+                          ? 'Dateien dieses Termins'
+                          : 'Dateien dieser Stunde',
+                    ),
                     onPressed: () async {
                       final ids = await chooseMaterials(
                         ctx,
@@ -190,7 +204,7 @@ Future<void> showCalendarItem(
                       ),
                       icon: const Icon(Icons.repeat),
                       label: Text(
-                        'Stundenplan ab ${displayDate(current.originalDate)} ändern',
+                        '${appointment ? 'Terminserie' : 'Stundenplan'} ab ${displayDate(current.originalDate)} ändern',
                       ),
                     ),
                   TextButton.icon(
@@ -203,16 +217,17 @@ Future<void> showCalendarItem(
                     icon: const Icon(Icons.snooze),
                     label: const Text('Erinnerung verschieben'),
                   ),
-                  TextButton.icon(
-                    onPressed: () => showBulk(
-                      ctx,
-                      c,
-                      initialKind: 'homework',
-                      initialSubject: doc.text('subject'),
+                  if (!appointment)
+                    TextButton.icon(
+                      onPressed: () => showBulk(
+                        ctx,
+                        c,
+                        initialKind: 'homework',
+                        initialSubject: doc.text('subject'),
+                      ),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('HÜ vergeben'),
                     ),
-                    icon: const Icon(Icons.home_outlined),
-                    label: const Text('HÜ vergeben'),
-                  ),
                   TextButton.icon(
                     onPressed: () async {
                       final pupil = await showDialog<Pupil>(
@@ -259,7 +274,11 @@ Future<void> showCalendarItem(
                       ),
                     ),
                     icon: const Icon(Icons.event_busy_outlined),
-                    label: const Text('Diese Stunde entfällt'),
+                    label: Text(
+                      appointment
+                          ? 'Diesen Termin absagen'
+                          : 'Diese Stunde entfällt',
+                    ),
                   ),
                 ],
               ),

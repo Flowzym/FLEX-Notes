@@ -7,6 +7,7 @@ Future<bool> showMaterialAssignments(
   NotebookController c,
   List<ClassroomDocument> materials, {
   Pupil? pupil,
+  bool importing = false,
 }) async {
   if (materials.isEmpty) return false;
   return await showDialog<bool>(
@@ -16,6 +17,7 @@ Future<bool> showMaterialAssignments(
           controller: c,
           materials: materials,
           pupil: pupil,
+          importing: importing,
         ),
       ) ??
       false;
@@ -26,10 +28,12 @@ class _MaterialAssignments extends StatefulWidget {
     required this.controller,
     required this.materials,
     this.pupil,
+    this.importing = false,
   });
   final NotebookController controller;
   final List<ClassroomDocument> materials;
   final Pupil? pupil;
+  final bool importing;
 
   @override
   State<_MaterialAssignments> createState() => _MaterialAssignmentsState();
@@ -46,7 +50,7 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
     if (!adding)
       for (final id in ids) id: pupilMaterialDates(widget.materials.single, id),
   };
-  late final pupils = <Pupil>[
+  List<Pupil> get pupils => <Pupil>[
     if (widget.pupil != null)
       widget.pupil!
     else ...[
@@ -60,6 +64,20 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
   String query = '';
   bool busy = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    c.addListener(refresh);
+  }
+
+  void refresh() => setState(() {});
+
+  @override
+  void dispose() {
+    c.removeListener(refresh);
+    super.dispose();
+  }
 
   Future<void> plan(String id, {String? previous}) async {
     final result = await pickFlexDate(
@@ -103,14 +121,22 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
 
   @override
   Widget build(BuildContext context) {
-    final visible = pupils.where(
+    final roster = pupils;
+    final assigned = widget.materials
+        .where((d) => d.strings('pupilIds').isNotEmpty)
+        .length;
+    final visible = roster.where(
       (p) => p.name.toLowerCase().contains(query.trim().toLowerCase()),
     );
     return PopScope(
       canPop: !busy,
       child: FlexModal(
         title: Text(
-          widget.pupil == null ? 'Schüler zuordnen' : 'Material zuordnen',
+          widget.importing
+              ? 'Material übernehmen'
+              : widget.pupil == null
+              ? 'Schüler zuordnen'
+              : 'Material zuordnen',
         ),
         onClose: busy ? null : () => Navigator.pop(context),
         content: Column(
@@ -124,12 +150,16 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
             ),
             const SizedBox(height: 4),
             Text(
-              adding
+              widget.importing && adding && assigned > 0
+                  ? '$assigned von ${widget.materials.length} Dateien haben eine Schülerzuordnung. Hier kannst du weitere Schüler für alle ausgewählten Dateien ergänzen.'
+                  : widget.importing
+                  ? 'Schüler und Einsatzdatum sind optional.'
+                  : adding
                   ? 'Einsatzdatum optional. Bestehende Zuordnungen bleiben erhalten.'
                   : 'Ein Material, individuelle Einsatzdaten pro Schüler.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            if (pupils.length > 6) ...[
+            if (roster.length > 6) ...[
               const SizedBox(height: 12),
               TextField(
                 key: const ValueKey('material-assignment-search'),
@@ -145,7 +175,7 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  pupils.isEmpty
+                  roster.isEmpty
                       ? 'Zuerst unter Live → Notizen einen Schüler hinzufügen.'
                       : 'Keine passenden Schüler.',
                 ),
@@ -221,7 +251,9 @@ class _MaterialAssignmentsState extends State<_MaterialAssignments> {
           ),
           FilledButton(
             key: const ValueKey('material-assignment-save'),
-            onPressed: busy || (adding && ids.isEmpty) ? null : save,
+            onPressed: busy || (adding && ids.isEmpty && !widget.importing)
+                ? null
+                : save,
             child: Text(busy ? 'Speichert …' : 'Übernehmen'),
           ),
         ],

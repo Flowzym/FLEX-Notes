@@ -17,7 +17,57 @@ class CompleteBackup {
   static const format = 'FLEX-Complete-Backup';
   static const maxFilesBytes = 100000000;
 
-  static Map<String, String> references(String notebook) {
+  static Future<Uint8List> readFile(
+    MaterialFiles files,
+    String key,
+    String title, {
+    String? extension,
+  }) async {
+    try {
+      if (!await files.exists(key)) {
+        throw const DomainError('Die lokale Datei fehlt.');
+      }
+      final bytes = await files.read(key);
+      if (extension != null) validateMaterialBytes(bytes, extension);
+      return bytes;
+    } on DomainError catch (e) {
+      throw DomainError('„$title“ konnte nicht gesichert werden. ${e.message}');
+    } catch (_) {
+      throw DomainError(
+        '„$title“ konnte nicht aus dem lokalen Speicher gelesen werden.',
+      );
+    }
+  }
+
+  static Future<void> repairLegacyCaches(Json root, MaterialFiles files) async {
+    for (final row in root['tables']['preferences'] as List) {
+      if (!(row['key'] as String).startsWith('classroom:')) continue;
+      final data = Json.from(jsonDecode(row['payload'] as String) as Map);
+      final key = data['localKey'] as String? ?? '';
+      if (key.isEmpty ||
+          (data['itemId'] ?? '') == '' ||
+          (data['cachedAt'] ?? '') != '') {
+        continue;
+      }
+      final title = data['title'] as String? ?? key;
+      final bytes = await readFile(files, key, title);
+      Json? patch;
+      try {
+        patch = legacyCloudCorrection(data, bytes);
+      } on DomainError catch (e) {
+        throw DomainError(
+          '„$title“ konnte nicht gesichert werden. ${e.message}',
+        );
+      }
+      if (patch != null) row['payload'] = jsonEncode({...data, ...patch});
+    }
+  }
+
+  static Map<String, String> references(
+    String notebook, {
+    Map<String, String>? names,
+    Map<String, int>? sizes,
+  }) {
     final root = jsonDecode(notebook) as Map;
     final tables = root['tables'] as Map;
     final result = <String, String>{};
@@ -37,6 +87,9 @@ class CompleteBackup {
             final version = materialVersions(
               value,
             ).where((v) => v['localKey'] == key).firstOrNull;
+            names?[key] = value['title'] as String? ?? key;
+            final length = version?['size'] ?? value['size'];
+            if (length is int && length > 0) sizes?[key] = length;
             result[key] =
                 version?['extension'] as String? ??
                 value['extension'] as String? ??
@@ -48,10 +101,12 @@ class CompleteBackup {
               : value;
           if (row['type'] == 'scan' || value['type'] == 'scan') {
             for (final key in scanFileKeys(data)) {
+              names?[key] = data['title'] as String? ?? 'Scanentwurf';
               result[key] = 'jpg';
             }
           }
           for (final key in materialFileKeys(data)) {
+            names?[key] = data['title'] as String? ?? 'Materialentwurf';
             final version = materialVersions(
               data,
             ).where((v) => v['localKey'] == key).firstOrNull;
@@ -66,6 +121,27 @@ class CompleteBackup {
     return result;
   }
 
+  static Future<({int count, int bytes, int unknown})> inventory(
+    NotebookRepository repository,
+    MaterialFiles files,
+  ) async {
+    final sizes = <String, int>{};
+    final keys = references(await repository.exportBackup(), sizes: sizes).keys;
+    var bytes = 0, unknown = 0;
+    for (final key in keys) {
+      if (sizes[key] case final size?) {
+        bytes += size;
+      } else {
+        try {
+          bytes += (await files.read(key)).length;
+        } catch (_) {
+          unknown++;
+        }
+      }
+    }
+    return (count: keys.length, bytes: bytes, unknown: unknown);
+  }
+
   static Future<String> capture(
     NotebookRepository repository,
     MaterialFiles storage, {
@@ -77,6 +153,7 @@ class CompleteBackup {
         (r) => r['key'] == 'appearance',
       );
     }
+    await repairLegacyCaches(data, storage);
     final notebook = jsonEncode(data);
     if (utf8.encode(notebook).length > 20000000) {
       throw const DomainError('Die Notizbuchdaten überschreiten 20 MB.');
@@ -85,14 +162,14 @@ class CompleteBackup {
       '{"format":"$format","version":1,"notebook":$notebook,"files":{',
     );
     var total = 0, fileIndex = 0;
-    for (final ref in references(notebook).entries) {
-      if (!await storage.exists(ref.key)) {
-        throw const DomainError(
-          'Eine verknüpfte lokale Datei fehlt. Die vollständige Sicherung wurde nicht erstellt. Bitte die Datei wiederherstellen.',
-        );
-      }
-      final bytes = await storage.read(ref.key);
-      validateMaterialBytes(bytes, ref.value);
+    final names = <String, String>{};
+    for (final ref in references(notebook, names: names).entries) {
+      final bytes = await readFile(
+        storage,
+        ref.key,
+        names[ref.key] ?? ref.key,
+        extension: ref.value,
+      );
       total += bytes.length;
       if (total > maxFilesBytes) {
         throw const DomainError(

@@ -211,7 +211,12 @@ void main() {
             .getCenter(find.byKey(const ValueKey('pupil-open-a')))
             .dx;
         final order = c.appearance.shortcutOrder;
-        for (final row in [order]) {
+        final rows = <double, List<String>>{};
+        for (final name in order) {
+          final center = t.getCenter(find.byKey(ValueKey('shortcut-a-$name')));
+          rows.putIfAbsent(center.dy, () => []).add(name);
+        }
+        for (final row in rows.values) {
           final centers = row
               .map(
                 (name) =>

@@ -52,6 +52,10 @@ abstract interface class NotebookRepository {
   Future<Pupil> savePupil(Pupil pupil);
   Future<Set<String>> searchEntryKeys(String query, {String? pupilId});
   Future<List<OrgaEntry>> entries();
+  Future<void> saveOrganisationSelection(
+    List<OrgaEntry> entries,
+    List<ClassroomDocument> returns,
+  );
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {
     String? draftId,
@@ -95,7 +99,16 @@ abstract interface class NotebookRepository {
   Future<void> saveBulkDialog(DialogDraft draft);
   Future<DialogDraft> saveDialogDraft(DialogDraft draft);
   Future<void> discardDialogDraft(String id, int revision);
-  Future<Pupil> savePupilDialog(Pupil pupil, DialogDraft? draft);
+  Future<Pupil> savePupilDialog(
+    Pupil pupil,
+    DialogDraft? draft, {
+    ClassroomDocument? materialProfile,
+    List<ClassroomDocument> materialUpdates = const [],
+  });
+  Future<void> savePlanningSync(
+    List<ClassroomDocument> changes,
+    Map<String, int> rosterRevisions,
+  );
   Future<void> saveCatalogs(
     Map<String, List<String>> options,
     DialogDraft? draft,

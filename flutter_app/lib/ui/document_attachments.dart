@@ -106,6 +106,7 @@ class DocumentAttachmentSection extends StatelessWidget {
     this.additionalScopes = const [],
     this.readOnly = false,
     this.compact = false,
+    this.attachmentMenu = false,
     this.showActions = true,
     this.showFiles = true,
     this.actions = const [],
@@ -116,7 +117,7 @@ class DocumentAttachmentSection extends StatelessWidget {
   final VoidCallback? onScan, onDocuments;
   final List<ScanContext> additionalScopes;
   final bool readOnly;
-  final bool compact, showActions, showFiles;
+  final bool compact, attachmentMenu, showActions, showFiles;
 
   /// Always-visible record actions sharing the attachment toolbar.
   final List<Widget> actions, leadingActions;
@@ -148,7 +149,38 @@ class DocumentAttachmentSection extends StatelessWidget {
               runSpacing: 4,
               children: [
                 ...leadingActions,
-                if (!readOnly && compact)
+                if (!readOnly && attachmentMenu)
+                  PopupMenuButton<String>(
+                    key: const ValueKey('attachment-menu'),
+                    tooltip: 'Anhang zur Aufgabe',
+                    icon: Badge(
+                      isLabelVisible: docs.isNotEmpty || drafts > 0,
+                      label: Text('${docs.length + drafts}'),
+                      child: const Icon(Icons.attach_file),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'scan') {
+                        (onScan ?? () => scanAndShow(ctx, controller, scope))();
+                      } else {
+                        (onDocuments ??
+                            () =>
+                                showContextDocuments(ctx, controller, scope))();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'scan',
+                        key: ValueKey('attachment-scan'),
+                        child: Text('Scannen / Foto'),
+                      ),
+                      PopupMenuItem(
+                        value: 'files',
+                        key: const ValueKey('attachment-documents'),
+                        child: Text('Dateien · ${docs.length}'),
+                      ),
+                    ],
+                  )
+                else if (!readOnly && compact)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

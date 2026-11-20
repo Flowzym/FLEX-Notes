@@ -22,7 +22,58 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
   Pupil get pupil => widget.pupil;
   bool busy = false;
   String query = '';
-  bool searching = false;
+  bool searching = false, selecting = false;
+  final selected = <String>{};
+  void endSelection() {
+    selected.clear();
+    selecting = false;
+  }
+
+  void mark(String id, bool value) => setState(() {
+    selecting = true;
+    if (value) {
+      selected.add(id);
+    } else {
+      selected.remove(id);
+    }
+  });
+  Future<void> changeSelected(
+    List<ClassroomDocument> docs, {
+    required bool unlink,
+  }) => run(() async {
+    String? date;
+    if (unlink) {
+      if (!await confirmFlex(
+        context,
+        'Zuordnung entfernen?',
+        '${docs.length} Materialien aus der Übersicht von ${pupil.name} entfernen?',
+        accept: 'Entfernen',
+      )) {
+        return;
+      }
+    } else {
+      date = (await pickFlexDate(
+        context,
+        date: dateOnly(DateTime.now()),
+        allowTime: false,
+        title: 'Unterrichtstermin für ${pupil.name}',
+      ))?.$1;
+      if (date == null || date.isEmpty) return;
+    }
+    await c.saveClassroomBatch([
+      for (final d in docs)
+        if (unlink)
+          d.patch({
+            'pupilIds': d
+                .strings('pupilIds')
+                .where((id) => id != pupil.id)
+                .toList(),
+          })
+        else
+          planPupilMaterial(d, pupil.id, date!),
+    ]);
+    if (mounted) setState(endSelection);
+  });
   final search = TextEditingController();
 
   @override
@@ -115,7 +166,35 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
         title: pupil.name,
         category: 'pupilWork',
       );
+      final chosen = direct.where((d) => selected.contains(d.id)).toList();
+      final all = direct.isNotEmpty && chosen.length == direct.length;
       return FlexModal(
+        headerActions: [
+          if (direct.isNotEmpty && !selecting)
+            IconButton(
+              tooltip: 'Mehrere Materialien auswählen',
+              onPressed: busy ? null : () => setState(() => selecting = true),
+              icon: const Icon(Icons.checklist),
+            ),
+        ],
+        actions: selecting
+            ? [
+                TextButton.icon(
+                  onPressed: busy || chosen.isEmpty
+                      ? null
+                      : () => changeSelected(chosen, unlink: true),
+                  icon: const Icon(Icons.link_off),
+                  label: const Text('Zuordnung lösen'),
+                ),
+                FilledButton.icon(
+                  onPressed: busy || chosen.isEmpty
+                      ? null
+                      : () => changeSelected(chosen, unlink: false),
+                  icon: const Icon(Icons.event_outlined),
+                  label: const Text('Unterricht planen'),
+                ),
+              ]
+            : [],
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -127,51 +206,67 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                FilledButton.icon(
-                  key: const ValueKey('pupil-assign-materials'),
-                  onPressed: busy ? null : assign,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Zuordnen'),
-                ),
-                IconButton(
-                  tooltip: 'Scannen',
-                  onPressed: busy
-                      ? null
-                      : () => run(() => scanAndShow(ctx, c, scope)),
-                  icon: const Icon(Icons.document_scanner_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Dokumente / Dateien hinzufügen',
-                  onPressed: busy
-                      ? null
-                      : () => showContextDocuments(ctx, c, scope),
-                  icon: const Icon(Icons.attach_file),
-                ),
-                IconButton(
-                  tooltip: 'Materialien durchsuchen',
-                  onPressed: () => setState(() => searching = !searching),
-                  icon: const Icon(Icons.search),
-                ),
-                TextButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => showClassroomEditor(
-                          ctx,
-                          c,
-                          ClassroomKind.plan,
-                          fields: {
-                            'pupilIds': [pupil.id],
-                          },
-                        ),
-                  icon: const Icon(Icons.event_note_outlined),
-                  label: const Text('Planung'),
-                ),
-              ],
-            ),
+            if (selecting)
+              SelectionControls(
+                count: chosen.length,
+                allVisibleSelected: all,
+                onFinish: busy ? null : () => setState(endSelection),
+                onToggleAll: busy || direct.isEmpty
+                    ? null
+                    : () => setState(() {
+                        if (all) {
+                          selected.removeAll(direct.map((d) => d.id));
+                        } else {
+                          selected.addAll(direct.map((d) => d.id));
+                        }
+                      }),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  FilledButton.icon(
+                    key: const ValueKey('pupil-assign-materials'),
+                    onPressed: busy ? null : assign,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Zuordnen'),
+                  ),
+                  IconButton(
+                    tooltip: 'Scannen',
+                    onPressed: busy
+                        ? null
+                        : () => run(() => scanAndShow(ctx, c, scope)),
+                    icon: const Icon(Icons.document_scanner_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'Dokumente / Dateien hinzufügen',
+                    onPressed: busy
+                        ? null
+                        : () => showContextDocuments(ctx, c, scope),
+                    icon: const Icon(Icons.attach_file),
+                  ),
+                  IconButton(
+                    tooltip: 'Materialien durchsuchen',
+                    onPressed: () => setState(() => searching = !searching),
+                    icon: const Icon(Icons.search),
+                  ),
+                  TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => showClassroomEditor(
+                            ctx,
+                            c,
+                            ClassroomKind.plan,
+                            fields: {
+                              'pupilIds': [pupil.id],
+                            },
+                          ),
+                    icon: const Icon(Icons.event_note_outlined),
+                    label: const Text('Planung'),
+                  ),
+                ],
+              ),
             if (searching || query.isNotEmpty)
               TextField(
                 key: const ValueKey('pupil-material-search'),
@@ -209,73 +304,83 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
                   children: [
                     MaterialRow(
                       material: material,
+                      selected: selecting
+                          ? selected.contains(material.id)
+                          : null,
+                      onSelect: busy ? null : (v) => mark(material.id, v),
                       onOpen: () => run(() => openMaterial(ctx, c, material)),
                       onEdit: () => showMaterialDetails(ctx, c, material),
-                      trailing: IconButton(
-                        tooltip: 'Schülerzuordnung entfernen',
-                        icon: const Icon(Icons.link_off),
-                        onPressed: busy
-                            ? null
-                            : () => run(
-                                () => c.saveClassroom(
-                                  material.patch({
-                                    'pupilIds': material
-                                        .strings('pupilIds')
-                                        .where((id) => id != pupil.id)
-                                        .toList(),
-                                  }),
-                                ),
-                              ),
-                      ),
-                    ),
-                    Wrap(
-                      spacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (pupilMaterialDates(material, pupil.id).isEmpty)
-                          TextButton.icon(
-                            key: ValueKey('pupil-material-plan-${material.id}'),
-                            onPressed: busy ? null : () => plan(material),
-                            icon: const Icon(Icons.event_outlined, size: 18),
-                            label: const Text('Unterricht planen'),
-                          ),
-                        for (final date in pupilMaterialDates(
-                          material,
-                          pupil.id,
-                        ))
-                          TextButton.icon(
-                            key: ValueKey(
-                              'pupil-material-date-${material.id}-$date',
+                      trailing: selecting
+                          ? null
+                          : IconButton(
+                              tooltip: 'Schülerzuordnung entfernen',
+                              icon: const Icon(Icons.link_off),
+                              onPressed: busy
+                                  ? null
+                                  : () => run(
+                                      () => c.saveClassroom(
+                                        material.patch({
+                                          'pupilIds': material
+                                              .strings('pupilIds')
+                                              .where((id) => id != pupil.id)
+                                              .toList(),
+                                        }),
+                                      ),
+                                    ),
                             ),
-                            onPressed: busy
-                                ? null
-                                : () => plan(material, previous: date),
-                            icon: const Icon(Icons.event_outlined, size: 18),
-                            label: Text('Geplant: ${displayDate(date)}'),
-                          ),
-                        if (pupilMaterialDates(material, pupil.id).isNotEmpty)
-                          IconButton(
-                            tooltip: 'Weiteren Unterrichtstermin planen',
-                            onPressed: busy ? null : () => plan(material),
-                            icon: const Icon(Icons.add, size: 18),
-                          ),
-                      ],
                     ),
+                    if (!selecting)
+                      Wrap(
+                        spacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (pupilMaterialDates(material, pupil.id).isEmpty)
+                            TextButton.icon(
+                              key: ValueKey(
+                                'pupil-material-plan-${material.id}',
+                              ),
+                              onPressed: busy ? null : () => plan(material),
+                              icon: const Icon(Icons.event_outlined, size: 18),
+                              label: const Text('Unterricht planen'),
+                            ),
+                          for (final date in pupilMaterialDates(
+                            material,
+                            pupil.id,
+                          ))
+                            TextButton.icon(
+                              key: ValueKey(
+                                'pupil-material-date-${material.id}-$date',
+                              ),
+                              onPressed: busy
+                                  ? null
+                                  : () => plan(material, previous: date),
+                              icon: const Icon(Icons.event_outlined, size: 18),
+                              label: Text('Geplant: ${displayDate(date)}'),
+                            ),
+                          if (pupilMaterialDates(material, pupil.id).isNotEmpty)
+                            IconButton(
+                              tooltip: 'Weiteren Unterrichtstermin planen',
+                              onPressed: busy ? null : () => plan(material),
+                              icon: const Icon(Icons.add, size: 18),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
-            for (final d in collections)
-              ListTile(
-                leading: Icon(
-                  d.kind == ClassroomKind.plan
-                      ? Icons.event_note_outlined
-                      : Icons.folder_copy_outlined,
+            if (!selecting)
+              for (final d in collections)
+                ListTile(
+                  leading: Icon(
+                    d.kind == ClassroomKind.plan
+                        ? Icons.event_note_outlined
+                        : Icons.folder_copy_outlined,
+                  ),
+                  title: Text(d.title),
+                  subtitle: Text(d.label),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showMaterialCollection(ctx, c, d),
                 ),
-                title: Text(d.title),
-                subtitle: Text(d.label),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => showMaterialCollection(ctx, c, d),
-              ),
           ],
         ),
       );

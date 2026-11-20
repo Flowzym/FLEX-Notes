@@ -24,9 +24,65 @@ mixin SchoolStore {
     return r;
   }
 
-  Future<List<SchoolRecord>> schoolRecords() async => (await _rows(
-    'SELECT * FROM school_records ORDER BY id',
-  )).map(_record).toList();
+  Future<List<SchoolRecord>> schoolRecords() async {
+    final records = (await _rows(
+      'SELECT * FROM school_records ORDER BY id',
+    )).map(_record).toList();
+    // Earlier versions recorded the reassignment as a dated feedback item in
+    // the same transaction as the new homework. Match only unambiguous copies.
+    final byPupil = <String, List<SchoolRecord>>{};
+    for (final r in records.where((r) => r.kind == SchoolKind.homework)) {
+      byPupil.putIfAbsent(r.pupilId, () => []).add(r);
+    }
+    for (var i = 0; i < records.length; i++) {
+      final r = records[i];
+      if (r.kind != SchoolKind.homework) continue;
+      final links = <String, String>{};
+      for (final f in r.liveFeedback) {
+        if (f.taskId == null ||
+            f.state != null ||
+            !f.note.startsWith('Erneut aufgegeben')) {
+          continue;
+        }
+        final task = r.tasks
+            .where((t) => t.id == f.taskId && t.reassignedTo == null)
+            .firstOrNull;
+        if (task == null || f.taskText != task.text) continue;
+        final copies = byPupil[r.pupilId]!.where((copy) {
+          final elapsed = DateTime.parse(
+            f.createdAtUtc,
+          ).difference(DateTime.parse(copy.createdAtUtc));
+          return copy.id != r.id &&
+              !elapsed.isNegative &&
+              elapsed.inSeconds < 5 &&
+              copy.title == r.title &&
+              copy.subject == r.subject &&
+              copy.body == r.body &&
+              copy.tasks.firstOrNull?.text == task.text &&
+              f.note ==
+                  'Erneut aufgegeben${copy.dueDate == null ? '' : ' · fällig ${copy.dueDate}'}';
+        }).toList();
+        if (copies.length != 1) continue;
+        links[task.id] = copies.single.id;
+        for (final child in r.tasks.where((t) => t.parentId == task.id)) {
+          if (copies.single.tasks.any(
+            (t) => t.parentId != null && t.text == child.text,
+          )) {
+            links[child.id] = copies.single.id;
+          }
+        }
+      }
+      if (links.isNotEmpty) {
+        records[i] = r.patch({
+          'tasks': [
+            for (final t in r.tasks)
+              t.copyWith(reassignedTo: links[t.id]).toJson(),
+          ],
+        });
+      }
+    }
+    return records;
+  }
 
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
@@ -148,12 +204,16 @@ mixin SchoolStore {
       source.id,
     ]);
     if (rows.isEmpty) throw const StaleRevision();
-    final current = _record(rows.single);
+    var current = _record(rows.single);
+    if (current.feedback.any((f) => f.note.startsWith('Erneut aufgegeben'))) {
+      current = (await schoolRecords()).firstWhere((r) => r.id == source.id);
+    }
     if (current.revision != source.revision) throw const StaleRevision();
     final task = current.tasks.where((t) => t.id == taskId).firstOrNull;
     if (current.deleted ||
         current.kind != SchoolKind.homework ||
         task == null ||
+        task.reassignedTo != null ||
         current.taskState(task) != TaskState.missing) {
       throw const DomainError(
         'Die Aufgabe ist nicht mehr als nicht erledigt markiert.',
@@ -161,7 +221,7 @@ mixin SchoolStore {
     }
     final ids = <String>{taskId};
     for (final t in current.tasks) {
-      if (ids.contains(t.parentId)) ids.add(t.id);
+      if (ids.contains(t.parentId) && t.reassignedTo == null) ids.add(t.id);
     }
     final mapping = {for (final id in ids) id: newId()};
     final next = await saveSchoolRecord(
@@ -190,6 +250,11 @@ mixin SchoolStore {
     );
     await saveSchoolRecord(
       current.patch({
+        'tasks': [
+          for (final t in current.tasks)
+            (ids.contains(t.id) ? t.copyWith(reassignedTo: next.id) : t)
+                .toJson(),
+        ],
         'feedback': [...current.feedback.map((f) => f.toJson()), note.toJson()],
       }),
     );
@@ -250,6 +315,7 @@ mixin SchoolStore {
       final next = record.patch({
         'id': newId(),
         'pupilId': pupil,
+        if (record.kind == SchoolKind.homework) 'homeworkGroup': requestId,
         'situationId': null,
         'tasks': record.tasks
             .map(

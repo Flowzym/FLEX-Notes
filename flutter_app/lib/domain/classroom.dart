@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
+import 'planning_fields.dart';
 import 'lesson_flow_data.dart';
 import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
@@ -13,6 +14,7 @@ enum ClassroomKind {
   holiday,
   material,
   materialSet,
+  materialProfile,
   preparation,
   plan,
   folder,
@@ -218,6 +220,14 @@ class ClassroomDocument {
   String text(String key, [String fallback = '']) =>
       _json[key] as String? ?? fallback;
   int number(String key, [int fallback = 0]) => _json[key] as int? ?? fallback;
+  bool get isTeachingLesson =>
+      kind == ClassroomKind.lesson && calendarCategory == 'lesson';
+  String get calendarCategory =>
+      text('calendarCategory') == 'appointment' ? 'appointment' : 'lesson';
+
+  bool get previewBeforeSharing =>
+      flag('redacted') ||
+      _json['redacted'] == null && (flag('scanner') || flag('scan'));
   bool flag(String key) => _json[key] as bool? ?? false;
   List<String> strings(String key) =>
       List<String>.from(_json[key] as List? ?? []);
@@ -227,6 +237,12 @@ class ClassroomDocument {
   Json toJson() => Json.from(jsonDecode(jsonEncode(_json)) as Map);
   ClassroomDocument patch(Json fields) {
     final next = {...toJson(), ...fields};
+    if (kind == ClassroomKind.material &&
+        fields.containsKey('localKey') &&
+        fields['localKey'] != text('localKey') &&
+        !fields.containsKey('cloudUpload')) {
+      next.remove('cloudUpload');
+    }
     // Removing a pupil assignment also removes only that pupil's teaching dates.
     if (kind == ClassroomKind.material &&
         fields.containsKey('pupilIds') &&
@@ -236,15 +252,46 @@ class ClassroomDocument {
           .where((row) => pupils.contains((row as Map)['pupilId']))
           .toList();
     }
+    if (kind == ClassroomKind.material && map('planning').isNotEmpty) {
+      if (fields.containsKey('pupilIds') &&
+          !fields.containsKey('planningDecisions')) {
+        final pupils = List<String>.from(next['pupilIds'] as List);
+        final prior = strings('pupilIds').toSet();
+        final changed = {
+          ...prior.difference(pupils.toSet()),
+          ...pupils.toSet().difference(prior),
+        };
+        if (changed.isNotEmpty) {
+          next['planningDecisions'] = {
+            ...strings('planningDecisions'),
+            ...changed,
+          }.toList();
+        }
+      }
+      if ((fields.containsKey('pupilDates') ||
+              fields.containsKey('pupilIds')) &&
+          !fields.containsKey('planningAutoDates') &&
+          next.containsKey('planningAutoDates')) {
+        final day = map('planningOverride')['day'] ?? map('planning')['day'];
+        next['planningAutoDates'] = strings('planningAutoDates')
+            .where(
+              (id) => (next['pupilDates'] as List? ?? []).any(
+                (r) => r['pupilId'] == id && r['date'] == day,
+              ),
+            )
+            .toList();
+      }
+    }
     return ClassroomDocument.fromJson(next);
   }
 
   RepeatRule get rule => RepeatRule.fromJson(map('repeat'));
   String get label => switch (kind) {
     ClassroomKind.timetable => 'Stundenplan',
-    ClassroomKind.lesson => 'Unterricht',
+    ClassroomKind.lesson => isTeachingLesson ? 'Unterricht' : 'Termin',
     ClassroomKind.holiday => 'Ferien / Ausfall',
     ClassroomKind.material => 'Material',
+    ClassroomKind.materialProfile => 'Materialkürzel',
     ClassroomKind.materialSet => 'Unterrichtspaket',
     ClassroomKind.preparation => 'Bereitgelegt',
     ClassroomKind.plan => 'Planung',
@@ -282,6 +329,7 @@ class ClassroomDocument {
         'icsUid',
         'icsSource',
         'icsStamp',
+        'calendarCategory',
         'remindMinutes',
         'timetableId',
         'slotIds',
@@ -300,6 +348,23 @@ class ClassroomDocument {
         'week',
         'localKey',
         'etag',
+        'cloudRule',
+        'cloudBinding',
+        'planning',
+        'planningOverride',
+        'planningDecisions',
+        'planningAutoDates',
+        'planningDismissed',
+        'planningDeferred',
+        'planningReviewedCodes',
+        'remoteCreatedAt',
+        'cloudReview',
+        'sourceMissing',
+        'cloudUpload',
+        'remoteName',
+        'remoteEtag',
+        'remoteModifiedAt',
+        'cachedAt',
         'sourceModifiedAt',
         'size',
         'documentType',
@@ -312,8 +377,16 @@ class ClassroomDocument {
         'links',
         'scan',
         'scanner',
+        'collected',
+        'redacted',
         'versions',
         'pageCount',
+      },
+      ClassroomKind.materialProfile => {
+        'schoolYear',
+        'code',
+        'reserved',
+        'aliases',
       },
       ClassroomKind.materialSet => {
         'materialIds',
@@ -336,7 +409,23 @@ class ClassroomDocument {
         'status',
         'followUp',
       },
-      ClassroomKind.folder => {'driveId', 'itemId', 'url'},
+      ClassroomKind.folder => {
+        'driveId',
+        'itemId',
+        'url',
+        'accountDrive',
+        'personal',
+        'incoming',
+        'outgoing',
+        'appRoot',
+        'purpose',
+        'subject',
+        'lastSync',
+        'planningFolder',
+        'planningReady',
+        'folderPath',
+        'syncError',
+      },
       ClassroomKind.returnList => {
         'type',
         'dueDate',
@@ -396,6 +485,76 @@ class ClassroomDocument {
           values.toSet().length != values.length ||
           values.any((v) => v.trim().isEmpty || v.length > 250)) {
         throw const DomainError('Ungültige oder doppelte Zuordnung.');
+      }
+    }
+    if (kind == ClassroomKind.materialProfile) validateMaterialProfile(_json);
+    if (kind == ClassroomKind.material) validatePlanningFields(_json);
+    if (kind == ClassroomKind.folder) {
+      if (flag('planningFolder') && (flag('personal') || flag('outgoing')) ||
+          text('folderPath').length > 5000) {
+        throw const DomainError(
+          'Ein Planungsordner ist eine Lesequelle für die FLEX-Klasse.',
+        );
+      }
+      for (final key in [
+        'personal',
+        'incoming',
+        'outgoing',
+        'planningFolder',
+        'planningReady',
+      ]) {
+        if (_json.containsKey(key) && _json[key] is! bool) {
+          throw const DomainError('Ungültige Ordnerregel.');
+        }
+      }
+      if (_json.containsKey('lastSync') &&
+          text('lastSync').isNotEmpty &&
+          DateTime.tryParse(text('lastSync')) == null) {
+        throw const DomainError('Ungültige Abgleichzeit.');
+      }
+      if ((flag('incoming') || flag('outgoing')) &&
+              (text('accountDrive').isEmpty ||
+                  (flag('outgoing') && text('appRoot').isEmpty)) ||
+          !{
+            'all',
+            'homework',
+            'return',
+            'observation',
+            'orga',
+          }.contains(text('purpose', 'all'))) {
+        throw const DomainError('Bitte Konto und Ziel der Ordnerregel prüfen.');
+      }
+    }
+    if (kind == ClassroomKind.material && _json.containsKey('cloudUpload')) {
+      if (_json['cloudUpload'] is! Map) {
+        throw const DomainError('Ungültiger OneDrive-Auftrag.');
+      }
+      final job = map('cloudUpload'), state = job['state'], name = job['name'];
+      bool invalidList(String key) =>
+          job.containsKey(key) &&
+          (job[key] is! List ||
+              (job[key] as List).any(
+                (v) => v is! String || v.isEmpty || v.length > 250,
+              ));
+      if (job.isNotEmpty &&
+          (!{'entry', 'pending', 'review', 'sent'}.contains(state) ||
+              text('localKey').isEmpty ||
+              job['key'] != text('localKey') ||
+              name is! String ||
+              name.trim().isEmpty ||
+              name.length > 255 ||
+              name.contains(RegExp(r'[/\\\x00-\x1f]')) ||
+              invalidList('targetPupils') ||
+              invalidList('pupilIds') ||
+              (state == 'pending' || state == 'sent') &&
+                  (job['ruleId'] is! String ||
+                      (job['ruleId'] as String).isEmpty ||
+                      job['accountDrive'] is! String ||
+                      (job['accountDrive'] as String).isEmpty ||
+                      job['personal'] is! bool ||
+                      job['pupilIds'] is! List ||
+                      job['targetPupils'] is! List))) {
+        throw const DomainError('Ungültiger OneDrive-Auftrag.');
       }
     }
     if (kind == ClassroomKind.timetable) {
@@ -494,6 +653,7 @@ class ClassroomDocument {
       final links = rows('links').map(DocumentLink.fromJson).toList();
       if (links.length > 100 ||
           links.map((l) => l.identity).toSet().length != links.length ||
+          _json.containsKey('redacted') && _json['redacted'] is! bool ||
           _json.containsKey('scan') && _json['scan'] is! bool ||
           _json.containsKey('scanner') && _json['scanner'] is! bool ||
           _json.containsKey('pageCount') &&
@@ -506,6 +666,7 @@ class ClassroomDocument {
     if (kind == ClassroomKind.material &&
         (!materialTypes.containsKey(text('documentType', 'other')) ||
             !materialAudiences.containsKey(text('audience', 'all')) ||
+            _json.containsKey('collected') && _json['collected'] is! bool ||
             _json.containsKey('favorite') && _json['favorite'] is! bool ||
             text('sourcePath').length > 5000)) {
       throw const DomainError('Ungültige Materialangaben.');
@@ -524,6 +685,13 @@ class ClassroomDocument {
       }
     }
     if (kind == ClassroomKind.lesson) {
+      if (_json['calendarCategory'] != null &&
+          !const {
+            'lesson',
+            'appointment',
+          }.contains(_json['calendarCategory'])) {
+        throw const DomainError('Ungültige Kalenderart.');
+      }
       if ((text('start').isNotEmpty || text('end').isNotEmpty) &&
           (!validClock(text('start')) ||
               !validEndClock(text('end')) ||
@@ -603,7 +771,13 @@ class ClassroomDocument {
         throw const DomainError('Der OneDrive-Ordner fehlt.');
       }
       if (kind == ClassroomKind.material) {
-        if (!{'pdf', 'jpg', 'docx', 'link'}.contains(text('extension')) ||
+        if (!{
+              'pdf',
+              'jpg',
+              'png',
+              'docx',
+              'link',
+            }.contains(text('extension')) ||
             number('size') < 0 ||
             text('localKey').contains(RegExp(r'[/\\.]')) ||
             (text('url').isEmpty &&
@@ -714,7 +888,23 @@ const returnTypes = {
 bool returnPending(Json row) =>
     row['status'] == 'open' || row['status'] == 'partial';
 
+enum ReturnListState {
+  pending('Antworten ausständig'),
+  complete('Vollständig'),
+  closed('Abgeschlossen');
+
+  const ReturnListState(this.label);
+  final String label;
+}
+
 extension PupilReturnList on ClassroomDocument {
+  ReturnListState get returnState => flag('closed')
+      ? ReturnListState.closed
+      : rows('participants').any(returnPending)
+      ? ReturnListState.pending
+      : ReturnListState.complete;
+  bool get returnFinished => returnState != ReturnListState.pending;
+
   Json? returnParticipant(String pupilId) => kind == ClassroomKind.returnList
       ? rows(
           'participants',

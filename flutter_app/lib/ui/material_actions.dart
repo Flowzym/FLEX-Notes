@@ -21,6 +21,7 @@ Future<void> _launchMaterial(String url) async {
   if (uri == null ||
       uri.scheme != 'https' ||
       uri.host.isEmpty ||
+      uri.userInfo.isNotEmpty ||
       !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     throw const DomainError('Der Link konnte nicht geöffnet werden.');
   }
@@ -140,241 +141,12 @@ Future<void> connectOneDrive(BuildContext context, OneDriveClient drive) async {
   }
 }
 
-Future<void> browseOneDrive(
-  BuildContext context,
-  NotebookController c,
-  OneDriveClient drive, {
-  ClassroomDocument? folder,
-}) async {
-  final root = folder == null ? await drive.graph('/me/drive/root') : null;
-  final driveId =
-      folder?.text('driveId') ??
-      (root!['parentReference'] as Map?)?['driveId'] as String? ??
-      (await drive.graph('/me/drive'))['id'] as String;
-  final rootId = folder?.text('itemId') ?? root!['id'] as String;
-  if (!context.mounted) return;
-  final stack = <({String id, String title, String url})>[
-    (
-      id: rootId,
-      title: folder?.title ?? 'OneDrive',
-      url: folder?.text('url') ?? root?['webUrl'] as String? ?? '',
-    ),
-  ];
-  var listing = drive.children(drive: driveId, folder: rootId), busy = false;
-  await showDialog<void>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, update) => FlexModal(
-        maxWidth: 800,
-        title: Text(stack.last.title),
-        onClose: busy ? null : () => Navigator.pop(ctx),
-        headerActions: [
-          if (stack.length > 1)
-            IconButton(
-              tooltip: 'Übergeordneter Ordner',
-              onPressed: busy
-                  ? null
-                  : () => update(() {
-                      stack.removeLast();
-                      listing = drive.children(
-                        drive: driveId,
-                        folder: stack.last.id,
-                      );
-                    }),
-              icon: const Icon(Icons.arrow_upward),
-            ),
-        ],
-        content: FutureBuilder<List<Json>>(
-          future: listing,
-          builder: (ctx, s) {
-            if (s.hasError) {
-              return Column(
-                children: [
-                  Text(friendlyError(s.error!)),
-                  if (!drive.connected)
-                    TextButton.icon(
-                      onPressed: () async {
-                        await connectOneDrive(ctx, drive);
-                        if (ctx.mounted && drive.connected) {
-                          update(
-                            () => listing = drive.children(
-                              drive: driveId,
-                              folder: stack.last.id,
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.login),
-                      label: const Text('Erneut anmelden'),
-                    ),
-                  TextButton(
-                    onPressed: () => update(
-                      () => listing = drive.children(
-                        drive: driveId,
-                        folder: stack.last.id,
-                      ),
-                    ),
-                    child: const Text('Erneut laden'),
-                  ),
-                ],
-              );
-            }
-            if (!s.hasData) return const LinearProgressIndicator();
-            final items = s.data!
-                .where(
-                  (v) =>
-                      v['folder'] != null ||
-                      RegExp(
-                        r'\.(pdf|docx)$',
-                        caseSensitive: false,
-                      ).hasMatch(v['name'] as String),
-                )
-                .toList();
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (items.isEmpty)
-                  const Text('Keine DOCX- oder PDF-Dateien in diesem Ordner.'),
-                for (final item in items)
-                  ListTile(
-                    leading: Icon(
-                      item['folder'] != null
-                          ? Icons.folder_outlined
-                          : Icons.description_outlined,
-                    ),
-                    title: Text(item['name'] as String),
-                    trailing: Icon(
-                      item['folder'] != null ? Icons.chevron_right : Icons.add,
-                    ),
-                    onTap: busy
-                        ? null
-                        : () async {
-                            if (item['folder'] != null) {
-                              update(() {
-                                stack.add((
-                                  id: item['id'] as String,
-                                  title: item['name'] as String,
-                                  url: item['webUrl'] as String? ?? '',
-                                ));
-                                listing = drive.children(
-                                  drive: driveId,
-                                  folder: stack.last.id,
-                                );
-                              });
-                              return;
-                            }
-                            update(() => busy = true);
-                            final ok = await guarded(ctx, () async {
-                              final id = oneDriveMaterialId(
-                                driveId,
-                                item['id'] as String,
-                                c.classroom,
-                              );
-                              final old = c.classroom
-                                  .where((d) => d.id == id)
-                                  .firstOrNull;
-                              final fields = <String, dynamic>{
-                                'driveId': driveId,
-                                'itemId': item['id'],
-                                'url': item['webUrl'],
-                                'name': item['name'],
-                                'extension': (item['name'] as String)
-                                    .split('.')
-                                    .last
-                                    .toLowerCase(),
-                                if (old == null ||
-                                    old.text('localKey').isEmpty) ...{
-                                  'size': item['size'] ?? 0,
-                                  'sourceModifiedAt':
-                                      item['lastModifiedDateTime'] ?? '',
-                                },
-                                if (old == null)
-                                  ...suggestMaterialMetadata(
-                                    item['name'] as String,
-                                  ),
-                                'deleted': false,
-                              };
-                              await c.saveClassroom(
-                                old == null
-                                    ? ClassroomDocument.create(
-                                        ClassroomKind.material,
-                                        item['name'] as String,
-                                        fields,
-                                        id: id,
-                                      )
-                                    : old.patch(fields),
-                              );
-                            });
-                            if (ctx.mounted) {
-                              update(() => busy = false);
-                              if (ok) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Material ist in FLEX verknüpft.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                  ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          FilledButton.icon(
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Diesen Ordner merken'),
-            onPressed: busy
-                ? null
-                : () async {
-                    update(() => busy = true);
-                    final ok = await guarded(ctx, () async {
-                      final id = const Uuid().v5(
-                        Namespace.url.value,
-                        'flex-folder:$driveId:${stack.last.id}',
-                      );
-                      final old = c.classroom
-                          .where((d) => d.id == id)
-                          .firstOrNull;
-                      await c.saveClassroom(
-                        old?.patch({'deleted': false}) ??
-                            ClassroomDocument.create(
-                              ClassroomKind.folder,
-                              stack.last.title,
-                              {
-                                'driveId': driveId,
-                                'itemId': stack.last.id,
-                                'url': stack.last.url,
-                              },
-                              id: id,
-                            ),
-                      );
-                    });
-                    if (ctx.mounted) {
-                      if (ok) {
-                        Navigator.pop(ctx);
-                      } else {
-                        update(() => busy = false);
-                      }
-                    }
-                  },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 Future<void> removeUnusedMaterialFile(
   NotebookController c,
   MaterialFiles files,
   String key,
 ) async {
-  if (key.isEmpty) return;
-  await removeUnusedScanFiles(c.repository, files, [key]);
+  if (key.isNotEmpty) await removeUnusedScanFiles(c.repository, files, [key]);
 }
 
 Future<ClassroomDocument> cacheMaterial(
@@ -383,6 +155,11 @@ Future<ClassroomDocument> cacheMaterial(
   OneDriveClient drive,
   MaterialFiles files,
 ) async {
+  if (material.text('extension') == 'link') {
+    throw const DomainError(
+      'Dieses Lernmedium wird online in OneDrive geöffnet.',
+    );
+  }
   if (material.text('itemId').isEmpty) {
     if (await files.exists(material.text('localKey'))) return material;
     throw const DomainError(
@@ -394,15 +171,42 @@ Future<ClassroomDocument> cacheMaterial(
     material.text('itemId'),
   );
   final exists = await files.exists(material.text('localKey'));
-  if (exists && material.text('etag') == info['eTag']) return material;
+  final remoteName =
+      info['name'] as String? ??
+      material.text('remoteName', material.text('name'));
+  final extension = remoteName.contains('.')
+      ? cloudExtension(remoteName)
+      : material.text('extension');
+  if (exists &&
+      material.text('etag').isNotEmpty &&
+      material.text('etag') == info['eTag'] &&
+      extension == material.text('extension')) {
+    return material;
+  }
   final bytes = await drive.download(info);
-  validateMaterialBytes(bytes, material.text('extension'));
+  try {
+    validateMaterialBytes(bytes, extension);
+  } on DomainError catch (error) {
+    throw DomainError(
+      '„$remoteName“ konnte nicht offline gespeichert werden. ${error.message}',
+    );
+  }
   final key = newId();
-  await files.write(key, bytes);
   late ClassroomDocument saved;
   try {
+    await files.write(key, bytes);
+    if (!listEquals(bytes, await files.read(key))) {
+      throw const DomainError('Die Offlinekopie konnte nicht geprüft werden.');
+    }
     saved = await c.repository.saveClassroomDocument(
       material.patch({
+        'extension': extension,
+        'name': remoteName,
+        'remoteName': remoteName,
+        'cachedAt': utcNow(),
+        'cloudUpload': <String, dynamic>{},
+        'remoteEtag': info['eTag'] ?? '',
+        'remoteModifiedAt': info['lastModifiedDateTime'] ?? '',
         'localKey': key,
         'etag': info['eTag'] ?? '',
         'sourceModifiedAt': info['lastModifiedDateTime'] ?? utcNow(),
@@ -411,7 +215,11 @@ Future<ClassroomDocument> cacheMaterial(
       }),
     );
   } catch (_) {
-    await files.remove(key);
+    try {
+      await files.remove(key);
+    } catch (_) {
+      // Preserve the original failure when a staged download cannot be removed.
+    }
     rethrow;
   }
   await c.reload();
@@ -429,8 +237,31 @@ Future<void> openMaterial(
   MaterialFiles files = const LocalMaterialFiles(),
 }) async {
   var current = material;
-  if (current.text('extension') == 'link' && current.text('url').isNotEmpty) {
-    await _launchMaterial(current.text('url'));
+  if (current.text('extension') == 'link') {
+    var url = current.text('url');
+    if (url.isEmpty && current.text('itemId').isNotEmpty) {
+      final client = drive ?? OneDriveClient();
+      try {
+        if (drive == null) await client.load();
+        if (!client.connected && context.mounted) {
+          await connectOneDrive(context, client);
+        }
+        if (!client.connected) return;
+        final info = await client.item(
+          current.text('driveId'),
+          current.text('itemId'),
+        );
+        url = info['webUrl'] as String? ?? '';
+      } finally {
+        if (drive == null) client.dispose();
+      }
+    }
+    if (url.isEmpty) {
+      throw const DomainError(
+        'OneDrive liefert keinen Link zu diesem Lernmedium.',
+      );
+    }
+    await _launchMaterial(url);
     return;
   }
   if (!materialDeviceAvailable) {
@@ -449,6 +280,14 @@ Future<void> openMaterial(
     // action in material details, so poor reception cannot delay a lesson.
     if (!await files.exists(current.text('localKey'))) {
       if (ownDrive) await client.load();
+      if (current.text('itemId').isNotEmpty &&
+          current.text('url').isEmpty &&
+          !client.connected &&
+          !current.flag('sourceMissing')) {
+        if (!context.mounted) return;
+        await connectOneDrive(context, client);
+        if (!client.connected) return;
+      }
       if (current.text('itemId').isNotEmpty && client.connected) {
         current = await cacheMaterial(c, current, client, files);
       }
@@ -462,8 +301,20 @@ Future<void> openMaterial(
         'Die lokale Datei fehlt. Bitte die vollständige Sicherung wiederherstellen.',
       );
     }
+    if (current.text('itemId').isNotEmpty && current.text('cachedAt').isEmpty) {
+      final correction = legacyCloudCorrection(
+        current.toJson(),
+        await files.read(current.text('localKey')),
+      );
+      if (correction != null) {
+        current = await c.repository.saveClassroomDocument(
+          current.patch(correction),
+        );
+        await c.reload();
+      }
+    }
     if (!context.mounted) return;
-    if (current.text('extension') == 'jpg') {
+    if ({'jpg', 'png'}.contains(current.text('extension'))) {
       final bytes = await files.read(current.text('localKey'));
       if (!context.mounted) return;
       await showFlexDetail<void>(

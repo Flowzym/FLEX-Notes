@@ -170,6 +170,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
       schoolScanContext(c, [r], taskIds: {r.id: ?forTask}, includeTasks: false),
     ],
     compact: forTask != null,
+    attachmentMenu: forTask != null,
     showActions: showActions,
     showFiles: showFiles,
     onScan: () => openAttachments(forTask: forTask, scan: true),
@@ -350,7 +351,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
               builder: (_) => SchoolEditor(controller: c, record: evidence),
             ),
             child: Text(
-              '${displayDate(evidence.observedOn)} · ${evidence.body.isNotEmpty ? evidence.body : [...evidence.positive, ...evidence.neutral, ...evidence.negative].join(', ')}',
+              '${displayDate(evidence.observedOn)} · ${[if (evidence.lessonQuestion case final q?) q.summary, if (evidence.body.isNotEmpty) evidence.body, ...evidence.positive, ...evidence.neutral, ...evidence.negative].join(' · ')}',
             ),
           ),
         const SizedBox(height: 16),

@@ -37,6 +37,7 @@ String readableRecord(Json value) {
       r.title,
       r.subject,
       r.body,
+      if (r.lessonQuestion case final q?) q.summary,
       ...r.positive.map((v) => '+ $v'),
       ...r.neutral.map((v) => '• $v'),
       ...r.negative.map((v) => '− $v'),

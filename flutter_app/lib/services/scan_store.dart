@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
+import '../domain/drive_rules.dart';
 import '../domain/models.dart';
 import '../domain/material_versions.dart';
 import '../domain/repository.dart';
@@ -105,6 +106,10 @@ Future<ClassroomDocument> saveScan(
           ...source.toJson(),
           'size': (await files.read(source.text('localKey'))).length,
         });
+  final pupils = await repo.pupils();
+  final rules = (await repo.classroomDocuments())
+      .where((f) => usableDriveRule(f, pupils))
+      .toList();
   final outputs = photo ? inputs : [await compute(scanPdf, inputs)];
   final keys = <String>[];
   final documents = <ClassroomDocument>[];
@@ -119,6 +124,7 @@ Future<ClassroomDocument> saveScan(
         'title': title,
         'name': scanFilename(title, extension: photo ? 'jpg' : 'pdf'),
         'documentType': data['documentType'], 'subject': data['subject'],
+        if (data['collection'] == true) 'collected': true,
         'pupilIds': data['pupilIds'],
         'links': data['links'],
         'tags': data['tags'] ?? <String>[],
@@ -132,10 +138,43 @@ Future<ClassroomDocument> saveScan(
                   previousVersion!,
                   ...materialVersions(source.toJson()),
                 ].take(materialVersionLimit).toList(),
+        'redacted':
+            data['redacted'] == true ||
+            data['sourceRedacted'] == true ||
+            source?.flag('redacted') == true,
         'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
-        'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
+        'url': '',
+        'driveId': '',
+        'itemId': '',
+        'etag': '',
+        'sourcePath': '',
+        'remoteName': '',
+        if (source?.map('planning').isNotEmpty == true) ...{
+          'planning': <String, dynamic>{},
+          'planningOverride': <String, dynamic>{},
+          'planningDecisions': <String>[],
+          'planningAutoDates': <String>[],
+          'planningDismissed': false,
+          'planningDeferred': <String>[],
+          'planningReviewedCodes': <String>[],
+          'remoteCreatedAt': '',
+        },
+        'remoteEtag': '',
+        'remoteModifiedAt': '',
+        'cachedAt': '',
       };
+      fields['cloudUpload'] = scanUploadJob(
+        data,
+        key,
+        fields['name'] as String,
+        rules,
+      );
+      fields.addAll({
+        'cloudRule': '',
+        'cloudReview': '',
+        'sourceMissing': false,
+      });
       documents.add(
         source == null
             ? ClassroomDocument.create(

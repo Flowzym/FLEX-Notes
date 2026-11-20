@@ -335,8 +335,9 @@ Future<void> showEntryDrafts(
 Future<void> showAssignedHomework(
   BuildContext context,
   NotebookController c,
-  String pupilId,
-) => showFlexDetail<void>(
+  String pupilId, {
+  bool onlyOpen = false,
+}) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
@@ -389,6 +390,7 @@ Future<void> showAssignedHomework(
             controller: c,
             pupil: pupil,
             kind: SchoolKind.homework,
+            initiallyOpenOnly: onlyOpen,
           ),
         ),
       );

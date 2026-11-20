@@ -85,6 +85,13 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  Future<void> selectFiles(WidgetTester t) async {
+    await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
+  }
+
+  final filterButton = find.byKey(const ValueKey('library-filter'));
+  final applyFilter = find.byKey(const ValueKey('library-apply-filter'));
+
   Future<void> capture(WidgetTester t, GlobalKey key, String name) async {
     final folder = Platform.environment['FLEX_TEST_ARTIFACT_DIR'];
     if (folder == null) return;
@@ -142,12 +149,14 @@ void main() {
           .position
           .jumpTo(0);
       await t.pumpAndSettle();
-      await tap(t, find.byTooltip('Materialien suchen'));
+      await tap(t, find.byKey(const ValueKey('library-search')));
       await t.enterText(find.byType(TextField), 'Brüche');
       await t.pumpAndSettle();
       expect(find.text('Englisch'), findsNothing);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Pakete'));
-      await tap(t, find.widgetWithText(ChoiceChip, 'Dateien'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Pakete').last);
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bibliothek'));
       await c.reload();
       await t.pumpAndSettle();
       expect(
@@ -169,10 +178,10 @@ void main() {
       await c.repository.saveClassroomDocuments([a, b]);
       await c.reload();
       await host(t, (_) => MaterialLibraryPage(controller: c));
-      await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
-      await tap(t, find.text('Alle angezeigten auswählen'));
+      await selectFiles(t);
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
       expect(find.text('2 ausgewählt'), findsOneWidget);
-      await tap(t, find.widgetWithText(OutlinedButton, 'Schüler'));
+      await tap(t, find.widgetWithText(OutlinedButton, 'Zuordnen'));
       await tap(t, find.text('Kind'));
       await tap(t, find.text('Übernehmen'));
       expect(
@@ -205,8 +214,13 @@ void main() {
     await tap(t, find.byTooltip('Rasteransicht'));
     await tap(t, find.byTooltip('Listenansicht'));
     expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
-    await tap(t, find.widgetWithText(TextButton, 'Filter'));
+    await tap(t, filterButton);
     await tap(t, find.byKey(const ValueKey('material-format-docx')));
+    expect(
+      find.widgetWithText(FilledButton, '1 Datei anzeigen'),
+      findsOneWidget,
+    );
+    await tap(t, applyFilter);
     expect(find.byKey(ValueKey(pdf.id)), findsNothing);
     expect(find.byKey(ValueKey(docx.id)), findsOneWidget);
     t
@@ -221,7 +235,7 @@ void main() {
         .position
         .jumpTo(0);
     await t.pumpAndSettle();
-    await tap(t, find.byTooltip('Materialien suchen'));
+    await tap(t, find.byKey(const ValueKey('library-search')));
     await t.enterText(find.byType(TextField), 'Kein Treffer');
     await t.pumpAndSettle();
     await tap(t, find.text('Suche und Filter zurücksetzen'));
@@ -230,6 +244,121 @@ void main() {
     expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
+
+  testWidgets(
+    'filter preview combines search, pupil, format and tags; dismiss keeps the applied view',
+    (t) async {
+      final c = await controller();
+      await c.savePupil(const Pupil(id: 'p', name: 'Mara'));
+      final a = material(
+        'Leseübung A',
+        fields: {
+          'extension': 'png',
+          'tags': ['Lesen', 'Montag'],
+          'pupilIds': ['p'],
+        },
+      );
+      final b = material(
+        'Leseübung B',
+        fields: {
+          'extension': 'jpg',
+          'tags': ['lesen'],
+          'pupilIds': ['p'],
+        },
+      );
+      final other = material(
+        'Leseübung Klasse',
+        fields: {
+          'extension': 'jpg',
+          'tags': ['Lesen', 'Montag'],
+        },
+      );
+      final excluded = material(
+        'Anlautbild',
+        fields: {
+          'extension': 'jpg',
+          'tags': ['Lesen', 'Montag'],
+          'pupilIds': ['p'],
+        },
+      );
+      await c.repository.saveClassroomDocuments([a, b, other, excluded]);
+      await c.reload();
+      await host(
+        t,
+        (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
+      );
+      await t.enterText(
+        find.byKey(const ValueKey('library-search')),
+        'Leseübung',
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.byKey(const ValueKey('material-pupil-filter')));
+      await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Mara'));
+      await tap(t, filterButton);
+      expect(find.text('2 Dateien anzeigen'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('material-format-jpg')));
+      await tap(t, find.widgetWithText(FilterChip, 'Montag'));
+      expect(find.text('1 Datei anzeigen'), findsOneWidget);
+      await tap(t, find.byTooltip('Schließen'));
+      expect(find.byKey(ValueKey(b.id)), findsOneWidget);
+      await tap(t, filterButton);
+      expect(find.text('2 Dateien anzeigen'), findsOneWidget);
+      await tap(t, find.widgetWithText(FilterChip, 'Montag'));
+      await tap(t, applyFilter);
+      expect(find.byKey(ValueKey(a.id)), findsOneWidget);
+      expect(find.byKey(ValueKey(b.id)), findsNothing);
+      expect(find.byKey(ValueKey(other.id)), findsNothing);
+      expect(find.text('#Montag'), findsOneWidget);
+      await tap(t, filterButton);
+      await tap(t, find.text('Zurücksetzen'));
+      expect(find.text('3 Dateien anzeigen'), findsOneWidget);
+      await tap(t, applyFilter);
+      expect(find.byKey(ValueKey(other.id)), findsOneWidget);
+      expect(find.byKey(ValueKey(excluded.id)), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'selection follows the visible files and the trash opens separately from library filters',
+    (t) async {
+      final c = await controller();
+      final a = material('Aktiv A', fields: {'favorite': true}),
+          b = material('Aktiv B');
+      final removed = material('Entfernte Datei').patch({'deleted': true});
+      final otherRemoved = material(
+        'Zweite entfernte Datei',
+      ).patch({'deleted': true});
+      await c.repository.saveClassroomDocuments([a, b, removed, otherRemoved]);
+      await c.reload();
+      await host(
+        t,
+        (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
+      );
+      await t.longPress(find.byKey(ValueKey(a.id)));
+      await t.pumpAndSettle();
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
+      await tap(t, filterButton);
+      await tap(t, find.widgetWithText(FilterChip, 'Favoriten'));
+      await tap(t, applyFilter);
+      expect(find.text('1 ausgewählt'), findsOneWidget);
+      await tap(t, find.byTooltip('Auswahl beenden'));
+      await tap(t, find.byTooltip('Bibliotheksoptionen'));
+      await tap(t, find.text('Papierkorb'));
+      expect(find.byKey(ValueKey(removed.id)), findsOneWidget);
+      await t.longPress(find.byKey(ValueKey(removed.id)));
+      await t.pumpAndSettle();
+      await tap(t, find.byTooltip('Alle angezeigten auswählen'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.widgetWithText(TextButton, 'Wiederherstellen'));
+      expect(c.classroom.where((d) => d.deleted), isEmpty);
+      await tap(t, find.byTooltip('Zur Bibliothek'));
+      expect(find.byKey(ValueKey(removed.id)), findsNothing);
+      expect(find.byKey(ValueKey(b.id)), findsNothing);
+      expect(find.byKey(ValueKey(a.id)), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'today shortcut preserves other prepared files and favorite is independent',
@@ -247,24 +376,33 @@ void main() {
         t,
         (_) => MaterialLibraryPage(controller: c, externalView: 'files'),
       );
-      Finder action(String tooltip) => find.descendant(
-        of: find.byKey(ValueKey(a.id)),
-        matching: find.byTooltip(tooltip),
-      );
-      await tap(t, action('Für heute bereitlegen'));
+      Future<void> action(String label) async {
+        await tap(
+          t,
+          find.descendant(
+            of: find.byKey(ValueKey(a.id)),
+            matching: find.byTooltip('Materialangaben und Aktionen'),
+          ),
+        );
+        await tap(t, find.text(label));
+      }
+
+      await action('Für heute bereitlegen');
       expect(preparationFor(c.classroom, today).strings('materialIds'), [
         b.id,
         a.id,
       ]);
-      await tap(t, action('Als Favorit merken'));
+      await action('Als Favorit merken');
       expect(
         c.classroom.singleWhere((d) => d.id == a.id).flag('favorite'),
         isTrue,
       );
-      await tap(t, action('Von heute entfernen'));
+      await action('Von heute entfernen');
       expect(preparationFor(c.classroom, today).strings('materialIds'), [b.id]);
       expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
+      await tap(t, filterButton);
       await tap(t, find.widgetWithText(FilterChip, 'Favoriten'));
+      await tap(t, applyFilter);
       expect(find.byKey(ValueKey(a.id)), findsOneWidget);
       expect(find.byKey(ValueKey(b.id)), findsNothing);
       expect(t.takeException(), isNull);
@@ -286,10 +424,11 @@ void main() {
         ),
       );
       expect(find.byTooltip('Für heute bereitlegen'), findsNothing);
-      await tap(t, find.byTooltip('Wiederherstellen'));
+      await tap(t, find.byTooltip('Materialangaben und Aktionen'));
+      await tap(t, find.text('Wiederherstellen'));
       expect(c.classroom.singleWhere((d) => d.id == a.id).deleted, isFalse);
       expect(find.byKey(ValueKey(a.id)), findsNothing);
-      await tap(t, find.widgetWithText(FilterChip, 'Papierkorb'));
+      await tap(t, find.byTooltip('Zur Bibliothek'));
       expect(find.byKey(ValueKey(a.id)), findsOneWidget);
       expect(t.takeException(), isNull);
     },
@@ -516,10 +655,12 @@ void main() {
         ),
       );
       await host(t, (_) => MaterialLibraryPage(controller: c), scale: scale);
-      await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
+      await selectFiles(t);
       expect(t.takeException(), isNull);
-      await tap(t, find.text('Fertig'));
-      await tap(t, find.widgetWithText(ChoiceChip, 'Planungen'));
+      await tap(t, find.byTooltip('Auswahl beenden'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Planungen').last);
       expect(t.takeException(), isNull);
     });
   }
@@ -543,6 +684,44 @@ void main() {
     await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
     expect(find.text('Bereitgelegt'), findsNothing);
   });
+
+  testWidgets(
+    'first screen at 570 by 535 shows three complete file rows including their assignment actions',
+    (t) async {
+      final c = await controller();
+      final docs = [
+        for (final name in [
+          'Hausübung · Lesetext',
+          'Arbeitsblatt · Brüche',
+          'Wochenplan',
+          'Formular',
+        ])
+          material(name, fields: {'documentType': 'pupilWork'}),
+      ];
+      await c.repository.saveClassroomDocuments(docs);
+      await c.reload();
+      t.view.physicalSize = const Size(570, 535);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      await t.pumpWidget(FlexApp(controller: c));
+      await t.pumpAndSettle();
+      await tap(t, find.byKey(const ValueKey('bottom-3')));
+      final bottomBar = t.getTopLeft(find.byKey(const ValueKey('bottom-3'))).dy;
+      final rows = docs.map((d) => t.getRect(find.byKey(ValueKey(d.id))));
+      expect(
+        rows.map((r) => r.top).reduce((a, b) => a < b ? a : b),
+        lessThan(260),
+      );
+      expect(
+        rows.where((r) => r.bottom <= bottomBar),
+        hasLength(greaterThanOrEqualTo(3)),
+      );
+      expect(find.text('Alle Dokumentarten'), findsNothing);
+      expect(find.text('Tags'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
 
   for (final (width, scale) in [(390.0, 1.0), (320.0, 2.0), (1200.0, 1.0)]) {
     testWidgets(
@@ -582,6 +761,16 @@ void main() {
         await t.pumpAndSettle();
         await t.tap(find.byKey(const ValueKey('bottom-3')));
         await t.pumpAndSettle();
+        if (scale == 2) {
+          final label = find.descendant(
+            of: find.text('Zuordnen').first,
+            matching: find.byType(RichText),
+          );
+          expect(
+            t.renderObject<RenderParagraph>(label).didExceedMaxLines,
+            isFalse,
+          );
+        }
         await capture(t, key, 'materialien-${width.toInt()}-${scale.toInt()}');
         expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
         await tap(t, find.byTooltip('Rasteransicht'));
@@ -596,17 +785,15 @@ void main() {
           const Offset(0, 1600),
         );
         await t.pumpAndSettle();
-        await tap(t, find.widgetWithText(TextButton, 'Filter'));
-        await t.scrollUntilVisible(
-          find.byKey(const ValueKey('material-sort')),
-          160,
-          scrollable: find
-              .descendant(
-                of: find.byKey(const PageStorageKey('materials-library')),
-                matching: find.byType(Scrollable),
-              )
-              .first,
+        await tap(t, filterButton);
+        expect(find.text('Material filtern'), findsOneWidget);
+        expect(find.text('Tags'), findsNothing);
+        await capture(
+          t,
+          key,
+          'materialfilter-${width.toInt()}-${scale.toInt()}',
         );
+        await tap(t, applyFilter);
         await tap(t, find.byKey(const ValueKey('material-sort')));
         await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Fach'));
         expect(t.takeException(), isNull);

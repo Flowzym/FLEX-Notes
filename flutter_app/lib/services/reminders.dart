@@ -33,8 +33,9 @@ class ReminderRequest {
 List<ReminderRequest> planReminders(
   NotebookSnapshot data,
   Map<String, dynamic> settings,
-  DateTime now,
-) {
+  DateTime now, {
+  Set<int>? retainDelivered,
+}) {
   data = data.active();
   final active = data.pupils.where((p) => !p.archived).map((p) => p.id).toSet();
   final hour = (settings['hour'] as int? ?? 9).clamp(0, 23);
@@ -50,7 +51,7 @@ List<ReminderRequest> planReminders(
     final override = overrides[target];
     if (override?.flag('dismissed') == true) return;
     final at = override == null ? when : DateTime.parse(override.text('at'));
-    if (at.isAfter(now)) {
+    if (at.isAfter(now) || retainDelivered != null) {
       candidates.add((target: target, when: at, label: label));
     }
   }
@@ -115,11 +116,9 @@ List<ReminderRequest> planReminders(
   }
   for (final d in data.classroom.where(
     (d) =>
-        !d.deleted && d.kind == ClassroomKind.returnList && !d.flag('closed'),
+        !d.deleted && d.kind == ClassroomKind.returnList && !d.returnFinished,
   )) {
-    if (d.text('dueDate').isNotEmpty &&
-        d.rows('participants').any(returnPending) &&
-        settings['tasks'] != false) {
+    if (d.text('dueDate').isNotEmpty && settings['tasks'] != false) {
       final due = schoolDay(
         d.text('dueDate'),
       ).subtract(Duration(days: d.number('remindDays')));
@@ -151,20 +150,19 @@ List<ReminderRequest> planReminders(
           l.date,
           l.start,
         ).subtract(Duration(minutes: l.document.number('remindMinutes'))),
-        'Unterricht',
+        l.document.calendarCategory == 'lesson' ? 'Unterricht' : 'Termin',
       );
     }
   }
   // Keep nearest reminders within Android/OEM alarm limits. Refresh on resume
   // replenishes the horizon; IDs remain stable when the visible window changes.
-  candidates.sort((a, b) => a.when.compareTo(b.when));
-  if (candidates.length > 200) candidates.removeRange(200, candidates.length);
   candidates.sort((a, b) => a.target.compareTo(b.target));
   final used = <int>{};
   final entryById = {for (final e in data.entries) e.id: e};
   final recordById = {for (final e in data.records) e.id: e};
   final documentById = {for (final e in data.classroom) e.id: e};
-  return candidates.map((item) {
+  final future = <ReminderRequest>[];
+  for (final item in candidates) {
     var id = 0x811c9dc5;
     for (final byte in utf8.encode(item.target)) {
       id = ((id ^ byte) * 0x01000193) & 0x7fffffff;
@@ -172,28 +170,41 @@ List<ReminderRequest> planReminders(
     while (!used.add(id)) {
       id = (id + 1) & 0x7fffffff;
     }
-    return ReminderRequest(
-      id: id,
-      target: item.target,
-      when: item.when,
-      label: item.label,
-      revision: switch (item.target.split(':').first) {
-        'orga' => entryById[item.target.substring(5)]?.revision ?? 0,
-        'school' => recordById[item.target.substring(7)]?.revision ?? 0,
-        _ => documentById[item.target.split(':')[1]]?.revision ?? 0,
-      },
-      completable:
-          item.target.startsWith('orga:') &&
-          entryById[item.target.substring(5)]?.isTask == true,
+    if (!item.when.isAfter(now)) {
+      retainDelivered?.add(id);
+      continue;
+    }
+    future.add(
+      ReminderRequest(
+        id: id,
+        target: item.target,
+        when: item.when,
+        label: item.label,
+        revision: switch (item.target.split(':').first) {
+          'orga' => entryById[item.target.substring(5)]?.revision ?? 0,
+          'school' => recordById[item.target.substring(7)]?.revision ?? 0,
+          _ => documentById[item.target.split(':')[1]]?.revision ?? 0,
+        },
+        completable:
+            item.target.startsWith('orga:') &&
+            entryById[item.target.substring(5)]?.isTask == true,
+      ),
     );
-  }).toList();
+  }
+  future.sort((a, b) => a.when.compareTo(b.when));
+  return future.take(200).toList()
+    ..sort((a, b) => a.target.compareTo(b.target));
 }
 
 abstract interface class ReminderPort {
   Future<String?> initialize(ValueChanged<String> onTap);
   Future<bool> permission({bool request = false});
   Future<bool> exactPermission({bool request = false});
-  Future<void> apply(List<ReminderRequest> requests, {required bool exact});
+  Future<void> apply(
+    List<ReminderRequest> requests, {
+    required bool exact,
+    Set<int> retainDelivered = const {},
+  });
 }
 
 class AndroidReminderPort implements ReminderPort {
@@ -241,13 +252,17 @@ class AndroidReminderPort implements ReminderPort {
   Future<void> apply(
     List<ReminderRequest> requests, {
     required bool exact,
+    Set<int> retainDelivered = const {},
   }) async {
     final wanted = requests.map((r) => r.id).toSet();
     for (final existing in await plugin.pendingNotificationRequests()) {
-      if (!wanted.contains(existing.id)) await plugin.cancel(id: existing.id);
+      if (!wanted.contains(existing.id) &&
+          !retainDelivered.contains(existing.id)) {
+        await plugin.cancel(id: existing.id);
+      }
     }
     for (final delivered in await plugin.getActiveNotifications()) {
-      if (delivered.id != null && !wanted.contains(delivered.id)) {
+      if (delivered.id != null && !retainDelivered.contains(delivered.id)) {
         await plugin.cancel(id: delivered.id!);
       }
     }
@@ -355,12 +370,19 @@ class Reminders extends ChangeNotifier {
       try {
         permitted = await port.permission();
         exact = await port.exactPermission();
+        final delivered = <int>{};
         final plan = enabled && permitted
-            ? planReminders(_snapshot!, settings, now())
+            ? planReminders(
+                _snapshot!,
+                settings,
+                now(),
+                retainDelivered: delivered,
+              )
             : <ReminderRequest>[];
-        final stamp = '$exact|${plan.map((r) => r.fingerprint).join('\n')}';
+        final stamp =
+            '$exact|${delivered.join(',')}|${plan.map((r) => r.fingerprint).join('\n')}';
         if (stamp != _applied) {
-          await port.apply(plan, exact: exact);
+          await port.apply(plan, exact: exact, retainDelivered: delivered);
           _applied = stamp;
         }
         count = plan.length;

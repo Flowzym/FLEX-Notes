@@ -83,12 +83,22 @@ mixin BackupMergeStore on SchoolStore {
       }
       if (item is List) {
         final values = item.map((v) => visit(v, key)).toList();
-        return key == 'pupilIds' ? values.toSet().toList() : values;
+        return {
+              'pupilIds',
+              'planningAutoDates',
+              'planningDecisions',
+              'planningDeferred',
+            }.contains(key)
+            ? values.toSet().toList()
+            : values;
       }
       if (item is String &&
           const {
             'pupilId',
             'pupilIds',
+            'planningAutoDates',
+            'planningDecisions',
+            'planningDeferred',
             'pupil_id',
             'participantIds',
             'recipients',
@@ -172,12 +182,28 @@ mixin BackupMergeStore on SchoolStore {
         ),
       );
     }
+    // Earlier backups only recorded HÜ membership in the group operation.
+    // Merge imports archive that operation, so preserve the association on new records.
+    final oldGroups = {
+      for (final row in (source.tables['group_saves'] as List).cast<Map>())
+        if (row['undone_at_utc'] == null)
+          for (final id in homeworkGroupRecordIds(
+            jsonDecode(row['request'] as String) as Map,
+          ))
+            id: row['id'] as String,
+    };
     for (final record in source.data.records) {
       final incoming = _references(record.toJson(), pupilLinks);
       final old = local.records
           .where((r) => r.id == record.id)
           .firstOrNull
           ?.toJson();
+      if ((old == null || old.containsKey('homeworkGroup')) &&
+          record.kind == SchoolKind.homework &&
+          record.homeworkGroup.isEmpty &&
+          oldGroups.containsKey(record.id)) {
+        incoming['homeworkGroup'] = oldGroups[record.id];
+      }
       if (old != null && old['pupilId'] != incoming['pupilId']) {
         throw const DomainError(
           'Dieselbe Eintrags-ID ist unterschiedlichen Schülern zugeordnet. Der Import wurde gestoppt.',
@@ -195,7 +221,19 @@ mixin BackupMergeStore on SchoolStore {
     }
     for (final doc in source.data.classroom) {
       final incoming = _references(doc.toJson(), pupilLinks);
-      final old = local.classroom.where((d) => d.id == doc.id).firstOrNull;
+      var id = doc.id;
+      if (doc.kind == ClassroomKind.materialProfile &&
+          doc.strings('pupilIds').isNotEmpty) {
+        final pupil = (incoming['pupilIds'] as List).single as String;
+        id =
+            pupilProfile(local.classroom, pupil, doc.text('schoolYear'))?.id ??
+            const Uuid().v5(
+              Namespace.url.value,
+              'flex-material-profile:${doc.text('schoolYear')}:$pupil',
+            );
+        incoming['id'] = id;
+      }
+      final old = local.classroom.where((d) => d.id == id).firstOrNull;
       if (old != null && old.kind != doc.kind) {
         throw const DomainError(
           'Dieselbe Klassen-ID hat unterschiedliche Eintragsarten.',
@@ -204,7 +242,7 @@ mixin BackupMergeStore on SchoolStore {
       items.add(
         MergeItem(
           kind: 'classroom',
-          id: doc.id,
+          id: id,
           label: '${doc.label} · ${doc.title}',
           incoming: incoming,
           local: old?.toJson(),

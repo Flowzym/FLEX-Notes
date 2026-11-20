@@ -1,7 +1,10 @@
+import 'selection_controls.dart';
+import 'dart:async';
 import '../domain/reminder_action.dart';
 import 'homework_control.dart';
 import 'school_year_dialog.dart';
 import 'detail_flow.dart';
+import 'entry_navigation.dart' show showAssignedHomework;
 import 'incoming_shares.dart';
 import 'quick_add.dart';
 import 'subtask_editor.dart';
@@ -55,10 +58,11 @@ class NotebookScreen extends StatefulWidget {
   State<NotebookScreen> createState() => _NotebookScreenState();
 }
 
-class _NotebookScreenState extends State<NotebookScreen> {
+class _NotebookScreenState extends State<NotebookScreen>
+    with WidgetsBindingObserver {
   NotebookController get c => widget.controller;
   int _primary = 1, _destination = 1, _materialView = 0, _moreView = 0;
-  int _orgaView = 0;
+  int _orgaView = 0, _returnsRequest = 0;
   final _visited = <int>{1};
   final _appliedDefaults = <int, int>{};
   final _dataLayout = SettingsLayoutState()..tab = 2;
@@ -77,8 +81,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
   int get _contextPage => switch (_destination) {
     0 => 0,
     1 => _primary,
-    2 => _orgaView,
-    3 => _materialView,
+    2 => _orgaView == 4 ? 0 : _orgaView,
+    3 => materialParent(_materialView),
     4 => _moreView,
     _ => 0,
   };
@@ -126,6 +130,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _primary = c.appearance.liveDefaultPage;
     _appliedDefaults[1] = _primary;
     c.services?.reminders.addListener(_notification);
@@ -310,7 +315,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(c.syncMaterials());
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     c.services?.quickAccess?.removeListener(_quickAccess);
     c.services?.lock.removeListener(_quickAccess);
     c.services?.incoming?.removeListener(_incoming);
@@ -323,6 +334,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
 
   final _busyIds = <String>{};
   void _sectionTo(int index) {
+    if (index != 1) _endPupilSelection();
     FocusManager.instance.primaryFocus?.unfocus();
     _changeView(() {
       final start = switch (index) {
@@ -352,6 +364,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
   }
 
   void _main(int index) {
+    if (index != 1) _endPupilSelection();
     _sectionTo(1);
     _changeView(() => _primary = index);
   }
@@ -360,8 +373,10 @@ class _NotebookScreenState extends State<NotebookScreen> {
     key: ValueKey('general-$kind-page'),
     controller: c,
     kind: kind,
+    returnRequest: kind == 'task' ? _returnsRequest : 0,
     onEdit: (entry) => _editor(entry, defaultToClassTask: false),
     entryBuilder: _entryCard,
+    onOpen: _taskDetails,
     onEditDraft: (draft) => _editor(draft.entry, draftId: draft.id),
   );
 
@@ -415,7 +430,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
     ),
   );
 
-  static const _materialViews = ['files', 'prepared', 'packages', 'plans'];
+  static const _materialViews = [
+    'files',
+    'prepared',
+    'packages',
+    'plans',
+    'drive',
+  ];
   Widget _moreHome() => ListView(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
@@ -424,7 +445,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
         (
           'Rückläufe',
           Icons.fact_check_outlined,
-          () => showReturnLists(context, c),
+          () {
+            _sectionTo(2);
+            _changeView(() {
+              _orgaView = 3;
+              _returnsRequest++;
+            });
+          },
         ),
         (
           'Für mehrere erfassen',
@@ -528,10 +555,12 @@ class _NotebookScreenState extends State<NotebookScreen> {
       if (!didPop) _main(c.appearance.liveDefaultPage);
     },
     child: Scaffold(
-      floatingActionButton: QuickAddButton(
-        controller: c,
-        date: _destination == 0 ? _creationDate : null,
-      ),
+      floatingActionButton: _destination == 3 || _destination == 5
+          ? null
+          : QuickAddButton(
+              controller: c,
+              date: _destination == 0 ? _creationDate : null,
+            ),
       bottomNavigationBar: FlexBottomNavigation(
         selected: _destination,
         onSelected: _sectionTo,
@@ -641,9 +670,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                           if (_visited.contains(2))
                             IndexedStack(
                               key: const ValueKey('organisation-pages'),
-                              index: organisationPages.keys.toList().indexOf(
-                                _orgaView,
-                              ),
+                              index: const [0, 3, 2, 4].indexOf(_orgaView),
                               children: [
                                 _generalOrga('all'),
                                 _generalOrga('task'),
@@ -701,6 +728,13 @@ class _NotebookScreenState extends State<NotebookScreen> {
   );
 
   String? _selectedPupil;
+  bool _choosingPupils = false;
+  final _markedPupils = <String>{};
+  void _endPupilSelection() {
+    _choosingPupils = false;
+    _markedPupils.clear();
+  }
+
   Widget _pupilWorkspace(
     Pupil current, {
     FlexSymbol? area,
@@ -803,10 +837,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
           (d) =>
               !d.deleted &&
               d.kind == ClassroomKind.returnList &&
-              !d.flag('closed') &&
+              !d.returnFinished &&
               d.text('dueDate').isNotEmpty &&
-              d.text('dueDate').compareTo(today) < 0 &&
-              d.rows('participants').any(returnPending),
+              d.text('dueDate').compareTo(today) < 0,
         )
         .toList();
     final counts = {
@@ -1033,7 +1066,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       standalone: true,
                     )
                   : orga != null
-                  ? _entryCard(orga)
+                  ? _entryCard(orga, details: true)
                   : const Text('Dieser Eintrag wurde entfernt.'),
             );
           },
@@ -1103,8 +1136,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   ...r.negative.map((v) => '− $v'),
                 ].where((v) => v.isNotEmpty).join(' · '),
           status: [
-            if (r.kind == SchoolKind.homework)
-              '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} von ${r.tasks.length} Aufgaben vollständig',
+            if (r.kind == SchoolKind.homework) r.homeworkProgress,
             if (r.kind == SchoolKind.goal)
               r.goalStatus == 'active'
                   ? 'In Arbeit'
@@ -1249,6 +1281,8 @@ class _NotebookScreenState extends State<NotebookScreen> {
         .where((p) => p.name.toLowerCase().contains(_pupilQuery.toLowerCase()))
         .toList();
     final width = MediaQuery.sizeOf(context).width;
+    final chosen = pupils.where((p) => _markedPupils.contains(p.id)).toList();
+    final choosing = !archived && _choosingPupils;
     final gutter = inSplit && width >= 1000
         ? 12.0
         : width <= 360
@@ -1271,15 +1305,52 @@ class _NotebookScreenState extends State<NotebookScreen> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           actions: [
-            if (!archived)
+            if (!archived && !choosing)
               FlexCircleButton(
                 tooltip: 'Neuer Schüler',
                 onPressed: () => _pupilEditor(),
                 icon: const Icon(Icons.person_add_alt_1_outlined),
               ),
+            if (!archived && !choosing && pupils.isNotEmpty)
+              IconButton(
+                tooltip: 'Schüler auswählen',
+                onPressed: () => _changeView(() => _choosingPupils = true),
+                icon: const Icon(Icons.checklist),
+              ),
           ],
           onChanged: (value) => _changeView(() => _pupilQuery = value),
         ),
+        if (choosing)
+          SelectionControls(
+            count: chosen.length,
+            allVisibleSelected:
+                pupils.isNotEmpty && chosen.length == pupils.length,
+            onToggleAll: pupils.isEmpty
+                ? null
+                : () => _changeView(() {
+                    if (chosen.length == pupils.length) {
+                      _markedPupils.clear();
+                    } else {
+                      _markedPupils.addAll(pupils.map((p) => p.id));
+                    }
+                  }),
+            onFinish: () => _changeView(_endPupilSelection),
+            actions: [
+              TextButton.icon(
+                onPressed: chosen.isEmpty
+                    ? null
+                    : () async {
+                        await showBulk(
+                          context,
+                          c,
+                          initialRecipients: chosen.map((p) => p.id).toList(),
+                        );
+                      },
+                icon: const Icon(Icons.note_add_outlined),
+                label: const Text('Gemeinsamer Eintrag'),
+              ),
+            ],
+          ),
         if (archived) ...[
           for (final year in c.schoolYears)
             ListTile(
@@ -1309,31 +1380,46 @@ class _NotebookScreenState extends State<NotebookScreen> {
             child: Column(
               children: [
                 for (final pupil in pupils)
-                  PupilCard(
-                    key: ValueKey('pupil-card-${pupil.id}'),
-                    pupil: pupil,
-                    selected:
-                        !archived &&
-                        inSplit &&
-                        width >= 1000 &&
-                        MediaQuery.textScalerOf(context).scale(1) <= 1.5 &&
-                        pupil.id == (_selectedPupil ?? all.firstOrNull?.id),
-                    onOpen: () {
-                      if (!archived &&
+                  SelectableEntry(
+                    key: ValueKey('pupil-select-${pupil.id}'),
+                    title: pupil.name,
+                    selected: choosing
+                        ? _markedPupils.contains(pupil.id)
+                        : null,
+                    onSelect: archived
+                        ? null
+                        : () => _changeView(() {
+                            _choosingPupils = true;
+                            if (!_markedPupils.add(pupil.id)) {
+                              _markedPupils.remove(pupil.id);
+                            }
+                          }),
+                    child: PupilCard(
+                      key: ValueKey('pupil-card-${pupil.id}'),
+                      pupil: pupil,
+                      selected:
+                          !archived &&
+                          inSplit &&
                           width >= 1000 &&
-                          MediaQuery.textScalerOf(context).scale(1) <= 1.5) {
-                        setState(() => _selectedPupil = pupil.id);
-                      } else {
-                        _openPupil(pupil);
-                      }
-                    },
-                    onShortcut: (symbol) => _entryShortcut(pupil, symbol),
-                    counts: _shortcutCounts(pupil),
-                    draftCounts: {
-                      for (final symbol in FlexSymbol.values)
-                        symbol: _pupilDraftCount(pupil.id, symbol),
-                    },
-                    due: _dueShortcuts(pupil),
+                          MediaQuery.textScalerOf(context).scale(1) <= 1.5 &&
+                          pupil.id == (_selectedPupil ?? all.firstOrNull?.id),
+                      onOpen: () {
+                        if (!archived &&
+                            width >= 1000 &&
+                            MediaQuery.textScalerOf(context).scale(1) <= 1.5) {
+                          setState(() => _selectedPupil = pupil.id);
+                        } else {
+                          _openPupil(pupil);
+                        }
+                      },
+                      onShortcut: (symbol) => _entryShortcut(pupil, symbol),
+                      counts: _shortcutCounts(pupil),
+                      draftCounts: {
+                        for (final symbol in FlexSymbol.values)
+                          symbol: _pupilDraftCount(pupil.id, symbol),
+                      },
+                      due: _dueShortcuts(pupil),
+                    ),
                   ),
               ],
             ),
@@ -1346,6 +1432,16 @@ class _NotebookScreenState extends State<NotebookScreen> {
   Future<void> _entryShortcut(Pupil pupil, FlexSymbol symbol) async {
     if (pupil.archived) {
       await _openPupil(pupil, symbol: symbol);
+      return;
+    }
+    if (symbol == FlexSymbol.homework &&
+        c.records.any(
+          (r) =>
+              r.pupilId == pupil.id &&
+              r.kind == SchoolKind.homework &&
+              r.pending,
+        )) {
+      await showAssignedHomework(context, c, pupil.id, onlyOpen: true);
       return;
     }
     if (symbol == FlexSymbol.orga) {
@@ -1444,7 +1540,33 @@ class _NotebookScreenState extends State<NotebookScreen> {
     builder: (_) => SubtaskEditor(controller: c, entry: entry),
   );
 
-  Widget _entryCard(OrgaEntry e) {
+  Future<void> _taskDetails(OrgaEntry task) => showFlexDetail<void>(
+    context: context,
+    builder: (ctx) => AnimatedBuilder(
+      animation: c,
+      builder: (_, _) {
+        final current = c.entries
+            .where((e) => e.id == task.id && !e.deleted)
+            .firstOrNull;
+        return FlexModal(
+          title: Text(
+            task.isAppointment
+                ? 'Termin'
+                : task.isTask
+                ? 'Aufgabendetails'
+                : 'Notiz',
+          ),
+          onClose: () => Navigator.pop(ctx),
+          content: current == null
+              ? const Text('Dieser Eintrag ist im Papierkorb.')
+              : _entryCard(current, details: true),
+        );
+      },
+    ),
+  );
+
+  Widget _entryCard(OrgaEntry e, {bool details = false}) {
+    final compactTask = e.isTask && !details;
     final busy = _busyIds.contains(e.id);
     return FlexCard(
       key: ValueKey('orga-entry-${e.id}'),
@@ -1472,29 +1594,35 @@ class _NotebookScreenState extends State<NotebookScreen> {
                         e.isAppointment ? Icons.event_outlined : Icons.notes,
                         color: Theme.of(context).colorScheme.primary,
                       );
-                final heading = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      '${c.owner(e)} · ${e.isAppointment
-                          ? 'Termin'
-                          : e.isTask
-                          ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
-                          : 'Notiz'}',
-                    ),
-                  ],
+                final heading = InkWell(
+                  onTap: compactTask ? () => _taskDetails(e) : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${c.owner(e)} · ${e.isAppointment
+                            ? 'Termin'
+                            : e.isTask
+                            ? (e.done ? 'Aufgabe erledigt' : 'Aufgabe offen')
+                            : 'Notiz'}',
+                      ),
+                    ],
+                  ),
                 );
                 final edit = IconButton(
-                  tooltip: 'Bearbeiten',
-                  onPressed: () => _editor(e),
-                  icon: const Icon(Icons.edit),
+                  tooltip: compactTask ? 'Aufgabendetails' : 'Bearbeiten',
+                  onPressed: compactTask
+                      ? () => _taskDetails(e)
+                      : () => _editor(e),
+                  icon: Icon(compactTask ? Icons.chevron_right : Icons.edit),
                 );
-                if (constraints.maxWidth < 300 ||
-                    MediaQuery.textScalerOf(ctx).scale(14) > 21) {
+                if (constraints.maxWidth < (compactTask ? 235 : 300) ||
+                    !compactTask &&
+                        MediaQuery.textScalerOf(ctx).scale(14) > 21) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -1514,7 +1642,9 @@ class _NotebookScreenState extends State<NotebookScreen> {
                 );
               },
             ),
-            if (e.body.trim().isNotEmpty && e.body.trim() != e.title.trim())
+            if (!compactTask &&
+                e.body.trim().isNotEmpty &&
+                e.body.trim() != e.title.trim())
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
@@ -1523,7 +1653,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (e.isTask || e.items.isNotEmpty)
+            if (details && e.isTask || e.items.isNotEmpty)
               Row(
                 children: [
                   Expanded(
@@ -1532,7 +1662,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
-                  if (e.isTask)
+                  if (e.isTask && !compactTask)
                     IconButton(
                       tooltip: 'Unteraufgabe hinzufügen',
                       onPressed: busy ? null : () => _addSubtask(e),
@@ -1600,6 +1730,7 @@ class _NotebookScreenState extends State<NotebookScreen> {
             DocumentAttachmentSection(
               controller: c,
               scope: orgaScanContext(c, e),
+              showActions: !compactTask,
               readOnly: e.deleted,
               compact: true,
               actions: [

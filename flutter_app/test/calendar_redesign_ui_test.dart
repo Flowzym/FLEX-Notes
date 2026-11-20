@@ -424,10 +424,10 @@ void main() {
           );
           expect(modes.bottom, lessThanOrEqualTo(toolbar.top));
           for (final action in [
-            'materials',
+            if (dates.width >= 460 && setting.$2 <= 1.4) 'materials',
             'manage',
             'show-lessons',
-            'filter',
+            if (dates.width >= 380 && setting.$2 <= 1.4) 'filter',
             'today',
             'previous',
             'next',
@@ -438,15 +438,43 @@ void main() {
             expect(rect.left, greaterThanOrEqualTo(toolbar.left));
             expect(rect.right, lessThanOrEqualTo(toolbar.right));
             expect(rect.center.dy, closeTo(dates.center.dy, .01));
-            expect(rect.width, greaterThanOrEqualTo(31.99));
-            expect(rect.height, greaterThanOrEqualTo(43.99));
+            expect(rect.width, greaterThanOrEqualTo(47.99));
+            expect(rect.height, greaterThanOrEqualTo(47.99));
           }
           expect(
             find.byKey(const ValueKey('calendar-edit-timetable')),
             findsNothing,
           );
           expect(find.byKey(const ValueKey('calendar-weekends')), findsNothing);
+          if (setting.$1 == 320 && setting.$2 == 2 && mode == 'week') {
+            final label = find.descendant(
+              of: find.byKey(const ValueKey('calendar-period')),
+              matching: find.byType(Text),
+            );
+            final text = t.widget<Text>(label);
+            expect(text.data, contains('KW\n'));
+            expect(text.softWrap, false);
+            expect(
+              find.ancestor(of: label, matching: find.byType(FittedBox)),
+              findsOneWidget,
+            );
+            final hour = find.descendant(
+              of: find.byKey(const ValueKey('calendar-hour-480')),
+              matching: find.byType(Text),
+            );
+            expect(t.widget<Text>(hour).maxLines, 1);
+          }
           expect(find.byTooltip('Verwalten').hitTestable(), findsOneWidget);
+          await tap(t, find.byKey(const ValueKey('calendar-manage')));
+          expect(
+            find.byKey(const ValueKey('calendar-management-materials')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('calendar-management-filter')),
+            findsOneWidget,
+          );
+          await tap(t, find.byTooltip('Schließen'));
           await capture(
             t,
             key,
@@ -472,6 +500,40 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'adjacent dates in the month grid change months in both directions',
+    (t) async {
+      final c = await controller();
+      await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
+      await tap(t, find.byKey(const ValueKey('calendar-month-2026-10-31')));
+      expect(find.text('Oktober 2026'), findsOneWidget);
+      expect(find.text('Samstag, 31. Oktober'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('calendar-month-2026-11-01')));
+      expect(find.text('November 2026'), findsOneWidget);
+      expect(find.text('Sonntag, 1. November'), findsOneWidget);
+      expect(find.byType(OrgaEditor), findsNothing);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'month long press shows the chosen agenda without starting a draft',
+    (t) async {
+      final c = await controller(seed: true);
+      await host(t, c);
+      await tap(t, find.byKey(const ValueKey('calendar-mode-2')));
+      final cell = find.byKey(const ValueKey('calendar-month-2026-11-03'));
+      await t.longPress(cell);
+      await t.pumpAndSettle();
+      expect(find.byType(OrgaEditor), findsNothing);
+      expect(find.text('Dienstag, 3. November'), findsOneWidget);
+      expect(c.drafts, isEmpty);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('month selection keeps month then opens selected day', (t) async {
     final c = await controller(seed: true);
     await host(t, c);
@@ -483,7 +545,7 @@ void main() {
       '2026-11-05',
     );
     await tap(t, find.text('Abbrechen'));
-    expect(find.text('Nov 2026'), findsOneWidget);
+    expect(find.text('November 2026'), findsOneWidget);
     await tap(t, find.byTooltip('Tagesansicht öffnen'));
     expect(find.text('Do, 5.11.'), findsOneWidget);
     expect(t.takeException(), isNull);

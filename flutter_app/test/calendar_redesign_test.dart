@@ -27,6 +27,12 @@ CalendarItem slot(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  test('ISO-Kalenderwoche am Jahreswechsel', () {
+    expect(isoCalendarWeek(DateTime(2027, 1, 1)), 53);
+    expect(isoCalendarWeek(DateTime(2027, 1, 4)), 1);
+    expect(isoCalendarWeek(DateTime(2026, 11, 18)), 47);
+  });
+
   test('week headings distinguish month and year transitions', () {
     expect(
       calendarRangeLabel(DateTime(2026, 11, 9), DateTime(2026, 11, 15)),

@@ -5,7 +5,7 @@ extension _FlowMaterials on _LessonFlowPageState {
     ClassroomDocument baseline, {
     String? phaseId,
   }) async {
-    var query = '', all = false, saving = false;
+    var query = '', all = false, pupilDay = false, saving = false;
     final owner = lessonFlowPupil(baseline);
     ClassroomDocument latest() =>
         c.classroom
@@ -36,7 +36,10 @@ extension _FlowMaterials on _LessonFlowPageState {
             final values = library
                 .where(
                   (m) =>
-                      (all || assigned.contains(m.id)) &&
+                      (all ||
+                          (pupilDay
+                              ? pupilMaterialDates(m, owner).contains(date)
+                              : assigned.contains(m.id))) &&
                       '${m.title} ${m.text('subject')} ${m.strings('tags').join(' ')}'
                           .toLowerCase()
                           .contains(query.toLowerCase()),
@@ -65,14 +68,35 @@ extension _FlowMaterials on _LessonFlowPageState {
                     spacing: 8,
                     children: [
                       ChoiceChip(
-                        label: const Text('Zugeordnet'),
-                        selected: !all,
-                        onSelected: (_) => update(() => all = false),
+                        label: Text(
+                          phaseId == null ? 'Zugeordnet' : 'In dieser Phase',
+                        ),
+                        selected: !all && !pupilDay,
+                        onSelected: (_) => update(() {
+                          all = false;
+                          pupilDay = false;
+                        }),
                       ),
+                      if (phaseId != null && owner.isNotEmpty)
+                        ChoiceChip(
+                          label: Text(
+                            date == dateOnly(DateTime.now())
+                                ? 'Heute für diesen Schüler'
+                                : 'Für diesen Schüler · ${displayDate(date)}',
+                          ),
+                          selected: pupilDay,
+                          onSelected: (_) => update(() {
+                            all = false;
+                            pupilDay = true;
+                          }),
+                        ),
                       ChoiceChip(
                         label: const Text('Alle Materialien'),
                         selected: all,
-                        onSelected: (_) => update(() => all = true),
+                        onSelected: (_) => update(() {
+                          all = true;
+                          pupilDay = false;
+                        }),
                       ),
                     ],
                   ),
@@ -85,9 +109,12 @@ extension _FlowMaterials on _LessonFlowPageState {
                             : 'Noch keine passenden Materialien zugeordnet.',
                       ),
                     ),
-                  if (!all && assigned.isEmpty)
+                  if (!all && values.isEmpty)
                     TextButton.icon(
-                      onPressed: () => update(() => all = true),
+                      onPressed: () => update(() {
+                        all = true;
+                        pupilDay = false;
+                      }),
                       icon: const Icon(Icons.folder_open_outlined),
                       label: const Text('Materialablage öffnen'),
                     ),

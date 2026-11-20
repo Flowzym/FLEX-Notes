@@ -252,6 +252,31 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                     ? a.title.toLowerCase().compareTo(b.title.toLowerCase())
                     : b.text('updatedAtUtc').compareTo(a.text('updatedAtUtc')),
               );
+        if (all.isEmpty && !c.dialogDrafts.any((d) => d.type == 'scan')) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 88),
+            children: [
+              Text(
+                'Scans & Fotos',
+                style: Theme.of(ctx).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  key: const ValueKey('scanner-first-capture'),
+                  onPressed: () => scanAndShow(ctx, c, const ScanContext()),
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('Scannen oder fotografieren'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Gespeicherte Aufnahmen und Entwürfe findest du hier.',
+              ),
+            ],
+          );
+        }
         final chosen = documents.where((d) => selected.contains(d.id)).toList();
         final drafts = c.dialogDrafts
             .where(
@@ -549,24 +574,13 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                         );
                       }
                       final d = documents[index - 1];
-                      return Row(
-                        children: [
-                          if (selecting)
-                            Checkbox(
-                              value: selected.contains(d.id),
-                              onChanged: busy ? null : (_) => toggle(d.id),
-                              semanticLabel: '${d.title} auswählen',
-                            ),
-                          Expanded(
-                            child: MaterialRow(
-                              material: d,
-                              onOpen: () => selecting
-                                  ? toggle(d.id)
-                                  : guarded(ctx, () => openMaterial(ctx, c, d)),
-                              trailing: selecting ? null : fileActions(d),
-                            ),
-                          ),
-                        ],
+                      return MaterialRow(
+                        material: d,
+                        selected: selecting ? selected.contains(d.id) : null,
+                        onSelect: busy ? null : (_) => toggle(d.id),
+                        onOpen: () =>
+                            guarded(ctx, () => openMaterial(ctx, c, d)),
+                        trailing: selecting ? null : fileActions(d),
                       );
                     },
                   );
@@ -612,6 +626,23 @@ class _ScannerLibraryState extends State<ScannerLibrary>
                                 ),
                           icon: const Icon(Icons.ios_share),
                           label: const Text('Teilen'),
+                        ),
+                      if (!trash)
+                        TextButton.icon(
+                          onPressed: busy || chosen.isEmpty
+                              ? null
+                              : () async {
+                                  final saved = await showMaterialAssignments(
+                                    ctx,
+                                    c,
+                                    chosen,
+                                  );
+                                  if (saved && mounted) {
+                                    setState(resetSelection);
+                                  }
+                                },
+                          icon: const Icon(Icons.people_outline),
+                          label: const Text('Zuordnen'),
                         ),
                       if (!trash)
                         TextButton.icon(

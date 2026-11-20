@@ -136,7 +136,18 @@ void main() {
         ).first.minutes,
         10,
       );
-      await tap(t, find.byKey(const ValueKey('flow-materials')));
+      final materialsButton = find.byKey(const ValueKey('flow-materials'));
+      await t.scrollUntilVisible(
+        materialsButton,
+        -200,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const PageStorageKey('lesson-flow')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tap(t, materialsButton);
       await tap(t, find.text('Alle Materialien'));
       await tap(t, find.byTooltip('Zuordnen: Leseblatt'));
       await tap(t, find.text('Ankommen').last);
@@ -171,8 +182,8 @@ void main() {
       await app(t);
       for (final section in [
         (1, [0, 1, 2]),
-        (2, [0, 3, 2, 4]),
-        (3, [0, 1, 2, 3]),
+        (2, [0, 3, 2]),
+        (3, [1, 0, 4]),
         (4, [0, 1, 2, 3, 4]),
       ]) {
         await tap(
@@ -356,6 +367,7 @@ void main() {
       await tap(t, find.byKey(const ValueKey('context-2-3')));
       await tap(t, find.byKey(const ValueKey('subtask-transport')));
       expect(c.entries.single.done, true);
+      await tap(t, find.byTooltip('Aufgabendetails'));
       await tap(t, find.byTooltip('Unteraufgabe hinzufügen'));
       await t.enterText(
         find.byType(TextField).last,
@@ -366,6 +378,7 @@ void main() {
       expect(c.entries.single.items.length, 2);
       expect(c.entries.single.items.first.checked, true);
       await tap(t, find.byTooltip('Erledigen'));
+      await tap(t, find.byTooltip('Schließen').last);
       await tap(t, find.byKey(const ValueKey('bottom-1')));
       await tap(t, find.byKey(const ValueKey('overview-section-overdue')));
       expect(find.text('Nichts überfällig.'), findsOneWidget);

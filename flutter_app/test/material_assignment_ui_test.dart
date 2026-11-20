@@ -188,6 +188,65 @@ void main() {
     },
   );
 
+  testWidgets(
+    'long press plans two files for one pupil and unlinking preserves the other pupil and dates',
+    (t) async {
+      final c = await controller();
+      for (final name in ['Leseblatt', 'Wortkarten']) {
+        await c.saveClassroom(
+          planPupilMaterial(
+            planPupilMaterial(material(name), 'q', '2030-12-01'),
+            'p',
+            '2026-10-05',
+          ),
+        );
+      }
+      await host(
+        t,
+        (ctx) => TextButton(
+          onPressed: () => showPupilMaterials(
+            ctx,
+            c,
+            c.pupils.firstWhere((p) => p.id == 'p'),
+          ),
+          child: const Text('Öffnen'),
+        ),
+      );
+      await tap(t, find.text('Öffnen'));
+      Future<void> select() async {
+        final first = find.text('Leseblatt');
+        await t.ensureVisible(first);
+        await t.longPress(first);
+        await t.pumpAndSettle();
+        expect(find.text('1 ausgewählt'), findsOneWidget);
+        await tap(t, find.byTooltip('Alle angezeigten auswählen'));
+        expect(find.text('2 ausgewählt'), findsOneWidget);
+      }
+
+      await select();
+      await tap(t, find.text('Unterricht planen'));
+      await tap(t, find.text('Übernehmen').last);
+      expect(
+        c.classroom.every(
+          (d) => pupilMaterialDates(d, 'p').contains(dateOnly(DateTime.now())),
+        ),
+        isTrue,
+      );
+      await select();
+      await tap(t, find.text('Zuordnung lösen'));
+      await tap(t, find.text('Entfernen'));
+      await c.reload();
+      expect(c.classroom, hasLength(2));
+      for (final d in c.classroom) {
+        expect(d.deleted, isFalse);
+        expect(d.strings('pupilIds'), ['q']);
+        expect(pupilMaterialDates(d, 'p'), isEmpty);
+        expect(pupilMaterialDates(d, 'q'), ['2030-12-01']);
+      }
+      expect(t.takeException(), isNull);
+    },
+  );
+
   testWidgets('batch assignment rejects stale revisions atomically', (t) async {
     final c = await controller();
     await c.saveClassroom(material('A'));
@@ -238,9 +297,11 @@ void main() {
       await tap(t, find.widgetWithText(CheckedPopupMenuItem<String>, 'Anna'));
       expect(find.text('Anna Blatt'), findsOneWidget);
       expect(find.text('Allgemein'), findsNothing);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Pakete'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bereitgelegt'));
+      await tap(t, find.byTooltip('Unterricht planen'));
+      await tap(t, find.text('Pakete').last);
       expect(find.text('Lesepaket'), findsOneWidget);
-      await tap(t, find.widgetWithText(ChoiceChip, 'Dateien'));
+      await tap(t, find.widgetWithText(ChoiceChip, 'Bibliothek'));
       await tap(t, find.byKey(const ValueKey('material-pupil-filter')));
       await tap(
         t,

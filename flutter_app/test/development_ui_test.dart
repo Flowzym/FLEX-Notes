@@ -90,6 +90,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(LinearProgressIndicator), findsNothing);
+      await tap(t, find.byKey(const ValueKey('development-filters')));
       await tap(t, find.byKey(const ValueKey('development-area-work')));
       expect(
         find.byKey(ValueKey('development-record-${positive.id}')),
@@ -147,6 +148,7 @@ void main() {
       await host(t, scale: 1.8);
       await tap(t, find.byKey(ValueKey('development-select-${positive.id}')));
       expect(find.text('Gespräch vorbereiten · 1'), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('development-filters')));
       await tap(t, find.byKey(const ValueKey('development-tone-neutral')));
       expect(find.text('Für Gespräch auswählen'), findsOneWidget);
       expect(

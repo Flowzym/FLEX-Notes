@@ -13,6 +13,7 @@ import 'reminder_actions.dart';
 import 'draft_buffer.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
+import 'lesson_question.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
@@ -52,7 +53,9 @@ class SchoolWorkspace extends StatefulWidget {
     required this.controller,
     required this.pupil,
     required this.kind,
+    this.initiallyOpenOnly = false,
   });
+  final bool initiallyOpenOnly;
   final NotebookController controller;
   final Pupil pupil;
   final SchoolKind kind;
@@ -62,7 +65,7 @@ class SchoolWorkspace extends StatefulWidget {
 
 class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   String query = '';
-  bool onlyOpen = false;
+  late bool onlyOpen = widget.initiallyOpenOnly;
   final search = TextEditingController();
 
   @override
@@ -133,14 +136,17 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
             ),
             actions: [
               if (!widget.pupil.archived)
-                IconButton(
-                  tooltip: 'Hausübung hinzufügen',
-                  onPressed: () => editSchool(
-                    context,
-                    widget.controller,
-                    SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                Tooltip(
+                  message: 'Hausübung hinzufügen',
+                  child: TextButton.icon(
+                    onPressed: () => editSchool(
+                      context,
+                      widget.controller,
+                      SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('HÜ aufgeben'),
                   ),
-                  icon: const Icon(Icons.add),
                 ),
             ],
           ),
@@ -236,6 +242,27 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   }
 }
 
+Future<void> showHomeworkDetail(
+  BuildContext context,
+  NotebookController c,
+  String id,
+) => showFlexDetail<void>(
+  context: context,
+  builder: (ctx) => AnimatedBuilder(
+    animation: c,
+    builder: (ctx, _) {
+      final r = c.records.where((v) => v.id == id && !v.deleted).firstOrNull;
+      return FlexModal(
+        title: const Text('Hausübung'),
+        onClose: () => Navigator.pop(ctx),
+        content: r == null
+            ? const Text('Die Hausübung wurde entfernt.')
+            : SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+    },
+  ),
+);
+
 class SchoolRecordCard extends StatefulWidget {
   const SchoolRecordCard({
     super.key,
@@ -278,53 +305,7 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   }
 
   Future<void> setTask(HomeworkTask task, TaskState state) async {
-    if (busy) return;
-    if (r.taskState(task) == state) {
-      if (state == TaskState.missing) {
-        await suggestHomeworkReassignment(context, c, r, task.id);
-      }
-      return;
-    }
-    final now = DateTime.now();
-    final f = SchoolFeedback(
-      id: newId(),
-      observedOn: dateOnly(now),
-      observedTime:
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-      createdAtUtc: utcNow(),
-      taskId: task.id,
-      taskText: task.text,
-      state: state,
-    );
-    final future = r.liveFeedback.where(
-      (v) =>
-          v.taskId == task.id &&
-          v.state != null &&
-          v.sortKey.compareTo(f.sortKey) > 0,
-    );
-    if (future.isNotEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => FlexModal(
-          title: const Text('Spätere Rückmeldung vorhanden'),
-          content: const Text(
-            'Für diese Aufgabe gibt es bereits einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Schließen'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-    final saved = await mutate(
-      r.patch({
-        'feedback': [...r.feedback.map((f) => f.toJson()), f.toJson()],
-      }),
-    );
+    final saved = await setTasks([task], state);
     if (saved && mounted && state == TaskState.missing) {
       final current = c.records.where((v) => v.id == r.id).firstOrNull;
       if (current != null) {
@@ -333,15 +314,67 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     }
   }
 
+  Future<bool> setTasks(List<HomeworkTask> tasks, TaskState state) async {
+    if (busy || r.deleted) return false;
+    final now = DateTime.now(), date = dateOnly(now), created = utcNow();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final updates = <SchoolFeedback>[];
+    for (final task in tasks) {
+      if (task.reassignedTo != null || r.taskState(task) == state) continue;
+      final feedback = SchoolFeedback(
+        id: newId(),
+        observedOn: date,
+        observedTime: time,
+        createdAtUtc: created,
+        taskId: task.id,
+        taskText: task.text,
+        state: state,
+      );
+      if (r.liveFeedback.any(
+        (v) =>
+            v.taskId == task.id &&
+            v.state != null &&
+            v.sortKey.compareTo(feedback.sortKey) > 0,
+      )) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => FlexModal(
+            title: const Text('Spätere Rückmeldung vorhanden'),
+            content: Text(
+              'Für „${task.text}“ gibt es einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Schließen'),
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+      updates.add(feedback);
+    }
+    if (updates.isEmpty) return true;
+    return mutate(
+      r.patch({
+        'feedback': [...r.feedback, ...updates].map((v) => v.toJson()).toList(),
+      }),
+    );
+  }
+
   Widget homeworkView(BuildContext context) => HomeworkRecordView(
     controller: c,
     record: r,
     expanded: homeworkExpanded,
     standalone: widget.standalone,
     busy: busy,
+    onOpenReassigned: (id) => showHomeworkDetail(context, c, id),
     onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
     onEdit: () => editSchool(context, c, r),
     onTaskState: setTask,
+    onBatchState: setTasks,
     onComment: (taskId) =>
         editSchool(context, c, r, mode: 'comment', taskId: taskId),
     onReminder: () => showReminderActions(
@@ -605,6 +638,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                   date: r.observedOn,
                   values: r.assignmentSources,
                 ),
+              if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                Text(q.summary),
               if (r.body.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -624,6 +659,18 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 Text('Zielbezug: ${r.goalSnapshot}'),
             ],
             if (r.kind == SchoolKind.goal) ...[
+              if (!r.deleted && r.goalStatus == 'active')
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => editLessonQuestion(context, c, r),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: Text(
+                    r.lessonQuestion == null
+                        ? 'Beobachtungsfrage vormerken'
+                        : '${displayDate(r.lessonQuestion!.date)} · ${r.lessonQuestion!.text}',
+                  ),
+                ),
               if (r.criterion.isNotEmpty) Text('Kriterium: ${r.criterion}'),
               Text(
                 'Stand: ${const {'active': 'Aktiv', 'achieved': 'Erreicht', 'ended': 'Beendet'}[r.goalStatus]}',
@@ -877,7 +924,12 @@ Future<void> showBrief(
   var names = false, pseudonyms = false;
   var additionalNames = '';
   var preview = '', error = '';
-  final selection = <String>{...initialSelection};
+  String reviewId(SchoolRecord r, GoalReview v) => 'review:${r.id}:${v.id}';
+  final selection = <String>{
+    ...initialSelection,
+    for (final r in c.records.where((r) => initialSelection.contains(r.id)))
+      for (final v in r.reviews) reviewId(r, v),
+  };
   final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
   await showDialog<void>(
     context: context,
@@ -902,6 +954,8 @@ Future<void> showBrief(
                 r.title,
                 r.subject,
                 r.body,
+                if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                  q.summary,
                 ...r.positive.map((s) => '+ $s'),
                 ...r.neutral.map((s) => '• $s'),
                 ...r.negative.map((s) => '− $s'),
@@ -920,6 +974,34 @@ Future<void> showBrief(
                     .map((f) => '${displayDate(f.observedOn)} · ${f.note}'),
               ].where((s) => s.isNotEmpty).join('\n'),
             ),
+          if (areas.contains('goal'))
+            for (final r in c.records.where(
+              (r) =>
+                  !r.deleted &&
+                  r.pupilId == pupil.id &&
+                  r.kind == SchoolKind.goal,
+            ))
+              for (final review in r.reviews.where(
+                (v) => inRange(v.observedOn),
+              ))
+                (
+                  id: reviewId(r, review),
+                  date: review.observedOn,
+                  label: 'Zielüberprüfung · ${r.title}',
+                  text: [
+                    switch (review.decision) {
+                      'continue' => 'Ziel weiterverfolgen',
+                      'achieved' => 'Ziel erreicht',
+                      'ended' => 'Ziel beendet',
+                      _ => 'Ziel wieder aufgenommen',
+                    },
+                    if (review.note.isNotEmpty) review.note,
+                    if (review.nextStep.isNotEmpty)
+                      'Nächster Schritt: ${review.nextStep}',
+                    if (review.nextReviewDate != null)
+                      'Wiedervorlage: ${displayDate(review.nextReviewDate)}',
+                  ].join('\n'),
+                ),
           for (final e in c.entries.where(
             (e) =>
                 e.pupilId == pupil.id &&
@@ -1075,10 +1157,13 @@ Future<void> showBrief(
                   value: selection.contains(e.id),
                   onChanged: (v) => update(() {
                     preview = '';
+                    final related = entries
+                        .where((row) => row.id.startsWith('review:${e.id}:'))
+                        .map((row) => row.id);
                     if (v == true) {
-                      selection.add(e.id);
+                      selection.addAll([e.id, ...related]);
                     } else {
-                      selection.remove(e.id);
+                      selection.removeAll([e.id, ...related]);
                     }
                   }),
                 ),

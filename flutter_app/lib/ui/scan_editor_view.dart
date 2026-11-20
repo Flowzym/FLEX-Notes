@@ -132,7 +132,11 @@ extension _ScanEditorView on _ScanEditorState {
     child: FlexModal(
       maxWidth: 900,
       closeLabel: 'Schließen · Änderungen als Entwurf sichern',
-      title: const Text('Scan & Foto'),
+      title: Text(
+        collecting
+            ? 'Einsammeln · ${c.pupils.where((p) => pupilIds.contains(p.id)).firstOrNull?.name ?? 'Schüler'}'
+            : 'Scan & Foto',
+      ),
       onClose: busy ? null : close,
       headerActions: [
         if (buffer.hasContent || buffer.draft.revision > 0)
@@ -161,6 +165,19 @@ extension _ScanEditorView on _ScanEditorState {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
+          if ((data['importFailures'] as List? ?? []).isNotEmpty) ...[
+            for (final index
+                in (data['importSuccess'] as List? ?? []).whereType<int>())
+              if (index >= 0 && index < (data['importNames'] as List).length)
+                Text('Übernommen · ${(data['importNames'] as List)[index]}'),
+            for (final failure in (data['importFailures'] as List))
+              Text(failure.toString()),
+            TextButton.icon(
+              onPressed: busy ? null : pick,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Fehlgeschlagene erneut wählen'),
+            ),
+          ],
           if (removedPage != null)
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -379,23 +396,24 @@ extension _ScanEditorView on _ScanEditorState {
             ),
             onChanged: (v) => change({'title': v}),
           ),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final format in const [
-                ('pdf', 'PDF'),
-                ('jpg', 'Fotos (JPG)'),
-              ])
-                ChoiceChip(
-                  key: ValueKey('scan-format-${format.$1}'),
-                  label: Text(format.$2),
-                  selected: (data['outputFormat'] ?? 'pdf') == format.$1,
-                  onSelected: busy
-                      ? null
-                      : (_) => change({'outputFormat': format.$1}),
-                ),
-            ],
-          ),
+          if (!collecting)
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final format in const [
+                  ('pdf', 'PDF'),
+                  ('jpg', 'Fotos (JPG)'),
+                ])
+                  ChoiceChip(
+                    key: ValueKey('scan-format-${format.$1}'),
+                    label: Text(format.$2),
+                    selected: (data['outputFormat'] ?? 'pdf') == format.$1,
+                    onSelected: busy
+                        ? null
+                        : (_) => change({'outputFormat': format.$1}),
+                  ),
+              ],
+            ),
           const SizedBox(height: 12),
           const Divider(),
           const Text(
@@ -423,62 +441,83 @@ extension _ScanEditorView on _ScanEditorState {
             onChanged: busy ? null : (v) => change({'documentType': v}),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final ids = await chooseMaterialPupils(
-                          context,
-                          c,
-                          pupilIds,
-                        );
-                        if (ids != null && mounted) {
-                          change({
-                            'pupilIds': {
-                              ...ids,
-                              ...documentLinkPupils(c, links),
-                            }.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.people_outline),
-                label: Text(
-                  pupilIds.isEmpty
-                      ? (links.any((l) => l.kind.endsWith('Draft'))
-                            ? 'Über Entwurf zugeordnet'
-                            : 'FLEX-Klasse')
-                      : '${pupilIds.length} Schüler',
+          if (!collecting)
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final ids = await chooseMaterialPupils(
+                            context,
+                            c,
+                            pupilIds,
+                          );
+                          if (ids != null && mounted) {
+                            change({
+                              'pupilIds': {
+                                ...ids,
+                                ...documentLinkPupils(c, links),
+                              }.toList(),
+                            });
+                          }
+                        },
+                  icon: const Icon(Icons.people_outline),
+                  label: Text(
+                    pupilIds.isEmpty
+                        ? (links.any((l) => l.kind.endsWith('Draft'))
+                              ? 'Über Entwurf zugeordnet'
+                              : 'FLEX-Klasse')
+                        : '${pupilIds.length} Schüler',
+                  ),
                 ),
-              ),
-              OutlinedButton.icon(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        final next = await chooseDocumentLinks(
-                          context,
-                          c,
-                          links,
-                        );
-                        if (next != null && mounted) {
-                          final owners = {
-                            ...pupilIds,
-                            ...documentLinkPupils(c, next),
-                          };
-                          change({
-                            'links': next.map((l) => l.toJson()).toList(),
-                            'pupilIds': owners.toList(),
-                          });
-                        }
-                      },
-                icon: const Icon(Icons.link),
-                label: Text('Einträge · ${links.length}'),
-              ),
-            ],
-          ),
+                OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final next = await chooseDocumentLinks(
+                            context,
+                            c,
+                            links,
+                          );
+                          if (next != null && mounted) {
+                            final owners = {
+                              ...pupilIds,
+                              ...documentLinkPupils(c, next),
+                            };
+                            change({
+                              'links': next.map((l) => l.toJson()).toList(),
+                              'pupilIds': owners.toList(),
+                            });
+                          }
+                        },
+                  icon: const Icon(Icons.link),
+                  label: Text('Einträge · ${links.length}'),
+                ),
+              ],
+            ),
+          if (c.classroom.any((f) => isDriveRule(f) && f.flag('outgoing')))
+            Builder(
+              builder: (ctx) {
+                final targets = scanTargets(
+                  data,
+                  c.classroom.where((f) => usableDriveRule(f, c.pupils)),
+                );
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.cloud_outlined),
+                  title: Text(
+                    scanAwaitsEntry(data)
+                        ? 'OneDrive-Ziel nach Speichern des Eintrags'
+                        : targets.length == 1
+                        ? 'OneDrive · ${targets.single.title}'
+                        : 'Auf Gerät · Ablageziel in OneDrive prüfen',
+                  ),
+                );
+              },
+            ),
           if (pupilIds.isNotEmpty)
             Text(
               c.pupils

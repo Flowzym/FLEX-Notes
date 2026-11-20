@@ -1,3 +1,4 @@
+import 'document_attachments_test.dart' show taskRecord;
 import 'package:flex_notizbuch/services/complete_backup.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -76,6 +77,68 @@ void main() {
     );
   }
 
+  test(
+    'HÜ-Scan bleibt bis zur endgültigen Schülerzuordnung lokal und behält seine Unteraufgabe bei Wiederherstellung',
+    () async {
+      final record = taskRecord('p');
+      final owner = await repo.saveSchoolDraft(
+        SchoolDraft(id: 'HÜ', record: record, updatedAtUtc: utcNow()),
+      );
+      for (final personal in [false, true]) {
+        await repo.saveClassroomDocument(
+          ClassroomDocument.create(
+            ClassroomKind.folder,
+            personal ? 'HÜ des Schülers' : 'Klassenordner',
+            {
+              'driveId': 'drive',
+              'itemId': personal ? 'p1' : 'class',
+              'accountDrive': 'drive',
+              'appRoot': 'app',
+              'outgoing': true,
+              'personal': personal,
+              'pupilIds': [if (personal) 'p'],
+            },
+            id: personal ? 'p-folder' : 'class-folder',
+          ),
+        );
+      }
+      final scan = await saveScan(
+        repo,
+        files,
+        await draft(
+          fields: {
+            'pupilIds': <String>[],
+            'links': [
+              DocumentLink('schoolDraft', owner.id, taskId: 'child').toJson(),
+            ],
+            'documentType': 'pupilWork',
+          },
+        ),
+      );
+      expect(scan.map('cloudUpload')['state'], 'entry');
+      expect(scan.map('cloudUpload')['ruleId'], isNull);
+      final restored = classroomMemory();
+      await restored.initialize();
+      addTearDown(restored.close);
+      await restored.restoreBackup(await repo.exportBackup());
+      await restored.saveSchoolRecord(
+        record,
+        draftId: owner.id,
+        draftRevision: owner.editRevision,
+      );
+      final linked = (await restored.classroomDocuments()).singleWhere(
+        (d) => d.id == scan.id,
+      );
+      expect(linked.map('cloudUpload')['state'], 'pending');
+      expect(linked.map('cloudUpload')['ruleId'], 'p-folder');
+      expect(
+        linked.rows('links').single,
+        DocumentLink('school', record.id, taskId: 'child').toJson(),
+      );
+      expect(linked.strings('pupilIds'), ['p']);
+      expect(await files.exists(linked.text('localKey')), isTrue);
+    },
+  );
   test(
     'adaptive document filters preserve dark text across a paper shadow',
     () {

@@ -89,120 +89,141 @@ class PupilCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final symbol in order)
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final open = counts[symbol] ?? 0;
-                          final drafts = draftCounts[symbol] ?? 0;
-                          final count = open + drafts;
-                          final label = labels[symbol.index];
-                          return Semantics(
-                            button: true,
-                            label:
-                                '$label für ${pupil.name} öffnen, $open offen, $drafts Entwürfe${due.contains(symbol) ? ', fällig' : ''}',
-                            excludeSemantics: true,
-                            child: InkWell(
-                              key: ValueKey(
-                                'shortcut-${pupil.id}-${symbol.name}',
-                              ),
-                              onTap: () => onShortcut(symbol),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                  vertical: 0,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 40,
-                                      height: 30,
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Align(
-                                            alignment: Alignment.topCenter,
-                                            child: FlexIcon(
-                                              symbol,
-                                              size: 27,
-                                              color: scheme.primary,
-                                            ),
-                                          ),
-                                          if (count > 0)
-                                            Positioned(
-                                              right: 0,
-                                              bottom: -1,
-                                              child: Container(
-                                                key: ValueKey(
-                                                  'count-${pupil.id}-${symbol.name}',
-                                                ),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 16,
-                                                      minHeight: 16,
-                                                    ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 1,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: due.contains(symbol)
-                                                      ? const Color(0xffe3d6b4)
-                                                      : scheme.primaryContainer,
-                                                  borderRadius:
-                                                      BorderRadius.circular(99),
-                                                  border: Border.all(
-                                                    color: scheme.surface,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  count > 99 ? '99+' : '$count',
-                                                  textAlign: TextAlign.center,
-                                                  textScaler:
-                                                      TextScaler.noScaling,
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    height: 1.2,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: due.contains(symbol)
-                                                        ? const Color(
-                                                            0xff52442b,
-                                                          )
-                                                        : scheme
-                                                              .onPrimaryContainer,
-                                                  ),
+              LayoutBuilder(
+                builder: (ctx, box) {
+                  final columns =
+                      box.maxWidth / order.length <
+                          MediaQuery.textScalerOf(ctx).scale(44)
+                      ? 3
+                      : order.length;
+                  return Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      for (final symbol in order)
+                        SizedBox(
+                          width: box.maxWidth / columns,
+                          child: Builder(
+                            builder: (context) {
+                              final open = counts[symbol] ?? 0;
+                              final drafts = draftCounts[symbol] ?? 0;
+                              final count = open + drafts;
+                              final label = labels[symbol.index];
+                              return Semantics(
+                                button: true,
+                                label:
+                                    '$label für ${pupil.name} öffnen, $open offen, $drafts Entwürfe${due.contains(symbol) ? ', fällig' : ''}',
+                                excludeSemantics: true,
+                                child: InkWell(
+                                  key: ValueKey(
+                                    'shortcut-${pupil.id}-${symbol.name}',
+                                  ),
+                                  onTap: () => onShortcut(symbol),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                      vertical: 0,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 40,
+                                          height: 30,
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Align(
+                                                alignment: Alignment.topCenter,
+                                                child: FlexIcon(
+                                                  symbol,
+                                                  size: 27,
+                                                  color: scheme.primary,
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontSize: 12,
-                                            height: 1.25,
+                                              if (count > 0)
+                                                Positioned(
+                                                  right: 0,
+                                                  bottom: -1,
+                                                  child: Container(
+                                                    key: ValueKey(
+                                                      'count-${pupil.id}-${symbol.name}',
+                                                    ),
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                          minWidth: 16,
+                                                          minHeight: 16,
+                                                        ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 1,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          due.contains(symbol)
+                                                          ? const Color(
+                                                              0xffe3d6b4,
+                                                            )
+                                                          : scheme
+                                                                .primaryContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            99,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: scheme.surface,
+                                                        width: 1.5,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      count > 99
+                                                          ? '99+'
+                                                          : '$count',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      textScaler:
+                                                          TextScaler.noScaling,
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        height: 1.2,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color:
+                                                            due.contains(symbol)
+                                                            ? const Color(
+                                                                0xff52442b,
+                                                              )
+                                                            : scheme
+                                                                  .onPrimaryContainer,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          label,
+                                          textAlign: TextAlign.center,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontSize: 12,
+                                                height: 1.25,
+                                              ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

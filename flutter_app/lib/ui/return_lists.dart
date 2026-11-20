@@ -1,5 +1,6 @@
 import 'homework_record_view.dart';
 import 'detail_flow.dart';
+import 'submission_collection.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 
@@ -66,7 +67,11 @@ class _ReturnListsState extends State<ReturnLists> {
                         ? d.deleted
                         : !d.deleted &&
                               (filter == 'all' ||
-                                  (filter == 'closed') == d.flag('closed'))),
+                                  (filter == 'open' && !d.returnFinished ||
+                                      filter == 'complete' &&
+                                          d.returnState ==
+                                              ReturnListState.complete ||
+                                      filter == 'closed' && d.flag('closed')))),
               )
               .toList()
             ..sort(
@@ -101,6 +106,7 @@ class _ReturnListsState extends State<ReturnLists> {
             children: [
               for (final f in const {
                 'open': 'Offen',
+                'complete': 'Vollständig',
                 'closed': 'Abgeschlossen',
                 'all': 'Alle',
                 'trash': 'Papierkorb',
@@ -150,6 +156,8 @@ class ReturnListCard extends StatelessWidget {
                 ? 'Abgeschlossen'
                 : participant != null
                 ? returnStatuses[d.text('type')]![participant['status']]
+                : d.returnFinished
+                ? d.returnState.label
                 : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
             if (participant != null &&
                 (participant['note'] as String).isNotEmpty)
@@ -405,7 +413,20 @@ class _ReturnDetailState extends State<ReturnDetail> {
     final statusLabel = returnStatuses[d.text('type')]![row['status']]!;
     final title = InkWell(
       key: ValueKey('return-pupil-${row['pupilId']}'),
-      onTap: () => editRow(d, row),
+      onLongPress: busy
+          ? null
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
+      onTap: busy
+          ? null
+          : selected.isEmpty
+          ? () => editRow(d, row)
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -536,6 +557,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
                 ),
           )
           .toList();
+      selected.retainAll(
+        visible.map((row) => row['pupilId'] as String).toSet(),
+      );
       return FlexModal(
         maxWidth: 950,
         title: Text(d.title),
@@ -551,6 +575,15 @@ class _ReturnDetailState extends State<ReturnDetail> {
               '${rows.where(returnPending).length} offen · ${rows.where((r) => r['status'] == 'exempt').length} ausgenommen',
             ),
             if (d.text('note').isNotEmpty) Text(d.text('note')),
+            if (!d.deleted)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: busy ? null : () => collectReturn(ctx, c, d),
+                  icon: const Icon(Icons.move_to_inbox_outlined),
+                  label: const Text('Einsammeln'),
+                ),
+              ),
             if (d.text('type') == 'payment')
               Text(
                 'Eingegangen: ${(rows.fold(0, (n, r) => n + (r['paid'] as int)) / 100).toStringAsFixed(2)} € · Soll: ${(rows.where((r) => r['status'] != 'exempt').length * d.number('amountDue') / 100).toStringAsFixed(2)} €',
@@ -631,7 +664,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
             ),
             if (selected.isNotEmpty) ...[
               Text(
-                'Für ${selected.length} ausgewählte Schüler',
+                selected.length == 1
+                    ? 'Für den ausgewählten Schüler'
+                    : 'Für ${selected.length} ausgewählte Schüler',
                 style: Theme.of(ctx).textTheme.titleSmall,
               ),
               Wrap(

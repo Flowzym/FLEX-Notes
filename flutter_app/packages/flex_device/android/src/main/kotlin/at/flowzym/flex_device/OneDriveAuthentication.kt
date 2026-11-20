@@ -71,6 +71,9 @@ internal class OneDriveAuthentication(
     }
 
     private fun run(app: ISingleAccountPublicClientApplication, call: MethodCall, reply: Reply) {
+        val requestedScopes = if (call.argument<Boolean>("appFolder") == true) {
+            scopes + "https://graph.microsoft.com/Files.ReadWrite.AppFolder"
+        } else scopes
         try {
             app.getCurrentAccountAsync(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
                 override fun onAccountChanged(prior: IAccount?, current: IAccount?) = Unit
@@ -91,7 +94,7 @@ internal class OneDriveAuthentication(
                                         override fun onError(error: MsalException) = reply.failure(error)
                                     })
                                 }
-                                "msalSignIn" -> signIn(app, account, reply)
+                                "msalSignIn" -> signIn(app, account, reply, requestedScopes)
                                 "msalToken" -> {
                                     if (account == null || account.id != call.argument<String>("accountId")) {
                                         reply.error("msal_account_changed")
@@ -99,7 +102,7 @@ internal class OneDriveAuthentication(
                                     }
                                     app.acquireTokenSilentAsync(
                                         AcquireTokenSilentParameters.Builder()
-                                            .withScopes(scopes)
+                                            .withScopes(requestedScopes)
                                             .forAccount(account)
                                             .fromAuthority(account.authority)
                                             .forceRefresh(call.argument<Boolean>("forceRefresh") == true)
@@ -124,7 +127,7 @@ internal class OneDriveAuthentication(
         }
     }
 
-    private fun signIn(app: ISingleAccountPublicClientApplication, account: IAccount?, reply: Reply) {
+    private fun signIn(app: ISingleAccountPublicClientApplication, account: IAccount?, reply: Reply, requestedScopes: List<String>) {
         val host = activity()
         if (host == null || host.isFinishing || host.isDestroyed) {
             reply.error("msal_no_activity")
@@ -132,7 +135,7 @@ internal class OneDriveAuthentication(
         }
         val parameters = SignInParameters.builder()
             .withActivity(host)
-            .withScopes(scopes)
+            .withScopes(requestedScopes)
             .withCallback(object : AuthenticationCallback {
                 override fun onCancel() = reply.success(null)
                 override fun onError(error: MsalException) = reply.failure(error)

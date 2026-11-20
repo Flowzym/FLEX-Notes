@@ -16,6 +16,8 @@ import '../domain/repository.dart';
 import '../domain/school.dart';
 import '../domain/observation_catalog.dart';
 import '../domain/classroom.dart';
+import '../domain/drive_rules.dart';
+import '../domain/planning_import.dart';
 import '../domain/document_scanner.dart';
 import '../domain/material_tags.dart';
 import '../domain/material_versions.dart';
@@ -673,6 +675,7 @@ class SqliteNotebook
           taskIds[t['id'] as String] = newId();
         }
         final r = SchoolRecord.empty(SchoolKind.values.byName(kind), id).patch({
+          if (kind == 'homework') 'homeworkGroup': draft.id,
           'observedOn': data['observedOn'],
           'observedTime': data['observedTime'] ?? '',
           'subject': data['subject'] ?? '',
@@ -814,11 +817,43 @@ class SqliteNotebook
         await db.customStatement('DELETE FROM context_drafts WHERE id=?', [id]);
       });
   @override
-  Future<Pupil> savePupilDialog(Pupil pupil, DialogDraft? draft) =>
-      db.transaction(() async {
-        if (draft != null) await discardDialogDraft(draft.id, draft.revision);
-        return savePupil(pupil);
-      });
+  Future<Pupil> savePupilDialog(
+    Pupil pupil,
+    DialogDraft? draft, {
+    ClassroomDocument? materialProfile,
+    List<ClassroomDocument> materialUpdates = const [],
+  }) => db.transaction(() async {
+    if (draft != null) await discardDialogDraft(draft.id, draft.revision);
+    final saved = await savePupil(pupil);
+    if (materialProfile != null || materialUpdates.isNotEmpty) {
+      if (materialProfile != null &&
+              (materialProfile.kind != ClassroomKind.materialProfile ||
+                  materialProfile.strings('pupilIds').singleOrNull !=
+                      pupil.id) ||
+          materialUpdates.any((d) => d.kind != ClassroomKind.material)) {
+        throw const DomainError('Bitte die Materialzuordnung prüfen.');
+      }
+      await saveClassroomDocuments([?materialProfile, ...materialUpdates]);
+    }
+    return saved;
+  });
+
+  @override
+  Future<void> savePlanningSync(
+    List<ClassroomDocument> changes,
+    Map<String, int> rosterRevisions,
+  ) => db.transaction(() async {
+    final current = planningRosterRevisions(
+      await classroomDocuments(),
+      await pupils(),
+      includeFolders: changes.any((d) => d.kind == ClassroomKind.folder),
+    );
+    if (current.length != rosterRevisions.length ||
+        current.entries.any((e) => rosterRevisions[e.key] != e.value)) {
+      throw const StaleRevision();
+    }
+    await saveClassroomDocuments(changes);
+  });
   @override
   Future<void> saveCatalogs(
     Map<String, List<String>> options,
@@ -1068,6 +1103,22 @@ class SqliteNotebook
     );
     return Future.wait(rows.map(_entry));
   });
+  @override
+  Future<void> saveOrganisationSelection(
+    List<OrgaEntry> entries,
+    List<ClassroomDocument> returns,
+  ) => db.transaction(() async {
+    for (final entry in entries) {
+      await saveEntry(entry);
+    }
+    if (returns.isNotEmpty) {
+      if (returns.any((d) => d.kind != ClassroomKind.returnList)) {
+        throw const DomainError('Bitte die ausgewählten Rückläufe prüfen.');
+      }
+      await saveClassroomDocuments(returns);
+    }
+  });
+
   @override
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {

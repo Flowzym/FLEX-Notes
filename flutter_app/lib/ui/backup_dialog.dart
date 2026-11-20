@@ -1,4 +1,6 @@
 import 'merge_dialog.dart';
+import '../services/secret_store.dart';
+import '../services/automatic_backup.dart';
 import '../platform/backup_transfer.dart';
 import '../services/stream_backup.dart';
 import 'compact_switch.dart';
@@ -101,6 +103,43 @@ class BackupDialog extends StatefulWidget {
 class _BackupDialogState extends State<BackupDialog> {
   bool encrypt = true, appearance = true, catalogs = true, busy = false;
   String? message;
+  static const _manualKey = 'flex.lastManualBackup';
+  late final inventory = CompleteBackup.inventory(
+    widget.controller.repository,
+    widget.files,
+  );
+  DateTime? lastSuccess;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.export) loadLastSuccess();
+  }
+
+  Future<void> loadLastSuccess() async {
+    try {
+      const store = DeviceSecretStore();
+      final manual = await store.read(_manualKey);
+      final raw = await store.read(AutomaticBackup.key);
+      final automatic = raw == null
+          ? null
+          : (jsonDecode(raw) as Map)['lastSuccess'] as String?;
+      final dates =
+          [manual, automatic]
+              .whereType<String>()
+              .map(DateTime.tryParse)
+              .whereType<DateTime>()
+              .toList()
+            ..sort();
+      if (mounted &&
+          dates.isNotEmpty &&
+          (lastSuccess == null || dates.last.isAfter(lastSuccess!))) {
+        setState(() => lastSuccess = dates.last.toLocal());
+      }
+    } catch (_) {
+      /* The archive can still be exported if status storage is unavailable. */
+    }
+  }
+
   Future<void> action(Future<void> Function() work) async {
     if (busy) return;
     setState(() {
@@ -137,6 +176,15 @@ class _BackupDialogState extends State<BackupDialog> {
         },
       ),
     );
+    if (saved) {
+      lastSuccess = DateTime.now();
+      try {
+        await const DeviceSecretStore().write(
+          _manualKey,
+          lastSuccess!.toUtc().toIso8601String(),
+        );
+      } catch (_) {}
+    }
     if (mounted) {
       setState(
         () => message = saved
@@ -158,8 +206,10 @@ class _BackupDialogState extends State<BackupDialog> {
     );
     if (file == null) return;
     final length = await file.length();
-    if (length > BackupCodec.maxCompleteEnvelopeBytes) {
-      throw const DomainError('Die Datei überschreitet 220 MB.');
+    if (length > StreamBackup.maxArchiveBytes) {
+      throw const DomainError(
+        'Die Datei überschreitet die maximale Archivgröße.',
+      );
     }
     Stream<List<int>> source() async* {
       // Web XFile.openRead() otherwise materializes the entire Blob at once.
@@ -195,6 +245,24 @@ class _BackupDialogState extends State<BackupDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.export) ...[
+            FutureBuilder(
+              future: inventory,
+              builder: (context, snapshot) {
+                final v = snapshot.data;
+                return Text(
+                  v == null
+                      ? snapshot.hasError
+                            ? 'Größe konnte nicht ermittelt werden.'
+                            : 'Dateigröße wird ermittelt …'
+                      : '${v.count} lokale Dateien · ca. ${(v.bytes / 1000000).toStringAsFixed(1)} MB${v.unknown == 0 ? '' : ' · ${v.unknown} ohne Größenangabe'}',
+                );
+              },
+            ),
+            Text(
+              lastSuccess == null
+                  ? 'Letzte Sicherung: kein Zeitpunkt gespeichert'
+                  : 'Letzte Sicherung: ${displayDate(dateOnly(lastSuccess!))} · ${TimeOfDay.fromDateTime(lastSuccess!).format(context)}',
+            ),
             CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Sicherung mit Passwort verschlüsseln'),

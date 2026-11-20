@@ -1,7 +1,12 @@
 import 'package:uuid/uuid.dart';
 import 'classroom.dart';
 import 'models.dart';
+import 'planning_import.dart';
 import 'document_scanner.dart';
+
+bool hasMaterialSource(ClassroomDocument material) =>
+    material.text('url').isNotEmpty ||
+    material.text('driveId').isNotEmpty && material.text('itemId').isNotEmpty;
 
 List<String> pupilMaterialDates(ClassroomDocument material, String pupilId) =>
     (material
@@ -63,6 +68,8 @@ Map<String, List<ClassroomDocument>> preparedMaterialsByDay(
     }
   }
   for (final material in materials.values) {
+    final planned = teachingDay(material);
+    if (planned.isNotEmpty) include(planned, material);
     for (final row in material.rows('pupilDates')) {
       include(row['date'] as String, material);
     }
@@ -103,6 +110,29 @@ List<ClassroomDocument> pupilMaterialsOnDay(
           d.rows('pupilDates').any((row) => row['date'] == date),
     )
     .toList();
+
+List<ClassroomDocument> preparedDayMaterials(
+  Iterable<ClassroomDocument> documents,
+  String date,
+) {
+  final day = preparationFor(documents, date);
+  return {
+    for (final material in [
+      ...resolveMaterials(
+        documents,
+        day.deleted ? [] : day.strings('materialIds'),
+      ),
+      ...documents.where(
+        (d) =>
+            !d.deleted &&
+            d.kind == ClassroomKind.material &&
+            teachingDay(d) == date,
+      ),
+      ...pupilMaterialsOnDay(documents, date),
+    ])
+      material.id: material,
+  }.values.toList();
+}
 
 String preparationId(String date) =>
     const Uuid().v5(Namespace.url.value, 'flex-preparation:$date');
@@ -168,7 +198,11 @@ List<ClassroomDocument> suggestedMaterials(
   Iterable<ClassroomDocument> docs,
   String date,
 ) {
-  final lessons = lessonOccurrences(docs, date, date);
+  final lessons = lessonOccurrences(
+    docs,
+    date,
+    date,
+  ).where((l) => l.document.isTeachingLesson);
   final day = schoolDay(date);
   final monday = day.subtract(Duration(days: day.weekday - 1));
   final ids = <String>{
@@ -232,6 +266,8 @@ bool materialMatches(
     d.text('note'),
     d.text('otherParticipants'),
     d.text('sourcePath'),
+    planningUses[teachingUse(d)] ?? '',
+    teachingDay(d),
     ...d.strings('tags'),
     materialTypes[d.text('documentType', 'other')] ?? '',
     materialAudiences[d.text('audience', 'all')] ?? '',

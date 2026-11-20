@@ -669,6 +669,9 @@ void main() {
           0,
         );
         await tap(t, find.byKey(const ValueKey('shortcut-a-homework')));
+        expect(find.byType(SchoolWorkspace), findsOneWidget);
+        expect(find.text('HÜ aufgeben'), findsOneWidget);
+        await tap(t, find.text('HÜ aufgeben'));
         expect(find.byKey(const ValueKey('entry-drafts')), findsOneWidget);
         expect(find.byKey(const ValueKey('assigned-homework')), findsOneWidget);
         expect(find.text('Noch nicht aufgegeben'), findsNothing);

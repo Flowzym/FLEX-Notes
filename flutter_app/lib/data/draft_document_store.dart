@@ -17,14 +17,35 @@ extension DraftDocumentStore on SqliteNotebook {
     bool affected(List<Json> rows) =>
         rows.any((row) => matches(DocumentLink.fromJson(row)));
     final revisions = <String, (int, int)>{};
-    for (final d in await classroomDocuments()) {
+    final documents = await classroomDocuments();
+    List<ClassroomDocument>? uploadRules;
+    for (final d in documents) {
       if (!affected(d.rows('links'))) continue;
-      final saved = await _writeClassroom(
-        d.patch({
-          'links': rewrite(d.rows('links')),
-          'pupilIds': {...d.strings('pupilIds'), ...addedPupils}.toList(),
-        }),
-      );
+      final links = rewrite(d.rows('links'));
+      final updated = d.patch({
+        'links': links,
+        'pupilIds': {...d.strings('pupilIds'), ...addedPupils}.toList(),
+      });
+      var next = updated;
+      final job = updated.map('cloudUpload');
+      if (job['state'] == 'entry' && !scanAwaitsEntry(updated.toJson())) {
+        if (uploadRules == null) {
+          final people = await pupils();
+          uploadRules = documents
+              .where((f) => usableDriveRule(f, people))
+              .toList();
+        }
+        final targets = scanTargets(updated.toJson(), uploadRules);
+        next = updated.patch({
+          'cloudUpload': {
+            ...job,
+            'state': 'review',
+            if (links.isNotEmpty && targets.length == 1)
+              ...routeUpload(targets.single, updated.toJson()),
+          },
+        });
+      }
+      final saved = await _writeClassroom(next);
       revisions[d.id] = (d.revision, saved.revision);
     }
     for (final d in (await dialogDrafts()).where((d) => d.type == 'scan')) {

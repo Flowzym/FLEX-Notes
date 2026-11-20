@@ -55,6 +55,7 @@ class _CalendarDragBlockState extends State<CalendarDragBlock> {
     super.dispose();
   }
 
+  bool hintShown = false;
   void start(int handle, Offset point) {
     if (saving) return;
     HapticFeedback.selectionClick();
@@ -68,6 +69,15 @@ class _CalendarDragBlockState extends State<CalendarDragBlock> {
       delta = Offset.zero;
       finger = point;
     });
+    if (handle == 0 && !hintShown) {
+      hintShown = true;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Termin ziehen · An den Enden die Dauer ändern'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
     ticker?.cancel();
     ticker = Timer.periodic(const Duration(milliseconds: 40), (_) {
       final position = scroll, point = finger;

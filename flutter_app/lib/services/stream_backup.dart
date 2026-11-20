@@ -19,7 +19,9 @@ typedef BackupProgress = void Function(int files, int bytes);
 /// prevents accepting truncated files. Never retains all material bytes at once.
 class StreamBackup {
   static const magic = 'FLEXBACKUP3\n';
-  static const chunkSize = 65536, maxArchiveBytes = 160000000;
+  static const chunkSize = 65536;
+  // 10,000 individually bounded files plus the notebook and authenticated frames.
+  static const maxArchiveBytes = 201000000000;
   static const iterations = 600000;
 
   static Future<bool> recognizes(BackupSource source) async {
@@ -70,8 +72,10 @@ class StreamBackup {
         (r) => r['key'] == 'appearance',
       );
     }
+    await CompleteBackup.repairLegacyCaches(data, files);
     final notebook = jsonEncode(data);
-    final refs = CompleteBackup.references(notebook);
+    final names = <String, String>{};
+    final refs = CompleteBackup.references(notebook, names: names);
     if (refs.length > 10000) {
       throw const DomainError('Zu viele Dateien in der Sicherung.');
     }
@@ -123,19 +127,13 @@ class StreamBackup {
     var total = 0, count = 0;
     for (final ref in refs.entries) {
       _checkKey(ref.key);
-      if (!await files.exists(ref.key)) {
-        throw const DomainError(
-          'Eine verknüpfte Datei fehlt. Die Sicherung wurde nicht abgeschlossen.',
-        );
-      }
-      final bytes = await files.read(ref.key);
-      validateMaterialBytes(bytes, ref.value);
+      final bytes = await CompleteBackup.readFile(
+        files,
+        ref.key,
+        names[ref.key] ?? ref.key,
+        extension: ref.value,
+      );
       total += bytes.length;
-      if (total > CompleteBackup.maxFilesBytes) {
-        throw const DomainError(
-          'Die Sicherung enthält mehr als 100 MB Dateien.',
-        );
-      }
       yield* item({
         'type': 'file',
         'key': ref.key,
@@ -274,9 +272,7 @@ Future<_Manifest> _inspect(
       }
       _checkKey(key);
       final size = item['size'];
-      if (size is! int ||
-          size < 1 ||
-          total + size > CompleteBackup.maxFilesBytes) {
+      if (size is! int || size < 1 || size > 20000000) {
         throw const FormatException();
       }
       final bytes = await body(item);

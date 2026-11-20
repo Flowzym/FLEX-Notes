@@ -4,6 +4,7 @@ import '../domain/models.dart';
 import '../domain/school.dart';
 import '../domain/homework_control.dart';
 import 'common.dart';
+import 'submission_collection.dart';
 import 'detail_flow.dart';
 import 'flex_modal.dart';
 import 'homework_record_view.dart';
@@ -61,22 +62,6 @@ class _HomeworkControlState extends State<HomeworkControl> {
     }
   }
 
-  Future<void> details(String id) => showFlexDetail<void>(
-    context: context,
-    builder: (ctx) => AnimatedBuilder(
-      animation: c,
-      builder: (ctx, _) {
-        final r = c.records.where((v) => v.id == id && !v.deleted).firstOrNull;
-        return FlexModal(
-          title: const Text('Hausübung'),
-          onClose: () => Navigator.pop(ctx),
-          content: r == null
-              ? const Text('Die Hausübung wurde entfernt.')
-              : SchoolRecordCard(controller: c, record: r, standalone: true),
-        );
-      },
-    ),
-  );
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: c,
@@ -147,6 +132,30 @@ class _HomeworkControlState extends State<HomeworkControl> {
               ],
             ),
             const SizedBox(height: 8),
+            if (values.isNotEmpty)
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                children: [
+                  for (final pair in const [
+                    (Icons.radio_button_unchecked, 'Offen'),
+                    (Icons.check_circle_outline, 'Vollständig'),
+                    (Icons.contrast, 'Teilweise'),
+                    (Icons.cancel_outlined, 'Fehlt'),
+                  ])
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(pair.$1, size: 14),
+                        const SizedBox(width: 3),
+                        Text(
+                          pair.$2,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ...List<Widget>.generate(values.isEmpty ? 1 : values.length, (i) {
               final ctx = context;
               if (values.isEmpty) {
@@ -183,15 +192,25 @@ class _HomeworkControlState extends State<HomeworkControl> {
                           ),
                         ),
                         IconButton(
+                          tooltip: 'Hausübung einsammeln',
+                          icon: const Icon(Icons.move_to_inbox_outlined),
+                          onPressed: () => guarded(
+                            context,
+                            () => collectHomework(context, c, r),
+                          ),
+                        ),
+                        IconButton(
                           tooltip: 'Aufgabendetails: $heading',
                           onPressed: busy.contains(r.id)
                               ? null
-                              : () => details(r.id),
+                              : () => showHomeworkDetail(context, c, r.id),
                           icon: const Icon(Icons.chevron_right),
                         ),
                       ],
                     ),
-                    for (final task in r.tasks)
+                    for (final task in r.tasks.where(
+                      (t) => t.reassignedTo == null,
+                    ))
                       Padding(
                         padding: EdgeInsets.only(
                           left: task.parentId == null ? 0 : 14,

@@ -324,7 +324,12 @@ mixin PrivacyStore on SchoolStore {
         if ({'materialIds', 'planIds', 'lessonIds'}.contains(key)) {
           return value.where((v) => !documents.contains(v)).toList();
         }
-        if (key == 'pupilIds') {
+        if ({
+          'pupilIds',
+          'planningDecisions',
+          'planningDeferred',
+          'planningAutoDates',
+        }.contains(key)) {
           return value.where((v) => !people.contains(v)).toList();
         }
         if (key == 'links') {
@@ -449,6 +454,23 @@ mixin PrivacyStore on SchoolStore {
         continue;
       }
       final fields = <String, dynamic>{};
+      if (d.kind == ClassroomKind.materialProfile && onlyThese) {
+        fields.addAll({'code': '', 'aliases': <String>[]});
+      }
+      if (d.kind == ClassroomKind.material) {
+        for (final key in [
+          'planningDecisions',
+          'planningAutoDates',
+          'planningDeferred',
+        ]) {
+          if (d.strings(key).any(ids.contains)) {
+            fields[key] = d
+                .strings(key)
+                .where((id) => !ids.contains(id))
+                .toList();
+          }
+        }
+      }
       if (assigned.any(ids.contains)) {
         fields['pupilIds'] = assigned.where((id) => !ids.contains(id)).toList();
       }

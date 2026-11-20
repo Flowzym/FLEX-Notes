@@ -41,6 +41,11 @@ mixin ClassroomStore on SchoolStore {
       );
     }
     final saved = value.patch({
+      if (value.kind == ClassroomKind.materialProfile && old != null)
+        'reserved': {
+          ...old.strings('reserved'),
+          ...value.strings('reserved'),
+        }.toList(),
       'title': value.title.trim(),
       'revision': value.revision + 1,
       'updatedAtUtc': utcNow(),
@@ -73,6 +78,37 @@ mixin ClassroomStore on SchoolStore {
                   draft.data['sourceRevision'] == value.revision);
       if (!scan && (draft.type != 'classroom' || draft.ownerId != value.id)) {
         throw const DomainError('Ungültiger Klassenentwurf.');
+      }
+      if (scan && draft.data['collection'] == true) {
+        final pupil = value.strings('pupilIds').single;
+        final link = DocumentLink.fromJson(value.rows('links').single);
+        final active = (await pupils()).any(
+          (p) => p.id == pupil && !p.archived,
+        );
+        final targetOk = switch (link.kind) {
+          'school' => (await schoolRecords()).any(
+            (r) =>
+                r.id == link.id &&
+                !r.deleted &&
+                r.kind == SchoolKind.homework &&
+                r.pupilId == pupil,
+          ),
+          'classroom' => (await classroomDocuments()).any(
+            (d) =>
+                d.id == link.id &&
+                d.kind == ClassroomKind.returnList &&
+                !d.deleted &&
+                !d.flag('closed') &&
+                d.returnParticipant(pupil) != null &&
+                d.returnParticipant(pupil)!['status'] != 'exempt',
+          ),
+          _ => false,
+        };
+        if (!active || !targetOk) {
+          throw const DomainError(
+            'Diese Abgabe ist nicht mehr offen. Die Seiten bleiben im Entwurf.',
+          );
+        }
       }
       if (draft.type == 'classroom') {
         await (this as SqliteNotebook)._rewriteAttachmentLinks(
@@ -122,6 +158,7 @@ mixin ClassroomStore on SchoolStore {
     await (this as SqliteNotebook).validateYearReferences();
     await (this as SqliteNotebook).entryTemplates();
     final docs = await classroomDocuments();
+    checkCodeReservations(docs);
     final materials = docs
         .where((d) => d.kind == ClassroomKind.material)
         .map((d) => d.id)

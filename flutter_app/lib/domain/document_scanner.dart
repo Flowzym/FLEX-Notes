@@ -75,11 +75,12 @@ class ScanContext {
     this.subject = '',
     this.includeTasks = true,
     this.unassignedPupilsOnly = false,
+    this.collection = false,
   });
   final List<String> pupilIds;
   final List<DocumentLink> links;
   final String title, category, subject;
-  final bool includeTasks, unassignedPupilsOnly;
+  final bool includeTasks, unassignedPupilsOnly, collection;
   Json initial({DateTime? now}) => {
     'title':
         '${dateOnly(now ?? DateTime.now())} · ${title.isEmpty ? 'Scan' : title.substring(0, title.length.clamp(0, 180))}',
@@ -88,7 +89,10 @@ class ScanContext {
     'pupilIds': pupilIds,
     'links': links.map((v) => v.toJson()).toList(),
     'pages': <Json>[],
-    'tags': <String>[],
+    if (collection) 'collection': true,
+    'tags': <String>[
+      if (collection) category == 'form' ? 'Rücklauf' : 'Hausübung',
+    ],
     'outputFormat': 'pdf',
   };
   bool matchesMaterial(ClassroomDocument d) =>
@@ -198,6 +202,32 @@ void validateScanData(Json j) {
         (id) => id is String && id.isNotEmpty && id.length <= 250,
       )) {
     throw const DomainError('Ungültiger Scanentwurf.');
+  }
+  if (j.containsKey('collection') &&
+      (j['collection'] is! bool ||
+          j['collection'] == true &&
+              ((j['pupilIds'] as List).length != 1 ||
+                  (j['links'] as List).length != 1 ||
+                  j['outputFormat'] != 'pdf'))) {
+    throw const DomainError(
+      'Zum Einsammeln bitte einen Schüler und einen Vorgang wählen.',
+    );
+  }
+  final names = j['importNames'] ?? const [];
+  final successes = j['importSuccess'] ?? const [];
+  final failures = j['importErrors'] ?? const {};
+  final messages = j['importFailures'] ?? const [];
+  if (j['sourceRedacted'] != null && j['sourceRedacted'] is! bool ||
+      j['importBatchId'] != null && j['importBatchId'] is! String ||
+      names is! List ||
+      !names.every((v) => v is String) ||
+      successes is! List ||
+      !successes.every((v) => v is int && v >= 0 && v < names.length) ||
+      failures is! Map ||
+      !failures.entries.every((e) => e.key is String && e.value is String) ||
+      messages is! List ||
+      !messages.every((v) => v is String)) {
+    throw const DomainError('Ungültige Angaben zum Stapelimport.');
   }
   final undo = j['filterUndo'] ?? const {};
   if (undo is! Map || undo.length > scanPageLimit) {
