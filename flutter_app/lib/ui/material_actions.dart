@@ -21,6 +21,7 @@ Future<void> _launchMaterial(String url) async {
   if (uri == null ||
       uri.scheme != 'https' ||
       uri.host.isEmpty ||
+      uri.userInfo.isNotEmpty ||
       !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     throw const DomainError('Der Link konnte nicht geöffnet werden.');
   }
@@ -154,6 +155,11 @@ Future<ClassroomDocument> cacheMaterial(
   OneDriveClient drive,
   MaterialFiles files,
 ) async {
+  if (material.text('extension') == 'link') {
+    throw const DomainError(
+      'Dieses Lernmedium wird online in OneDrive geöffnet.',
+    );
+  }
   if (material.text('itemId').isEmpty) {
     if (await files.exists(material.text('localKey'))) return material;
     throw const DomainError(
@@ -231,8 +237,31 @@ Future<void> openMaterial(
   MaterialFiles files = const LocalMaterialFiles(),
 }) async {
   var current = material;
-  if (current.text('extension') == 'link' && current.text('url').isNotEmpty) {
-    await _launchMaterial(current.text('url'));
+  if (current.text('extension') == 'link') {
+    var url = current.text('url');
+    if (url.isEmpty && current.text('itemId').isNotEmpty) {
+      final client = drive ?? OneDriveClient();
+      try {
+        if (drive == null) await client.load();
+        if (!client.connected && context.mounted) {
+          await connectOneDrive(context, client);
+        }
+        if (!client.connected) return;
+        final info = await client.item(
+          current.text('driveId'),
+          current.text('itemId'),
+        );
+        url = info['webUrl'] as String? ?? '';
+      } finally {
+        if (drive == null) client.dispose();
+      }
+    }
+    if (url.isEmpty) {
+      throw const DomainError(
+        'OneDrive liefert keinen Link zu diesem Lernmedium.',
+      );
+    }
+    await _launchMaterial(url);
     return;
   }
   if (!materialDeviceAvailable) {

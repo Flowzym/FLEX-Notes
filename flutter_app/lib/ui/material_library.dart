@@ -1,12 +1,15 @@
 import 'incoming_shares.dart';
 import 'quick_add.dart';
 import '../domain/drive_rules.dart';
+import '../domain/planning_import.dart';
 import 'onedrive_setup.dart';
 import 'material_versions.dart';
 import '../domain/material_versions.dart';
 import '../services/scan_store.dart';
 import 'share_documents.dart';
 import 'material_tags.dart';
+import 'pupil_planning_review.dart';
+import 'pupil_editor.dart';
 import '../domain/material_tags.dart';
 import 'detail_flow.dart';
 import 'material_thumbnail.dart';
@@ -53,6 +56,7 @@ part 'material_selection.dart';
 part 'material_assignments.dart';
 part 'drive_explorer.dart';
 part 'drive_sources.dart';
+part 'planning_material_views.dart';
 part 'drive_pupil_folders.dart';
 
 class MaterialLibraryPage extends StatefulWidget {
@@ -76,6 +80,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   final files = const LocalMaterialFiles();
   String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
   String formatFilter = 'all';
+  String useFilter = '';
   String pupilFilter = '';
   String get sort => c.appearance.materialSort;
   bool get grid => c.appearance.materialGrid;
@@ -285,6 +290,16 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
         final old = before[doc.id];
         documents.add(
           next.patch({
+            if (next.map('planning').isNotEmpty) ...{
+              'planningDecisions': next
+                  .strings('planningDecisions')
+                  .where(knownPupils.contains)
+                  .toList(),
+              'planningAutoDates': next
+                  .strings('planningAutoDates')
+                  .where(knownPupils.contains)
+                  .toList(),
+            },
             'pupilIds': next
                 .strings('pupilIds')
                 .where(knownPupils.contains)
@@ -452,6 +467,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                 )) &&
                         (kind != ClassroomKind.material ||
                             (!favorites || d.flag('favorite')) &&
+                                (useFilter.isEmpty ||
+                                    hasTeachingUse(d, useFilter)) &&
                                 (formatFilter == 'all' ||
                                     d.text('extension') == formatFilter ||
                                     formatFilter == 'jpg' &&
@@ -494,6 +511,17 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   .toSet()
                   .toList()
                 ..sort();
+          final cloudPlans = view == 'plans'
+              ? c.classroom
+                    .where(
+                      (d) =>
+                          d.kind == ClassroomKind.material &&
+                          d.deleted == trash &&
+                          {'dayPlan', 'weekPlan'}.contains(teachingUse(d)) &&
+                          materialMatches(d, query, pupils: c.pupils),
+                    )
+                    .toList()
+              : <ClassroomDocument>[];
           final today = dateOnly(DateTime.now());
           final preparedDays = view != 'prepared'
               ? <String, List<ClassroomDocument>>{}
@@ -716,7 +744,10 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                           ),
                         ),
                       ),
+                    if (view == 'files' && !trash && !selecting)
+                      _PlanningInbox(c),
                     if (view == 'prepared') ...[
+                      _PlanningWeeks(c, query),
                       OutlinedButton.icon(
                         onPressed: () => showPreparedMaterials(ctx, c),
                         icon: const Icon(Icons.date_range_outlined),
@@ -757,7 +788,14 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                           date: date,
                           query: query,
                         ),
-                      if (query.trim().isNotEmpty && preparedDays.isEmpty)
+                      if (query.trim().isNotEmpty &&
+                          preparedDays.isEmpty &&
+                          !c.classroom.any(
+                            (d) =>
+                                !d.deleted &&
+                                teachingWeek(d).isNotEmpty &&
+                                materialMatches(d, query, pupils: c.pupils),
+                          ))
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
                           child: Text(
@@ -796,6 +834,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                 typeFilter != 'all' ||
                                         subjectFilter.isNotEmpty ||
                                         tagFilter.isNotEmpty ||
+                                        useFilter.isNotEmpty ||
                                         formatFilter != 'all'
                                     ? 'Filter aktiv'
                                     : 'Filter',
@@ -858,6 +897,31 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                if (c.classroom.any(
+                                  (d) =>
+                                      d.kind == ClassroomKind.material &&
+                                      d.map('planning').isNotEmpty,
+                                ))
+                                  DropdownButtonFormField<String>(
+                                    initialValue: useFilter,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Verwendung',
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem(
+                                        value: '',
+                                        child: Text('Alle Verwendungen'),
+                                      ),
+                                      for (final e in planningUses.entries)
+                                        DropdownMenuItem(
+                                          value: e.key,
+                                          child: Text(e.value),
+                                        ),
+                                    ],
+                                    onChanged: (v) =>
+                                        setState(() => useFilter = v ?? ''),
+                                  ),
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 4,
@@ -990,7 +1054,17 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                           ],
                         ),
                       const SizedBox(height: 8),
-                      if (documents.isEmpty)
+                      if (cloudPlans.isNotEmpty)
+                        ExpansionTile(
+                          key: const PageStorageKey('planning-source-files'),
+                          tilePadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Tages- und Wochenpläne aus OneDrive',
+                          ),
+                          subtitle: Text('${cloudPlans.length} Dateien'),
+                          children: [_PlanningFiles(c, '', cloudPlans)],
+                        ),
+                      if (documents.isEmpty && cloudPlans.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 28),
                           child: Column(
@@ -1014,7 +1088,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                   subjectFilter.isNotEmpty ||
                                   tagFilter.isNotEmpty ||
                                   pupilFilter.isNotEmpty ||
-                                  formatFilter != 'all')
+                                  formatFilter != 'all' ||
+                                  useFilter.isNotEmpty)
                                 TextButton(
                                   onPressed: () => setState(() {
                                     query = '';
@@ -1024,6 +1099,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                     subjectFilter = '';
                                     tagFilter.clear();
                                     formatFilter = 'all';
+                                    useFilter = '';
                                     pupilFilter = '';
                                   }),
                                   child: const Text(

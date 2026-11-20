@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
+import 'planning_fields.dart';
 import 'lesson_flow_data.dart';
 import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
@@ -13,6 +14,7 @@ enum ClassroomKind {
   holiday,
   material,
   materialSet,
+  materialProfile,
   preparation,
   plan,
   folder,
@@ -250,6 +252,36 @@ class ClassroomDocument {
           .where((row) => pupils.contains((row as Map)['pupilId']))
           .toList();
     }
+    if (kind == ClassroomKind.material && map('planning').isNotEmpty) {
+      if (fields.containsKey('pupilIds') &&
+          !fields.containsKey('planningDecisions')) {
+        final pupils = List<String>.from(next['pupilIds'] as List);
+        final prior = strings('pupilIds').toSet();
+        final changed = {
+          ...prior.difference(pupils.toSet()),
+          ...pupils.toSet().difference(prior),
+        };
+        if (changed.isNotEmpty) {
+          next['planningDecisions'] = {
+            ...strings('planningDecisions'),
+            ...changed,
+          }.toList();
+        }
+      }
+      if ((fields.containsKey('pupilDates') ||
+              fields.containsKey('pupilIds')) &&
+          !fields.containsKey('planningAutoDates') &&
+          next.containsKey('planningAutoDates')) {
+        final day = map('planningOverride')['day'] ?? map('planning')['day'];
+        next['planningAutoDates'] = strings('planningAutoDates')
+            .where(
+              (id) => (next['pupilDates'] as List? ?? []).any(
+                (r) => r['pupilId'] == id && r['date'] == day,
+              ),
+            )
+            .toList();
+      }
+    }
     return ClassroomDocument.fromJson(next);
   }
 
@@ -259,6 +291,7 @@ class ClassroomDocument {
     ClassroomKind.lesson => isTeachingLesson ? 'Unterricht' : 'Termin',
     ClassroomKind.holiday => 'Ferien / Ausfall',
     ClassroomKind.material => 'Material',
+    ClassroomKind.materialProfile => 'Materialkürzel',
     ClassroomKind.materialSet => 'Unterrichtspaket',
     ClassroomKind.preparation => 'Bereitgelegt',
     ClassroomKind.plan => 'Planung',
@@ -317,6 +350,12 @@ class ClassroomDocument {
         'etag',
         'cloudRule',
         'cloudBinding',
+        'planning',
+        'planningOverride',
+        'planningDecisions',
+        'planningAutoDates',
+        'planningDismissed',
+        'remoteCreatedAt',
         'cloudReview',
         'sourceMissing',
         'cloudUpload',
@@ -340,6 +379,12 @@ class ClassroomDocument {
         'redacted',
         'versions',
         'pageCount',
+      },
+      ClassroomKind.materialProfile => {
+        'schoolYear',
+        'code',
+        'reserved',
+        'aliases',
       },
       ClassroomKind.materialSet => {
         'materialIds',
@@ -374,6 +419,9 @@ class ClassroomDocument {
         'purpose',
         'subject',
         'lastSync',
+        'planningFolder',
+        'planningReady',
+        'folderPath',
         'syncError',
       },
       ClassroomKind.returnList => {
@@ -437,8 +485,22 @@ class ClassroomDocument {
         throw const DomainError('Ungültige oder doppelte Zuordnung.');
       }
     }
+    if (kind == ClassroomKind.materialProfile) validateMaterialProfile(_json);
+    if (kind == ClassroomKind.material) validatePlanningFields(_json);
     if (kind == ClassroomKind.folder) {
-      for (final key in ['personal', 'incoming', 'outgoing']) {
+      if (flag('planningFolder') && (flag('personal') || flag('outgoing')) ||
+          text('folderPath').length > 5000) {
+        throw const DomainError(
+          'Ein Planungsordner ist eine Lesequelle für die FLEX-Klasse.',
+        );
+      }
+      for (final key in [
+        'personal',
+        'incoming',
+        'outgoing',
+        'planningFolder',
+        'planningReady',
+      ]) {
         if (_json.containsKey(key) && _json[key] is! bool) {
           throw const DomainError('Ungültige Ordnerregel.');
         }

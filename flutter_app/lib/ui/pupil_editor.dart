@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
+import '../domain/planning_import.dart';
+import 'pupil_planning_review.dart';
 import '../domain/drafts.dart';
 import 'common.dart';
 import 'draft_buffer.dart';
@@ -28,7 +31,10 @@ class PupilEditor extends StatefulWidget {
     required this.controller,
     this.pupil,
     this.draft,
+    this.initialMaterialCode,
+    this.initialSchoolYear,
   });
+  final String? initialMaterialCode, initialSchoolYear;
   final NotebookController controller;
   final Pupil? pupil;
   final DialogDraft? draft;
@@ -42,6 +48,37 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
   late TextEditingController name, colorText;
   bool busy = false, canPop = false, customColor = false;
   String? error;
+  late final TextEditingController code, aliases;
+  late String year;
+  ClassroomDocument? originalProfile;
+  late int profileRevision;
+  Json get draftData => {
+    ...pupil.toJson(),
+    if (profileChanged)
+      '_materialEdit': {
+        'year': year,
+        'code': code.text,
+        'aliases': aliases.text,
+        'revision': profileRevision,
+      },
+  };
+  List<String> get fileAliases => aliases.text
+      .split(',')
+      .map((v) => v.trim())
+      .where((v) => v.isNotEmpty)
+      .toList();
+  bool get profileChanged =>
+      code.text.trim().toUpperCase() != (originalProfile?.text('code') ?? '') ||
+      fileAliases.join(',') !=
+          (originalProfile?.strings('aliases') ?? []).join(',');
+  void loadYear(String value) {
+    year = value;
+    originalProfile = pupilProfile(widget.controller.classroom, pupil.id, year);
+    profileRevision = originalProfile?.revision ?? 0;
+    code.text = originalProfile?.text('code') ?? '';
+    aliases.text = (originalProfile?.strings('aliases') ?? []).join(', ');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +99,24 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
                     pupilPalette.first,
               )
         : Pupil.fromJson(widget.draft!.data);
+    code = TextEditingController();
+    aliases = TextEditingController();
+    final edit = widget.draft?.data['_materialEdit'] as Map?;
+    loadYear(
+      edit?['year'] as String? ??
+          widget.initialSchoolYear ??
+          yearOfDay(DateTime.now()),
+    );
+    if (widget.initialMaterialCode != null &&
+        widget.draft == null &&
+        pupil.revision == 0) {
+      code.text = widget.initialMaterialCode!;
+    }
+    if (edit != null) {
+      code.text = edit['code'] as String;
+      aliases.text = edit['aliases'] as String;
+      profileRevision = edit['revision'] as int;
+    }
     name = TextEditingController(text: pupil.name);
     colorText = TextEditingController(text: hex(pupil.color));
     buffer = DraftBuffer(
@@ -90,7 +145,7 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
   void change(Pupil value) {
     if (busy) return;
     setState(() => pupil = value);
-    buffer.change(value.toJson());
+    buffer.change(draftData);
   }
 
   @override
@@ -106,6 +161,8 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     buffer.dispose();
+    code.dispose();
+    aliases.dispose();
     name.dispose();
     colorText.dispose();
     super.dispose();
@@ -177,7 +234,61 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
       }
       pupil.validate();
       await buffer.flush();
-      await widget.controller.repository.savePupilDialog(pupil, buffer.draft);
+      final c = widget.controller;
+      ClassroomDocument? profile;
+      List<ClassroomDocument> updates = [];
+      if (profileChanged) {
+        if ((pupilProfile(c.classroom, pupil.id, year)?.revision ?? 0) !=
+            profileRevision) {
+          throw const StaleRevision();
+        }
+        profile = buildMaterialProfile(
+          c.classroom,
+          pupil.id,
+          year,
+          code.text.trim().toUpperCase(),
+          fileAliases,
+        );
+        final roster = PlanningRoster(
+          [
+            for (final d in c.classroom)
+              if (d.id != profile.id) d,
+            profile,
+          ],
+          [
+            for (final p in c.pupils)
+              if (p.id != pupil.id) p,
+            pupil,
+          ],
+        );
+        final matches = c.classroom
+            .where(
+              (d) =>
+                  d.kind == ClassroomKind.material &&
+                  roster.match(d).owners.contains(pupil.id),
+            )
+            .toList();
+        if (matches.isNotEmpty) {
+          if (!mounted) return;
+          final picked = await reviewPupilBacklog(
+            context,
+            pupil.id,
+            pupil.name,
+            matches,
+          );
+          if (picked == null) {
+            if (mounted) setState(() => busy = false);
+            return;
+          }
+          updates = picked;
+        }
+      }
+      await c.repository.savePupilDialog(
+        pupil,
+        buffer.draft,
+        materialProfile: profile,
+        materialUpdates: updates,
+      );
       await widget.controller.reload();
       if (mounted) await pop();
     } catch (e) {
@@ -222,6 +333,90 @@ class _PupilEditorState extends State<PupilEditor> with WidgetsBindingObserver {
                   ),
                   onChanged: (v) => change(pupil.copyWith(name: v)),
                 ),
+                TextField(
+                  key: const ValueKey('pupil-material-code'),
+                  controller: code,
+                  maxLength: 12,
+                  textCapitalization: TextCapitalization.characters,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: 'Materialkürzel · optional',
+                    counterText: '',
+                    helperText: 'Z. B. MI für MI01.pdf · Schuljahr $year',
+                  ),
+                  onChanged: (_) => change(pupil),
+                ),
+                if (code.text.isEmpty &&
+                    suggestMaterialCode(
+                      pupil.name,
+                      widget.controller.classroom,
+                      pupil.id,
+                      year,
+                    ).isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () {
+                        code.text = suggestMaterialCode(
+                          pupil.name,
+                          widget.controller.classroom,
+                          pupil.id,
+                          year,
+                        );
+                        change(pupil);
+                      },
+                      child: Text(
+                        'Kürzel ${suggestMaterialCode(pupil.name, widget.controller.classroom, pupil.id, year)} übernehmen',
+                      ),
+                    ),
+                  ),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Schuljahr und Dateinamen'),
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: year,
+                      decoration: const InputDecoration(labelText: 'Schuljahr'),
+                      items: [
+                        for (final y in ({
+                          year,
+                          for (final i in [-1, 0, 1])
+                            schoolYearLabel(
+                              int.parse(
+                                    yearOfDay(DateTime.now()).substring(0, 4),
+                                  ) +
+                                  i,
+                            ),
+                          for (final d in widget.controller.classroom)
+                            if (d.kind == ClassroomKind.materialProfile)
+                              d.text('schoolYear')
+                            else if (d.kind == ClassroomKind.material &&
+                                (d.map('planning')['year'] as String? ?? '')
+                                    .isNotEmpty)
+                              d.map('planning')['year'] as String,
+                        }.toList()..sort()).reversed)
+                          DropdownMenuItem(value: y, child: Text(y)),
+                      ],
+                      onChanged: profileChanged
+                          ? null
+                          : (v) {
+                              if (v != null) {
+                                loadYear(v);
+                                change(pupil);
+                              }
+                            },
+                    ),
+                    TextField(
+                      controller: aliases,
+                      decoration: const InputDecoration(
+                        labelText: 'Weitere Namen in Dateinamen',
+                        helperText: 'Mehrere Schreibweisen mit Komma trennen.',
+                      ),
+                      onChanged: (_) => change(pupil),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 const Text('Farbe'),
                 Wrap(
                   spacing: 8,

@@ -9,8 +9,11 @@ String cloudExtension(String name) {
   return extension == 'jpeg' ? 'jpg' : extension;
 }
 
+bool cloudLearningLink(String name) =>
+    {'html', 'htm', 'url'}.contains(cloudExtension(name));
 bool cloudFileSupported(String name) =>
-    {'pdf', 'docx', 'jpg', 'png'}.contains(cloudExtension(name));
+    {'pdf', 'docx', 'jpg', 'png'}.contains(cloudExtension(name)) ||
+    cloudLearningLink(name);
 
 /// Index a snapshot once while browsing or walking a folder tree. A detached
 /// local edit keeps its ID, so the cloud original can reappear independently.
@@ -63,6 +66,8 @@ class OneDriveMaterialIndex {
       'itemId': item['id'],
       'url': item['webUrl'] ?? old?.text('url') ?? '',
       'remoteName': name,
+      if (item['createdDateTime'] is String)
+        'remoteCreatedAt': item['createdDateTime'],
       'remoteEtag': item['eTag'] ?? '',
       'remoteModifiedAt': item['lastModifiedDateTime'] ?? '',
       'sourcePath': ?path,
@@ -70,7 +75,7 @@ class OneDriveMaterialIndex {
       if (restore) 'deleted': false,
       if (!cached) ...{
         'name': name,
-        'extension': cloudExtension(name),
+        'extension': cloudLearningLink(name) ? 'link' : cloudExtension(name),
         'size': item['size'] ?? 0,
         'sourceModifiedAt': item['lastModifiedDateTime'] ?? '',
       },
@@ -108,7 +113,12 @@ Future<List<ClassroomDocument>> scanMaterialFolder(
 }) async {
   final materials = OneDriveMaterialIndex(existing);
   final queue = <({String id, String path})>[
-    (id: folder.text('itemId'), path: folder.title),
+    (
+      id: folder.text('itemId'),
+      path: folder.flag('planningFolder')
+          ? folder.text('folderPath', folder.title)
+          : folder.title,
+    ),
   ];
   final visited = <String>{}, seen = <String>{};
   final result = <ClassroomDocument>[];

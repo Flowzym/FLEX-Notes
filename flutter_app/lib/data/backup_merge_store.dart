@@ -83,12 +83,20 @@ mixin BackupMergeStore on SchoolStore {
       }
       if (item is List) {
         final values = item.map((v) => visit(v, key)).toList();
-        return key == 'pupilIds' ? values.toSet().toList() : values;
+        return {
+              'pupilIds',
+              'planningAutoDates',
+              'planningDecisions',
+            }.contains(key)
+            ? values.toSet().toList()
+            : values;
       }
       if (item is String &&
           const {
             'pupilId',
             'pupilIds',
+            'planningAutoDates',
+            'planningDecisions',
             'pupil_id',
             'participantIds',
             'recipients',
@@ -211,7 +219,19 @@ mixin BackupMergeStore on SchoolStore {
     }
     for (final doc in source.data.classroom) {
       final incoming = _references(doc.toJson(), pupilLinks);
-      final old = local.classroom.where((d) => d.id == doc.id).firstOrNull;
+      var id = doc.id;
+      if (doc.kind == ClassroomKind.materialProfile &&
+          doc.strings('pupilIds').isNotEmpty) {
+        final pupil = (incoming['pupilIds'] as List).single as String;
+        id =
+            pupilProfile(local.classroom, pupil, doc.text('schoolYear'))?.id ??
+            const Uuid().v5(
+              Namespace.url.value,
+              'flex-material-profile:${doc.text('schoolYear')}:$pupil',
+            );
+        incoming['id'] = id;
+      }
+      final old = local.classroom.where((d) => d.id == id).firstOrNull;
       if (old != null && old.kind != doc.kind) {
         throw const DomainError(
           'Dieselbe Klassen-ID hat unterschiedliche Eintragsarten.',
@@ -220,7 +240,7 @@ mixin BackupMergeStore on SchoolStore {
       items.add(
         MergeItem(
           kind: 'classroom',
-          id: doc.id,
+          id: id,
           label: '${doc.label} · ${doc.title}',
           incoming: incoming,
           local: old?.toJson(),

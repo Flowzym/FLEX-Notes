@@ -62,7 +62,9 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
     ];
     final details = [
       d.text('subject'),
-      if (d.text('documentType', 'other') != 'other')
+      if (teachingUse(d).isNotEmpty)
+        planningUses[teachingUse(d)]!
+      else if (d.text('documentType', 'other') != 'other')
         materialTypes[d.text('documentType')] ?? '',
       if (widget.onAssign == null && names.isNotEmpty) names.join(', '),
     ].where((text) => text.isNotEmpty).join(' · ');

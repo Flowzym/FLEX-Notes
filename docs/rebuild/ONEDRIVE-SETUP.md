@@ -75,6 +75,14 @@ FLEX-Sicherungen/Fehlerberichte aufgenommen. Native Cacheoperationen sind auch
 Kontobindung und Sitzungszähler verwerfen verspätete Ergebnisse nach dem Trennen.
 Datei- und Thumbnail-Downloads erhalten keinen Graph-Bearer-Header.
 
+## Unterrichtsplanung aus einem bestehenden OneDrive-Ordner
+
+Öffne **Material → OneDrive → Dateien durchsuchen** und navigiere zu deinem Planungsordner. Wähle **Ordner verknüpfen → Unterrichtsplanung nach Ordnerstruktur → Vorschau prüfen**. Die Vorschau zählt die erkannten Verwendungen und Unterrichtstage. Nach dem Bestätigen liest FLEX die Dateiverweise ein. Scans lassen sich weiterhin über eine eigene Regel im FLEX-App-Ordner ablegen.
+
+Ein Pfad wie `Planung/2026-27/KW48/Materialien/2026-11-24/Brüche MI01.pdf` legt das Blatt für den 24. November bereit. Ein Datumsordner hat Vorrang vor einem Datum im Dateinamen. Direkt im Wochenordner kann FLEX ein zur Woche passendes Dateidatum verwenden. Materialien mit reiner Wochenzuordnung findest du unter **Bereitgelegt → Wochenmaterial**. In der Bibliothek kannst du unabhängig nach Verwendung und Schüler filtern. Im Materialdetail lässt sich der Unterrichtseinsatz korrigieren.
+
+Beim Anlegen oder Bearbeiten eines Schülers kannst du ein **Materialkürzel** pro Schuljahr bestätigen. `MI01` bezeichnet Material 01, `MI01L` die Lösung. Weitere bestätigte Schreibweisen gehören unter **Schuljahr und Dateinamen**. Vorhandene Treffer lassen sich einzeln oder gesammelt übernehmen. Unbekannte Kürzel findest du unter **Zuordnung prüfen → Nach Kürzel oder Schüler prüfen**. Neue eindeutige Treffer ordnet FLEX beim Abgleich zu. Eine geänderte oder archivierte Schülerzuordnung behält ihre bisher vergebenen Kürzel für das Schuljahr.
+
 ## Abnahme
 
 Automatisierte Prüfungen decken Konfiguration, Kontoübernahme, Abbruch,

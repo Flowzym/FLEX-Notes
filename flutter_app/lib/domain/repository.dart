@@ -95,7 +95,16 @@ abstract interface class NotebookRepository {
   Future<void> saveBulkDialog(DialogDraft draft);
   Future<DialogDraft> saveDialogDraft(DialogDraft draft);
   Future<void> discardDialogDraft(String id, int revision);
-  Future<Pupil> savePupilDialog(Pupil pupil, DialogDraft? draft);
+  Future<Pupil> savePupilDialog(
+    Pupil pupil,
+    DialogDraft? draft, {
+    ClassroomDocument? materialProfile,
+    List<ClassroomDocument> materialUpdates = const [],
+  });
+  Future<void> savePlanningSync(
+    List<ClassroomDocument> changes,
+    Map<String, int> rosterRevisions,
+  );
   Future<void> saveCatalogs(
     Map<String, List<String>> options,
     DialogDraft? draft,

@@ -584,6 +584,17 @@ class DialogDraft {
       validateScanData(data);
     } else if (j['type'] == 'pupil') {
       final pupil = Pupil.fromJson(data);
+      final edit = data['_materialEdit'];
+      if (edit != null &&
+          (edit is! Map ||
+              edit['year'] is! String ||
+              !RegExp(r'^\d{4}-\d{2}$').hasMatch(edit['year'] as String) ||
+              edit['code'] is! String ||
+              edit['aliases'] is! String ||
+              edit['revision'] is! int ||
+              (edit['revision'] as int) < 0)) {
+        throw const DomainError('Ungültiger Entwurf für das Materialkürzel.');
+      }
       if (pupil.id != j['ownerId'] ||
           pupil.color < 0 ||
           pupil.color > 0xffffffff ||

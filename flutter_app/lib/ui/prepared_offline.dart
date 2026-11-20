@@ -104,7 +104,7 @@ class _PreparedOfflineStatusState extends State<PreparedOfflineStatus>
       final missing = widget.materials.where((m) => result[m.id] != true);
       bool downloadable(ClassroomDocument d) =>
           d.text('itemId').isNotEmpty &&
-          {'pdf', 'docx', 'jpg'}.contains(d.text('extension'));
+          {'pdf', 'docx', 'jpg', 'png'}.contains(d.text('extension'));
       final remote = missing.where(downloadable).toList();
       final summary =
           '$ready von ${result.length} auf diesem Gerät${unknown > 0 ? ' · $unknown ungeprüft' : ''}';

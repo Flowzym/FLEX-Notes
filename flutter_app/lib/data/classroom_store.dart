@@ -41,6 +41,11 @@ mixin ClassroomStore on SchoolStore {
       );
     }
     final saved = value.patch({
+      if (value.kind == ClassroomKind.materialProfile && old != null)
+        'reserved': {
+          ...old.strings('reserved'),
+          ...value.strings('reserved'),
+        }.toList(),
       'title': value.title.trim(),
       'revision': value.revision + 1,
       'updatedAtUtc': utcNow(),
@@ -153,6 +158,7 @@ mixin ClassroomStore on SchoolStore {
     await (this as SqliteNotebook).validateYearReferences();
     await (this as SqliteNotebook).entryTemplates();
     final docs = await classroomDocuments();
+    checkCodeReservations(docs);
     final materials = docs
         .where((d) => d.kind == ClassroomKind.material)
         .map((d) => d.id)

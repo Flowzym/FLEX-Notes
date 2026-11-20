@@ -563,8 +563,10 @@ Widget classroomEditor(
             ),
             text('subject', 'Fach · optional'),
             text('topic', 'Thema · optional'),
-            day('week', 'Wochenplanung · optional'),
-            if ((data['week'] as String? ?? '').isNotEmpty)
+            if ((data['planning'] as Map? ?? {}).isEmpty)
+              day('week', 'Wochenplanung · optional'),
+            if ((data['planning'] as Map? ?? {}).isEmpty &&
+                (data['week'] as String? ?? '').isNotEmpty)
               TextButton(
                 onPressed: () => change({'week': ''}),
                 child: const Text('Wochenzuordnung entfernen'),

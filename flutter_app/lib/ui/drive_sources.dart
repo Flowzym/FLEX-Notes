@@ -36,8 +36,9 @@ Future<bool> _configureDriveFolder(
   OneDriveClient drive,
   _DriveFolder folder,
   String account,
-  String appRoot,
-) async {
+  String appRoot, {
+  String? folderPath,
+}) async {
   final old = c.classroom
       .where(
         (f) =>
@@ -64,6 +65,7 @@ Future<bool> _configureDriveFolder(
       subject = base.text('subject');
   var incoming = old == null || !isDriveRule(base) || base.flag('incoming'),
       outgoing = base.flag('outgoing') && folder.writable,
+      planning = base.flag('planningFolder'),
       busy = false,
       error = '';
   if (!pupils.any((p) => p.id == pupil) && base.flag('personal')) {
@@ -81,7 +83,7 @@ Future<bool> _configureDriveFolder(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 DropdownButtonFormField<String>(
-                  initialValue: pupil,
+                  initialValue: planning ? 'planning' : pupil,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Zuordnung in FLEX',
@@ -91,6 +93,10 @@ Future<bool> _configureDriveFolder(
                       value: '',
                       child: Text('FLEX-Klasse'),
                     ),
+                    const DropdownMenuItem(
+                      value: 'planning',
+                      child: Text('Unterrichtsplanung nach Ordnerstruktur'),
+                    ),
                     if (pupil == 'missing')
                       const DropdownMenuItem(
                         value: 'missing',
@@ -99,8 +105,24 @@ Future<bool> _configureDriveFolder(
                     for (final p in pupils)
                       DropdownMenuItem(value: p.id, child: Text(p.name)),
                   ],
-                  onChanged: busy ? null : (v) => update(() => pupil = v!),
+                  onChanged: busy
+                      ? null
+                      : (v) => update(() {
+                          planning = v == 'planning';
+                          pupil = planning ? '' : v!;
+                          if (planning) {
+                            incoming = true;
+                            outgoing = false;
+                          }
+                        }),
                 ),
+                if (planning)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Schuljahr, Kalenderwoche und Datumsordner bestimmen den Einsatz. Bestätigte Materialkürzel verknüpfen neue Dateien mit Schülern.',
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 TextFormField(
                   initialValue: subject,
@@ -127,7 +149,7 @@ Future<bool> _configureDriveFolder(
                           'Für Uploads einen Ordner im FLEX-App-Ordner wählen.',
                         ),
                   value: outgoing,
-                  onChanged: busy || !folder.writable
+                  onChanged: busy || !folder.writable || planning
                       ? null
                       : (v) => update(() => outgoing = v),
                 ),
@@ -166,6 +188,16 @@ Future<bool> _configureDriveFolder(
                             'deleted': false,
                             'accountDrive': account,
                             'incoming': incoming,
+                            'planningFolder': planning,
+                            'planningReady':
+                                planning &&
+                                base.flag('planningFolder') &&
+                                base.flag('planningReady') &&
+                                base.flag('incoming'),
+                            'folderPath': base.text(
+                              'folderPath',
+                              folderPath ?? folder.name,
+                            ),
                             'outgoing': outgoing,
                             'personal': pupil.isNotEmpty,
                             'pupilIds': [if (pupil.isNotEmpty) pupil],
@@ -198,7 +230,9 @@ Future<bool> _configureDriveFolder(
                             if (!await confirmFlex(
                               ctx,
                               'Ordner verbinden?',
-                              '${items.length} vorhandene Dateien in „${folder.name}“. Neue Materialien werden „$dest“ zugeordnet.\n\n${items.take(4).map((d) => d.title).join('\n')}',
+                              planning
+                                  ? _planningPreview(items, c)
+                                  : '${items.length} vorhandene Dateien in „${folder.name}“. Neue Materialien werden „$dest“ zugeordnet.\n\n${items.take(4).map((d) => d.title).join('\n')}',
                               accept: 'Verbinden',
                             )) {
                               return;
@@ -449,6 +483,7 @@ class _DriveSources extends StatelessWidget {
           ],
         ),
         if ((drive.accountName ?? '').isNotEmpty) Text(drive.accountName!),
+        _PlanningInbox(c),
         Wrap(
           spacing: 8,
           children: [
@@ -493,7 +528,10 @@ class _DriveSources extends StatelessWidget {
               title: Text(f.title),
               subtitle: Text(
                 [
-                  _target(f),
+                  if (f.flag('planningFolder'))
+                    'Unterrichtsplanung'
+                  else
+                    _target(f),
                   if (f.flag('incoming')) 'Einlesen',
                   if (f.flag('outgoing')) 'Scans ablegen',
                   if (f.text('lastSync').isNotEmpty)

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/classroom.dart';
 import '../domain/drive_rules.dart';
 import '../domain/models.dart';
+import '../domain/planning_import.dart';
 import '../domain/repository.dart';
 import 'material_files.dart';
 import 'material_index.dart';
@@ -98,6 +99,12 @@ class MaterialSync {
       }
     }
     docs = await repo.classroomDocuments();
+    final roster = PlanningRoster(docs, pupils);
+    final revisions = planningRosterRevisions(
+      docs,
+      pupils,
+      includeFolders: true,
+    );
     final known = {for (final d in docs) d.id: d};
     final found = <String>{};
     final complete = <String>{};
@@ -144,7 +151,8 @@ class MaterialSync {
             final existing = old?.strings('pupilIds') ?? [];
             final target = f.strings('pupilIds');
             if (previous.isNotEmpty ||
-                existing.isNotEmpty &&
+                !f.flag('planningFolder') &&
+                    existing.isNotEmpty &&
                     !setEquals(existing.toSet(), target.toSet())) {
               m = m.patch({'cloudReview': f.id, 'sourceMissing': false});
             } else {
@@ -153,7 +161,7 @@ class MaterialSync {
                 'cloudBinding': driveBinding(f),
                 'cloudReview': '',
                 'sourceMissing': false,
-                'pupilIds': target,
+                if (!f.flag('planningFolder')) 'pupilIds': target,
                 if (f.text('subject').isNotEmpty &&
                     (old == null || old.text('subject').isEmpty))
                   'subject': f.text('subject'),
@@ -162,13 +170,68 @@ class MaterialSync {
           } else {
             m = m.patch({'sourceMissing': false, 'cloudReview': ''});
           }
+          if (f.flag('planningFolder') && m.text('cloudReview').isEmpty) {
+            final classification = classifyPlanningFile(m.text('sourcePath'));
+            final use = classification['use'];
+            m = updateTeachingPlan(m, {
+              'planning': classification,
+              if (old != null &&
+                  old.map('planning').isEmpty &&
+                  old.text('week').isNotEmpty)
+                'planningOverride': {
+                  'week': weekOfDay(old.text('week')),
+                  if (weekOfDay(old.text('week')) != classification['week'])
+                    'day': '',
+                },
+              if (old == null) ...{
+                if (use == 'solution' || use == 'template') 'documentType': use,
+                if (use == 'weekPlan') 'documentType': 'weekPlan',
+                if (use == 'dayPlan') 'documentType': 'planning',
+                if ({
+                  'solution',
+                  'teacher',
+                  'dayPlan',
+                  'weekPlan',
+                }.contains(use))
+                  'audience': 'teacher',
+              },
+            });
+            final match = roster.match(m);
+            if (old == null &&
+                f.flag('planningReady') &&
+                !match.ambiguous &&
+                match.unknown.isEmpty &&
+                match.owners.isNotEmpty) {
+              final created = DateTime.tryParse(m.text('remoteCreatedAt'));
+              final profiles = materialProfiles(
+                docs,
+                classification['year'] as String,
+              );
+              final historical =
+                  created != null &&
+                  profiles.any(
+                    (p) =>
+                        p.strings('pupilIds').any(match.owners.contains) &&
+                        !created.isAfter(
+                          DateTime.parse(p.text('updatedAtUtc')),
+                        ),
+                  );
+              if (!historical) {
+                m = decidePlanningPupils(m, match.owners, match.owners);
+              }
+            }
+          }
           if (old == null ||
               jsonEncode(old.toJson()) != jsonEncode(m.toJson())) {
             changes[m.id] = m;
           }
         }
         complete.add(f.id);
-        changes[f.id] = f.patch({'lastSync': utcNow(), 'syncError': ''});
+        changes[f.id] = f.patch({
+          'lastSync': utcNow(),
+          'syncError': '',
+          if (f.flag('planningFolder')) 'planningReady': true,
+        });
       } catch (e) {
         final message = _reason(e);
         result.errors.add('${f.title} · $message');
@@ -188,7 +251,11 @@ class MaterialSync {
       changes[m.id] = m.patch({'sourceMissing': true, 'cloudReview': ''});
     }
     if (changes.isNotEmpty) {
-      await repo.saveClassroomDocuments(changes.values.toList());
+      if (rules.any((f) => f.flag('incoming') && f.flag('planningFolder'))) {
+        await repo.savePlanningSync(changes.values.toList(), revisions);
+      } else {
+        await repo.saveClassroomDocuments(changes.values.toList());
+      }
     }
     result.imported = changes.values
         .where((d) => d.kind == ClassroomKind.material)

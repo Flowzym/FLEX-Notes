@@ -198,6 +198,15 @@ class _DriveExplorerState extends State<_DriveExplorer> {
     );
     final name = item['name'] as String, ext = cloudExtension(name);
     final url = (info['webUrl'] ?? item['webUrl'] ?? '') as String;
+    if (cloudLearningLink(name)) {
+      if (url.isEmpty) {
+        throw const DomainError(
+          'OneDrive liefert keinen Link zu diesem Lernmedium.',
+        );
+      }
+      await _launchMaterial(url);
+      return;
+    }
     if (info['@microsoft.graph.downloadUrl'] == null && url.isNotEmpty) {
       await _launchMaterial(url);
       return;
@@ -510,6 +519,7 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                     folder,
                     widget.account,
                     widget.appRoot,
+                    folderPath: stack.map((f) => f.name).join('/'),
                   );
                   if (saved && context.mounted) Navigator.pop(context);
                 }),

@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'classroom.dart';
 import 'models.dart';
+import 'planning_import.dart';
 import 'document_scanner.dart';
 
 bool hasMaterialSource(ClassroomDocument material) =>
@@ -67,6 +68,8 @@ Map<String, List<ClassroomDocument>> preparedMaterialsByDay(
     }
   }
   for (final material in materials.values) {
+    final planned = teachingDay(material);
+    if (planned.isNotEmpty) include(planned, material);
     for (final row in material.rows('pupilDates')) {
       include(row['date'] as String, material);
     }
@@ -118,6 +121,12 @@ List<ClassroomDocument> preparedDayMaterials(
       ...resolveMaterials(
         documents,
         day.deleted ? [] : day.strings('materialIds'),
+      ),
+      ...documents.where(
+        (d) =>
+            !d.deleted &&
+            d.kind == ClassroomKind.material &&
+            teachingDay(d) == date,
       ),
       ...pupilMaterialsOnDay(documents, date),
     ])
@@ -257,6 +266,8 @@ bool materialMatches(
     d.text('note'),
     d.text('otherParticipants'),
     d.text('sourcePath'),
+    planningUses[teachingUse(d)] ?? '',
+    teachingDay(d),
     ...d.strings('tags'),
     materialTypes[d.text('documentType', 'other')] ?? '',
     materialAudiences[d.text('audience', 'all')] ?? '',

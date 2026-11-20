@@ -107,7 +107,10 @@ class _MaterialRowState extends State<MaterialRow> {
                               [
                                 d.text('extension').toUpperCase(),
                                 d.text('subject'),
-                                if (d.text('documentType', 'other') != 'other')
+                                if (teachingUse(d).isNotEmpty)
+                                  planningUses[teachingUse(d)]!
+                                else if (d.text('documentType', 'other') !=
+                                    'other')
                                   materialTypes[d.text('documentType')]!,
                               ].where((s) => s.isNotEmpty).join(' · '),
                               style: Theme.of(context).textTheme.bodySmall,
@@ -215,6 +218,7 @@ Future<void> showMaterialDetails(
                 ],
               ),
               const SizedBox(height: 12),
+              if (d.map('planning').isNotEmpty) _PlanningDetails(c, d),
               ListTile(
                 key: const ValueKey('material-detail-assign'),
                 contentPadding: EdgeInsets.zero,
@@ -384,7 +388,9 @@ Future<void> showMaterialDetails(
                   d.text('sourcePath'),
                   style: Theme.of(ctx).textTheme.bodySmall,
                 ),
-              if (materialDeviceAvailable && d.text('itemId').isNotEmpty)
+              if (materialDeviceAvailable &&
+                  d.text('itemId').isNotEmpty &&
+                  d.text('extension') != 'link')
                 OutlinedButton.icon(
                   onPressed: () => guarded(ctx, () async {
                     final client = drive ?? OneDriveClient();
@@ -522,8 +528,33 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
         date,
       ).where(matches).toList();
       final dayMaterials = preparedDayMaterials(c.classroom, date);
+      final planned = dayMaterials
+          .where(
+            (d) =>
+                teachingDay(d) == date &&
+                !ids.contains(d.id) &&
+                !scheduled.any((s) => s.id == d.id) &&
+                matches(d),
+          )
+          .toList();
+      final weekly = c.classroom
+          .where(
+            (d) =>
+                !d.deleted &&
+                d.kind == ClassroomKind.material &&
+                teachingDay(d).isEmpty &&
+                teachingWeek(d) == weekOfDay(date) &&
+                !ids.contains(d.id) &&
+                matches(d),
+          )
+          .toList();
       final suggestions = suggestedMaterials(c.classroom, date)
-          .where((m) => matches(m) && !scheduled.any((d) => d.id == m.id))
+          .where(
+            (m) =>
+                matches(m) &&
+                !dayMaterials.any((d) => d.id == m.id) &&
+                !weekly.any((d) => d.id == m.id),
+          )
           .toList();
       return FlexModal(
         title: const Text('Bereitgelegt'),
@@ -614,7 +645,10 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                 details: true,
               ),
             if (busy) const LinearProgressIndicator(),
-            if (materials.isEmpty && scheduled.isEmpty)
+            if (materials.isEmpty &&
+                scheduled.isEmpty &&
+                planned.isEmpty &&
+                weekly.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
@@ -676,6 +710,9 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
             ),
             if (ids.length > allMaterials.length)
               const Text('Dateien im Papierkorb werden hier ausgeblendet.'),
+            if (planned.isNotEmpty)
+              _PlanningFiles(c, 'Für diesen Unterrichtstag', planned),
+            if (weekly.isNotEmpty) _PlanningFiles(c, 'Für diese Woche', weekly),
             if (scheduled.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text(

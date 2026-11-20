@@ -33,11 +33,31 @@ Future<void> _setupPupilFolders(
     if ((names[safeName(p.name).toLowerCase()] ?? 0) > 1) {
       name += ' · ${p.id.substring(0, p.id.length.clamp(0, 8))}';
     }
-    final item = children
+    final linkedIds = c.classroom
         .where(
-          (j) => (j['name'] as String?)?.toLowerCase() == name.toLowerCase(),
+          (d) =>
+              isDriveRule(d) &&
+              d.text('driveId') == parent.drive &&
+              d.flag('personal') &&
+              d.strings('pupilIds').contains(p.id) &&
+              d.text('purpose', 'all') == 'all' &&
+              d.text('subject').isEmpty &&
+              (d.flag('incoming') || d.flag('outgoing')),
         )
+        .map((d) => d.text('itemId'))
+        .toSet();
+    final linked = children
+        .where((item) => linkedIds.contains(item['id']))
         .firstOrNull;
+    if (linked != null) name = linked['name'] as String;
+    final item =
+        linked ??
+        children
+            .where(
+              (j) =>
+                  (j['name'] as String?)?.toLowerCase() == name.toLowerCase(),
+            )
+            .firstOrNull;
     final rule = c.classroom
         .where(
           (d) =>
@@ -153,6 +173,8 @@ Future<void> _setupPupilFolders(
         'accountDrive': parent.drive,
         'appRoot': appRoot,
         'personal': true,
+        'planningFolder': false,
+        'planningReady': false,
         'pupilIds': [o.pupil.id],
         'purpose': 'all',
         'subject': '',
