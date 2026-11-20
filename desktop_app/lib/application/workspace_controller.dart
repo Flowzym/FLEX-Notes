@@ -60,6 +60,7 @@ class WorkspaceController extends ChangeNotifier {
   List<CalendarItem> agenda(DateTime day) =>
       calendarItems(notebook.currentSnapshot, dateOnly(day), dateOnly(day));
   void navigate(WorkspaceSection value) {
+    if (section == value) return;
     section = value;
     query = '';
     selectedMaterials.clear();

@@ -77,6 +77,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   void onWindowClose() async {
     try {
       await c.editor?.flush();
+      if (c.notebook.syncingMaterials) await c.notebook.syncMaterials();
       await c.repository.close();
       await windowManager.destroy();
     } catch (_) {

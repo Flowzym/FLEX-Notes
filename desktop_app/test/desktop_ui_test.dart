@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/data/database.dart';
 import 'package:flex_notizbuch/data/sqlite_notebook.dart';
@@ -11,6 +12,71 @@ import 'package:flex_desktop/domain/core.dart';
 import 'workspace_test.dart' show MemoryFiles;
 
 void main() {
+  testWidgets(
+    'organisation filters are independent and a return can be reopened from the keyboard',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = SqliteNotebook(
+        NotebookDatabase(
+          NativeDatabase.memory(),
+          File('assets/schema.sql').readAsStringSync(),
+        ),
+      );
+      final n = NotebookController(repo);
+      await tester.runAsync(() async {
+        await n.initialize();
+        await n.savePupil(Pupil(id: 'alpha', name: 'Testkind Alpha'));
+        await n.saveClassroom(
+          ClassroomDocument.create(ClassroomKind.returnList, 'Museumsliste', {
+            'type': 'consent',
+            'dueDate': '2020-01-01',
+            'participants': [
+              {
+                'pupilId': 'alpha',
+                'name': 'Testkind Alpha',
+                'status': 'open',
+                'note': '',
+                'paid': 0,
+              },
+            ],
+          }),
+        );
+      });
+      final c = WorkspaceController(n, files: MemoryFiles())
+        ..navigate(WorkspaceSection.organization);
+      await tester.pumpWidget(DesktopApp(controller: c));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Rückläufe'));
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Überfällig'));
+      await tester.pumpAndSettle();
+      expect(find.text('Museumsliste'), findsOneWidget);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Erledigt'));
+      await tester.pumpAndSettle();
+      expect(find.text('Keine passenden Einträge'), findsOneWidget);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Suchen und öffnen'),
+        'Alpha Museum',
+      );
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(c.editor?.kind, EntryKind.returnList);
+      expect(c.editor?.data['title'], 'Museumsliste');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      c.dispose();
+      n.dispose();
+      await tester.runAsync(repo.close);
+    },
+  );
+
   for (final size in [const Size(1440, 960), const Size(1024, 768)]) {
     testWidgets('all desktop workspaces and entry forms fit ${size.width}', (
       tester,

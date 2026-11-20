@@ -60,30 +60,28 @@ extension _OrganizationViews on _DesktopWorkspaceState {
               Row(
                 children: [
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: DropdownButton<String>(
-                        value: orgaStatus,
-                        underline: const SizedBox(),
-                        icon: const Icon(Icons.expand_more),
-                        items: [
-                          for (final s in [
-                            'Alle',
-                            'Offen',
-                            'Überfällig',
-                            'Erledigt',
-                          ])
-                            DropdownMenuItem(
-                              value: s,
-                              child: Text(s == 'Alle' ? 'Jeder Status' : s),
+                    child: Wrap(
+                      spacing: 7,
+                      runSpacing: 4,
+                      children: [
+                        for (final status in [
+                          'Alle',
+                          'Offen',
+                          'Überfällig',
+                          'Erledigt',
+                        ])
+                          ChoiceChip(
+                            label: Text(
+                              status == 'Alle' ? 'Jeder Status' : status,
                             ),
-                        ],
-                        onChanged: (s) {
-                          if (s != null) redraw(() => orgaStatus = s);
-                        },
-                      ),
+                            selected: status == orgaStatus,
+                            onSelected: (_) =>
+                                redraw(() => orgaStatus = status),
+                          ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Text(
                     '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'}',
                     style: const TextStyle(color: muted),
@@ -168,7 +166,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                         if (e.items.isNotEmpty)
                           '${e.items.where((i) => i.checked).length}/${e.items.length} Teilaufgaben',
                       ].join(' · '),
-                      style: const TextStyle(fontSize: 10, color: muted),
+                      style: const TextStyle(fontSize: 12, color: muted),
                     ),
                   ],
                 ),
@@ -219,8 +217,8 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Rücklauf · $open von $total offen${r.text('dueDate').isEmpty ? '' : ' · Frist ${shortDate(r.text('dueDate'))}'}',
-                      style: const TextStyle(fontSize: 11, color: muted),
+                      'Rücklauf · ${r.flag('closed') ? '$open von $total bei Abschluss ausständig' : '$open von $total offen'}${r.text('dueDate').isEmpty ? '' : ' · Frist ${shortDate(r.text('dueDate'))}'}',
+                      style: const TextStyle(fontSize: 12, color: muted),
                     ),
                     const SizedBox(height: 10),
                     LinearProgressIndicator(
@@ -233,7 +231,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                 ),
               ),
               const SizedBox(width: 18),
-              Pill(r.returnFinished ? r.returnState.label : '$open offen'),
+              if (r.returnFinished) Pill(r.returnState.label),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right, size: 18, color: muted),
             ],
@@ -396,7 +394,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                   p.text('note'),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: muted),
+                  style: const TextStyle(fontSize: 12, color: muted),
                 ),
                 const SizedBox(height: 14),
                 Text(
@@ -415,7 +413,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                 p.strings('pupilIds').map(c.name).join(', '),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, color: muted),
+                style: const TextStyle(fontSize: 12, color: muted),
               ),
             ),
           for (final m in c.materials.where(
