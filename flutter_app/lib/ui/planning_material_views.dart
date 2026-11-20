@@ -348,7 +348,11 @@ class _PlanningWeeks extends StatelessWidget {
       tilePadding: EdgeInsets.zero,
       key: const PageStorageKey('planning-weeks'),
       title: const Text('Wochenmaterial'),
-      subtitle: Text('${weeks.length} Kalenderwochen'),
+      subtitle: Text(
+        weeks.length == 1
+            ? '1 Kalenderwoche'
+            : '${weeks.length} Kalenderwochen',
+      ),
       children: [
         for (final week in weeks.keys.toList()..sort((a, b) => b.compareTo(a)))
           ExpansionTile(
