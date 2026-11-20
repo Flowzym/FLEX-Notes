@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:flex_desktop/domain/week_folder.dart';
+import 'package:flex_desktop/domain/desk_organization.dart';
+import 'package:flex_desktop/ui/design.dart' show weekRange;
 import 'dart:convert';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flex_desktop/data/demo_workspace.dart';
@@ -58,6 +61,118 @@ void main() {
     c.dispose();
     await repo.close();
   });
+  test(
+    'weekly folder keeps per-pupil dates and deduplicates class preparations across a year boundary',
+    () async {
+      final other = await repo.savePupil(
+        Pupil(id: newId(), name: 'Testkind Beta'),
+      );
+      final m = await repo.saveClassroomDocument(
+        ClassroomDocument.create(ClassroomKind.material, 'Wochenblatt', {
+          'url': 'https://example.org/blatt',
+          'extension': 'link',
+          'pupilIds': [pupil.id, other.id],
+          'pupilDates': [
+            {'pupilId': pupil.id, 'date': '2026-12-31'},
+            {'pupilId': other.id, 'date': '2027-01-01'},
+          ],
+        }),
+      );
+      await c.notebook.reload();
+      await c.prepareForDay([m.id, m.id], DateTime(2026, 12, 31));
+      final days = buildWeekFolder(
+        c.notebook.currentSnapshot,
+        DateTime(2027, 1, 1),
+      );
+      expect(dateOnly(days.first.day), '2026-12-28');
+      expect(dateOnly(days.last.day), '2027-01-03');
+      expect(days[3].materials.single.id, m.id);
+      expect(
+        materialDayOwners(days[3].materials.single, '2026-12-31', c.name),
+        pupil.name,
+      );
+      expect(
+        materialDayOwners(days[4].materials.single, '2027-01-01', c.name),
+        other.name,
+      );
+      expect(days[5].materials, isEmpty);
+      expect(
+        weekRange(days.first.day, days.last.day),
+        '28. Dezember 2026 – 3. Jänner 2027',
+      );
+      expect(
+        weekRange(DateTime(2026, 11, 30), DateTime(2026, 12, 6)),
+        '30. November – 6. Dezember 2026',
+      );
+    },
+  );
+
+  test('appointment columns end at the boundary of each overlap group', () {
+    CalendarItem event(String start, String end) => CalendarItem(
+      id: start,
+      date: '2026-11-23',
+      category: 'appointment',
+      title: start,
+      time: start,
+      end: end,
+    );
+    final entries = calendarLanes([
+      event('11:00', '12:00'),
+      event('09:10', '10:15'),
+      event('08:00', '09:30'),
+      event('09:35', '11:00'),
+    ]);
+    expect(entries.map((e) => (e.item.time, e.lane, e.columns)), [
+      ('08:00', 0, 2),
+      ('09:10', 1, 2),
+      ('09:35', 0, 2),
+      ('11:00', 0, 1),
+    ]);
+  });
+
+  test(
+    'organisation combines participant search, type and real completion of closed returns',
+    () async {
+      final base = ClassroomDocument.create(
+        ClassroomKind.returnList,
+        'Ausflug',
+        {
+          'type': 'consent',
+          'dueDate': '2026-11-12',
+          'participants': [
+            {
+              'pupilId': pupil.id,
+              'name': pupil.name,
+              'status': 'open',
+              'paid': 0,
+              'note': '',
+            },
+          ],
+        },
+      );
+      final saved = await repo.saveClassroomDocument(base);
+      await repo.saveEntry(
+        OrgaEntry.empty(
+          pupilId: pupil.id,
+        ).copyWith(title: 'Ausflug Gespräch', appointmentDate: '2026-11-21'),
+      );
+      await c.notebook.reload();
+      List<DeskOrgaItem> filter(String kind, String state) => deskOrganization(
+        c.notebook,
+        type: kind,
+        status: state,
+        query: 'alpha ausflug',
+        today: '2026-11-20',
+      );
+      expect(filter('Alle Arten', 'Alle'), hasLength(2));
+      expect(filter('Rückläufe', 'Überfällig').single.title, 'Ausflug');
+      expect(filter('Termine', 'Alle').single.kind, DeskEntryKind.appointment);
+      await c.notebook.saveClassroom(saved.patch({'closed': true}));
+      expect(filter('Rückläufe', 'Überfällig'), isEmpty);
+      expect(filter('Rückläufe', 'Erledigt').single.title, 'Ausflug');
+    },
+  );
+
   test(
     'new desktop repository has no automatic timetable or demo data',
     () async {

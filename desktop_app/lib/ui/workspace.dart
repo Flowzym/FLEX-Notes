@@ -8,19 +8,28 @@ import 'package:file_selector/file_selector.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flex_notizbuch/ui/backup_dialog.dart';
+import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/draft_buffer.dart' show saveBytesFile;
 import 'package:flex_notizbuch/ui/material_thumbnail.dart';
 import 'package:flex_notizbuch/ui/material_library.dart'
-    show connectOneDrive, cacheMaterial;
+    show
+        browseOneDrive,
+        connectOneDrive,
+        cacheMaterial,
+        showMaterialAssignments;
 import 'package:flex_notizbuch/services/onedrive.dart';
-import 'package:flex_notizbuch/services/material_index.dart'
-    show oneDriveMaterialId;
+import 'package:flex_notizbuch/domain/drive_rules.dart' show isDriveRule;
 import 'package:flex_notizbuch/services/docx_preview.dart';
 import '../domain/core.dart';
+import '../domain/week_folder.dart';
+import '../domain/desk_organization.dart';
+import '../data/week_pdf.dart';
 import '../application/editor_session.dart';
 import '../application/workspace_controller.dart';
 import 'design.dart';
 part 'desk.dart';
+part 'week.dart';
+part 'commands.dart';
 part 'entry_editor.dart';
 part 'calendar.dart';
 part 'materials.dart';
@@ -29,6 +38,7 @@ part 'data_page.dart';
 
 const sectionIcons = [
   Icons.space_dashboard_outlined,
+  Icons.date_range_outlined,
   Icons.people_outline,
   Icons.calendar_month_outlined,
   Icons.view_week_outlined,
@@ -81,7 +91,8 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   final drive = OneDriveClient(useNativeAuthentication: false);
   final calendarScroll = ScrollController(initialScrollOffset: 7 * 56);
   bool driveLoaded = false;
-  String calendarView = 'Woche', orgaFilter = 'Offen';
+  String calendarView = 'Woche', orgaStatus = 'Alle', orgaKind = 'Alle Arten';
+  String materialScope = 'Alle', materialSort = 'Zuletzt geändert';
   bool weekends = false, favoritesOnly = false;
   String journalFilter = 'Alle';
   @override
@@ -141,47 +152,19 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
       width: 500,
     ),
   );
-  Future<void> addPupil() async {
-    final name = TextEditingController();
-    final result = await showDialog<String>(
+  Future<void> addPupil() => editPupil();
+
+  Future<void> editPupil({Pupil? pupil, DialogDraft? draft}) async {
+    final before = c.pupils.map((p) => p.id).toSet();
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Schüler hinzufügen'),
-        content: SizedBox(
-          width: 360,
-          child: TextField(
-            controller: name,
-            autofocus: true,
-            maxLength: 80,
-            decoration: const InputDecoration(labelText: 'Vor- und Nachname'),
-            onSubmitted: (v) {
-              if (v.trim().isNotEmpty) Navigator.pop(ctx, v.trim());
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (name.text.trim().isNotEmpty) {
-                Navigator.pop(ctx, name.text.trim());
-              }
-            },
-            child: const Text('Hinzufügen'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (_) =>
+          PupilEditor(controller: c.notebook, pupil: pupil, draft: draft),
     );
-    if (result != null) {
-      await run(() async {
-        final p = Pupil(id: newId(), name: result);
-        await c.notebook.savePupil(p);
-        c.selectPupil(p.id);
-      });
-    }
+    if (!mounted) return;
+    final created = c.pupils.where((p) => !before.contains(p.id)).singleOrNull;
+    if (created != null) c.selectPupil(created.id);
   }
 
   Future<bool> confirm(
@@ -270,7 +253,9 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                             children: [
                               if (!inspector || box.maxWidth >= 1000)
                                 Expanded(child: mainContent()),
-                              if (inspector || box.maxWidth >= 1380)
+                              if (inspector ||
+                                  box.maxWidth >= 1380 &&
+                                      c.section == WorkspaceSection.desk)
                                 Container(
                                   width: box.maxWidth < 1000
                                       ? box.maxWidth - (narrow ? 76 : 220)
@@ -539,6 +524,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   );
   Widget mainContent() => switch (c.section) {
     WorkspaceSection.desk => desk(),
+    WorkspaceSection.week => weekDesk(),
     WorkspaceSection.journal => journal(),
     WorkspaceSection.calendar => calendar(),
     WorkspaceSection.planning => planning(),
@@ -547,127 +533,29 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
     WorkspaceSection.data => dataPage(),
   };
   Future<void> commandPalette() async {
-    var query = '';
-    await showDialog<void>(
+    final target = await showDialog<Object>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => Dialog(
-          child: SizedBox(
-            width: 680,
-            height: 520,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: TextField(
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText:
-                          'Schüler, Einträge, Materialien oder Bereiche suchen',
-                    ),
-                    onChanged: (v) => update(() => query = v.toLowerCase()),
-                  ),
-                ),
-                const Divider(),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (final section in WorkspaceSection.values.where(
-                        (s) => s.label.toLowerCase().contains(query),
-                      ))
-                        ListTile(
-                          leading: Icon(sectionIcons[section.index]),
-                          title: Text(section.label),
-                          subtitle: const Text('Bereich öffnen'),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            c.navigate(section);
-                          },
-                        ),
-                      for (final p in c.pupils.where(
-                        (p) => p.name.toLowerCase().contains(query),
-                      ))
-                        ListTile(
-                          leading: const Icon(Icons.person_outline),
-                          title: Text(p.name),
-                          subtitle: const Text('Schülerjournal'),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            c.navigate(WorkspaceSection.journal);
-                            c.selectPupil(p.id);
-                          },
-                        ),
-                      for (final m in c.materials.where(
-                        (m) => m.title.toLowerCase().contains(query),
-                      ))
-                        ListTile(
-                          leading: const Icon(Icons.description_outlined),
-                          title: Text(m.title),
-                          subtitle: const Text('Material'),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            c.navigate(WorkspaceSection.materials);
-                            run(() => c.edit(m));
-                          },
-                        ),
-                      if (query.isNotEmpty)
-                        for (final e
-                            in c.notebook.entries
-                                .where(
-                                  (e) =>
-                                      !e.deleted &&
-                                      '${e.title} ${e.body}'
-                                          .toLowerCase()
-                                          .contains(query),
-                                )
-                                .take(30))
-                          ListTile(
-                            leading: const Icon(Icons.checklist),
-                            title: Text(e.title),
-                            subtitle: Text(c.name(e.pupilId)),
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              run(() => c.edit(e));
-                            },
-                          ),
-                      if (query.isNotEmpty)
-                        for (final r
-                            in c.notebook.records
-                                .where(
-                                  (r) =>
-                                      !r.deleted &&
-                                      r.searchText.toLowerCase().contains(
-                                        query,
-                                      ),
-                                )
-                                .take(30))
-                          ListTile(
-                            leading: Icon(
-                              entryIcons[EntryKind.values
-                                  .byName(r.kind.name)
-                                  .index],
-                            ),
-                            title: Text(
-                              r.title.isEmpty ? r.body : r.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(c.name(r.pupilId)),
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              run(() => c.edit(r));
-                            },
-                          ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      builder: (_) => _DesktopCommands(c),
     );
+    if (!mounted || target == null) return;
+    await run(() async {
+      if (target is WorkspaceSection) {
+        c.navigate(target);
+      } else if (target is EntryKind) {
+        await c.start(target);
+      } else if (target is Pupil) {
+        await c.parkEditor();
+        c.materialId = null;
+        c.selectPupil(target.id);
+        c.navigate(WorkspaceSection.journal);
+      } else {
+        await c.edit(target);
+        if (target is ClassroomDocument &&
+            target.kind == ClassroomKind.material) {
+          c.navigate(WorkspaceSection.materials);
+        }
+      }
+    });
   }
 
   Future<void> showDrafts() async {
@@ -720,11 +608,15 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                 ),
               for (final d in c.notebook.dialogDrafts)
                 ListTile(
-                  title: Text(d.data['title'] as String? ?? 'Entwurf'),
-                  subtitle: Text(d.type),
+                  title: Text(
+                    (d.data['title'] ?? d.data['name'] ?? 'Entwurf') as String,
+                  ),
+                  subtitle: Text(d.type == 'pupil' ? 'Schülerprofil' : d.type),
                   onTap: () {
                     Navigator.pop(ctx);
-                    run(() => c.edit(d));
+                    run(
+                      () => d.type == 'pupil' ? editPupil(draft: d) : c.edit(d),
+                    );
                   },
                 ),
             ],

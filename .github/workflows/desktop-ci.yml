@@ -6,10 +6,11 @@ on:
   pull_request:
     paths: ['desktop_app/**', 'flutter_app/**', '.github/workflows/desktop-ci.yml']
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: desktop-${{ github.event.pull_request.number || github.ref }}
+  group: desktop-build-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   checks:
@@ -75,7 +76,7 @@ jobs:
           $runtime = Get-ChildItem "$vsInstall/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
           if (!$runtime) { throw 'MSVC redistributable runtime missing' }
           Copy-Item "$($runtime.FullName)/*.dll" $releaseDir
-          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.0.0-Windows-x64.zip'
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.1.0-Windows-x64.zip'
           $compiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
           if (!(Test-Path $compiler)) { choco install innosetup --yes --no-progress }
           & $compiler 'installer/flex-desktop.iss'
@@ -100,11 +101,39 @@ jobs:
               if (!$appProcess.WaitForExit(5000)) { Stop-Process -Id $appProcess.Id -Force }
             }
           }
+      - name: Verify installed app reopens the existing Windows workspace
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $db = Get-ChildItem "$env:APPDATA/at.flowzym" -Filter 'flex_desktop_v1.sqlite' -Recurse | Select-Object -First 1
+          python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); c.execute('INSERT INTO pupils (id,name,color,revision) VALUES (?,?,?,?)',('test-upgrade','Testprofil',4284501350,1)); c.commit()" $db.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Could not seed upgrade fixture' }
+          $setup = Get-Item build/installer/*-Setup.exe
+          $installer = Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($installer.ExitCode -ne 0) { throw "Installer failed: $($installer.ExitCode)" }
+          $app = Start-Process "$env:LOCALAPPDATA/Programs/FLEX Desktop/flex_desktop.exe" -PassThru
+          try {
+            Start-Sleep -Seconds 10
+            if ($app.HasExited) { throw 'Installed app exited early' }
+            $dbs = @(Get-ChildItem "$env:APPDATA/at.flowzym" -Filter 'flex_desktop_v1.sqlite' -Recurse)
+            if ($dbs.Count -ne 1) { throw 'Unexpected workspace location' }
+            python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); assert c.execute('SELECT name FROM pupils WHERE id=?',('test-upgrade',)).fetchone() == ('Testprofil',)" $dbs[0].FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Existing pupil not found' }
+          } finally {
+            if (!$app.HasExited) {
+              $app.CloseMainWindow() | Out-Null
+              if (!$app.WaitForExit(5000)) { Stop-Process -Id $app.Id -Force }
+            }
+          }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: FLEX-Desktop-Windows-x64
-          path: |
-            desktop_app/build/FLEX-Desktop-1.0.0-Windows-x64.zip
-            desktop_app/build/installer/*.exe
+          name: FLEX-Desktop-Windows-Portable
+          path: desktop_app/build/FLEX-Desktop-*-Windows-x64.zip
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FLEX-Desktop-Windows-Setup
+          path: desktop_app/build/installer/*.exe
           retention-days: 30
           if-no-files-found: error

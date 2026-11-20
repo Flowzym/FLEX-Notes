@@ -40,8 +40,22 @@ Future<void> main() async {
       while (day.weekday != DateTime.monday) {
         day = day.add(const Duration(days: 1));
       }
-      controller.date = day;
       await seedDemo(notebook, controller.files, day);
+      final samples =
+          notebook.classroom
+              .where(
+                (d) =>
+                    !d.deleted &&
+                    d.kind == ClassroomKind.lesson &&
+                    d.text('date').isNotEmpty,
+              )
+              .map((d) => d.text('date'))
+              .toList()
+            ..sort();
+      controller.date = samples.isEmpty ? day : schoolDay(samples.first);
+    }
+    if (Uri.base.queryParameters['ansicht'] == 'woche') {
+      controller.navigate(WorkspaceSection.week);
     }
     runApp(DesktopApp(controller: controller));
   } catch (e) {

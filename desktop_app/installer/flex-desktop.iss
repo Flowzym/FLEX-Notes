@@ -1,5 +1,5 @@
 #define AppName "FLEX Desktop"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 [Setup]
 AppId={{E8D09B86-DA04-42CF-8E4B-21C0BBEB4613}
 AppName={#AppName}
@@ -11,7 +11,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\build\installer
-OutputBaseFilename=FLEX-Desktop-1.0.0-Windows-x64-Setup
+OutputBaseFilename=FLEX-Desktop-{#AppVersion}-Windows-x64-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

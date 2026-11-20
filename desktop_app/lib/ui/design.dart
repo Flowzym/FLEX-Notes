@@ -239,3 +239,13 @@ String monthName(DateTime day) => const [
   'November',
   'Dezember',
 ][day.month - 1];
+
+String weekRange(DateTime first, DateTime last) {
+  if (first.year != last.year) {
+    return '${first.day}. ${monthName(first)} ${first.year} – ${last.day}. ${monthName(last)} ${last.year}';
+  }
+  final start = first.month == last.month
+      ? '${first.day}.'
+      : '${first.day}. ${monthName(first)}';
+  return '$start – ${last.day}. ${monthName(last)} ${last.year}';
+}

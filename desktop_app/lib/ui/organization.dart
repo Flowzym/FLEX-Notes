@@ -1,97 +1,115 @@
 part of 'workspace.dart';
 
 extension _OrganizationViews on _DesktopWorkspaceState {
-  Widget organization() => ListView(
-    padding: const EdgeInsets.all(28),
-    children: [
-      SectionHeading(
-        'Organisation',
-        subtitle: 'Aufgaben, Rückläufe und Absprachen gemeinsam im Blick.',
-        actions: [
-          IconButton(
-            tooltip: 'Rücklauf anlegen',
-            onPressed: () => run(() => c.start(EntryKind.returnList)),
-            icon: const Icon(Icons.assignment_turned_in_outlined),
-          ),
-          IconButton(
-            tooltip: 'Aufgabe anlegen',
-            onPressed: () => run(() => c.start(EntryKind.task)),
-            icon: const Icon(Icons.add),
-          ),
-        ],
-      ),
-      Wrap(
-        spacing: 8,
-        runSpacing: 6,
-        children: [
-          for (final label in [
-            'Offen',
-            'Alle',
-            'Aufgaben',
-            'Rückläufe',
-            'Notizen',
-            'Erledigt',
-          ])
-            ChoiceChip(
-              label: Text(label, style: const TextStyle(fontSize: 12)),
-              selected: orgaFilter == label,
-              onSelected: (_) => redraw(() => orgaFilter = label),
-            ),
-        ],
-      ),
-      const SizedBox(height: 22),
-      if ([
-        'Alle',
-        'Offen',
-        'Aufgaben',
-        'Notizen',
-        'Erledigt',
-      ].contains(orgaFilter)) ...[
-        for (final e in c.notebook.entries.where(
-          (e) =>
-              !e.deleted &&
-              !e.isAppointment &&
-              (orgaFilter == 'Alle' ||
-                  orgaFilter == 'Offen' && e.isTask && !e.done ||
-                  orgaFilter == 'Aufgaben' && e.isTask ||
-                  orgaFilter == 'Notizen' && !e.isTask ||
-                  orgaFilter == 'Erledigt' && e.done),
-        ))
-          orgaRow(e),
-      ],
-      if (['Alle', 'Offen', 'Rückläufe', 'Erledigt'].contains(orgaFilter)) ...[
-        const SizedBox(height: 20),
-        const Text(
-          'RÜCKLÄUFE',
-          style: TextStyle(fontSize: 10, letterSpacing: 1.3, color: muted),
-        ),
-        const SizedBox(height: 10),
-        for (final r in c.notebook.classroom.where(
-          (d) =>
-              !d.deleted &&
-              d.kind == ClassroomKind.returnList &&
-              (orgaFilter != 'Offen' ||
-                  d.rows('participants').any(returnPending)) &&
-              (orgaFilter != 'Erledigt' ||
-                  !d.rows('participants').any(returnPending)),
-        ))
-          returnRow(r),
-      ],
-      if (!c.notebook.entries.any((e) => !e.deleted) &&
-          !c.notebook.classroom.any(
-            (d) => !d.deleted && d.kind == ClassroomKind.returnList,
-          ))
-        QuietEmpty(
-          'Platz für das Organisatorische',
-          'Lege eine Aufgabe, Notiz oder Rücklaufliste an.',
-          icon: Icons.fact_check_outlined,
-          action: FilledButton(
-            onPressed: () => run(() => c.start(EntryKind.task)),
-            child: const Text('Erste Aufgabe anlegen'),
-          ),
-        ),
-    ],
-  );
+  Widget organization() {
+    final rows = deskOrganization(
+      c.notebook,
+      type: orgaKind,
+      status: orgaStatus,
+      query: c.query,
+      today: dateOnly(DateTime.now()),
+    );
+    return ListView.builder(
+      padding: const EdgeInsets.all(28),
+      itemCount: 1 + (rows.isEmpty ? 1 : rows.length),
+      itemBuilder: (_, index) {
+        if (index == 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionHeading(
+                'Organisation',
+                actions: [
+                  IconButton(
+                    tooltip: 'Rücklauf anlegen',
+                    onPressed: () => run(() => c.start(EntryKind.returnList)),
+                    icon: const Icon(Icons.assignment_turned_in_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'Aufgabe anlegen',
+                    onPressed: () => run(() => c.start(EntryKind.task)),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+              TextField(
+                key: const ValueKey('orga-search'),
+                decoration: const InputDecoration(
+                  hintText: 'Eintrag, Person oder Unteraufgabe suchen',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: c.search,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 7,
+                runSpacing: 4,
+                children: [
+                  for (final kind in [
+                    'Alle Arten',
+                    ...DeskEntryKind.values.map((k) => k.plural),
+                  ])
+                    ChoiceChip(
+                      label: Text(kind),
+                      selected: orgaKind == kind,
+                      onSelected: (_) => redraw(() => orgaKind = kind),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: DropdownButton<String>(
+                        value: orgaStatus,
+                        underline: const SizedBox(),
+                        icon: const Icon(Icons.expand_more),
+                        items: [
+                          for (final s in [
+                            'Alle',
+                            'Offen',
+                            'Überfällig',
+                            'Erledigt',
+                          ])
+                            DropdownMenuItem(
+                              value: s,
+                              child: Text(s == 'Alle' ? 'Jeder Status' : s),
+                            ),
+                        ],
+                        onChanged: (s) {
+                          if (s != null) redraw(() => orgaStatus = s);
+                        },
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'}',
+                    style: const TextStyle(color: muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+          );
+        }
+        if (rows.isEmpty) {
+          return const QuietEmpty(
+            'Keine passenden Einträge',
+            'Ändere die Filter oder lege oben einen Eintrag an.',
+            icon: Icons.fact_check_outlined,
+          );
+        }
+        return switch (rows[index - 1].target) {
+          final OrgaEntry e => orgaRow(e),
+          final ClassroomDocument r => returnRow(r),
+          _ => throw StateError('Unbekannter Organisationseintrag'),
+        };
+      },
+    );
+  }
+
   Widget orgaRow(OrgaEntry e) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Surface(
@@ -107,12 +125,16 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                     ),
                   ),
                 )
-              : const Padding(
+              : Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   child: Icon(
-                    Icons.sticky_note_2_outlined,
-                    size: 20,
-                    color: olive,
+                    e.isAppointment
+                        ? Icons.event_outlined
+                        : Icons.sticky_note_2_outlined,
+                    size: 22,
+                    color: e.isAppointment
+                        ? const Color(0xff536e85)
+                        : const Color(0xff876c49),
                   ),
                 ),
           Expanded(
@@ -134,7 +156,14 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                     ),
                     Text(
                       [
-                        c.name(e.pupilId),
+                        e.isAppointment
+                            ? 'Termin'
+                            : e.isTask
+                            ? 'Aufgabe'
+                            : 'Notiz',
+                        c.notebook.owner(e),
+                        if (e.isAppointment) shortDate(e.appointmentDate!),
+                        if (e.appointmentTime.isNotEmpty) e.appointmentTime,
                         if (e.dueDate != null) shortDate(e.dueDate!),
                         if (e.items.isNotEmpty)
                           '${e.items.where((i) => i.checked).length}/${e.items.length} Teilaufgaben',
@@ -149,7 +178,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
           if (e.isTask &&
               !e.done &&
               e.dueDate != null &&
-              e.dueDate!.compareTo(dateOnly(c.date)) < 0)
+              e.dueDate!.compareTo(dateOnly(DateTime.now())) < 0)
             const Pill('Überfällig', color: Color(0xff9a6e60)),
           IconButton(
             tooltip: 'Eintrag bearbeiten',
@@ -190,7 +219,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      '$open von $total offen${r.text('dueDate').isEmpty ? '' : ' · Frist ${shortDate(r.text('dueDate'))}'}',
+                      'Rücklauf · $open von $total offen${r.text('dueDate').isEmpty ? '' : ' · Frist ${shortDate(r.text('dueDate'))}'}',
                       style: const TextStyle(fontSize: 11, color: muted),
                     ),
                     const SizedBox(height: 10),
@@ -204,7 +233,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                 ),
               ),
               const SizedBox(width: 18),
-              Pill('$open offen'),
+              Pill(r.returnFinished ? r.returnState.label : '$open offen'),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right, size: 18, color: muted),
             ],

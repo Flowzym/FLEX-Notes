@@ -5,14 +5,14 @@ extension _DeskViews on _DesktopWorkspaceState {
     padding: const EdgeInsets.all(28),
     children: [
       SectionHeading(
-        'Alles für deinen Unterricht.',
+        'Arbeitsplatz',
         subtitle:
             '${dayName(c.date)}, ${c.date.day}. ${monthName(c.date)} ${c.date.year}',
         actions: [
           TextButton.icon(
-            onPressed: () => c.navigate(WorkspaceSection.calendar),
-            icon: const Icon(Icons.arrow_forward, size: 17),
-            label: const Text('Zum Kalender'),
+            onPressed: () => c.navigate(WorkspaceSection.week),
+            icon: const Icon(Icons.date_range_outlined, size: 17),
+            label: const Text('Wochenmappe öffnen'),
           ),
         ],
       ),
@@ -519,12 +519,24 @@ extension _DeskViews on _DesktopWorkspaceState {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 24, 24),
                 children: [
-                  Text(
-                    c.pupil?.name ?? 'Die FLEX-Klasse',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          c.pupil?.name ?? 'Die FLEX-Klasse',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (c.pupil != null)
+                        IconButton(
+                          tooltip: 'Schülerprofil und Dateikürzel bearbeiten',
+                          icon: const Icon(Icons.manage_accounts_outlined),
+                          onPressed: () => editPupil(pupil: c.pupil),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   Wrap(

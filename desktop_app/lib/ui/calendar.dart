@@ -2,19 +2,9 @@ part of 'workspace.dart';
 
 extension _CalendarView on _DesktopWorkspaceState {
   Widget calendar() {
-    final first = calendarView == 'Tag'
-        ? DateTime(c.date.year, c.date.month, c.date.day)
-        : DateTime(
-            c.date.year,
-            c.date.month,
-            c.date.day,
-          ).subtract(Duration(days: c.date.weekday - 1));
-    final count = calendarView == 'Tag'
-        ? 1
-        : weekends
-        ? 7
-        : 5;
-    final days = [for (var i = 0; i < count; i++) first.add(Duration(days: i))];
+    final days = calendarView == 'Tag'
+        ? [calendarDay(c.date, 0)]
+        : weekOf(c.date).take(weekends ? 7 : 5).toList();
     final items = calendarItems(
       c.notebook.currentSnapshot,
       dateOnly(days.first),
@@ -70,7 +60,7 @@ extension _CalendarView on _DesktopWorkspaceState {
                     ? '${monthName(c.date)} ${c.date.year}'
                     : calendarView == 'Tag'
                     ? '${dayName(c.date)}, ${c.date.day}. ${monthName(c.date)}'
-                    : '${days.first.day}. – ${days.last.day}. ${monthName(days.last)}',
+                    : weekRange(days.first, days.last),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -179,8 +169,7 @@ extension _CalendarView on _DesktopWorkspaceState {
                                               i.time.isEmpty,
                                         ))
                                           InkWell(
-                                            onTap: () =>
-                                                run(() => c.openCalendar(item)),
+                                            onTap: () => viewCalendarItem(item),
                                             child: Padding(
                                               padding: const EdgeInsets.all(3),
                                               child: Text(
@@ -260,36 +249,10 @@ extension _CalendarView on _DesktopWorkspaceState {
   void stepCalendar(int direction) => c.setDate(
     calendarView == 'Monat'
         ? DateTime(c.date.year, c.date.month + direction, 1)
-        : c.date.add(
-            Duration(days: direction * (calendarView == 'Woche' ? 7 : 1)),
-          ),
+        : calendarDay(c.date, direction * (calendarView == 'Woche' ? 7 : 1)),
   );
   Widget dayColumn(DateTime day, List<CalendarItem> items, double hourHeight) {
-    final positioned = items
-        .where(
-          (i) =>
-              clockMinutes(i.time) < 24 * 60 &&
-              (i.end.isEmpty
-                      ? clockMinutes(i.time) + 45
-                      : clockMinutes(i.end)) >
-                  0,
-        )
-        .toList();
-    final lanes = <String, int>{};
-    final laneEnds = <int>[];
-    for (final item in positioned) {
-      final start = clockMinutes(item.time),
-          end = item.end.isEmpty ? start + 45 : clockMinutes(item.end);
-      var lane = laneEnds.indexWhere((e) => e <= start);
-      if (lane < 0) {
-        lane = laneEnds.length;
-        laneEnds.add(end);
-      } else {
-        laneEnds[lane] = end;
-      }
-      lanes[item.id] = lane;
-    }
-    final columns = laneEnds.isEmpty ? 1 : laneEnds.length;
+    final positioned = calendarLanes(items);
     return LayoutBuilder(
       builder: (ctx, box) => Stack(
         children: [
@@ -338,14 +301,14 @@ extension _CalendarView on _DesktopWorkspaceState {
                 ),
             ],
           ),
-          for (final item in positioned)
+          for (final (:item, :lane, :columns) in positioned)
             Positioned(
               top: ((clockMinutes(item.time)) * hourHeight / 60).clamp(
                 0,
                 hourHeight * 24,
               ),
-              left: 3 + (lanes[item.id] ?? 0) * box.maxWidth / columns,
-              width: box.maxWidth / columns - 6,
+              left: 3 + lane * box.maxWidth / columns,
+              width: (box.maxWidth / columns - 6).clamp(1.0, double.infinity),
               height:
                   (((item.end.isEmpty
                                   ? clockMinutes(item.time) + 45
@@ -356,12 +319,12 @@ extension _CalendarView on _DesktopWorkspaceState {
                       .clamp(24.0, hourHeight * 24),
               child: _CalendarEvent(
                 item: item,
-                onOpen: () => run(() => c.openCalendar(item)),
+                onOpen: () => viewCalendarItem(item),
                 onResize: (delta) => run(() async {
                   final e = item.entry;
                   if (e == null) return;
                   final end =
-                      (clockMinutes(e.appointmentEndTime) +
+                      (calendarEnd(item) +
                               (delta / hourHeight * 60 / 15).round() * 15)
                           .clamp(clockMinutes(e.appointmentTime) + 15, 1440);
                   await c.notebook.saveEntry(
@@ -391,11 +354,11 @@ extension _CalendarView on _DesktopWorkspaceState {
 
   Widget monthGrid() {
     final start = DateTime(c.date.year, c.date.month, 1);
-    final first = start.subtract(Duration(days: start.weekday - 1));
+    final first = calendarDay(start, 1 - start.weekday);
     final all = calendarItems(
       c.notebook.currentSnapshot,
       dateOnly(first),
-      dateOnly(first.add(const Duration(days: 41))),
+      dateOnly(calendarDay(first, 41)),
     );
     return Column(
       children: [
@@ -429,8 +392,9 @@ extension _CalendarView on _DesktopWorkspaceState {
                               Expanded(
                                 child: Builder(
                                   builder: (ctx) {
-                                    final day = first.add(
-                                      Duration(days: week * 7 + weekday),
+                                    final day = calendarDay(
+                                      first,
+                                      week * 7 + weekday,
                                     );
                                     final events = all
                                         .where((e) => e.date == dateOnly(day))
@@ -478,9 +442,8 @@ extension _CalendarView on _DesktopWorkspaceState {
                                                   bottom: 3,
                                                 ),
                                                 child: InkWell(
-                                                  onTap: () => run(
-                                                    () => c.openCalendar(item),
-                                                  ),
+                                                  onTap: () =>
+                                                      viewCalendarItem(item),
                                                   child: Text(
                                                     '${item.time} ${item.title}'
                                                         .trim(),

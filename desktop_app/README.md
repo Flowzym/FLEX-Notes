@@ -6,6 +6,9 @@ Windows-Runner, Datenbank und Desktop-Oberfläche; keine verbreiterte Android-Se
 ## Arbeitsbereiche
 
 - Arbeitsplatz mit Schüleraktionen und Tageskontext.
+- Wochenmappe mit Tagesauswahl, Terminen, Fristen, HÜ, Rückläufen und individuell
+  geplanten Unterlagen. Weitere Materialien lassen sich für den Unterrichtstag
+  bereitlegen. Die Woche lässt sich als PDF auf dem Gerät speichern.
 - Klasse & Journal mit Schülerliste, Verlauf und Hausübungskontrolle.
 - Dauerhaft sichtbarer Editor für Sozial, Arbeit, Ziele, HÜ, Notizen, Aufgaben,
   Termine, Rückläufe, Planungen und Unterricht. Entwürfe bleiben beim Wechsel erhalten.
@@ -13,8 +16,14 @@ Windows-Runner, Datenbank und Desktop-Oberfläche; keine verbreiterte Android-Se
   verlängern. Stundenplan und Fristen werden gemeinsam angezeigt.
 - Unterrichtsplanung mit Zuständen, Schülern, Materialien und Nachbereitung.
 - Materialliste mit PDF-/Bild-/DOCX-Textvorschau, Mehrfachimport,
-  Mehrfachzuordnung, individuellen Unterrichtsdaten und OneDrive-Dateiauswahl.
-- Organisation mit Unteraufgaben, Rückläufen und einzelnen Schülerstatus.
+  Mehrfachzuordnung und individuellen Unterrichtsdaten. Der OneDrive-Explorer
+  unterstützt Ordnerregeln und Schülerkürzel. Kürzel und Dateinamen lassen
+  sich im Schülerprofil pro Schuljahr pflegen.
+- Organisation mit kombinierbaren Filtern für Eintragsart und Bearbeitungsstand,
+  überfälligen Aufgaben und Rückläufen. Die Suche berücksichtigt Unteraufgaben
+  und Personen.
+- Strg+K durchsucht Einträge, Profile, Dateien und Planungen. Pfeiltasten und
+  Eingabe öffnen einen Treffer oder starten eine neue Eingabe.
 - Verschlüsselte FLEX-Sicherungen, Import mit Vergleich, Entwürfe und Papierkorb.
 
 ## Windows installieren

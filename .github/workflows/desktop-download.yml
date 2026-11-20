@@ -1,128 +1,32 @@
-name: FLEX Desktop permanent download
-
+name: FLEX Desktop release
 on:
   push:
-    branches: ['desktop/workspace']
-    paths: ['.github/workflows/desktop-download.yml']
-  workflow_dispatch:
-
+    tags: ['desktop-v[0-9]*']
 permissions:
-  actions: read
-  contents: write
-
-concurrency:
-  group: desktop-release-1-0-0-preview-1
-  cancel-in-progress: false
-
+  contents: read
 jobs:
+  build:
+    uses: ./.github/workflows/desktop-ci.yml
   publish:
-    if: github.repository == 'Flowzym/FLEX-Notes' && github.ref == 'refs/heads/desktop/workspace'
+    needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
     steps:
-      - name: Verify existing Windows build and publish permanent downloads
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: Flowzym/FLEX-Notes
-        shell: python
+      - name: Publish the Windows packages from this verified build
         run: |
-          import hashlib
-          import json
-          import os
-          import subprocess
-          import zipfile
-          from pathlib import Path
-
-          repo = os.environ['GH_REPO']
-          source_sha = 'ebfc77add8fab095afaf4f665a1290dc444916a6'
-          run_id = 43763150093
-          artifact_id = 14181278418
-          bundle_sha = 'f5699083c221f8ce16fb9852a54f84999f7b75ef59d7230812b90607b4bde4f4'
-          tag = 'desktop-v1.0.0-preview.1'
-          expected_files = {
-              'FLEX-Desktop-1.0.0-Windows-x64.zip',
-              'installer/FLEX-Desktop-1.0.0-Windows-x64-Setup.exe',
-          }
-
-          def gh(*args):
-              return subprocess.check_output(['gh', *args], text=True).strip()
-
-          def api(path):
-              return json.loads(gh('api', f'repos/{repo}/{path}'))
-
-          def require(condition, message):
-              if not condition:
-                  raise RuntimeError(message)
-
-          build = api(f'actions/runs/{run_id}')
-          require(build['conclusion'] == 'success', 'Source build must be successful')
-          require(build['head_sha'] == source_sha, 'Unexpected source commit')
-          require(build['path'] == '.github/workflows/desktop-ci.yml', 'Unexpected build workflow')
-          require(build['head_repository']['full_name'] == repo, 'Build belongs to another repository')
-          artifact = api(f'actions/artifacts/{artifact_id}')
-          require(not artifact['expired'], 'Source artifact expired')
-          require(artifact['name'] == 'FLEX-Desktop-Windows-x64', 'Unexpected artifact')
-          require(artifact['workflow_run']['id'] == run_id, 'Artifact belongs to another build')
-          require(artifact['digest'] == 'sha256:' + bundle_sha, 'Unexpected artifact digest')
-
-          bundle = Path('windows-build.zip')
-          with bundle.open('wb') as output:
-              subprocess.run(['gh', 'api', f'repos/{repo}/actions/artifacts/{artifact_id}/zip'], stdout=output, check=True)
-          require(hashlib.sha256(bundle.read_bytes()).hexdigest() == bundle_sha, 'Downloaded artifact checksum mismatch')
-          output_dir = Path('release-files')
-          output_dir.mkdir()
-          with zipfile.ZipFile(bundle) as archive:
-              names = [i.filename for i in archive.infolist() if not i.is_dir()]
-              require(len(names) == 2 and set(names) == expected_files, 'Unexpected artifact contents')
-              for name in sorted(expected_files):
-                  (output_dir / Path(name).name).write_bytes(archive.read(name))
-
-          files = sorted(output_dir.iterdir())
-          checksums = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-          (output_dir / 'SHA256SUMS.txt').write_text(''.join(f'{value}  {name}\n' for name, value in checksums.items()))
-          (output_dir / 'release-manifest.json').write_text(json.dumps({
-              'source_commit': source_sha,
-              'build_run': run_id,
-              'artifact_id': artifact_id,
-              'artifact_sha256': bundle_sha,
-              'files': checksums,
-          }, indent=2) + '\n')
-          notes = Path('release-notes.md')
-          notes.write_text('''Eigenständige FLEX-Vorschau für **Windows x64**.
-
-          - **Installation:** `FLEX-Desktop-1.0.0-Windows-x64-Setup.exe` herunterladen und starten.
-          - **Ohne Installation:** `FLEX-Desktop-1.0.0-Windows-x64.zip` vollständig entpacken und `flex_desktop.exe` starten.
-          - Diese Downloads benötigen keine GitHub-Anmeldung und haben kein zeitgesteuertes Ablaufdatum.
-
-          Es sind unverändert die Dateien des erfolgreichen [Windows-Builds vom 15. November 2026](https://github.com/Flowzym/FLEX-Notes/actions/runs/43763150093). Der Quellstand ist `ebfc77add8fab095afaf4f665a1290dc444916a6`. Prüfsummen stehen in `SHA256SUMS.txt`.
-
-          Die Vorschau ist noch nicht Authenticode-signiert. Android und Windows speichern unabhängig; vorhandene Daten können über FLEX-Sicherungen übernommen werden. Es gibt keinen automatischen Geräteabgleich.
-          ''')
-          releases = json.loads(gh('api', '--paginate', '--slurp', f'repos/{repo}/releases?per_page=100'))
-          existing = next((r for page in releases for r in page if r['tag_name'] == tag), None)
-          refs = api(f'git/matching-refs/tags/{tag}')
-          ref = next((r for r in refs if r['ref'] == f'refs/tags/{tag}'), None)
-          if ref is None:
-              gh('api', '--method', 'POST', f'repos/{repo}/git/refs',
-                 '-f', f'ref=refs/tags/{tag}', '-f', f'sha={source_sha}')
-              ref = api(f'git/ref/tags/{tag}')
-          require(ref['object']['type'] == 'commit' and ref['object']['sha'] == source_sha, 'Release tag points to another commit')
-          if existing is None:
-              existing = json.loads(gh('api', '--method', 'POST', f'repos/{repo}/releases',
-                  '-f', f'tag_name={tag}', '-f', f'target_commitish={source_sha}',
-                  '-f', 'name=FLEX Desktop 1.0.0 – Windows-Vorschau',
-                  '-F', 'draft=true', '-F', 'prerelease=true', '-F', f'body=@{notes}'))
-          release_id = existing['id']
-          assets = {a['name']: a for a in api(f'releases/{release_id}/assets?per_page=100')}
-          for file in sorted(output_dir.iterdir()):
-              if file.name in assets:
-                  asset = assets[file.name]
-                  require(asset['size'] == file.stat().st_size and asset.get('digest') == 'sha256:' + hashlib.sha256(file.read_bytes()).hexdigest(), 'Existing release asset differs; refusing to replace it')
-              else:
-                  gh('release', 'upload', tag, str(file))
-          gh('release', 'edit', tag, '--draft=false', '--prerelease', '--latest=false')
-          print(f'Published https://github.com/{repo}/releases/tag/{tag}')
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write(f'## Windows-Download\n\n[Release öffnen](https://github.com/{repo}/releases/tag/{tag})\n\n')
-              for name in checksums:
-                  summary.write(f'- [{name}](https://github.com/{repo}/releases/download/{tag}/{name})\n')
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" --name FLEX-Desktop-Windows-Setup --dir release
+          gh run download "$GITHUB_RUN_ID" --name FLEX-Desktop-Windows-Portable --dir release
+          cd release
+          version="${RELEASE_TAG#desktop-v}"
+          setup="FLEX-Desktop-${version}-Windows-x64-Setup.exe"
+          portable="FLEX-Desktop-${version}-Windows-x64.zip"
+          test -s "$setup" && test -s "$portable"
+          sha256sum "$setup" "$portable" > SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" "$setup" "$portable" SHA256SUMS.txt --verify-tag --latest=false --title "FLEX Desktop $version für Windows" --notes "Windows x64. Das Setup aktualisiert eine bestehende FLEX-Desktop-Installation. Das portable ZIP vollständig entpacken und flex_desktop.exe starten."

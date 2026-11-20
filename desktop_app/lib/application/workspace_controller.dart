@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import '../domain/core.dart';
+import '../domain/desktop_calendar.dart';
+export '../domain/desktop_calendar.dart';
 import 'editor_session.dart';
 
 enum WorkspaceSection {
   desk('Arbeitsplatz'),
+  week('Wochenmappe'),
   journal('Klasse & Journal'),
   calendar('Kalender'),
   planning('Unterrichtsplanung'),
@@ -277,6 +280,19 @@ class WorkspaceController extends ChangeNotifier {
     ]);
   }
 
+  Future<void> prepareForDay(Iterable<String> ids, DateTime day) async {
+    final available = materials.map((m) => m.id).toSet();
+    final requested = ids.toSet();
+    if (requested.isEmpty || !available.containsAll(requested)) {
+      throw const DomainError(
+        'Die Materialauswahl hat sich geändert. Bitte erneut auswählen.',
+      );
+    }
+    await notebook.saveClassroom(
+      prepareMaterials(notebook.classroom, dateOnly(day), requested),
+    );
+  }
+
   Future<void> moveAppointment(
     CalendarItem item,
     DateTime day,
@@ -307,13 +323,3 @@ class WorkspaceController extends ChangeNotifier {
     super.dispose();
   }
 }
-
-int clockMinutes(String time) {
-  final parts = time.split(':');
-  return parts.length == 2
-      ? (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0)
-      : 0;
-}
-
-String minutesClock(int value) =>
-    '${(value ~/ 60).toString().padLeft(2, '0')}:${(value % 60).toString().padLeft(2, '0')}';
