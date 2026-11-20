@@ -53,6 +53,7 @@ part 'material_browser.dart';
 
 part 'material_actions.dart';
 part 'material_selection.dart';
+part 'material_library_filters.dart';
 part 'material_assignments.dart';
 part 'drive_explorer.dart';
 part 'drive_sources.dart';
@@ -78,21 +79,24 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   NotebookController get c => widget.controller;
   final drive = OneDriveClient();
   final files = const LocalMaterialFiles();
-  String query = '', view = 'files', typeFilter = 'all', subjectFilter = '';
-  String formatFilter = 'all';
-  String useFilter = '';
-  String pupilFilter = '';
+  String view = 'files';
   String get sort => c.appearance.materialSort;
   bool get grid => c.appearance.materialGrid;
   final search = TextEditingController();
+  final fileSearch = TextEditingController();
+  final trashSearch = TextEditingController();
+  bool fileTrash = false, collectionTrash = false;
+  bool get trash => view == 'files' ? fileTrash : collectionTrash;
+  TextEditingController get currentSearch => view != 'files'
+      ? search
+      : fileTrash
+      ? trashSearch
+      : fileSearch;
+  String get query => currentSearch.text.trim();
+  var fileFilter = _LibraryFilter(), trashFilter = _LibraryFilter();
+  _LibraryFilter get filter => fileTrash ? trashFilter : fileFilter;
   final selection = <String>{};
-  final tagFilter = <String>{};
-  bool busy = false,
-      trash = false,
-      searching = false,
-      filters = false,
-      favorites = false,
-      selecting = false;
+  bool busy = false, searching = false, selecting = false;
   bool progress = false;
   String? error;
   void updateLibrary(VoidCallback work) => setState(work);
@@ -102,7 +106,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   void initState() {
     super.initState();
     view = widget.externalView ?? view;
-    trash = widget.initialTrash;
+    fileTrash = widget.initialTrash;
+    c.addListener(pruneSelection);
     drive.load().catchError((Object e) {
       if (mounted) setState(() => error = friendlyError(e));
     });
@@ -111,18 +116,79 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
   @override
   void didUpdateWidget(covariant MaterialLibraryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != c) {
+      oldWidget.controller.removeListener(pruneSelection);
+      c.addListener(pruneSelection);
+    }
     if (widget.externalView != null &&
         widget.externalView != oldWidget.externalView) {
-      view = widget.externalView!;
+      changeView(widget.externalView!);
+    }
+  }
+
+  void changeView(String value) {
+    view = value;
+    collectionTrash = false;
+    selecting = false;
+    selection.clear();
+  }
+
+  void openFileTrash(bool value) {
+    setState(() {
+      fileTrash = value;
       selecting = false;
       selection.clear();
+    });
+  }
+
+  Iterable<ClassroomDocument> folderContents(
+    ClassroomKind kind,
+    bool deleted,
+  ) => c.classroom.where(
+    (d) =>
+        d.kind == kind &&
+        d.deleted == deleted &&
+        (d.map('flow')['pupilId'] as String? ?? '').isEmpty,
+  );
+
+  bool matchesSearch(ClassroomDocument d) =>
+      query.isEmpty || materialMatches(d, query, pupils: c.pupils);
+
+  void pruneSelection() {
+    if (!selecting || selection.isEmpty) return;
+    selection.retainAll(
+      folderContents(ClassroomKind.material, false)
+          .where(
+            (d) =>
+                selection.contains(d.id) &&
+                filter.matches(d) &&
+                matchesSearch(d),
+          )
+          .map((d) => d.id)
+          .toSet(),
+    );
+  }
+
+  void changeFilters(VoidCallback change) => setState(() {
+    change();
+    pruneSelection();
+  });
+
+  void replaceFilter(_LibraryFilter value) {
+    if (fileTrash) {
+      trashFilter = value;
+    } else {
+      fileFilter = value;
     }
   }
 
   @override
   void dispose() {
+    c.removeListener(pruneSelection);
     drive.dispose();
     search.dispose();
+    fileSearch.dispose();
+    trashSearch.dispose();
     super.dispose();
   }
 
@@ -373,7 +439,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
     );
   }
 
-  Future<void> addSelectionToPackage() async {
+  Future<void> addSelectionToPackage(List<String> ids) async {
     final packages = c.classroom
         .where((d) => !d.deleted && d.kind == ClassroomKind.materialSet)
         .toList();
@@ -406,13 +472,13 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
         context,
         c,
         ClassroomKind.materialSet,
-        fields: {'materialIds': selection.toList()},
+        fields: {'materialIds': ids},
       );
     } else {
       final p = c.classroom.firstWhere((d) => d.id == result);
       await c.saveClassroom(
         p.patch({
-          'materialIds': {...p.strings('materialIds'), ...selection}.toList(),
+          'materialIds': {...p.strings('materialIds'), ...ids}.toList(),
         }),
       );
     }
@@ -431,7 +497,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
               children: [
                 if (widget.externalView == null)
                   TextButton(
-                    onPressed: () => setState(() => view = 'files'),
+                    onPressed: () => setState(() => changeView('files')),
                     child: const Text('Zur Bibliothek'),
                   ),
                 _DriveSources(c, drive, (work) => action(work)),
@@ -446,38 +512,13 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
               : view == 'plans'
               ? ClassroomKind.plan
               : ClassroomKind.material;
+          final scope = folderContents(kind, trash);
           final documents =
-              c.classroom
+              scope
                   .where(
                     (d) =>
-                        d.kind == kind &&
-                        (d.map('flow')['pupilId'] as String? ?? '').isEmpty &&
-                        d.deleted == trash &&
-                        materialMatches(d, query, pupils: c.pupils) &&
-                        (view != 'files' ||
-                            (pupilFilter.isEmpty ||
-                                    (pupilFilter == 'unassigned'
-                                        ? d.strings('pupilIds').isEmpty
-                                        : d
-                                              .strings('pupilIds')
-                                              .contains(pupilFilter))) &&
-                                matchesMaterialTags(
-                                  d.strings('tags'),
-                                  tagFilter,
-                                )) &&
-                        (kind != ClassroomKind.material ||
-                            (!favorites || d.flag('favorite')) &&
-                                (useFilter.isEmpty ||
-                                    hasTeachingUse(d, useFilter)) &&
-                                (formatFilter == 'all' ||
-                                    d.text('extension') == formatFilter ||
-                                    formatFilter == 'jpg' &&
-                                        d.text('extension') == 'png') &&
-                                (typeFilter == 'all' ||
-                                    d.text('documentType', 'other') ==
-                                        typeFilter) &&
-                                (subjectFilter.isEmpty ||
-                                    d.text('subject') == subjectFilter)),
+                        (view != 'files' || filter.matches(d)) &&
+                        matchesSearch(d),
                   )
                   .toList()
                 ..sort((a, b) {
@@ -503,14 +544,6 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   );
                   return name != 0 ? name : a.id.compareTo(b.id);
                 });
-          final subjects =
-              c.classroom
-                  .where((d) => !d.deleted && d.kind == ClassroomKind.material)
-                  .map((d) => d.text('subject'))
-                  .where((s) => s.isNotEmpty)
-                  .toSet()
-                  .toList()
-                ..sort();
           final cloudPlans = view == 'plans'
               ? c.classroom
                     .where(
@@ -541,102 +574,50 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
               Expanded(
                 child: ListView(
                   key: const PageStorageKey('materials-library'),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    view == 'files' ? 4 : 16,
+                    16,
+                    96,
+                  ),
                   children: [
                     ActionHeading(
-                      leading: Text(switch (view) {
-                        'prepared' => 'Bereitgelegt',
-                        'packages' => 'Pakete',
-                        'plans' => 'Planungen',
-                        _ => 'Bibliothek',
-                      }, style: Theme.of(ctx).textTheme.headlineSmall),
-                      actions: [
-                        if (view == 'files')
-                          PopupMenuButton<String>(
-                            tooltip: 'Material hinzufügen und verwalten',
-                            icon: const Icon(Icons.add),
-                            onSelected: (v) => action(() async {
-                              switch (v) {
-                                case 'scan':
-                                  await scanAndShow(
-                                    ctx,
-                                    c,
-                                    const ScanContext(),
-                                  );
-                                case 'file':
-                                  await importFile();
-                                case 'link':
-                                  await showClassroomEditor(
-                                    ctx,
-                                    c,
-                                    ClassroomKind.material,
-                                  );
-                                case 'trash':
-                                  setState(() {
-                                    trash = !trash;
-                                    selecting = false;
-                                    selection.clear();
-                                  });
-                                case 'export':
-                                  await exportBundle();
-                                case 'import':
-                                  await importBundle();
-                                case 'add':
-                                  await showQuickAdd(ctx, c);
-                              }
-                            }),
-                            itemBuilder: (_) => [
-                              const PopupMenuItem(
-                                value: 'scan',
-                                child: Text('Scannen oder fotografieren'),
-                              ),
-                              PopupMenuItem(
-                                value: 'file',
-                                enabled: materialDeviceAvailable,
-                                child: const Text('Datei hinzufügen'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'link',
-                                child: Text('Link hinzufügen'),
-                              ),
-                              PopupMenuItem(
-                                value: 'trash',
-                                child: Text(
-                                  trash ? 'Bibliothek öffnen' : 'Papierkorb',
+                      leading: view == 'files' && trash
+                          ? Row(
+                              children: [
+                                IconButton(
+                                  tooltip: 'Zur Bibliothek',
+                                  icon: const Icon(Icons.arrow_back),
+                                  onPressed: () => openFileTrash(false),
                                 ),
-                              ),
-                              if (materialDeviceAvailable) ...[
-                                const PopupMenuItem(
-                                  value: 'export',
-                                  child: Text('Materialpaket exportieren'),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'import',
-                                  child: Text('Materialpaket öffnen'),
+                                Expanded(
+                                  child: Text(
+                                    'Papierkorb',
+                                    style: Theme.of(
+                                      ctx,
+                                    ).textTheme.headlineSmall,
+                                  ),
                                 ),
                               ],
-                              const PopupMenuItem(
-                                value: 'add',
-                                child: Text('Weitere Einträge anlegen'),
-                              ),
-                            ],
-                          ),
-                        IconButton(
-                          tooltip: 'Materialien suchen',
-                          isSelected: searching,
-                          icon: const Icon(Icons.search),
-                          onPressed: () =>
-                              setState(() => searching = !searching),
-                        ),
-                        if (view == 'files' && !trash)
+                            )
+                          : Text(switch (view) {
+                              'prepared' => 'Bereitgelegt',
+                              'packages' => 'Pakete',
+                              'plans' => 'Planungen',
+                              _ => 'Bibliothek',
+                            }, style: Theme.of(ctx).textTheme.headlineSmall),
+                      actions: [
+                        if (view == 'files' && !trash) ...[
+                          addMaterialMenu(ctx),
+                          libraryOptions(ctx),
+                        ],
+                        if (view != 'files')
                           IconButton(
-                            tooltip: 'Mehrere Dateien auswählen',
-                            isSelected: selecting,
-                            icon: const Icon(Icons.checklist),
-                            onPressed: () => setState(() {
-                              selecting = !selecting;
-                              if (!selecting) selection.clear();
-                            }),
+                            tooltip: 'Materialien suchen',
+                            isSelected: searching,
+                            icon: const Icon(Icons.search),
+                            onPressed: () =>
+                                setState(() => searching = !searching),
                           ),
                         if (view == 'packages' || view == 'plans')
                           IconButton(
@@ -652,7 +633,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                     ),
                     if (view == 'files' && !trash)
                       IncomingFilesButton(controller: c),
-                    if (searching || query.isNotEmpty)
+                    if (view != 'files' && (searching || query.isNotEmpty))
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: TextField(
@@ -665,16 +646,15 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                               tooltip: 'Suche leeren',
                               onPressed: () => setState(() {
                                 search.clear();
-                                query = '';
                                 searching = false;
                               }),
                               icon: const Icon(Icons.close),
                             ),
                           ),
-                          onChanged: (v) => setState(() => query = v),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
-                    const SizedBox(height: 8),
+                    if (view != 'files') const SizedBox(height: 8),
                     if (widget.externalView == null)
                       Wrap(
                         spacing: 6,
@@ -694,11 +674,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                               labelPadding: EdgeInsets.zero,
                               label: Text(item.$2),
                               selected: view == item.$1,
-                              onSelected: (_) => setState(() {
-                                view = item.$1;
-                                selecting = false;
-                                selection.clear();
-                              }),
+                              onSelected: (_) =>
+                                  setState(() => changeView(item.$1)),
                             ),
                         ],
                       ),
@@ -720,10 +697,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         alignment: Alignment.centerLeft,
                         child: PopupMenuButton<String>(
                           tooltip: 'Unterricht planen',
-                          onSelected: (v) => setState(() {
-                            view = v;
-                            trash = false;
-                          }),
+                          onSelected: (v) => setState(() => changeView(v)),
                           itemBuilder: (_) => const [
                             PopupMenuItem(
                               value: 'packages',
@@ -744,8 +718,6 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                           ),
                         ),
                       ),
-                    if (view == 'files' && !trash && !selecting)
-                      _PlanningInbox(c),
                     if (view == 'prepared') ...[
                       _PlanningWeeks(c, query),
                       OutlinedButton.icon(
@@ -804,235 +776,8 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                         ),
                     ] else ...[
                       if (view == 'files') ...[
-                        Wrap(
-                          spacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (filters || favorites)
-                              FilterChip(
-                                label: const Text('Favoriten'),
-                                avatar: const Icon(Icons.star_border, size: 18),
-                                selected: favorites,
-                                onSelected: (v) =>
-                                    setState(() => favorites = v),
-                              ),
-                            if (filters || trash || view != 'files')
-                              FilterChip(
-                                label: const Text('Papierkorb'),
-                                selected: trash,
-                                onSelected: (v) => setState(() {
-                                  trash = v;
-                                  selection.clear();
-                                  selecting = false;
-                                }),
-                              ),
-                            TextButton.icon(
-                              onPressed: () =>
-                                  setState(() => filters = !filters),
-                              icon: const Icon(Icons.tune),
-                              label: Text(
-                                typeFilter != 'all' ||
-                                        subjectFilter.isNotEmpty ||
-                                        tagFilter.isNotEmpty ||
-                                        useFilter.isNotEmpty ||
-                                        formatFilter != 'all'
-                                    ? 'Filter aktiv'
-                                    : 'Filter',
-                              ),
-                            ),
-                            PopupMenuButton<String>(
-                              key: const ValueKey('material-pupil-filter'),
-                              tooltip: 'Nach Schüler filtern',
-                              initialValue: pupilFilter,
-                              onSelected: (value) =>
-                                  setState(() => pupilFilter = value),
-                              itemBuilder: (_) => [
-                                for (final entry in <String, String>{
-                                  '': 'Alle Zuordnungen',
-                                  'unassigned': 'Ohne Schülerzuordnung',
-                                  for (final p in c.pupils)
-                                    if (!p.archived ||
-                                        c.classroom.any(
-                                          (d) =>
-                                              d.kind ==
-                                                  ClassroomKind.material &&
-                                              d
-                                                  .strings('pupilIds')
-                                                  .contains(p.id),
-                                        ))
-                                      p.id:
-                                          '${p.name}${p.archived ? ' · Archiv' : ''}',
-                                }.entries)
-                                  CheckedPopupMenuItem(
-                                    value: entry.key,
-                                    checked: pupilFilter == entry.key,
-                                    child: Text(entry.value),
-                                  ),
-                              ],
-                              child: Chip(
-                                avatar: const Icon(
-                                  Icons.person_outline,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  pupilFilter.isEmpty
-                                      ? 'Schüler'
-                                      : pupilFilter == 'unassigned'
-                                      ? 'Ohne Zuordnung'
-                                      : c.pupils
-                                                .where(
-                                                  (p) => p.id == pupilFilter,
-                                                )
-                                                .firstOrNull
-                                                ?.name ??
-                                            'Schüler nicht verfügbar',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (filters)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (c.classroom.any(
-                                  (d) =>
-                                      d.kind == ClassroomKind.material &&
-                                      d.map('planning').isNotEmpty,
-                                ))
-                                  DropdownButtonFormField<String>(
-                                    initialValue: useFilter,
-                                    isExpanded: true,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Verwendung',
-                                    ),
-                                    items: [
-                                      const DropdownMenuItem(
-                                        value: '',
-                                        child: Text('Alle Verwendungen'),
-                                      ),
-                                      for (final e in planningUses.entries)
-                                        DropdownMenuItem(
-                                          value: e.key,
-                                          child: Text(e.value),
-                                        ),
-                                    ],
-                                    onChanged: (v) =>
-                                        setState(() => useFilter = v ?? ''),
-                                  ),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 4,
-                                  children: [
-                                    for (final item in const [
-                                      ('all', 'Alle Formate'),
-                                      ('pdf', 'PDF'),
-                                      ('docx', 'DOCX'),
-                                      ('jpg', 'Fotos'),
-                                      ('link', 'Links'),
-                                    ])
-                                      ChoiceChip(
-                                        key: ValueKey(
-                                          'material-format-${item.$1}',
-                                        ),
-                                        label: Text(item.$2),
-                                        selected: formatFilter == item.$1,
-                                        onSelected: (_) => setState(
-                                          () => formatFilter = item.$1,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Expanded(child: Text('Tags')),
-                                    IconButton(
-                                      tooltip: 'Tags verwalten',
-                                      onPressed: () =>
-                                          showMaterialTagManager(ctx, c),
-                                      icon: const Icon(Icons.edit_outlined),
-                                    ),
-                                    if (tagFilter.isNotEmpty)
-                                      TextButton(
-                                        onPressed: () =>
-                                            setState(tagFilter.clear),
-                                        child: const Text('Alle'),
-                                      ),
-                                  ],
-                                ),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 4,
-                                  children: [
-                                    for (final tag in {
-                                      ...materialTagUsage(c).keys,
-                                      ...tagFilter,
-                                    })
-                                      FilterChip(
-                                        label: Text(tag),
-                                        selected: tagFilter.contains(tag),
-                                        onSelected: (_) => setState(() {
-                                          if (!tagFilter.add(tag)) {
-                                            tagFilter.remove(tag);
-                                          }
-                                        }),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  key: ValueKey('type-$typeFilter'),
-                                  initialValue: typeFilter,
-                                  isExpanded: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Dokumentart',
-                                  ),
-                                  items: [
-                                    const DropdownMenuItem(
-                                      value: 'all',
-                                      child: Text('Alle Dokumentarten'),
-                                    ),
-                                    for (final e in materialTypes.entries)
-                                      DropdownMenuItem(
-                                        value: e.key,
-                                        child: Text(e.value),
-                                      ),
-                                  ],
-                                  onChanged: (v) =>
-                                      setState(() => typeFilter = v!),
-                                ),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  key: ValueKey('subject-$subjectFilter'),
-                                  initialValue: subjectFilter,
-                                  isExpanded: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Fach',
-                                  ),
-                                  items: [
-                                    const DropdownMenuItem(
-                                      value: '',
-                                      child: Text('Alle Fächer'),
-                                    ),
-                                    for (final s in {
-                                      ...subjects,
-                                      if (subjectFilter.isNotEmpty)
-                                        subjectFilter,
-                                    })
-                                      DropdownMenuItem(
-                                        value: s,
-                                        child: Text(s),
-                                      ),
-                                  ],
-                                  onChanged: (v) =>
-                                      setState(() => subjectFilter = v!),
-                                ),
-                              ],
-                            ),
-                          ),
+                        librarySearchBar(ctx),
+                        if (!trash && !selecting) _PlanningInbox(c),
                         materialBrowserToolbar(ctx, documents.length),
                         if (selecting)
                           TextButton(
@@ -1049,11 +794,12 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                             FilterChip(
                               label: const Text('Papierkorb'),
                               selected: trash,
-                              onSelected: (v) => setState(() => trash = v),
+                              onSelected: (v) =>
+                                  setState(() => collectionTrash = v),
                             ),
                           ],
                         ),
-                      const SizedBox(height: 8),
+                      if (view != 'files') const SizedBox(height: 8),
                       if (cloudPlans.isNotEmpty)
                         ExpansionTile(
                           key: const PageStorageKey('planning-source-files'),
@@ -1073,34 +819,28 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                                 trash
                                     ? Icons.delete_outline
                                     : Icons.folder_open_outlined,
-                                size: 40,
+                                size: 32,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               Text(
-                                trash
+                                query.isNotEmpty ||
+                                        view == 'files' && filter.isActive
+                                    ? 'Keine Materialien gefunden.'
+                                    : trash
                                     ? 'Der Papierkorb ist leer.'
+                                    : view == 'files'
+                                    ? 'Deine Bibliothek ist noch leer.'
                                     : 'Keine passenden Materialien.',
                                 textAlign: TextAlign.center,
                               ),
                               if (query.isNotEmpty ||
-                                  favorites ||
-                                  typeFilter != 'all' ||
-                                  subjectFilter.isNotEmpty ||
-                                  tagFilter.isNotEmpty ||
-                                  pupilFilter.isNotEmpty ||
-                                  formatFilter != 'all' ||
-                                  useFilter.isNotEmpty)
+                                  view == 'files' && filter.isActive)
                                 TextButton(
-                                  onPressed: () => setState(() {
-                                    query = '';
-                                    search.clear();
-                                    favorites = false;
-                                    typeFilter = 'all';
-                                    subjectFilter = '';
-                                    tagFilter.clear();
-                                    formatFilter = 'all';
-                                    useFilter = '';
-                                    pupilFilter = '';
+                                  onPressed: () => changeFilters(() {
+                                    currentSearch.clear();
+                                    if (view == 'files') {
+                                      replaceFilter(_LibraryFilter());
+                                    }
                                   }),
                                   child: const Text(
                                     'Suche und Filter zurücksetzen',

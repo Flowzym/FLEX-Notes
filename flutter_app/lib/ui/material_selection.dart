@@ -1,183 +1,348 @@
 part of 'material_library.dart';
 
 extension _MaterialSelectionView on _MaterialLibraryPageState {
-  Widget selectionBar(BuildContext ctx) => Material(
-    color: Theme.of(ctx).colorScheme.surfaceContainerHigh,
-    child: SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text('${selection.length} ausgewählt')),
-                TextButton(
-                  onPressed: busy
-                      ? null
-                      : () => updateLibrary(() {
-                          selection.clear();
-                          selecting = false;
-                        }),
-                  child: const Text('Fertig'),
-                ),
-              ],
-            ),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () => action(
-                          () => prepareForDate(ctx, c, selection.toList()),
-                        ),
-                  icon: const Icon(Icons.today_outlined),
-                  label: const Text('Bereitlegen'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () => action(assignSelection, showProgress: false),
-                  icon: const Icon(Icons.people_outline),
-                  label: const Text('Schüler'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () =>
-                            action(addSelectionToPackage, showProgress: false),
-                  icon: const Icon(Icons.folder_copy_outlined),
-                  label: const Text('Paket'),
-                ),
-                IconButton(
-                  tooltip: 'Tags der Auswahl bearbeiten',
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () => action(tagSelection, showProgress: false),
-                  icon: const Icon(Icons.sell_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Auswahl teilen',
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () => action(
-                          () => shareMaterials(
-                            ctx,
-                            c.classroom.where((d) => selection.contains(d.id)),
-                          ),
-                          showProgress: false,
-                        ),
-                  icon: const Icon(Icons.ios_share),
-                ),
-                IconButton(
-                  tooltip: 'Auswahl offline laden',
-                  onPressed:
-                      busy || selection.isEmpty || !materialDeviceAvailable
-                      ? null
-                      : () => action(
-                          () => cacheMaterials(
-                            ctx,
-                            c,
-                            resolveMaterials(c.classroom, selection),
-                            drive: drive,
-                          ),
-                        ),
-                  icon: const Icon(Icons.download_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Auswahl in Papierkorb',
-                  onPressed: busy || selection.isEmpty
-                      ? null
-                      : () => action(() async {
-                          final docs = c.classroom
-                              .where((d) => selection.contains(d.id))
-                              .toList();
-                          await c.repository.saveClassroomDocuments([
-                            for (final d in docs) d.patch({'deleted': true}),
-                          ]);
-                          await c.reload();
-                          if (mounted) {
-                            updateLibrary(() {
-                              selection.clear();
-                              selecting = false;
-                            });
-                          }
-                        }),
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
-            ),
-          ],
+  Widget selectionBar(BuildContext ctx) {
+    final canAct = !busy && selection.isNotEmpty;
+    final count = Text('${selection.length} ausgewählt');
+    final finish = TextButton(
+      onPressed: busy
+          ? null
+          : () => updateLibrary(() {
+              selection.clear();
+              selecting = false;
+            }),
+      child: const Text('Fertig'),
+    );
+    final assign = OutlinedButton.icon(
+      onPressed: canAct
+          ? () => action(assignSelection, showProgress: false)
+          : null,
+      icon: const Icon(Icons.people_outline),
+      label: const Text('Zuordnen'),
+    );
+    final options = PopupMenuButton<String>(
+      tooltip: 'Aktionen für Auswahl',
+      icon: const Icon(Icons.more_vert),
+      enabled: canAct,
+      onSelected: (value) => action(() async {
+        final ids = selection.toList();
+        final docs = resolveMaterials(c.classroom, ids);
+        switch (value) {
+          case 'prepare':
+            await prepareForDate(ctx, c, ids);
+          case 'package':
+            await addSelectionToPackage(ids);
+          case 'tags':
+            await tagSelection();
+          case 'share':
+            await shareMaterials(ctx, docs);
+          case 'offline':
+            await cacheMaterials(ctx, c, docs, drive: drive);
+          case 'trash':
+            await c.repository.saveClassroomDocuments([
+              for (final d in docs) d.patch({'deleted': true}),
+            ]);
+            await c.reload();
+            if (mounted) {
+              updateLibrary(() {
+                selection.clear();
+                selecting = false;
+              });
+            }
+        }
+      }, showProgress: value == 'offline'),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'prepare', child: Text('Bereitlegen')),
+        const PopupMenuItem(
+          value: 'package',
+          child: Text('Zu Paket hinzufügen'),
+        ),
+        const PopupMenuItem(value: 'tags', child: Text('Tags bearbeiten')),
+        const PopupMenuItem(value: 'share', child: Text('Auswahl teilen')),
+        PopupMenuItem(
+          value: 'offline',
+          enabled: materialDeviceAvailable,
+          child: const Text('Offline laden'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'trash', child: Text('In den Papierkorb')),
+      ],
+    );
+    return Material(
+      color: Theme.of(ctx).colorScheme.surfaceContainerHigh,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: LayoutBuilder(
+            builder: (_, constraints) {
+              if (constraints.maxWidth <
+                  MediaQuery.textScalerOf(ctx).scale(310)) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: count),
+                        finish,
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Expanded(child: assign),
+                        options,
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: count),
+                  assign,
+                  options,
+                  finish,
+                ],
+              );
+            },
+          ),
         ),
       ),
-    ),
+    );
+  }
+
+  Widget addMaterialMenu(BuildContext ctx) => PopupMenuButton<String>(
+    tooltip: 'Material hinzufügen',
+    icon: const Icon(Icons.add),
+    enabled: !busy,
+    onSelected: (value) => action(() async {
+      switch (value) {
+        case 'scan':
+          await scanAndShow(ctx, c, const ScanContext());
+        case 'file':
+          await importFile();
+        case 'link':
+          await showClassroomEditor(ctx, c, ClassroomKind.material);
+        case 'add':
+          await showQuickAdd(ctx, c);
+      }
+    }),
+    itemBuilder: (_) => [
+      const PopupMenuItem(
+        value: 'scan',
+        child: Text('Scannen oder fotografieren'),
+      ),
+      PopupMenuItem(
+        value: 'file',
+        enabled: materialDeviceAvailable,
+        child: const Text('Datei hinzufügen'),
+      ),
+      const PopupMenuItem(value: 'link', child: Text('Link hinzufügen')),
+      const PopupMenuDivider(),
+      const PopupMenuItem(
+        value: 'add',
+        child: Text('Weitere Einträge anlegen'),
+      ),
+    ],
+  );
+
+  Widget libraryOptions(BuildContext ctx) => PopupMenuButton<String>(
+    tooltip: 'Bibliotheksoptionen',
+    icon: const Icon(Icons.more_horiz),
+    enabled: !busy,
+    onSelected: (value) {
+      switch (value) {
+        case 'select':
+          updateLibrary(() {
+            selecting = !selecting;
+            selection.clear();
+          });
+        case 'trash':
+          openFileTrash(true);
+        case 'tags':
+          showMaterialTagManager(ctx, c);
+        case 'export':
+          action(exportBundle);
+        case 'import':
+          action(importBundle);
+      }
+    },
+    itemBuilder: (_) => [
+      PopupMenuItem(
+        value: 'select',
+        child: Text(
+          selecting ? 'Auswahl beenden' : 'Mehrere Dateien auswählen',
+        ),
+      ),
+      const PopupMenuItem(value: 'tags', child: Text('Tags verwalten')),
+      const PopupMenuItem(value: 'trash', child: Text('Papierkorb')),
+      if (materialDeviceAvailable) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'export',
+          child: Text('Materialpaket exportieren'),
+        ),
+        const PopupMenuItem(
+          value: 'import',
+          child: Text('Materialpaket öffnen'),
+        ),
+      ],
+    ],
   );
 
   Widget materialBrowserToolbar(BuildContext ctx, int count) {
-    final countLabel = Text('$count ${count == 1 ? 'Datei' : 'Dateien'}');
-    final layout = IconButton(
-      key: const ValueKey('material-layout'),
-      tooltip: grid ? 'Listenansicht' : 'Rasteransicht',
-      onPressed: () => guarded(
-        context,
-        () => c.saveAppearance(c.appearance.patch({'materialGrid': !grid})),
-      ),
-      icon: Icon(grid ? Icons.view_list_outlined : Icons.grid_view_outlined),
-    );
-    final sorting = PopupMenuButton<String>(
-      key: const ValueKey('material-sort'),
-      tooltip: 'Materialien sortieren',
-      initialValue: sort,
-      onSelected: (value) => guarded(
-        context,
-        () => c.saveAppearance(c.appearance.patch({'materialSort': value})),
-      ),
-      itemBuilder: (_) => [
-        for (final entry in _materialSortLabels.entries)
-          CheckedPopupMenuItem(
-            value: entry.key,
-            checked: sort == entry.key,
-            child: Text(entry.value),
-          ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.sort, size: 18),
-            const SizedBox(width: 6),
-            Flexible(child: Text(_materialSortLabels[sort]!, maxLines: 2)),
-          ],
-        ),
+    final theme = Theme.of(ctx);
+    final labels = filter.labels.join(' · ');
+    final total = Text(
+      _fileCount(count),
+      style: theme.textTheme.labelMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
+    final pupilLabel = switch (filter.pupil) {
+      '' => 'Schüler',
+      'unassigned' => 'Ohne Zuordnung',
+      final id =>
+        c.pupils.where((p) => p.id == id).firstOrNull?.name ??
+            'Unbekannte Zuordnung',
+    };
     return LayoutBuilder(
       builder: (_, constraints) {
-        if (constraints.maxWidth < 480 &&
-            MediaQuery.textScalerOf(ctx).scale(1) > 1.4) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: countLabel),
-                  layout,
-                ],
-              ),
-              sorting,
-            ],
-          );
-        }
+        final showName =
+            constraints.maxWidth >= MediaQuery.textScalerOf(ctx).scale(230);
         return Row(
           children: [
-            countLabel,
-            Expanded(child: sorting),
-            layout,
+            Expanded(
+              child: labels.isEmpty
+                  ? total
+                  : Tooltip(
+                      message: 'Alle Filter aufheben',
+                      child: TextButton(
+                        onPressed: () => changeFilters(
+                          () => replaceFilter(_LibraryFilter()),
+                        ),
+                        style: TextButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  total,
+                                  Text(
+                                    labels,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.close, size: 15),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: showName ? constraints.maxWidth * .44 : 48,
+              ),
+              child: PopupMenuButton<String>(
+                key: const ValueKey('material-pupil-filter'),
+                tooltip: filter.pupil.isEmpty
+                    ? 'Nach Schüler filtern'
+                    : 'Schülerfilter · $pupilLabel',
+                initialValue: filter.pupil,
+                onSelected: (v) => changeFilters(() => filter.pupil = v),
+                itemBuilder: (_) => [
+                  for (final e in _pupilOptions(
+                    c.pupils,
+                    folderContents(ClassroomKind.material, trash),
+                    filter.pupil,
+                  ).entries)
+                    CheckedPopupMenuItem(
+                      value: e.key,
+                      checked: filter.pupil == e.key,
+                      child: Text(e.value),
+                    ),
+                ],
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 48,
+                    minWidth: 48,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        filter.pupil.isEmpty
+                            ? Icons.person_outline
+                            : Icons.person,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      if (showName) ...[
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            pupilLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.expand_more, size: 16),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            PopupMenuButton<String>(
+              key: const ValueKey('material-sort'),
+              tooltip: 'Sortierung · ${_materialSortLabels[sort]}',
+              icon: const Icon(Icons.sort, size: 20),
+              initialValue: sort,
+              onSelected: (v) => guarded(
+                ctx,
+                () => c.saveAppearance(c.appearance.patch({'materialSort': v})),
+              ),
+              itemBuilder: (_) => [
+                for (final e in _materialSortLabels.entries)
+                  CheckedPopupMenuItem(
+                    value: e.key,
+                    checked: sort == e.key,
+                    child: Text(e.value),
+                  ),
+              ],
+            ),
+            IconButton(
+              key: const ValueKey('material-layout'),
+              tooltip: grid ? 'Listenansicht' : 'Rasteransicht',
+              icon: Icon(
+                grid ? Icons.view_list_outlined : Icons.grid_view_outlined,
+                size: 20,
+              ),
+              onPressed: () => guarded(
+                ctx,
+                () => c.saveAppearance(
+                  c.appearance.patch({'materialGrid': !grid}),
+                ),
+              ),
+            ),
           ],
         );
       },
@@ -201,13 +366,16 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
       grid: grid,
       prepared: prepared.contains(d.id),
       selected: selecting ? selection.contains(d.id) : null,
-      onSelect: (value) => updateLibrary(() {
-        if (value) {
-          selection.add(d.id);
-        } else {
-          selection.remove(d.id);
-        }
-      }),
+      onSelect: trash || busy
+          ? null
+          : (value) => updateLibrary(() {
+              if (value) {
+                selecting = true;
+                selection.add(d.id);
+              } else {
+                selection.remove(d.id);
+              }
+            }),
       onOpen: () => action(
         () => trash
             ? showMaterialDetails(ctx, c, d, drive: drive)
@@ -243,7 +411,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
           key: start == 0
               ? ValueKey(grid ? 'material-grid' : 'material-list')
               : null,
-          padding: EdgeInsets.only(bottom: grid ? 12 : 8),
+          padding: EdgeInsets.only(bottom: grid ? 12 : 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

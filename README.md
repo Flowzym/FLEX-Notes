@@ -1,6 +1,6 @@
 # FLEX-Notes
 
-Version **0.37.0+88** auf dem Branch **`redesign/cream-olive`**.
+Version **0.37.1+89** auf dem Branch **`redesign/cream-olive`**.
 Flutter-App für Notizen, Unterricht, Kalender, Organisation und Materialien der FLEX-Klasse.
 
 - [Materialverwaltung und individuelle Schülerzuordnung](docs/rebuild/MATERIAL-BUILD-83.md)

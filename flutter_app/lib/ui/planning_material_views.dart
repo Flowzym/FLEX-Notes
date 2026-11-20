@@ -32,14 +32,22 @@ class _PlanningInbox extends StatelessWidget {
         )
         .length;
     if (count == 0) return const SizedBox.shrink();
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.person_search_outlined),
-      title: const Text('Zuordnung prüfen'),
-      subtitle: Text('$count Dateien mit möglichen Schülerkürzeln oder Namen'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () =>
-          showDialog<void>(context: context, builder: (_) => _PlanningQueue(c)),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => showDialog<void>(
+          context: context,
+          builder: (_) => _PlanningQueue(c),
+        ),
+        icon: const Icon(Icons.person_search_outlined, size: 18),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Flexible(child: Text('Zuordnung prüfen')),
+            Text(' · $count'),
+          ],
+        ),
+      ),
     );
   }
 }

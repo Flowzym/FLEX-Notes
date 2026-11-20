@@ -413,7 +413,10 @@ void main() {
             .text,
         'V',
       );
-      await tester.enterText(find.byType(TextField).first, 'Val Beispiel');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Name'),
+        'Val Beispiel',
+      );
       await tester.pumpAndSettle();
       await tap('Hinzufügen');
       await tap('Alle auswählen');

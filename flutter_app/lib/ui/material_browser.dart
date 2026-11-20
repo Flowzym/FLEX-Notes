@@ -74,7 +74,9 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
         text,
         maxLines: lines,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
     final description = Column(
@@ -86,7 +88,9 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
             d.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(height: 4),
@@ -97,14 +101,18 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
           smallText(d.strings('tags').map((tag) => '#$tag').join(' ')),
       ],
     );
-    final availability = FutureBuilder<bool>(
+    Widget availability({bool includePupils = false}) => FutureBuilder<bool>(
       future: available,
       builder: (_, snapshot) => smallText(
         [
+          if (includePupils && names.isNotEmpty && widget.onAssign != null)
+            names.join(', '),
           if (!widget.grid && details.isNotEmpty) details,
-          {'jpg', 'png'}.contains(d.text('extension'))
-              ? 'Foto'
-              : d.text('extension').toUpperCase(),
+          switch (_formatGroup(d)) {
+            'jpg' => 'Foto',
+            'link' => 'Link',
+            final extension => extension.toUpperCase(),
+          },
           if (snapshot.connectionState != ConnectionState.done)
             'Verfügbarkeit prüfen …'
           else if (snapshot.data == true)
@@ -189,36 +197,72 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
               ],
             ),
     );
-    final assignment = widget.onAssign == null || widget.selected != null
-        ? null
-        : TextButton.icon(
-            key: ValueKey('material-assign-${d.id}'),
-            onPressed: widget.onAssign,
-            icon: const Icon(Icons.person_outline, size: 18),
-            label: Text(
-              names.isEmpty ? 'Zuordnen' : names.join(', '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            style: TextButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              minimumSize: const Size(44, 44),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          );
-    return Material(
-      color: theme.colorScheme.surfaceContainer.withValues(alpha: .8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: widget.selected == true
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outlineVariant.withValues(alpha: .4),
+    final assignmentLabel = names.isEmpty
+        ? 'Zuordnen'
+        : names.length == 1
+        ? names.first
+        : '${names.first} +${names.length - 1}';
+    Widget? assignment({bool compact = false}) {
+      if (widget.onAssign == null || widget.selected != null) return null;
+      final tip = names.isEmpty
+          ? 'Schüler zuordnen'
+          : 'Zuordnung bearbeiten · ${names.join(', ')}';
+      final key = ValueKey('material-assign-${d.id}');
+      final icon = Icon(
+        names.isEmpty ? Icons.person_add_alt_1_outlined : Icons.person_outline,
+        size: 19,
+      );
+      if (compact) {
+        return IconButton(
+          key: key,
+          tooltip: tip,
+          icon: icon,
+          onPressed: widget.onAssign,
+        );
+      }
+      return Tooltip(
+        message: tip,
+        child: TextButton.icon(
+          key: key,
+          onPressed: widget.onAssign,
+          icon: icon,
+          label: Text(
+            assignmentLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: TextButton.styleFrom(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            minimumSize: const Size(44, 44),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
-      ),
+      );
+    }
+
+    final divider = BorderSide(
+      color: theme.colorScheme.outlineVariant.withValues(alpha: .65),
+    );
+    return Material(
+      color: widget.selected == true
+          ? theme.colorScheme.secondaryContainer
+          : widget.grid
+          ? theme.colorScheme.surfaceContainer.withValues(alpha: .8)
+          : Colors.transparent,
+      shape: widget.grid
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: widget.selected == true
+                  ? BorderSide(color: theme.colorScheme.primary)
+                  : divider,
+            )
+          : Border(bottom: divider),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
+        onLongPress: widget.selected == null && widget.onSelect != null
+            ? () => widget.onSelect!(true)
+            : null,
         onTap: widget.selected == null
             ? widget.onOpen
             : () => widget.onSelect?.call(!widget.selected!),
@@ -240,9 +284,38 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                     const SizedBox(height: 8),
                     description,
                     const SizedBox(height: 4),
-                    availability,
-                    ?assignment,
+                    availability(),
+                    ?assignment(),
                     Align(alignment: Alignment.centerRight, child: actions),
+                  ],
+                );
+              }
+              final scale = MediaQuery.textScalerOf(context);
+              final compact = constraints.maxWidth < scale.scale(460);
+              if (constraints.maxWidth < scale.scale(190)) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    description,
+                    availability(includePupils: widget.selected != null),
+                    Row(
+                      children: [
+                        MaterialThumbnail(
+                          material: d,
+                          files: widget.files,
+                          width: 36,
+                          height: 44,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: assignment() ?? const SizedBox.shrink(),
+                          ),
+                        ),
+                        actions,
+                      ],
+                    ),
                   ],
                 );
               }
@@ -259,9 +332,21 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [description, availability, ?assignment],
+                      children: [
+                        description,
+                        availability(
+                          includePupils: compact || widget.selected != null,
+                        ),
+                      ],
                     ),
                   ),
+                  if (assignment(compact: compact) case final assign?)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: compact ? 48 : constraints.maxWidth * .25,
+                      ),
+                      child: assign,
+                    ),
                   actions,
                 ],
               );
