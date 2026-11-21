@@ -202,10 +202,29 @@ extension _SchoolEditorForms on _SchoolEditorState {
           selected: recipients,
           onChanged: (v) {
             updateEditor(() => recipients = v);
-            edit({});
+            edit({
+              'assignmentSources': r.assignmentSources
+                  .where((s) => s.pupilId == null || v.contains(s.pupilId))
+                  .map((s) => s.toJson())
+                  .toList(),
+            });
           },
         ),
       ],
+      HomeworkMaterials(
+        controller: c,
+        pupils: c.pupils
+            .where(
+              (p) => (r.revision > 0
+                  ? p.id == r.pupilId
+                  : recipients.contains(p.id)),
+            )
+            .toList(),
+        sources: r.assignmentSources,
+        published: r.revision > 0,
+        onChanged: (v) =>
+            edit({'assignmentSources': v.map((s) => s.toJson()).toList()}),
+      ),
     ],
   );
 

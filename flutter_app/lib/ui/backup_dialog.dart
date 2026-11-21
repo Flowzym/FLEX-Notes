@@ -528,6 +528,7 @@ Future<void> showImportReview(
                           (r) =>
                               !includeAppearance && r['key'] == 'appearance' ||
                               !catalogs &&
+                                  !(r['key'] as String).contains('@') &&
                                   (r['key'] as String).startsWith(
                                     'observation-',
                                   ),
@@ -545,9 +546,11 @@ Future<void> showImportReview(
                           );
                           preferences.addAll(
                             (local['tables']['preferences'] as List).where(
-                              (r) => (r['key'] as String).startsWith(
-                                'observation-',
-                              ),
+                              (r) =>
+                                  !(r['key'] as String).contains('@') &&
+                                  (r['key'] as String).startsWith(
+                                    'observation-',
+                                  ),
                             ),
                           );
                         }

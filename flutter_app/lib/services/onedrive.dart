@@ -215,22 +215,13 @@ class OneDriveClient extends ChangeNotifier {
         response['user_code'] is! String) {
       throw DomainError(oneDriveAuthorizationError(response));
     }
-    final uri = Uri.tryParse(response['verification_uri'] as String? ?? '');
-    if (uri == null ||
-        uri.scheme != 'https' ||
-        !{
-          'microsoft.com',
-          'www.microsoft.com',
-          'login.microsoftonline.com',
-          'login.live.com',
-        }.contains(uri.host)) {
-      throw const DomainError('Ungültige Microsoft-Anmeldeseite.');
-    }
     _activeCode = response['device_code'] as String;
     return OneDriveAuthorization(
       response['device_code'] as String,
       response['user_code'] as String,
-      uri.toString(),
+      // This client always requests codes from Microsoft's public cloud.
+      // Its manual code-entry page also works when the response URL varies.
+      'https://www.microsoft.com/devicelogin',
       (response['interval'] as int? ?? 5).clamp(5, 60),
       now().add(
         Duration(

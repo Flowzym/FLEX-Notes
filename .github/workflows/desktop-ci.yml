@@ -1,0 +1,153 @@
+name: FLEX Desktop
+on:
+  push:
+    branches: ['desktop/**']
+    paths: ['desktop_app/**', 'flutter_app/**', '.github/workflows/desktop-ci.yml']
+  pull_request:
+    paths: ['desktop_app/**', 'flutter_app/**', '.github/workflows/desktop-ci.yml']
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            desktop_app
+            flutter_app
+      - uses: ./.github/actions/setup-flutter
+        with:
+          target: desktop-web
+      - name: Desktop dependencies, analysis and regression tests
+        working-directory: desktop_app
+        run: |
+          flutter pub get --enforce-lockfile
+          dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart
+          flutter analyze --no-pub --fatal-infos
+          flutter test --no-pub --reporter expanded
+      - name: Build desktop web preview
+        working-directory: desktop_app
+        run: |
+          python3 tool/prepare_web.py
+          flutter build web --release --no-pub --no-web-resources-cdn --no-wasm-dry-run
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FLEX-Desktop-Web
+          path: desktop_app/build/web
+          retention-days: 30
+  windows:
+    runs-on: windows-latest
+    needs: checks
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            desktop_app
+            flutter_app
+      - uses: ./.github/actions/setup-flutter
+        with:
+          target: desktop-windows
+      - name: Compile native Windows application
+        working-directory: desktop_app
+        run: |
+          flutter config --enable-windows-desktop
+          flutter pub get --enforce-lockfile
+          flutter build windows --release --no-pub
+      - name: Package portable app and installer
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $releaseDir = 'build/windows/x64/runner/Release'
+          Copy-Item README.md "$releaseDir/README.md"
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $runtime = Get-ChildItem "$vsInstall/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$runtime) { throw 'MSVC redistributable runtime missing' }
+          Copy-Item "$($runtime.FullName)/*.dll" $releaseDir
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.4.1-Windows-x64.zip'
+          $compiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
+          if (!(Test-Path $compiler)) { choco install innosetup --yes --no-progress }
+          & $compiler 'installer/flex-desktop.iss'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify Windows startup and durable database
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path 'build/windows/x64/runner/Release/flex_desktop.exe'
+          $appProcess = Start-Process -FilePath $exe -PassThru
+          try {
+            Start-Sleep -Seconds 10
+            $appProcess.Refresh()
+            if ($appProcess.HasExited) { throw "FLEX exited during startup: $($appProcess.ExitCode)" }
+            $db = Get-ChildItem "$env:APPDATA/at.flowzym" -Filter 'flex_desktop_v1.sqlite' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (!$db -or $db.Length -eq 0) { throw 'Desktop database was not initialized' }
+            python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); assert c.execute('SELECT count(*) FROM pupils').fetchone()[0] == 0; print('Windows startup and database verified')" $db.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Database verification failed' }
+          } finally {
+            if (!$appProcess.HasExited) {
+              $appProcess.CloseMainWindow() | Out-Null
+              if (!$appProcess.WaitForExit(5000)) { Stop-Process -Id $appProcess.Id -Force }
+            }
+          }
+      - name: Verify installed app reopens the existing Windows workspace
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $db = Get-ChildItem "$env:APPDATA/at.flowzym" -Filter 'flex_desktop_v1.sqlite' -Recurse | Select-Object -First 1
+          python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); c.execute('INSERT INTO pupils (id,name,color,revision) VALUES (?,?,?,?)',('test-upgrade','Testprofil',4284501350,1)); c.commit()" $db.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Could not seed upgrade fixture' }
+          $setup = Get-Item build/installer/*-Setup.exe
+          $installer = Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($installer.ExitCode -ne 0) { throw "Installer failed: $($installer.ExitCode)" }
+          $app = Start-Process "$env:LOCALAPPDATA/Programs/FLEX Desktop/flex_desktop.exe" -PassThru
+          try {
+            Start-Sleep -Seconds 10
+            if ($app.HasExited) { throw 'Installed app exited early' }
+            $dbs = @(Get-ChildItem "$env:APPDATA/at.flowzym" -Filter 'flex_desktop_v1.sqlite' -Recurse)
+            if ($dbs.Count -ne 1) { throw 'Unexpected workspace location' }
+            python -c "import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); assert c.execute('SELECT name FROM pupils WHERE id=?',('test-upgrade',)).fetchone() == ('Testprofil',)" $dbs[0].FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Existing pupil not found' }
+          } finally {
+            if (!$app.HasExited) {
+              $app.CloseMainWindow() | Out-Null
+              if (!$app.WaitForExit(5000)) { Stop-Process -Id $app.Id -Force }
+            }
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FLEX-Desktop-Windows-Portable
+          path: desktop_app/build/FLEX-Desktop-*-Windows-x64.zip
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FLEX-Desktop-Windows-Setup
+          path: desktop_app/build/installer/*.exe
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Check scheduled Windows reminders survive a process restart
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          flutter build windows --release --no-pub --target tool/windows_reminder_probe.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:FLEX_REMINDER_PROBE = '1'
+          $exe = (Resolve-Path 'build/windows/x64/runner/Release/flex_desktop.exe').Path
+          foreach ($phase in 'plan','inspect') {
+            $probe = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList $phase -PassThru
+            if (!$probe.WaitForExit(45000)) { $probe.Kill(); throw "Windows notification probe timed out ($phase)" }
+            if ($probe.ExitCode -ne 0) { throw "Windows notification probe failed ($phase, code $($probe.ExitCode))" }
+          }

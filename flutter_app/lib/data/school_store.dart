@@ -227,6 +227,10 @@ mixin SchoolStore {
     final next = await saveSchoolRecord(
       SchoolRecord.empty(SchoolKind.homework, current.pupilId).patch({
         'title': current.title,
+        'assignmentSources': homeworkSourcesFor(
+          current.assignmentSources,
+          current.pupilId,
+        ),
         'subject': current.subject,
         'body': current.body,
         'dueDate': dueDate,
@@ -315,7 +319,13 @@ mixin SchoolStore {
       final next = record.patch({
         'id': newId(),
         'pupilId': pupil,
-        if (record.kind == SchoolKind.homework) 'homeworkGroup': requestId,
+        if (record.kind == SchoolKind.homework) ...{
+          'homeworkGroup': requestId,
+          'assignmentSources': homeworkSourcesFor(
+            record.assignmentSources,
+            pupil,
+          ),
+        },
         'situationId': null,
         'tasks': record.tasks
             .map(

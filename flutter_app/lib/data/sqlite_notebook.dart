@@ -1,4 +1,5 @@
 import '../domain/entry_template.dart';
+import '../domain/assignment_sources.dart';
 import '../domain/admin_deletion.dart';
 import '../domain/reminder_action.dart';
 import 'dart:convert';
@@ -678,7 +679,15 @@ class SqliteNotebook
           taskIds[t['id'] as String] = newId();
         }
         final r = SchoolRecord.empty(SchoolKind.values.byName(kind), id).patch({
-          if (kind == 'homework') 'homeworkGroup': draft.id,
+          if (kind == 'homework') ...{
+            'homeworkGroup': draft.id,
+            'assignmentSources': homeworkSourcesFor(
+              (data['assignmentSources'] as List? ?? []).map(
+                (s) => AssignmentSource.fromJson(Json.from(s as Map)),
+              ),
+              id,
+            ),
+          },
           'observedOn': data['observedOn'],
           'observedTime': data['observedTime'] ?? '',
           'subject': data['subject'] ?? '',
@@ -1364,6 +1373,21 @@ class SqliteNotebook
   }
 
   @override
+  Future<Map<String, ObservationCatalog>> personalObservationCatalogs() async {
+    final rows = await _rows(
+      "SELECT key,payload FROM preferences WHERE key LIKE 'observation-%@%'",
+    );
+    return {
+      for (final row in rows)
+        (row['key'] as String).substring(
+          'observation-'.length,
+        ): ObservationCatalog.fromJson(
+          jsonDecode(row['payload'] as String) as Json,
+        ),
+    };
+  }
+
+  @override
   Future<ObservationCatalog> observationCatalog(String key) async {
     final defaults = ObservationCatalog.defaults(key);
     final rows = await _rows('SELECT payload FROM preferences WHERE key=?', [
@@ -1382,6 +1406,14 @@ class SqliteNotebook
     ObservationCatalog value,
   ) async {
     ObservationCatalog.fromJson(value.toJson());
+    if (key.contains('@')) {
+      final id = key.substring(key.indexOf('@') + 1);
+      if ((await _rows('SELECT id FROM pupils WHERE id=? AND deleted=0', [
+        id,
+      ])).isEmpty) {
+        throw const DomainError('Der Schüler ist nicht mehr verfügbar.');
+      }
+    }
     await db.customStatement(
       'INSERT INTO preferences(key,payload) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload',
       ['observation-$key', jsonEncode(value.toJson())],
@@ -1584,6 +1616,15 @@ class SqliteNotebook
       await appearance();
       for (final key in observationDefaults.keys) {
         await observationCatalog(key);
+      }
+      final people = (await pupils()).map((p) => p.id).toSet();
+      for (final key in (await personalObservationCatalogs()).keys) {
+        if (!observationDefaults.containsKey(key.split('@').first) ||
+            !people.contains(key.substring(key.indexOf('@') + 1))) {
+          throw const DomainError(
+            'Die Sicherung enthält eine ungültige Schülerauswahl.',
+          );
+        }
       }
       for (final r in await schoolRecords()) {
         r.validate();

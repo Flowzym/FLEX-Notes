@@ -250,10 +250,16 @@ mixin BackupMergeStore on SchoolStore {
       );
     }
     for (final row in (source.tables['preferences'] as List).cast<Map>()) {
-      final key = row['key'] as String;
+      var key = row['key'] as String;
+      if (key.startsWith('observation-') && key.contains('@')) {
+        final split = key.indexOf('@');
+        final owner = key.substring(split + 1);
+        key = '${key.substring(0, split + 1)}${pupilLinks[owner] ?? owner}';
+      }
       // Device state and entity-specific metadata are not global options.
       if (key != 'appearance' &&
           !key.startsWith('school-year:') &&
+          !(key.startsWith('observation-') && key.contains('@')) &&
           (!catalogs ||
               (!key.startsWith('observation-') &&
                   !key.startsWith('entry-template:')))) {

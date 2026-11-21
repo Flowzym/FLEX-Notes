@@ -1,0 +1,32 @@
+name: FLEX Desktop release
+on:
+  push:
+    tags: ['desktop-v[0-9]*']
+permissions:
+  contents: read
+jobs:
+  build:
+    uses: ./.github/workflows/desktop-ci.yml
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - name: Publish the Windows packages from this verified build
+        run: |
+          set -euo pipefail
+          gh run download "$GITHUB_RUN_ID" --name FLEX-Desktop-Windows-Setup --dir release
+          gh run download "$GITHUB_RUN_ID" --name FLEX-Desktop-Windows-Portable --dir release
+          cd release
+          version="${RELEASE_TAG#desktop-v}"
+          setup="FLEX-Desktop-${version}-Windows-x64-Setup.exe"
+          portable="FLEX-Desktop-${version}-Windows-x64.zip"
+          test -s "$setup" && test -s "$portable"
+          sha256sum "$setup" "$portable" > SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" "$setup" "$portable" SHA256SUMS.txt --verify-tag --latest=false --title "FLEX Desktop $version für Windows" --notes "Windows x64. Das Setup aktualisiert eine bestehende FLEX-Desktop-Installation. Das portable ZIP vollständig entpacken und flex_desktop.exe starten."

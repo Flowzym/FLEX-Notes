@@ -249,6 +249,34 @@ void main() {
       expect(store.values, isEmpty);
     },
   );
+  test(
+    'device codes always open the public Microsoft code-entry page',
+    () async {
+      for (final fields in <Map<String, Object?>>[
+        {},
+        {'verification_uri': 'https://aka.ms/devicelogin'},
+        {'verification_url': 'https://microsoft.com/devicelogin'},
+        {'verification_uri': 'https://example.org/login'},
+      ]) {
+        final drive = OneDriveClient(
+          useNativeAuthentication: false,
+          store: MaterialSecrets(),
+          clientId: clientId,
+          client: MockClient(
+            (_) async => jsonResponse({
+              'device_code': 'device',
+              'user_code': 'CODE',
+              ...fields,
+            }),
+          ),
+        );
+        addTearDown(drive.dispose);
+        final auth = await drive.begin();
+        expect(auth.url, 'https://www.microsoft.com/devicelogin');
+        expect(auth.userCode, 'CODE');
+      }
+    },
+  );
   test('cancelled login does not save a late successful response', () async {
     final store = MaterialSecrets(), response = Completer<http.Response>();
     final drive = OneDriveClient(

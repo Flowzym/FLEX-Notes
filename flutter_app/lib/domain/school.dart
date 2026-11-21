@@ -515,7 +515,25 @@ class SchoolRecord {
             : 'Bitte kurz beschreiben, was passiert ist, oder eine Beobachtung auswählen.',
       );
     }
-    if (assignmentSources.length > 30 ||
+    final scopedHomework = kind == SchoolKind.homework && revision == 0;
+    if (assignmentSources.any((s) => s.pupilId != null) && !scopedHomework) {
+      throw const DomainError(
+        'Eine persönliche Materialauswahl gehört zu einer neuen Hausübung.',
+      );
+    }
+    if (scopedHomework && assignmentSources.length > 30) {
+      final shared = assignmentSources.where((s) => s.pupilId == null).length;
+      final counts = <String, int>{};
+      for (final source in assignmentSources.where((s) => s.pupilId != null)) {
+        counts.update(source.pupilId!, (v) => v + 1, ifAbsent: () => 1);
+      }
+      if (shared > 30 || counts.values.any((n) => shared + n > 30)) {
+        throw const DomainError(
+          'Bitte höchstens 30 Materialien pro Schüler auswählen.',
+        );
+      }
+    }
+    if (!scopedHomework && assignmentSources.length > 30 ||
         assignmentSources.map((s) => s.identity).toSet().length !=
             assignmentSources.length ||
         body.length > 12000 ||

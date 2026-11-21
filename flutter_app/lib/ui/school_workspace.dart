@@ -32,18 +32,28 @@ Future<void> editSchool(
   String? taskId,
   String? feedbackId,
 }) async {
-  await showFlexDetail<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => SchoolEditor(
-      controller: c,
-      record: r,
-      draft: draft,
-      mode: mode,
-      taskId: taskId,
-      feedbackId: feedbackId,
-    ),
+  Widget editor(BuildContext _) => SchoolEditor(
+    controller: c,
+    record: r,
+    draft: draft,
+    mode: mode,
+    taskId: taskId,
+    feedbackId: feedbackId,
   );
+  if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+      DetailFlowScope.maybeOf(context) == null) {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: editor,
+    );
+  } else {
+    await showFlexDetail<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: editor,
+    );
+  }
   await c.reload();
 }
 
