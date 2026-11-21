@@ -456,23 +456,33 @@ class _PlanningFiles extends StatelessWidget {
             padding: const EdgeInsets.only(top: 12),
             child: Text(title, style: Theme.of(context).textTheme.titleSmall),
           ),
-        for (final group in groups.values)
-          if (group.length == 1)
-            row(group.single)
-          else
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: Text(
-                group.first.title.replaceFirst(
-                  RegExp(r'\.(pdf|docx)$', caseSensitive: false),
-                  '',
+        if (files.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MaterialGroupingButton(c),
+          ),
+        if (c.appearance.groupMaterialsByPupil)
+          ...groupedMaterialRows(c, files, (items) => items.map(row).toList())
+        else
+          for (final group in groups.values)
+            if (group.length == 1)
+              row(group.single)
+            else
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  group.first.title.replaceFirst(
+                    RegExp(r'\.(pdf|docx)$', caseSensitive: false),
+                    '',
+                  ),
                 ),
+                subtitle: Text(
+                  group
+                      .map((d) => d.text('extension').toUpperCase())
+                      .join(' · '),
+                ),
+                children: group.map(row).toList(),
               ),
-              subtitle: Text(
-                group.map((d) => d.text('extension').toUpperCase()).join(' · '),
-              ),
-              children: group.map(row).toList(),
-            ),
       ],
     );
   }

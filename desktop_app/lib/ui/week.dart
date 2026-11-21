@@ -41,7 +41,17 @@ extension _WeekDesk on _DesktopWorkspaceState {
       'Unterlagen',
       Icons.folder_open_outlined,
       [
-        for (final m in day.materials) weekFile(m, day.day),
+        if (day.materials.isNotEmpty || suggestions.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: MaterialGroupingButton(c.notebook),
+          ),
+        ...groupedMaterialRows(
+          c.notebook,
+          day.materials,
+          (group) => [for (final m in group) weekFile(m, day.day)],
+          day: dateOnly(day.day),
+        ),
         if (suggestions.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -50,7 +60,15 @@ extension _WeekDesk on _DesktopWorkspaceState {
               style: TextStyle(color: muted, fontWeight: FontWeight.w600),
             ),
           ),
-          for (final m in suggestions) weekFile(m, day.day, suggestion: true),
+          ...groupedMaterialRows(
+            c.notebook,
+            suggestions,
+            (group) => [
+              for (final m in group) weekFile(m, day.day, suggestion: true),
+            ],
+            day: dateOnly(day.day),
+            scope: 'suggestions',
+          ),
         ],
       ],
       'Für diesen Tag sind keine Unterlagen bereitgelegt.',
@@ -105,7 +123,12 @@ extension _WeekDesk on _DesktopWorkspaceState {
             IconButton(
               tooltip: 'Wochenmappe als PDF speichern',
               onPressed: () => run(() async {
-                final bytes = await weekFolderPdf(week, c.name);
+                final bytes = await weekFolderPdf(
+                  week,
+                  c.name,
+                  pupils: c.notebook.pupils,
+                  grouped: c.notebook.appearance.groupMaterialsByPupil,
+                );
                 if (await saveBytesFile(
                       'FLEX-Wochenmappe-${dateOnly(week.first.day)}.pdf',
                       bytes,

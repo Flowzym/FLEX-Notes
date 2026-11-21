@@ -709,6 +709,7 @@ class Appearance {
     this.moreDefaultPage = 0,
     this.materialLayout = MaterialLayout.list,
     this.weekFolderWeekends = false,
+    this.groupMaterialsByPupil = false,
     this.materialSort = 'recent',
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
@@ -720,7 +721,7 @@ class Appearance {
       moreDefaultPage;
   final double textScale;
   final MaterialLayout materialLayout;
-  final bool weekFolderWeekends;
+  final bool weekFolderWeekends, groupMaterialsByPupil;
   bool get materialGrid => materialLayout == MaterialLayout.grid;
   final List<String> shortcutOrder;
 
@@ -747,6 +748,7 @@ class Appearance {
     'materialGrid': materialGrid,
     'materialLayout': materialLayout.name,
     'weekFolderWeekends': weekFolderWeekends,
+    'groupMaterialsByPupil': groupMaterialsByPupil,
     'materialSort': materialSort,
     'shortcutOrder': shortcutOrder,
   };
@@ -776,6 +778,7 @@ class Appearance {
       materialDefaultPage: source['materialDefaultPage'] as int? ?? 0,
       moreDefaultPage: source['moreDefaultPage'] as int? ?? 0,
       weekFolderWeekends: source['weekFolderWeekends'] == true,
+      groupMaterialsByPupil: source['groupMaterialsByPupil'] == true,
       materialLayout:
           MaterialLayout.values
               .where((v) => v.name == source['materialLayout'])

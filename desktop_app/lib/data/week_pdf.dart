@@ -7,12 +7,12 @@ import '../ui/design.dart' show dayName, monthName, weekRange;
 
 Future<Uint8List> weekFolderPdf(
   List<WeekDayFolder> week,
-  String Function(String?) name,
-) async {
-  final fonts = await Future.wait([
-    rootBundle.load('assets/fonts/Inter-Regular.ttf'),
-    rootBundle.load('assets/fonts/Inter-Semibold.ttf'),
-  ]);
+  String Function(String?) name, {
+  Iterable<Pupil> pupils = const [],
+  bool grouped = false,
+}) async {
+  final regular = await rootBundle.load('assets/fonts/Inter-Regular.ttf');
+  final bold = await rootBundle.load('assets/fonts/Inter-Semibold.ttf');
   final doc = pw.Document(title: 'FLEX Wochenmappe', author: 'FLEX Desktop');
   const olive = PdfColor.fromInt(0xff526342);
   final heading = pw.TextStyle(fontWeight: pw.FontWeight.bold, color: olive);
@@ -21,8 +21,8 @@ Future<Uint8List> weekFolderPdf(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       theme: pw.ThemeData.withFont(
-        base: pw.Font.ttf(fonts.first),
-        bold: pw.Font.ttf(fonts.last),
+        base: pw.Font.ttf(regular),
+        bold: pw.Font.ttf(bold),
       ),
       header: (_) => pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 14),
@@ -69,14 +69,25 @@ Future<Uint8List> weekFolderPdf(
               padding: const pw.EdgeInsets.only(top: 5, bottom: 4),
               child: pw.Text('Unterlagen', style: heading),
             ),
-          for (final m in folder.materials)
-            pw.Text(
-              [
-                m.title,
-                materialDayOwners(m, dateOnly(folder.day), name),
-              ].where((s) => s.isNotEmpty).join(' · '),
-              style: const pw.TextStyle(fontSize: 10),
-            ),
+          if (grouped)
+            for (final g in pupilFileGroups(
+              folder.materials,
+              pupils,
+              (m) => materialOwnerIds(m, day: dateOnly(folder.day)),
+            )) ...[
+              pw.Text(g.name, style: heading),
+              for (final m in g.files)
+                pw.Text(m.title, style: const pw.TextStyle(fontSize: 10)),
+            ]
+          else
+            for (final m in folder.materials)
+              pw.Text(
+                [
+                  m.title,
+                  materialDayOwners(m, dateOnly(folder.day), name),
+                ].where((s) => s.isNotEmpty).join(' · '),
+                style: const pw.TextStyle(fontSize: 10),
+              ),
         ],
       ],
     ),

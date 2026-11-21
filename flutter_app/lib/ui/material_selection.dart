@@ -407,24 +407,35 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
         : 1;
     // Separate rows let the outer ListView load previews only near the viewport.
     return [
-      for (var start = 0; start < documents.length; start += columns)
-        Padding(
-          key: start == 0 ? ValueKey('material-${layout.name}') : null,
-          padding: EdgeInsets.only(bottom: grid ? 12 : 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var column = 0; column < columns; column++) ...[
-                if (column > 0) const SizedBox(width: 12),
-                Expanded(
-                  child: start + column < documents.length
-                      ? card(documents[start + column])
-                      : const SizedBox(),
-                ),
-              ],
-            ],
-          ),
+      if (documents.isNotEmpty)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: MaterialGroupingButton(c),
         ),
+      ...groupedMaterialRows(
+        c,
+        documents,
+        (group) => [
+          for (var start = 0; start < group.length; start += columns)
+            Padding(
+              key: start == 0 ? ValueKey('material-${layout.name}') : null,
+              padding: EdgeInsets.only(bottom: grid ? 12 : 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var column = 0; column < columns; column++) ...[
+                    if (column > 0) const SizedBox(width: 12),
+                    Expanded(
+                      child: start + column < group.length
+                          ? card(group[start + column])
+                          : const SizedBox(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
     ];
   }
 }

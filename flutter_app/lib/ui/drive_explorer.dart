@@ -447,6 +447,14 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                             choosing = false;
                           }),
                   ),
+                if (matches.any((j) => j['folder'] == null))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: MaterialGroupingButton(
+                      widget.c,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ),
                 for (final j in matches)
                   if (j['folder'] != null)
                     ListTile(
@@ -465,72 +473,81 @@ class _DriveExplorerState extends State<_DriveExplorer> {
                                     folder.writable && j['_shared'] != true,
                               )),
                             ),
-                    )
-                  else
-                    Builder(
-                      builder: (ctx) {
-                        final item = pick(j), d = item.file, rule = item.rule;
-                        final linked = materials.available(d.id);
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: MaterialThumbnail(
-                            material: d,
-                            width: 36,
-                            height: 46,
-                          ),
-                          title: Text(
-                            j['name'] as String,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            j['_path'] as String? ??
-                                (linked
-                                    ? 'Bereits in FLEX'
-                                    : cloudExtension(
-                                        j['name'] as String,
-                                      ).toUpperCase()),
-                          ),
-                          selected: choosing && selected.containsKey(d.id),
-                          onLongPress: busy
-                              ? null
-                              : () => setState(() {
-                                  choosing = true;
-                                  choose(item, !selected.containsKey(d.id));
-                                }),
-                          onTap: busy
-                              ? null
-                              : choosing
-                              ? () => setState(
-                                  () =>
-                                      choose(item, !selected.containsKey(d.id)),
-                                )
-                              : () => act(() => preview(j)),
-                          trailing: choosing
-                              ? Checkbox(
-                                  value: selected.containsKey(d.id),
-                                  onChanged: busy
-                                      ? null
-                                      : (v) => setState(
-                                          () => choose(item, v == true),
-                                        ),
-                                )
-                              : IconButton(
-                                  tooltip: linked
-                                      ? 'Zuordnung bearbeiten'
-                                      : 'Übernehmen',
-                                  icon: Icon(
-                                    linked ? Icons.person_outline : Icons.add,
-                                  ),
-                                  onPressed: busy
-                                      ? null
-                                      : () => act(
-                                          () => take([(file: d, rule: rule)]),
-                                        ),
-                                ),
-                        );
-                      },
                     ),
+                ...groupedFileRows(
+                  widget.c,
+                  matches.where((j) => j['folder'] == null),
+                  (j) => materialOwnerIds(pick(j).file),
+                  (files) => [
+                    for (final j in files)
+                      Builder(
+                        builder: (ctx) {
+                          final item = pick(j), d = item.file, rule = item.rule;
+                          final linked = materials.available(d.id);
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: MaterialThumbnail(
+                              material: d,
+                              width: 36,
+                              height: 46,
+                            ),
+                            title: Text(
+                              j['name'] as String,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              j['_path'] as String? ??
+                                  (linked
+                                      ? 'Bereits in FLEX'
+                                      : cloudExtension(
+                                          j['name'] as String,
+                                        ).toUpperCase()),
+                            ),
+                            selected: choosing && selected.containsKey(d.id),
+                            onLongPress: busy
+                                ? null
+                                : () => setState(() {
+                                    choosing = true;
+                                    choose(item, !selected.containsKey(d.id));
+                                  }),
+                            onTap: busy
+                                ? null
+                                : choosing
+                                ? () => setState(
+                                    () => choose(
+                                      item,
+                                      !selected.containsKey(d.id),
+                                    ),
+                                  )
+                                : () => act(() => preview(j)),
+                            trailing: choosing
+                                ? Checkbox(
+                                    value: selected.containsKey(d.id),
+                                    onChanged: busy
+                                        ? null
+                                        : (v) => setState(
+                                            () => choose(item, v == true),
+                                          ),
+                                  )
+                                : IconButton(
+                                    tooltip: linked
+                                        ? 'Zuordnung bearbeiten'
+                                        : 'Übernehmen',
+                                    icon: Icon(
+                                      linked ? Icons.person_outline : Icons.add,
+                                    ),
+                                    onPressed: busy
+                                        ? null
+                                        : () => act(
+                                            () => take([(file: d, rule: rule)]),
+                                          ),
+                                  ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ],
             );
           },

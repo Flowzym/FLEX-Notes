@@ -1,3 +1,4 @@
+import 'material_grouping.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -589,10 +590,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
         final pending = phases.where((p) => p.pending).toList();
         final materials = {
           for (final m in [
-            ...resolveMaterials(
-              c.classroom,
-              preparationFor(c.classroom, date).strings('materialIds'),
-            ),
+            ...?preparedMaterialsByDay(c.classroom)[date],
             ...suggestedMaterials(c.classroom, date),
           ])
             m.id: m,
@@ -850,12 +848,26 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                   ),
                 ),
               if (materials.isNotEmpty && pupilId == null) ...[
-                const Divider(height: 28),
-                Text(
-                  'Unterlagen für diesen Tag',
-                  style: Theme.of(context).textTheme.titleMedium,
+                const Divider(height: 12),
+                Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Unterlagen für diesen Tag',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    MaterialGroupingButton(c),
+                  ],
                 ),
-                for (final m in materials) _material(m, individual: true),
+                ...groupedMaterialRows(
+                  c,
+                  materials,
+                  (group) => [
+                    for (final m in group) _material(m, individual: true),
+                  ],
+                  day: date,
+                ),
               ],
             ],
           ],
@@ -979,8 +991,18 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                   style: TextStyle(color: color.primary),
                 ),
               ),
-            for (final m in resolveMaterials(c.classroom, p.materialIds))
-              _material(m),
+            if (p.materialIds.isNotEmpty) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(c),
+              ),
+              ...groupedMaterialRows(
+                c,
+                resolveMaterials(c.classroom, p.materialIds),
+                (group) => [for (final m in group) _material(m)],
+                day: date,
+              ),
+            ],
             if (p.kind == 'homework')
               Align(
                 alignment: Alignment.centerLeft,

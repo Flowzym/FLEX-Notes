@@ -227,6 +227,7 @@ extension _MaterialViews on _DesktopWorkspaceState {
                   style: const TextStyle(color: muted),
                 ),
               ),
+              MaterialGroupingButton(c.notebook),
               MaterialLayoutButton(
                 key: const ValueKey('material-layout'),
                 value: layout,
@@ -317,38 +318,72 @@ extension _MaterialViews on _DesktopWorkspaceState {
                               .floor()
                               .clamp(1, 6)
                         : 1;
+                    Widget fileRow(List<ClassroomDocument> entries, int row) {
+                      if (layout != MaterialLayout.grid) {
+                        return materialRow(
+                          entries[row],
+                          selectable: true,
+                          layout: layout,
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var col = 0; col < columns; col++) ...[
+                              if (col > 0) const SizedBox(width: 12),
+                              Expanded(
+                                child: row * columns + col < entries.length
+                                    ? materialRow(
+                                        entries[row * columns + col],
+                                        selectable: true,
+                                        layout: layout,
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }
+
+                    final groups = c.notebook.appearance.groupMaterialsByPupil
+                        ? pupilFileGroups(
+                            entries,
+                            c.notebook.pupils,
+                            (m) => materialOwnerIds(
+                              m,
+                              day: materialScope == 'Bereitgelegt'
+                                  ? dateOnly(c.date)
+                                  : null,
+                            ),
+                          )
+                        : [(id: '', name: '', files: entries)];
+                    final rows = [
+                      for (final g in groups) ...[
+                        if (c.notebook.appearance.groupMaterialsByPupil)
+                          (g, -1),
+                        for (
+                          var row = 0;
+                          row < (g.files.length + columns - 1) ~/ columns;
+                          row++
+                        )
+                          (g, row),
+                      ],
+                    ];
                     return ListView.builder(
                       key: PageStorageKey('desk-material-${layout.name}'),
                       padding: padding,
-                      itemCount: (entries.length + columns - 1) ~/ columns,
-                      itemBuilder: (_, row) {
-                        if (layout != MaterialLayout.grid) {
-                          return materialRow(
-                            entries[row],
-                            selectable: true,
-                            layout: layout,
-                          );
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (var col = 0; col < columns; col++) ...[
-                                if (col > 0) const SizedBox(width: 12),
-                                Expanded(
-                                  child: row * columns + col < entries.length
-                                      ? materialRow(
-                                          entries[row * columns + col],
-                                          selectable: true,
-                                          layout: layout,
-                                        )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
+                      itemCount: rows.length,
+                      itemBuilder: (_, i) {
+                        final (group, row) = rows[i];
+                        return row < 0
+                            ? MaterialGroupHeading(
+                                group.name,
+                                group.files.length,
+                              )
+                            : fileRow(group.files, row);
                       },
                     );
                   },

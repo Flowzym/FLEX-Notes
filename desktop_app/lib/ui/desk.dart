@@ -473,24 +473,33 @@ extension _DeskViews on _DesktopWorkspaceState {
         style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: muted),
       ),
       const SizedBox(height: 14),
-      for (final m
-          in preparedMaterialsByDay(c.notebook.classroom)[dateOnly(c.date)] ??
-              <ClassroomDocument>[])
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: MaterialThumbnail(
-            material: m,
-            files: c.files,
-            width: 30,
-            height: 40,
-          ),
-          title: Text(m.title, style: const TextStyle(fontSize: 12)),
-          subtitle: Text(
-            m.text('subject'),
-            style: const TextStyle(fontSize: 10, color: muted),
-          ),
-          onTap: () => run(() => openDesktopValue(m)),
-        ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: MaterialGroupingButton(c.notebook),
+      ),
+      ...groupedMaterialRows(
+        c.notebook,
+        preparedMaterialsByDay(c.notebook.classroom)[dateOnly(c.date)] ?? [],
+        (files) => [
+          for (final m in files)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: MaterialThumbnail(
+                material: m,
+                files: c.files,
+                width: 30,
+                height: 40,
+              ),
+              title: Text(m.title, style: const TextStyle(fontSize: 12)),
+              subtitle: Text(
+                m.text('subject'),
+                style: const TextStyle(fontSize: 10, color: muted),
+              ),
+              onTap: () => run(() => openDesktopValue(m)),
+            ),
+        ],
+        day: dateOnly(c.date),
+      ),
       TextButton.icon(
         onPressed: () => c.navigate(WorkspaceSection.materials),
         icon: const Icon(Icons.folder_open_outlined, size: 16),
