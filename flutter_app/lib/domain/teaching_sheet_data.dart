@@ -16,6 +16,7 @@ const sheetFields = <String, String>{
   'day': 'Wochentag',
   'prep': 'Vorbereitung',
   'duration': 'Dauer in Minuten',
+  'groupMode': 'Aufträge mit Schülerkürzel',
 };
 const sheetTypes = {
   'phase': 'Unterrichtsphase',
@@ -49,7 +50,7 @@ void validateTeachingSheet(dynamic value, {bool edits = false}) {
   final j = Json.from(value as Map);
   final keys = edits
       ? {'changes', 'order', 'cloudTag', 'dirty'}
-      : {'stamp', 'rows', 'issue', 'drive', 'item'};
+      : {'stamp', 'rows', 'issue', 'drive', 'item', 'parser'};
   if (j.keys.any((k) => !keys.contains(k))) fail();
   for (final k in ['stamp', 'drive', 'item', 'issue', 'cloudTag']) {
     if (j.containsKey(k) &&
@@ -57,6 +58,7 @@ void validateTeachingSheet(dynamic value, {bool edits = false}) {
       fail();
     }
   }
+  if (j.containsKey('parser') && j['parser'] is! int) fail();
   if (edits && j.containsKey('dirty') && j['dirty'] is! bool) fail();
   if (edits && j.containsKey('order')) {
     final v = j['order'];
@@ -91,6 +93,10 @@ void validateTeachingSheet(dynamic value, {bool edits = false}) {
       fail();
     }
     if ((r['phase'] as String? ?? '').length > 160) fail();
+    if (r.containsKey('groupMode') &&
+        !{'', 'separate'}.contains(r['groupMode'])) {
+      fail();
+    }
     if ((r['duration'] as String? ?? '').isNotEmpty) {
       final n = int.tryParse(r['duration']);
       if (n == null || n < 1 || n > 600) fail();
@@ -161,4 +167,115 @@ Set<int> sheetWeekdays(String s) {
     }
   }
   return out;
+}
+
+/// Match only one-to-one evidence. Keys shared by several rows never decide a pairing.
+Map<String, String> uniquePlanMatches(
+  Map<String, Json> before,
+  Map<String, Json> after,
+  List<String> fields,
+) {
+  final matches = <String, String>{}, used = <String>{};
+  Map<String, List<String>> by(Map<String, Json> rows, String field) {
+    final index = <String, List<String>>{};
+    for (final e in rows.entries) {
+      final key = sheetText(e.value, field);
+      if (key.isNotEmpty) (index[key] ??= []).add(e.key);
+    }
+    return index;
+  }
+
+  for (final field in fields) {
+    final a = by(before, field), b = by(after, field);
+    for (final e in b.entries) {
+      final olds = a[e.key];
+      if (e.value.length != 1 || olds?.length != 1) continue;
+      final id = e.value.single, old = olds!.single;
+      if (!matches.containsKey(id) && used.add(old)) matches[id] = old;
+    }
+  }
+  return matches;
+}
+
+Json rebaseTeachingEdits(List<Json> previous, List<Json> incoming, Json edits) {
+  if (edits.isEmpty || previous.isEmpty || incoming.isEmpty) return edits;
+  Map<String, Json> anchors(List<Json> rows) => {
+    for (final r in rows)
+      sheetText(r, 'id'): () {
+        final type = sheetText(r, 'type');
+        final scope = [
+          type,
+          sheetFold(sheetText(r, 'phase')),
+          sheetFold(sheetText(r, 'who')),
+          sheetFold(sheetText(r, 'day')),
+        ];
+        final slot = sheetText(r, 'time'), task = sheetText(r, 'task');
+        return <String, dynamic>{
+          'exact': sheetHash(sheetText(r, 'raw')),
+          if (slot.isNotEmpty && task.isNotEmpty)
+            'content': sheetHash(
+              jsonEncode([
+                type,
+                slot,
+                sheetFold(task),
+                sheetFold(sheetText(r, 'who')),
+              ]),
+            ),
+          if (task.isNotEmpty)
+            'task': sheetHash(jsonEncode([...scope, sheetFold(task)])),
+          if (slot.isNotEmpty) 'slot': sheetHash(jsonEncode([...scope, slot])),
+          if (type == 'aid' || type == 'week')
+            'scope': sheetHash(jsonEncode(scope)),
+        };
+      }(),
+  };
+  final matched = uniquePlanMatches(anchors(previous), anchors(incoming), [
+    'exact',
+    'content',
+    'task',
+    'slot',
+    'scope',
+  ]);
+  final inverse = {for (final e in matched.entries) e.value: e.key};
+  final originals = {
+    for (final r in previous) sheetText(r, 'id'): sheetText(r, 'raw'),
+  };
+  final newKeys = incoming.map((r) => sheetText(r, 'id')).toSet();
+  Map<String, int> counts(List<Json> rows) {
+    final result = <String, int>{};
+    for (final r in rows) {
+      result.update(sheetText(r, 'raw'), (n) => n + 1, ifAbsent: () => 1);
+    }
+    return result;
+  }
+
+  final earlier = counts(previous), later = counts(incoming);
+  final changes = sheetList(edits, 'changes'),
+      order = List<String>.from(edits['order'] ?? []);
+  // A previously orphaned correction at the new ID has to be resolved by the teacher.
+  final occupied = changes.map((r) => sheetText(r, 'id')).toSet();
+  String migrate(String id) {
+    final to = inverse[id];
+    final raw = originals[id];
+    if (to == null &&
+        raw != null &&
+        earlier[raw] != later[raw] &&
+        occupied.contains(id) &&
+        newKeys.contains(id)) {
+      // Identical duplicate rows can inherit an ordinal after an insertion.
+      // Keep the correction recoverable in the existing manual reassignment UI.
+      return sheetHash('ambiguous correction/$id');
+    }
+    return to != null && !occupied.contains(to) ? to : id;
+  }
+
+  if (![...occupied, ...order].any((id) => migrate(id) != id)) return edits;
+  return {
+    ...edits,
+    'dirty': true,
+    'changes': [
+      for (final r in changes) {...r, 'id': migrate(sheetText(r, 'id'))},
+    ],
+    if (order.isNotEmpty) 'order': order.map(migrate).toSet().toList(),
+  };
 }

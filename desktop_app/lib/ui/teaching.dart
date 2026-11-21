@@ -46,6 +46,7 @@ extension _TeachingDesk on _DesktopWorkspaceState {
     final occurrence = item?.lesson;
     var selectedDay = day;
     final timelineKey = GlobalKey();
+    (String, String?)? activeFlow;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (ctx) => StatefulBuilder(
@@ -85,7 +86,15 @@ extension _TeachingDesk on _DesktopWorkspaceState {
                   initialDate: day,
                   initialTarget: occurrence?.target,
                   openFile: deskFile,
-                  onDateChanged: (v) => update(() => selectedDay = v),
+                  onDateChanged: (v) => update(() {
+                    selectedDay = v;
+                    activeFlow = null;
+                  }),
+                  onSourceChanged: (value) {
+                    if (ctx.mounted && value != activeFlow) {
+                      update(() => activeFlow = value);
+                    }
+                  },
                 );
                 if (sourceFiles.isEmpty || MediaQuery.sizeOf(ctx).width < 860) {
                   return timeline;
@@ -95,7 +104,8 @@ extension _TeachingDesk on _DesktopWorkspaceState {
                     Expanded(
                       flex: 5,
                       child: _DeskPlanSource(
-                        key: ValueKey(sourceFiles.map((m) => m.id).join('|')),
+                        key: ValueKey((selectedDay, activeFlow)),
+                        sourceId: activeFlow?.$2,
                         sources: sourceFiles,
                         files: c.files,
                         loadOnline: loadDocxPreview,
@@ -192,11 +202,13 @@ class _DeskPlanSource extends StatefulWidget {
   const _DeskPlanSource({
     super.key,
     required this.sources,
+    required this.sourceId,
     required this.files,
     required this.onReview,
     required this.loadOnline,
   });
   final List<ClassroomDocument> sources;
+  final String? sourceId;
   final MaterialFiles files;
   final Future<Uint8List?> Function(ClassroomDocument) loadOnline;
   final Future<void> Function(ClassroomDocument) onReview;
@@ -208,9 +220,11 @@ class _DeskPlanSourceState extends State<_DeskPlanSource> {
   String? id;
   @override
   Widget build(BuildContext context) {
-    final m =
-        widget.sources.where((d) => d.id == id).firstOrNull ??
-        widget.sources.first;
+    final active = widget.sources
+        .where((d) => d.id == widget.sourceId)
+        .firstOrNull;
+    final m = widget.sources.where((d) => d.id == id).firstOrNull ?? active;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 18),
       child: Column(
@@ -223,32 +237,64 @@ class _DeskPlanSourceState extends State<_DeskPlanSource> {
           const SizedBox(height: 10),
           DropdownButton<String>(
             isExpanded: true,
-            value: m.id,
+            value: m?.id,
+            hint: const Text('Dokument zum Vergleich wählen'),
             items: [
               for (final s in widget.sources)
                 DropdownMenuItem(
                   value: s.id,
-                  child: Text(s.title, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    s.id == active?.id
+                        ? '${s.title} · Quelle dieser Stunde'
+                        : s.title,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
             ],
             onChanged: (v) => setState(() => id = v),
           ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              icon: const Icon(Icons.rule),
-              label: const Text('Zeilen prüfen und zuordnen'),
-              onPressed: () => widget.onReview(m),
+          if (m == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                widget.sourceId == null
+                    ? 'Dieser Stunde ist noch keine Tagesplanung zugeordnet.'
+                    : 'Die verwendete Quelle ist hier nicht mehr verfügbar.',
+              ),
             ),
-          ),
-          Expanded(
-            child: DocumentPreview(
-              key: ValueKey('${m.id}/${m.text('localKey')}'),
-              material: m,
-              files: widget.files,
-              loadOnline: widget.loadOnline,
+          if (m != null) ...[
+            if (m.id != active?.id)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Vergleichsdokument'),
+                subtitle: active == null
+                    ? null
+                    : Text('Quelle dieser Stunde · ${active.title}'),
+                trailing: active == null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Zur verwendeten Quelle',
+                        icon: const Icon(Icons.undo),
+                        onPressed: () => setState(() => id = null),
+                      ),
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.rule),
+                label: const Text('Zeilen prüfen und zuordnen'),
+                onPressed: () => widget.onReview(m),
+              ),
             ),
-          ),
+            Expanded(
+              child: DocumentPreview(
+                key: ValueKey('${m.id}/${m.text('localKey')}'),
+                material: m,
+                files: widget.files,
+                loadOnline: widget.loadOnline,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -36,6 +36,10 @@ List<Json> readTeachingRows(Uint8List bytes) {
     'fach dauer': 'subject',
     'fach und dauer': 'subject',
     'fach': 'subject',
+    'dauer': 'duration',
+    'dauer in minuten': 'duration',
+    'gruppe': 'who',
+    'schueler gruppe': 'who',
     'material': 'refs',
     'materialien': 'refs',
     'zustaendig': 'owner',
@@ -64,7 +68,7 @@ List<Json> readTeachingRows(Uint8List bytes) {
       continue;
     }
     table++;
-    var mapping = <int, String>{}, type = '', lastPhase = '';
+    var mapping = <int, String>{}, type = '', lastPhase = '', lastTime = '';
     var index = 0;
     for (final r in block['rows'] as List) {
       index++;
@@ -76,10 +80,10 @@ List<Json> readTeachingRows(Uint8List bytes) {
             i: headers[sheetFold(cells[i])]!,
       };
       final fields = h.values.toSet();
-      final layout = fields.containsAll({'phase', 'who', 'task'})
-          ? 'aid'
-          : fields.containsAll({'phase', 'time', 'task'})
+      final layout = fields.containsAll({'phase', 'time', 'task'})
           ? 'phase'
+          : fields.containsAll({'phase', 'who', 'task'})
+          ? 'aid'
           : fields.containsAll({'day', 'task'})
           ? 'week'
           : fields.containsAll({'subject', 'goal'})
@@ -89,6 +93,7 @@ List<Json> readTeachingRows(Uint8List bytes) {
         mapping = h;
         type = layout;
         lastPhase = '';
+        lastTime = '';
         continue;
       }
       final line = 'Tabelle $table · Zeile $index';
@@ -102,11 +107,31 @@ List<Json> readTeachingRows(Uint8List bytes) {
           values[entry.value] = cells[entry.key];
         }
       }
-      if (type == 'aid' &&
+      if (values.containsKey('duration')) {
+        final rawDuration = sheetText(values, 'duration');
+        final minutes = int.tryParse(rawDuration) ?? sheetMinutes(rawDuration);
+        if (minutes != null && minutes > 0 && minutes <= 600) {
+          values['duration'] = '$minutes';
+        } else {
+          values.remove('duration');
+          values['type'] = 'review';
+        }
+      }
+      if ((type == 'aid' || type == 'phase' && mapping.containsValue('who')) &&
           sheetText(values, 'phase').isEmpty &&
           lastPhase.isNotEmpty) {
         values['phase'] = lastPhase;
       }
+      if (type == 'phase' &&
+          mapping.containsValue('who') &&
+          sheetText(values, 'who').isNotEmpty &&
+          sheetText(values, 'time').isEmpty &&
+          lastPhase.isNotEmpty &&
+          lastPhase == sheetText(values, 'phase') &&
+          lastTime.isNotEmpty) {
+        values['time'] = lastTime;
+      }
+      lastTime = sheetText(values, 'time');
       lastPhase = sheetText(values, 'phase');
       if (lastPhase.length > 160 ||
           type == 'phase' && lastPhase.isEmpty ||

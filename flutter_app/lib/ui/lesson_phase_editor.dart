@@ -6,10 +6,13 @@ class _LessonPhaseEditor extends StatefulWidget {
     required this.phase,
     required this.onSave,
     this.individual = false,
+    this.heading,
+    this.contextLabel,
   });
   final NotebookController controller;
   final LessonPhase phase;
   final bool individual;
+  final String? heading, contextLabel;
   final Future<void> Function(LessonPhase) onSave;
   @override
   State<_LessonPhaseEditor> createState() => _LessonPhaseEditorState();
@@ -72,12 +75,17 @@ class _LessonPhaseEditorState extends State<_LessonPhaseEditor> {
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
     child: FlexModal(
-      title: const Text('Unterrichtsphase'),
+      title: Text(widget.heading ?? 'Unterrichtsphase'),
       onClose: busy ? null : () => Navigator.pop(context),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.contextLabel != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(widget.contextLabel!),
+            ),
           if (error != null)
             Text(
               error!,

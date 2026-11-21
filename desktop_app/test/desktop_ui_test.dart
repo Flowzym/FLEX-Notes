@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flex_notizbuch/domain/lesson_flow.dart';
+import 'package:flex_notizbuch/domain/teaching_sheet.dart';
 import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
 import 'package:flex_notizbuch/ui/return_lists.dart' show ReturnDetail;
@@ -15,6 +17,104 @@ import 'package:flex_desktop/domain/core.dart';
 import 'workspace_test.dart' show MemoryFiles;
 
 void main() {
+  testWidgets(
+    'Unterricht zeigt die verwendete Quelle, kennzeichnet Vergleiche und öffnet die Quellzeile',
+    (t) async {
+      t.view.physicalSize = const Size(1480, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      const day = '2026-11-23';
+      ClassroomDocument doc(String id) {
+        final m = ClassroomDocument.create(
+          ClassroomKind.material,
+          '$id Tagesplanung.docx',
+          {
+            'extension': 'docx',
+            'driveId': 'drive',
+            'itemId': id,
+            'url': 'https://example.org/$id.docx',
+            'planning': {
+              'use': 'dayPlan',
+              'day': day,
+              'week': day,
+              'year': '2026-27',
+            },
+          },
+          id: id,
+        );
+        return m.patch({
+          'planSheet': {
+            'drive': 'drive',
+            'item': id,
+            'stamp': sourceStamp(m),
+            'parser': 2,
+            'rows': [
+              for (final i in [1, 2])
+                {
+                  'id': '$id-$i',
+                  'line': 'Quelle $id Zeile $i',
+                  'raw': 'Original $id $i',
+                  'type': 'phase',
+                  'phase': 'Phase $i',
+                  'time': i == 1 ? '08:00–08:15' : '08:15–08:30',
+                  'task': 'Auftrag $id $i',
+                },
+            ],
+          },
+        });
+      }
+
+      final a = doc('A'), b = doc('B');
+      final f = lessonFlowFor([a, b], day, chosenSource: b);
+      final repo = SqliteNotebook(
+        NotebookDatabase(
+          NativeDatabase.memory(),
+          File('assets/schema.sql').readAsStringSync(),
+        ),
+      );
+      final n = NotebookController(repo);
+      await t.runAsync(() async {
+        await n.initialize();
+        await n.saveClassroomBatch([
+          a,
+          b,
+          activateLessonPhase(
+            f,
+            lessonPhases(f).last.id,
+            DateTime.utc(2026, 11, 23, 8, 15),
+          ),
+        ]);
+      });
+      final c = WorkspaceController(n, files: MemoryFiles())
+        ..setDate(DateTime.parse(day))
+        ..navigate(WorkspaceSection.week);
+      await t.pumpWidget(DesktopApp(controller: c));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Unterrichtsablauf öffnen'));
+      await t.pumpAndSettle();
+      final dropdown = find.byType(DropdownButton<String>);
+      expect(t.widget<DropdownButton<String>>(dropdown).value, 'B');
+      await t.tap(dropdown);
+      await t.pumpAndSettle();
+      await t.tap(find.text('A Tagesplanung.docx').last);
+      await t.pumpAndSettle();
+      expect(find.text('Vergleichsdokument'), findsOneWidget);
+      await t.tap(find.byTooltip('Zur verwendeten Quelle'));
+      await t.pumpAndSettle();
+      expect(t.widget<DropdownButton<String>>(dropdown).value, 'B');
+      final line = find.text('Planzeile öffnen');
+      await t.ensureVisible(line.first);
+      await t.tap(line.first);
+      await t.pumpAndSettle();
+      expect(find.text('Quelle B Zeile 2'), findsOneWidget);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      c.dispose();
+      n.dispose();
+      await t.runAsync(repo.close);
+    },
+  );
   testWidgets(
     'Wochenmappe wechselt nach dem Scrollen zu einer älteren Woche und einem leeren Tag',
     (t) async {

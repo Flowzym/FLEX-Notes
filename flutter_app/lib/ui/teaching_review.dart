@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
+import '../domain/lesson_flow_data.dart';
+import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import '../domain/planning_import.dart';
 import '../domain/teaching_sheet.dart';
@@ -15,10 +17,15 @@ Future<void> openTeachingReview(
   NotebookController c,
   ClassroomDocument source, {
   Future<void> Function(ClassroomDocument)? original,
+  String? initialRow,
 }) => Navigator.of(context).push<void>(
   MaterialPageRoute(
-    builder: (_) =>
-        TeachingReview(controller: c, sourceId: source.id, original: original),
+    builder: (_) => TeachingReview(
+      controller: c,
+      sourceId: source.id,
+      original: original,
+      initialRow: initialRow,
+    ),
   ),
 );
 
@@ -28,9 +35,11 @@ class TeachingReview extends StatefulWidget {
     required this.controller,
     required this.sourceId,
     this.original,
+    this.initialRow,
   });
   final NotebookController controller;
   final String sourceId;
+  final String? initialRow;
   final Future<void> Function(ClassroomDocument)? original;
   @override
   State<TeachingReview> createState() => _TeachingReviewState();
@@ -38,7 +47,7 @@ class TeachingReview extends StatefulWidget {
 
 class _TeachingReviewState extends State<TeachingReview> {
   NotebookController get c => widget.controller;
-  String? selection;
+  late String? selection = widget.initialRow;
   bool all = false, busy = false;
   Future<void> run(Future<void> Function() fn) async {
     if (busy) return;
@@ -203,6 +212,13 @@ class _TeachingReviewState extends State<TeachingReview> {
     final kind = sheetText(r, 'type'),
         siblings = rows.where((v) => v['type'] == kind).toList(),
         pos = siblings.indexWhere((v) => v['id'] == r['id']);
+    final mapped = kind == 'phase'
+        ? buildTeachingFlow(
+            m,
+            c.classroom,
+            c.pupils,
+          ).phases.where((p) => p.sourceRow == r['id'])
+        : <LessonPhase>[];
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -231,6 +247,48 @@ class _TeachingReviewState extends State<TeachingReview> {
             child: SelectableText('${field.value}\n${r[field.key]}'),
           ),
         const SizedBox(height: 14),
+        for (final p in mapped) ...[
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.schedule),
+            title: Text('${p.title} · ${p.minutes} Min.'),
+            subtitle: Text(
+              [
+                if (p.pupilIds.isNotEmpty)
+                  c.pupils
+                      .where((s) => p.pupilIds.contains(s.id))
+                      .map((s) => s.name)
+                      .join(' · '),
+                ...resolveMaterials(
+                  c.classroom,
+                  p.materialIds,
+                ).map((m) => m.title),
+              ].join('\n'),
+            ),
+          ),
+          for (final g in p.guidance)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.person_outline),
+              title: Text(
+                c.pupils
+                    .where((s) => (g['pupilIds'] as List).contains(s.id))
+                    .map((s) => s.name)
+                    .join(' · '),
+              ),
+              subtitle: Text(
+                [
+                  g['body'],
+                  if (g['minutes'] > 0) "${g['minutes']} Min.",
+                  ...resolveMaterials(
+                    c.classroom,
+                    List<String>.from(g['materialIds']),
+                  ).map((m) => m.title),
+                ].join('\n'),
+              ),
+            ),
+        ],
         Wrap(
           spacing: 4,
           children: [

@@ -16,9 +16,11 @@ Future<ClassroomDocument> readTeachingSource(
   MaterialFiles files,
   ClassroomDocument m,
 ) async {
-  if (sheetUsable(m) && await files.exists(m.text('localKey'))) return m;
-  final source = await cacheDriveMaterial(repo, m, reader, files);
+  final cached = sheetUsable(m) && await files.exists(m.text('localKey'));
+  if (cached && m.map('planSheet')['parser'] == 2) return m;
+  final source = cached ? m : await cacheDriveMaterial(repo, m, reader, files);
   final sheet = <String, dynamic>{
+    'parser': 2,
     'stamp': sourceStamp(source),
     'drive': source.text('driveId'),
     'item': source.text('itemId'),
@@ -30,6 +32,19 @@ Future<ClassroomDocument> readTeachingSource(
       sheet['rows'] = await compute(readTeachingRows, bytes);
       validateTeachingSheet(sheet);
     } catch (_) {
+      final old = m.map('planSheet');
+      if (sheetList(old, 'rows').isNotEmpty) {
+        return repo.saveClassroomDocument(
+          source.patch({
+            'planSheet': {
+              ...old,
+              'parser': 1,
+              'issue':
+                  'Die neue Fassung konnte nicht gelesen werden. Der letzte lesbare Plan ist gespeichert.',
+            },
+          }),
+        );
+      }
       sheet['rows'] = <Json>[];
       sheet['issue'] =
           'Die Tabellen konnten nicht vollständig gelesen werden. Bitte das Original prüfen.';
@@ -38,7 +53,18 @@ Future<ClassroomDocument> readTeachingSource(
     sheet['issue'] =
         'Für dieses Format steht das Original bereit. Tabellen lassen sich aus einer DOCX-Planung übernehmen.';
   }
-  return repo.saveClassroomDocument(source.patch({'planSheet': sheet}));
+  final edits = source.map('planEdits');
+  return repo.saveClassroomDocument(
+    source.patch({
+      'planSheet': sheet,
+      if (edits.isNotEmpty)
+        'planEdits': rebaseTeachingEdits(
+          sheetList(m.map('planSheet'), 'rows'),
+          sheetList(sheet, 'rows'),
+          edits,
+        ),
+    }),
+  );
 }
 
 Future<int> syncTeachingSources(
