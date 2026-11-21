@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'compact_switch.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -188,7 +189,7 @@ Future<void> showPupilHistory(
                           spacing: 8,
                           children: [
                             TextButton(
-                              onPressed: () => showDialog<void>(
+                              onPressed: () => showFlexDetail<void>(
                                 context: ctx,
                                 barrierDismissible: false,
                                 builder: (_) =>

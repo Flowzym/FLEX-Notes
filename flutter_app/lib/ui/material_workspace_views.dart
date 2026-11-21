@@ -668,57 +668,92 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                       : 'Keine passenden Materialien an diesem Tag.',
                 ),
               ),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              itemCount: materials.length,
-              onReorderItem: (from, to) {
-                if (busy) return;
-                // Keep hidden trash references intact; reorder only visible references.
-                final visible = materials.map((m) => m.id).toList();
-                visible.insert(to, visible.removeAt(from));
-                var index = 0;
-                final active = visible.toSet();
-                final next = [
-                  for (final id in ids)
-                    if (active.contains(id)) visible[index++] else id,
-                ];
-                run(() => c.saveClassroom(doc.patch({'materialIds': next})));
-              },
-              itemBuilder: (_, i) => MaterialRow(
-                key: ValueKey(materials[i].id),
-                material: materials[i],
-                onOpen: () => run(() => openMaterial(ctx, c, materials[i])),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Vom Tag entfernen',
-                      onPressed: busy
-                          ? null
-                          : () => run(
-                              () => c.saveClassroom(
-                                doc.patch({
-                                  'materialIds': ids
-                                      .where((id) => id != materials[i].id)
-                                      .toList(),
-                                }),
+            if (dayMaterials.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(c),
+              ),
+            if (c.appearance.groupMaterialsByPupil)
+              ...groupedMaterialRows(
+                c,
+                materials,
+                (group) => [
+                  for (final m in group)
+                    MaterialRow(
+                      material: m,
+                      onOpen: () => run(() => openMaterial(ctx, c, m)),
+                      onEdit: () => showMaterialDetails(ctx, c, m),
+                      trailing: IconButton(
+                        tooltip: 'Vom Tag entfernen',
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: busy
+                            ? null
+                            : () => run(
+                                () => c.saveClassroom(
+                                  doc.patch({
+                                    'materialIds': ids
+                                        .where((id) => id != m.id)
+                                        .toList(),
+                                  }),
+                                ),
                               ),
-                            ),
-                      icon: const Icon(Icons.remove_circle_outline),
-                    ),
-                    ReorderableDragStartListener(
-                      index: i,
-                      child: const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Icon(Icons.drag_handle),
                       ),
                     ),
-                  ],
+                ],
+                day: date,
+              )
+            else
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                itemCount: materials.length,
+                onReorderItem: (from, to) {
+                  if (busy) return;
+                  // Keep hidden trash references intact; reorder only visible references.
+                  final visible = materials.map((m) => m.id).toList();
+                  visible.insert(to, visible.removeAt(from));
+                  var index = 0;
+                  final active = visible.toSet();
+                  final next = [
+                    for (final id in ids)
+                      if (active.contains(id)) visible[index++] else id,
+                  ];
+                  run(() => c.saveClassroom(doc.patch({'materialIds': next})));
+                },
+                itemBuilder: (_, i) => MaterialRow(
+                  key: ValueKey(materials[i].id),
+                  material: materials[i],
+                  onOpen: () => run(() => openMaterial(ctx, c, materials[i])),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Vom Tag entfernen',
+                        onPressed: busy
+                            ? null
+                            : () => run(
+                                () => c.saveClassroom(
+                                  doc.patch({
+                                    'materialIds': ids
+                                        .where((id) => id != materials[i].id)
+                                        .toList(),
+                                  }),
+                                ),
+                              ),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      ReorderableDragStartListener(
+                        index: i,
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(Icons.drag_handle),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             if (ids.length > allMaterials.length)
               const Text('Dateien im Papierkorb werden hier ausgeblendet.'),
             if (planned.isNotEmpty)
@@ -730,31 +765,42 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                 'Für Schüler geplant',
                 style: Theme.of(ctx).textTheme.titleSmall,
               ),
-              for (final m in scheduled)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    MaterialRow(
-                      material: m,
-                      onOpen: () => run(() => openMaterial(ctx, c, m)),
-                      onEdit: () => showMaterialDetails(ctx, c, m),
-                    ),
-                    Wrap(
+              ...groupedMaterialRows(
+                c,
+                scheduled,
+                (group) => [
+                  for (final m in group)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        for (final p in c.pupils.where(
-                          (p) => pupilMaterialDates(m, p.id).contains(date),
-                        ))
-                          TextButton.icon(
-                            onPressed: busy
-                                ? null
-                                : () => showPupilMaterials(ctx, c, p),
-                            icon: const Icon(Icons.person_outline, size: 18),
-                            label: Text(p.name),
-                          ),
+                        MaterialRow(
+                          material: m,
+                          onOpen: () => run(() => openMaterial(ctx, c, m)),
+                          onEdit: () => showMaterialDetails(ctx, c, m),
+                        ),
+                        Wrap(
+                          children: [
+                            for (final p in c.pupils.where(
+                              (p) => pupilMaterialDates(m, p.id).contains(date),
+                            ))
+                              TextButton.icon(
+                                onPressed: busy
+                                    ? null
+                                    : () => showPupilMaterials(ctx, c, p),
+                                icon: const Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                ),
+                                label: Text(p.name),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                ],
+                day: date,
+                scope: 'scheduled',
+              ),
             ],
             if (suggestions.isNotEmpty) ...[
               const SizedBox(height: 18),
@@ -929,11 +975,22 @@ Future<void> showMaterialCollection(
                 padding: EdgeInsets.all(16),
                 child: Text('Noch keine Dateien zugeordnet.'),
               ),
-            for (final m in materials)
-              MaterialRow(
-                material: m,
-                onOpen: () => guarded(ctx, () => openMaterial(ctx, c, m)),
+            if (materials.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(c),
               ),
+            ...groupedMaterialRows(
+              c,
+              materials,
+              (group) => [
+                for (final m in group)
+                  MaterialRow(
+                    material: m,
+                    onOpen: () => guarded(ctx, () => openMaterial(ctx, c, m)),
+                  ),
+              ],
+            ),
             if (d.kind == ClassroomKind.plan &&
                 d.text('followUp').isNotEmpty) ...[
               const SizedBox(height: 12),

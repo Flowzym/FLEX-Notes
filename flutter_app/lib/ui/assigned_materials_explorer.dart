@@ -35,6 +35,8 @@ Future<void> showAssignedMaterials(
         day: day,
         openFile: openFile,
         files: files,
+        onImport: () =>
+            guarded(ctx, () => importMaterialFile(ctx, c, pupilId: pupil?.id)),
       ),
     ),
   ),

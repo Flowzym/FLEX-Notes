@@ -39,10 +39,22 @@ class EntryPageHeader extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(title, style: Theme.of(context).textTheme.titleLarge),
-                  Text(
-                    owner,
-                    key: const ValueKey('entry-owner'),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        owner,
+                        key: const ValueKey('entry-owner'),
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -58,61 +70,42 @@ class EntryPageHeader extends StatelessWidget {
           ],
         );
       }
-      final headingStyle = const TextStyle(
-        fontFamily: 'FlexSans',
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-        height: 1.2,
-      );
-      final heading = Text(title, style: headingStyle);
       final tools = [...actions, ...titleActions];
-      final painter = TextPainter(
-        text: TextSpan(text: title, style: headingStyle),
-        textDirection: Directionality.of(context),
-        textScaler: MediaQuery.textScalerOf(context),
-      )..layout();
-      final separateTools =
-          painter.width + tools.length * 48 + 8 > constraints.maxWidth;
-      painter.dispose();
+      final stacked =
+          tools.isNotEmpty &&
+          constraints.maxWidth - 48 * (tools.length + 1) <
+              MediaQuery.textScalerOf(context).scale(128);
+      final labels = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            owner,
+            key: const ValueKey('entry-owner'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      );
       return Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               IconButton(
                 key: const ValueKey('entry-back'),
-                tooltip: 'Zurück und Eingaben sichern',
-                iconSize: 20,
+                tooltip: 'Zurück',
                 onPressed: onClose,
                 icon: const Icon(Icons.arrow_back),
               ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  owner,
-                  key: const ValueKey('entry-owner'),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
+              Expanded(child: labels),
+              if (!stacked) ...tools,
             ],
           ),
-          if (separateTools) ...[
-            heading,
-            if (tools.isNotEmpty)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Wrap(children: tools),
-              ),
-          ] else
-            Row(
-              children: [
-                Expanded(child: heading),
-                ...tools,
-              ],
+          if (stacked)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(children: tools),
             ),
         ],
       );
@@ -374,55 +367,73 @@ Future<void> showAssignedHomework(
       final pupil = c.pupils.firstWhere((p) => p.id == pupilId);
       return FlexModal(
         title: const Text('Hausübungen'),
-        headerContent: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    pupil.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                IconButton(
-                  tooltip: (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
-                      ? 'Zurück'
-                      : 'Schließen',
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(
-                    (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
-                        ? Icons.arrow_back
-                        : Icons.close,
-                  ),
-                ),
-              ],
-            ),
-            const Text(
-              'Hausübungen',
-              style: TextStyle(
-                fontFamily: 'FlexSans',
-                fontSize: 18,
-                height: 1.3,
-              ),
-            ),
-          ],
+        headerContent: EntryPageHeader(
+          owner: pupil.name,
+          title: 'Hausübungen',
+          onClose: () => Navigator.pop(ctx),
         ),
         onClose: () => Navigator.pop(ctx),
         scrollable: false,
-        content: SizedBox(
-          height: MediaQuery.sizeOf(ctx).height * .65,
-          child: SchoolWorkspace(
-            controller: c,
-            pupil: pupil,
-            kind: SchoolKind.homework,
-            initiallyOpenOnly: onlyOpen,
+        content: LayoutBuilder(
+          builder: (_, box) => SizedBox(
+            height: box.hasBoundedHeight
+                ? box.maxHeight
+                : MediaQuery.sizeOf(ctx).height * .75,
+            child: SchoolWorkspace(
+              controller: c,
+              pupil: pupil,
+              kind: SchoolKind.homework,
+              initiallyOpenOnly: onlyOpen,
+            ),
           ),
         ),
       );
     },
   ),
 );
+
+/// Command strip used by desktop hosts. Properties live beside the input.
+class EntryWindowCommands extends StatelessWidget {
+  const EntryWindowCommands({
+    super.key,
+    required this.close,
+    required this.save,
+    this.status = '',
+    this.saveKey,
+    this.saveLabel = 'Speichern',
+  });
+  final VoidCallback? close, save;
+  final String status, saveLabel;
+  final Key? saveKey;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Semantics(
+          liveRegion: true,
+          child: Text(
+            status,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      ),
+      TextButton(
+        key: const ValueKey('cancel-editor'),
+        onPressed: close,
+        child: const Text('Abbrechen'),
+      ),
+      const SizedBox(width: 10),
+      Tooltip(
+        message: 'Speichern (Strg+S)',
+        child: FilledButton.icon(
+          key: saveKey,
+          onPressed: save,
+          icon: const Icon(Icons.check, size: 16),
+          label: Text(saveLabel),
+        ),
+      ),
+    ],
+  );
+}

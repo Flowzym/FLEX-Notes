@@ -451,6 +451,11 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
+      await t.scrollUntilVisible(
+        find.text('Aus der Wochenplanung'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       await t.tap(find.text('Aus der Wochenplanung'));
       await t.pumpAndSettle();
       final take = find.text('Für diese Stunde übernehmen');

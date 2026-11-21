@@ -72,6 +72,7 @@ abstract interface class NotebookRepository {
   Future<Appearance> appearance();
   Future<void> saveAppearance(Appearance appearance);
   Future<ObservationCatalog> observationCatalog(String key);
+  Future<Map<String, ObservationCatalog>> personalObservationCatalogs();
   Future<ObservationCatalog> saveObservationOptions(
     String key,
     List<String> options,

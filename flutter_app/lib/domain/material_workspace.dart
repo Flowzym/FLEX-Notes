@@ -16,6 +16,56 @@ List<String> pupilMaterialDates(ClassroomDocument material, String pupilId) =>
         .toList()
       ..sort());
 
+/// The daily view shows the pupils scheduled for that specific day. For class
+/// preparations and undated library browsing use the recorded file assignments.
+Set<String> materialOwnerIds(ClassroomDocument file, {String? day}) {
+  final dates = file.rows('pupilDates');
+  final scheduled = {
+    for (final row in dates)
+      if (row['date'] == day) row['pupilId'] as String,
+  };
+  if (day != null && scheduled.isNotEmpty) return scheduled;
+  return {
+    ...file.strings('pupilIds'),
+    if (day == null)
+      for (final row in dates) row['pupilId'] as String,
+  };
+}
+
+typedef PupilFileGroup<T> = ({String id, String name, List<T> files});
+List<PupilFileGroup<T>> pupilFileGroups<T>(
+  Iterable<T> files,
+  Iterable<Pupil> pupils,
+  Iterable<String> Function(T) owners,
+) {
+  final names = {
+    for (final p in pupils) p.id: p.archived ? '${p.name} (Archiv)' : p.name,
+  };
+  final groups = <String, List<T>>{};
+  for (final file in files) {
+    final ids = owners(file).where((id) => id.isNotEmpty).toSet();
+    for (final id in ids.isEmpty ? [''] : ids) {
+      (groups[id] ??= []).add(file);
+    }
+  }
+  final result = [
+    for (final e in groups.entries)
+      (
+        id: e.key,
+        name: e.key.isEmpty
+            ? 'Ohne Schülerzuordnung'
+            : names[e.key] ?? 'Unbekannter Schüler',
+        files: e.value,
+      ),
+  ];
+  result.sort((a, b) {
+    if (a.id.isEmpty != b.id.isEmpty) return a.id.isEmpty ? 1 : -1;
+    final cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    return cmp == 0 ? a.id.compareTo(b.id) : cmp;
+  });
+  return result;
+}
+
 /// Changes references only; the shared file and other metadata stay intact.
 /// Batch assignment adds pupils/dates, while editing one material replaces them.
 ClassroomDocument assignMaterialPupils(

@@ -1,3 +1,4 @@
+import 'material_grouping.dart';
 import 'return_editor_form.dart';
 import 'material_tags.dart';
 import 'detail_flow.dart';
@@ -90,9 +91,11 @@ Json classroomInitial(
 Future<List<String>?> chooseMaterials(
   BuildContext context,
   NotebookController c,
-  List<String> selected,
-) async {
+  List<String> selected, {
+  Pupil? pupil,
+}) async {
   final ids = selected.toSet();
+  var personal = pupil != null;
   var query = '';
   return showDialog<List<String>>(
     context: context,
@@ -103,6 +106,25 @@ Future<List<String>?> chooseMaterials(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (pupil != null) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  ChoiceChip(
+                    label: Text('Für ${pupil.name}'),
+                    selected: personal,
+                    onSelected: (_) => update(() => personal = true),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Bibliothek'),
+                    selected: !personal,
+                    onSelected: (_) => update(() => personal = false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             TextField(
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
@@ -112,6 +134,7 @@ Future<List<String>?> chooseMaterials(
             ),
             for (final package in c.classroom.where(
               (d) =>
+                  !personal &&
                   !d.deleted &&
                   d.kind == ClassroomKind.materialSet &&
                   materialMatches(d, query),
@@ -151,34 +174,64 @@ Future<List<String>?> chooseMaterials(
               const Text(
                 'Noch keine Materialien. Dateien oder Links unter Materialien hinzufügen.',
               ),
-            for (final m in c.classroom.where(
-              (d) =>
-                  !d.deleted &&
-                  d.kind == ClassroomKind.material &&
-                  materialMatches(d, query, pupils: c.pupils),
-            ))
-              CheckboxListTile(
-                secondary: MaterialThumbnail(
-                  material: m,
-                  width: 48,
-                  height: 56,
+            if (personal &&
+                !c.classroom.any(
+                  (d) =>
+                      !d.deleted &&
+                      d.kind == ClassroomKind.material &&
+                      d.strings('pupilIds').contains(pupil!.id) &&
+                      materialMatches(d, query, pupils: c.pupils),
+                ))
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Kein passendes Schülermaterial. In der Bibliothek findest du alle Materialien.',
                 ),
-                title: Text(m.title),
-                subtitle: Text(
-                  [
-                    m.text('subject'),
-                    m.text('topic'),
-                  ].where((s) => s.isNotEmpty).join(' · '),
-                ),
-                value: ids.contains(m.id),
-                onChanged: (v) => update(() {
-                  if (v == true) {
-                    ids.add(m.id);
-                  } else {
-                    ids.remove(m.id);
-                  }
-                }),
               ),
+            if (!personal)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(
+                  c,
+                  onChanged: () => update(() {}),
+                ),
+              ),
+            ...groupedMaterialRows(
+              c,
+              c.classroom.where(
+                (d) =>
+                    !d.deleted &&
+                    d.kind == ClassroomKind.material &&
+                    (!personal || d.strings('pupilIds').contains(pupil!.id)) &&
+                    materialMatches(d, query, pupils: c.pupils),
+              ),
+              (files) => [
+                for (final m in files)
+                  CheckboxListTile(
+                    secondary: MaterialThumbnail(
+                      material: m,
+                      width: 48,
+                      height: 56,
+                    ),
+                    title: Text(m.title),
+                    subtitle: Text(
+                      [
+                        m.text('subject'),
+                        m.text('topic'),
+                      ].where((s) => s.isNotEmpty).join(' · '),
+                    ),
+                    value: ids.contains(m.id),
+                    onChanged: (v) => update(() {
+                      if (v == true) {
+                        ids.add(m.id);
+                      } else {
+                        ids.remove(m.id);
+                      }
+                    }),
+                  ),
+              ],
+              enabled: !personal,
+            ),
           ],
         ),
         actions: [

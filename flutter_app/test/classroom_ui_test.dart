@@ -151,7 +151,8 @@ void main() {
         const Offset(-320, 0),
       );
       await t.pumpAndSettle();
-      expect(find.text('Ablauf starten'), findsOneWidget);
+      expect(find.text('Vorgeschlagener Grundablauf'), findsOneWidget);
+      expect(find.text('Ablauf starten'), findsNothing);
       await t.drag(
         find.byKey(const ValueKey('main-pages')),
         const Offset(-320, 0),

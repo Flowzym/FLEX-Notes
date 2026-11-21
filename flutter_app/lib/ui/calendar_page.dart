@@ -1,3 +1,6 @@
+import 'planning_board.dart';
+import 'week_folder_page.dart';
+import 'detail_flow.dart';
 import 'material_thumbnail.dart';
 import 'app_navigation.dart';
 import 'dart:async';
@@ -203,7 +206,7 @@ class _CalendarPageState extends State<CalendarPage>
 
   Future<void> createAppointment(DateTime day, String time) async {
     navigate(() => selected = schoolDay(dateOnly(day)));
-    await showDialog<void>(
+    await showFlexDetail<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => OrgaEditor(

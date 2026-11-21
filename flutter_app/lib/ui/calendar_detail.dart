@@ -6,7 +6,7 @@ Future<void> showCalendarItem(
   CalendarItem item,
 ) async {
   if (item.entry != null) {
-    await showDialog<void>(
+    await showFlexDetail<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => OrgaEditor(controller: c, entry: item.entry!),

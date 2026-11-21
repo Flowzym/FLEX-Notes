@@ -288,6 +288,14 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
       animation: widget.controller,
       builder: (ctx, _) {
         final c = widget.controller;
+        final today = dateOnly(DateTime.now());
+        bool matchesStatus(bool done, String? due) => switch (filter) {
+          'overdue' =>
+            !done && due != null && due.isNotEmpty && due.compareTo(today) < 0,
+          'open' => !done,
+          'done' => done,
+          _ => true,
+        };
         final values = c.entries
             .where(
               (e) =>
@@ -300,7 +308,8 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   '${e.title} ${e.body} ${c.owner(e)} ${e.tags.join(' ')} ${e.items.map((i) => i.text).join(' ')}'
                       .toLowerCase()
                       .contains(query.toLowerCase()) &&
-                  (filter == 'all' || e.isTask && e.done == (filter == 'done')),
+                  (filter == 'all' ||
+                      e.isTask && matchesStatus(e.done, e.dueDate)),
             )
             .toList();
         final returns = c.classroom.where(
@@ -312,7 +321,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
               '${d.title} ${d.text('note')} ${d.text('otherParticipants')} ${d.rows('participants').map((r) => r['name']).join(' ')}'
                   .toLowerCase()
                   .contains(query.toLowerCase()) &&
-              (filter == 'all' || d.returnFinished == (filter == 'done')),
+              matchesStatus(d.returnFinished, d.text('dueDate')),
         );
         final items = <_OrgaRow>[
           for (final e in values)
@@ -459,7 +468,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
         }
         return ListView(
           key: PageStorageKey('general-${widget.kind}'),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 96),
           children: [
             CollapsibleSearch(
               controller: search,
@@ -565,6 +574,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   ),
                   for (final pair in {
                     'open': 'Offen',
+                    'overdue': 'Überfällig',
                     'done': 'Erledigt',
                   }.entries)
                     FilterChip(
@@ -589,6 +599,7 @@ class _GeneralOrgaPageState extends State<GeneralOrgaPage>
                   for (final option in {
                     'all': 'Alle',
                     'open': 'Offen',
+                    'overdue': 'Überfällig',
                     'done': 'Erledigt',
                   }.entries)
                     ChoiceChip(

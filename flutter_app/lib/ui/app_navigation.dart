@@ -235,12 +235,12 @@ class FlexPagePills extends StatelessWidget {
                   for (final row in rows)
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 3,
+                        vertical: 1,
                         horizontal: 4,
                       ),
                       child: SizedBox(
                         width: width * row.length,
-                        height: height + 6,
+                        height: height + 4,
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
@@ -261,8 +261,8 @@ class FlexPagePills extends StatelessWidget {
                                 PositionedDirectional(
                                   start: i * width - 3,
                                   width: width + 6,
-                                  top: 1,
-                                  bottom: 1,
+                                  top: 3,
+                                  bottom: 3,
                                   child: DecoratedBox(
                                     key: ValueKey('$keyPrefix-active'),
                                     decoration: BoxDecoration(

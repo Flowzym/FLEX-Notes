@@ -1,3 +1,5 @@
+import 'planning_board.dart';
+import 'material_grouping.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
@@ -26,11 +28,12 @@ class LessonFlowPage extends StatefulWidget {
     required this.controller,
     this.initialDate,
     this.initialTarget,
+    this.initialPupilId,
     this.onDateChanged,
     this.onSourceChanged,
     this.openFile,
   });
-  final String? initialDate, initialTarget;
+  final String? initialDate, initialTarget, initialPupilId;
   final ValueChanged<String>? onDateChanged;
   final ValueChanged<(String, String?)>? onSourceChanged;
   final Future<void> Function(ClassroomDocument)? openFile;
@@ -44,8 +47,9 @@ class _LessonFlowPageState extends State<LessonFlowPage>
   NotebookController get c => widget.controller;
   late String date = widget.initialDate ?? dateOnly(DateTime.now());
   late String? target = widget.initialTarget;
-  String? expanded, pupilId;
-  bool individual = false;
+  String? expanded;
+  late String? pupilId = widget.initialPupilId;
+  late bool individual = pupilId != null;
   final individualSeeds = <String, ClassroomDocument>{};
   bool editing = false, busy = false;
   ClassroomDocument? seed;
@@ -581,18 +585,11 @@ class _LessonFlowPageState extends State<LessonFlowPage>
     return AnimatedBuilder(
       animation: c,
       builder: (context, _) {
-        final value = current,
-            phases = lessonPhases(value),
-            colors = Theme.of(context).colorScheme;
+        final value = current, phases = lessonPhases(value);
         reportSource(value);
-        final active = phases.where((p) => p.status == 'active').firstOrNull;
-        final pending = phases.where((p) => p.pending).toList();
         final materials = {
           for (final m in [
-            ...resolveMaterials(
-              c.classroom,
-              preparationFor(c.classroom, date).strings('materialIds'),
-            ),
+            ...?preparedMaterialsByDay(c.classroom)[date],
             ...suggestedMaterials(c.classroom, date),
           ])
             m.id: m,
@@ -601,32 +598,6 @@ class _LessonFlowPageState extends State<LessonFlowPage>
           key: const PageStorageKey('lesson-flow'),
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Ablauf',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ),
-                if (!individual || pupilId != null)
-                  IconButton(
-                    tooltip: editing
-                        ? 'Bearbeiten beenden'
-                        : 'Ablauf bearbeiten',
-                    icon: Icon(editing ? Icons.check : Icons.edit_outlined),
-                    onPressed: busy
-                        ? null
-                        : () => setState(() => editing = !editing),
-                  ),
-                if (!individual || pupilId != null)
-                  IconButton(
-                    tooltip: 'Phase hinzufügen',
-                    onPressed: busy ? null : () => editPhase(),
-                    icon: const Icon(Icons.add),
-                  ),
-              ],
-            ),
             Row(
               children: [
                 IconButton(
@@ -645,109 +616,315 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                   onPressed: busy ? null : () => day(1),
                   icon: const Icon(Icons.chevron_right),
                 ),
-                if (date != dateOnly(DateTime.now()))
-                  TextButton(
-                    onPressed: () => setState(() {
-                      date = dateOnly(DateTime.now());
-                      widget.onDateChanged?.call(date);
-                      target = null;
-                    }),
-                    child: const Text('Heute'),
+                if (!individual || pupilId != null)
+                  IconButton(
+                    tooltip: 'Phase hinzufügen',
+                    onPressed: busy ? null : () => editPhase(),
+                    icon: const Icon(Icons.add),
                   ),
+                PopupMenuButton<String>(
+                  tooltip: 'Ablaufoptionen',
+                  icon: const Icon(Icons.tune),
+                  enabled: !busy,
+                  onSelected: (command) {
+                    switch (command) {
+                      case 'today':
+                        setState(() {
+                          date = dateOnly(DateTime.now());
+                          target = null;
+                          expanded = null;
+                          widget.onDateChanged?.call(date);
+                        });
+                      case 'edit':
+                        setState(() => editing = !editing);
+                      case 'templates':
+                        templates();
+                      case 'materials':
+                        showMaterials(current);
+                      case 'sources':
+                        _showPlanSources();
+                      case 'import':
+                        fromPlan();
+                      case 'live':
+                        _showLiveControls();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'today', child: Text('Heute')),
+                    if (!individual || pupilId != null) ...[
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Text(
+                          editing ? 'Bearbeiten beenden' : 'Ablauf bearbeiten',
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'materials',
+                        child: Text('Materialien'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'templates',
+                        child: Text('Vorlagen'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'sources',
+                        child: Text('Planungsdokumente'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'import',
+                        child: Text('Aus Planung'),
+                      ),
+                      if (phases.isNotEmpty)
+                        const PopupMenuItem(
+                          value: 'live',
+                          child: Text('Live-Steuerung'),
+                        ),
+                    ],
+                  ],
+                ),
               ],
             ),
-            ...sourcePanel(value),
-            if (isSuggestedLessonFlow(value))
-              const ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.view_list_outlined),
-                title: Text('Vorgeschlagener Grundablauf'),
-                subtitle: Text(
-                  'Für diese Stunde ist noch keine Tagesplanung übernommen.',
-                ),
-              ),
             _scopeSelector(),
             if (individual && pupilId == null) ...[
               ..._pupilRows(),
             ] else ...[
               if (pupilId != null) _pupilHeading(),
-              if (active != null && !editing)
-                _phase(value, active, phases.indexOf(active)),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      value.title,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  if (editing)
-                    IconButton(
-                      tooltip: 'Unterrichtsthema ändern',
-                      onPressed: busy ? null : rename,
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                    ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: busy ? null : chooseLesson,
-                  icon: const Icon(Icons.schedule, size: 18),
-                  label: Text(
-                    lesson == null
-                        ? target == ''
-                              ? 'Freier Tagesablauf'
-                              : 'Gespeicherter Unterricht · wechseln'
-                        : '${lesson!.start}–${lesson!.end} · Unterricht wählen',
-                  ),
-                ),
-              ),
               Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 8,
-                runSpacing: 4,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: homework,
-                    icon: const Icon(Icons.fact_check_outlined, size: 19),
-                    label: const Text('HÜ-Kontrolle'),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('flow-materials'),
-                    onPressed: () => showMaterials(current),
-                    icon: const Icon(Icons.folder_open_outlined, size: 19),
-                    label: const Text('Materialien'),
+                  TextButton.icon(
+                    onPressed: busy ? null : chooseLesson,
+                    icon: const Icon(Icons.schedule, size: 17),
+                    label: Text(
+                      lesson == null
+                          ? target == ''
+                                ? 'Freier Tagesablauf'
+                                : 'Gespeicherter Unterricht · wechseln'
+                          : '${lesson!.start}–${lesson!.end} · ${lesson!.title}',
+                    ),
                   ),
                   TextButton.icon(
-                    onPressed: busy ? null : templates,
-                    icon: const Icon(Icons.bookmarks_outlined, size: 19),
-                    label: const Text('Vorlagen'),
+                    onPressed: homework,
+                    icon: const Icon(Icons.fact_check_outlined, size: 17),
+                    label: const Text('HÜ-Kontrolle'),
                   ),
-                  if (editing)
+                ],
+              ),
+              if (value.title != 'FLEX-Klasse' || editing)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        value.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    if (editing)
+                      IconButton(
+                        tooltip: 'Unterrichtsthema ändern',
+                        onPressed: busy ? null : rename,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                  ],
+                ),
+              if (isSuggestedLessonFlow(value))
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      'Vorgeschlagener Grundablauf',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    TextButton(
+                      onPressed: _showPlanSources,
+                      child: const Text('Planung suchen'),
+                    ),
+                  ],
+                )
+              else if (value.map('flow')['sourceId'] case final String id
+                  when id.isNotEmpty)
+                if (c.classroom
+                        .where((m) => m.id == id && !m.deleted)
+                        .firstOrNull
+                    case final doc?)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => reviewSource(doc),
+                      icon: const Icon(Icons.description_outlined, size: 16),
+                      label: Text(doc.title),
+                    ),
+                  ),
+              if (phases.isEmpty) ...sourcePanel(value),
+              for (final (i, p) in phases.indexed) _phase(value, p, i),
+              if (phases.isEmpty)
+                const EmptyState(
+                  'Noch keine Phasen. Füge eine Phase hinzu oder wähle eine Vorlage.',
+                  icon: Icons.route_outlined,
+                ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('flow-materials'),
+                    onPressed: () => showMaterials(current),
+                    icon: const Icon(Icons.folder_open_outlined, size: 18),
+                    label: const Text('Materialien'),
+                  ),
+                  if (phases.isNotEmpty)
                     TextButton.icon(
-                      onPressed: busy ? null : fromPlan,
-                      icon: const Icon(Icons.post_add, size: 19),
-                      label: const Text('Aus Planung'),
+                      key: const ValueKey('flow-live-controls'),
+                      onPressed: _showLiveControls,
+                      icon: const Icon(Icons.timer_outlined, size: 18),
+                      label: const Text('Live-Steuerung'),
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              if (phases.isNotEmpty) ...sourcePanel(value),
+              if (phases.any((p) => p.pending))
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: busy ? null : carry,
+                    icon: const Icon(Icons.event_repeat, size: 19),
+                    label: const Text('Offenes weiterführen'),
+                  ),
+                ),
+              if (materials.isNotEmpty && pupilId == null) ...[
+                const Divider(height: 12),
+                Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Unterlagen für diesen Tag',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    MaterialGroupingButton(c),
+                  ],
+                ),
+                ...groupedMaterialRows(
+                  c,
+                  materials,
+                  (group) => [
+                    for (final m in group) _material(m, individual: true),
+                  ],
+                  day: date,
+                ),
+              ],
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showPlanSources() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (ctx) => ListenableBuilder(
+      listenable: c,
+      builder: (ctx, _) {
+        final sources = sourcePanel(current);
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Planung für ${displayDate(date)}',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              if (sources.isEmpty)
+                const Text(
+                  'Für diesen Tag ist keine Tages- oder Wochenplanung zugeordnet.',
+                ),
+              ...sources,
+              TextButton.icon(
+                icon: const Icon(Icons.search),
+                label: const Text('Alle Planungsdokumente durchsuchen'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  openPlanningBoard(context, c, documents: true);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+
+  Future<void> _showLiveControls({
+    String? forPupil,
+  }) => showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (ctx) => ListenableBuilder(
+      listenable: c,
+      builder: (ctx, _) {
+        final flow = forPupil == null ? current : pupilFlow(forPupil);
+        final phases = lessonPhases(flow),
+            active = phases.where((p) => p.status == 'active').firstOrNull,
+            pending = phases.where((p) => p.pending).toList(),
+            colors = Theme.of(ctx).colorScheme;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      '${phases.where((p) => p.status == 'done').length} von ${phases.length} Phasen durchgeführt',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      'Live-Steuerung',
+                      style: Theme.of(ctx).textTheme.titleLarge,
                     ),
                   ),
-                  Text(
-                    '${phases.fold<int>(0, (sum, p) => sum + p.minutes)} Min.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  IconButton(
+                    tooltip: 'Schließen',
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              Text(
+                '${phases.where((p) => p.status == 'done').length} von ${phases.length} Phasen durchgeführt · ${phases.fold<int>(0, (sum, p) => sum + p.minutes)} Min.',
+              ),
+              if ((active ?? pending.firstOrNull) case final p?)
+                Text(p.title, style: Theme.of(ctx).textTheme.titleMedium),
+              if (phases.length > 1)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PopupMenuButton<String>(
+                    tooltip: 'Bestimmte Phase starten',
+                    onSelected: (id) =>
+                        save(activateLessonPhase(flow, id, DateTime.now())),
+                    itemBuilder: (_) => [
+                      for (final (i, p) in phases.indexed)
+                        PopupMenuItem(
+                          value: p.id,
+                          child: Text('${i + 1}. ${p.title}'),
+                        ),
+                    ],
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Andere Phase starten'),
+                    ),
+                  ),
+                ),
+              if (active != null && active.minutes > 0)
+                _PhaseClock(phase: active),
               if (active != null)
                 Wrap(
                   spacing: 8,
@@ -759,7 +936,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                           ? null
                           : () => save(
                               finishLessonPhase(
-                                current,
+                                flow,
                                 active.id,
                                 DateTime.now(),
                               ),
@@ -775,8 +952,8 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                       onPressed: busy
                           ? null
                           : () => save(
-                              withLessonPhases(current, [
-                                for (final p in lessonPhases(current))
+                              withLessonPhases(flow, [
+                                for (final p in lessonPhases(flow))
                                   if (p.id == active.id)
                                     p.running
                                         ? p.pause(DateTime.now())
@@ -795,7 +972,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                           ? null
                           : () => save(
                               finishLessonPhase(
-                                current,
+                                flow,
                                 active.id,
                                 DateTime.now(),
                                 skip: true,
@@ -814,7 +991,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                         ? null
                         : () => save(
                             activateLessonPhase(
-                              current,
+                              flow,
                               pending.first.id,
                               DateTime.now(),
                             ),
@@ -831,43 +1008,30 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              const SizedBox(height: 10),
-              for (final (i, p) in phases.indexed)
-                if (editing || p.id != active?.id) _phase(value, p, i),
-              if (phases.isEmpty)
-                const EmptyState(
-                  'Noch keine Phasen. Füge eine Phase hinzu oder wähle eine Vorlage.',
-                  icon: Icons.route_outlined,
-                ),
-              const SizedBox(height: 12),
-              if (pending.isNotEmpty)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: busy ? null : carry,
-                    icon: const Icon(Icons.event_repeat, size: 19),
-                    label: const Text('Offenes weiterführen'),
-                  ),
-                ),
-              if (materials.isNotEmpty && pupilId == null) ...[
-                const Divider(height: 28),
-                Text(
-                  'Unterlagen für diesen Tag',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                for (final m in materials) _material(m, individual: true),
-              ],
             ],
-          ],
+          ),
         );
       },
-    );
-  }
-
+    ),
+  );
   Widget _phase(ClassroomDocument value, LessonPhase p, int index) {
-    final active = p.status == 'active',
-        show = active || expanded == p.id || editing;
+    final show = expanded == p.id || editing;
     final color = Theme.of(context).colorScheme;
+    final lines = p.body.trim().split('\n');
+    final time =
+        RegExp(
+          r'^\d{1,2}[:.]\d{2}\s*[–—-]\s*\d{1,2}[:.]\d{2}$',
+        ).hasMatch(lines.first.trim())
+        ? lines.removeAt(0).trim()
+        : '';
+    final instruction = lines.join('\n').trim();
+    final suggested =
+        instruction.isEmpty &&
+            p.guidance.isEmpty &&
+            p.sourceId.isEmpty &&
+            value.map('flow')['sourceId'] == null
+        ? basicPhaseInstructions[p.title]
+        : null;
     final status = switch (p.status) {
       'done' => 'Durchgeführt',
       'skipped' => 'Übersprungen',
@@ -878,13 +1042,11 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       key: ValueKey('phase-${p.id}'),
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
-        color: active ? color.primary.withValues(alpha: .08) : null,
-        borderRadius: BorderRadius.circular(18),
-        border: Border(
-          bottom: BorderSide(color: color.outlineVariant.withValues(alpha: .5)),
-        ),
+        color: color.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.outlineVariant.withValues(alpha: .75)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -896,18 +1058,13 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  Icon(
-                    p.status == 'done'
-                        ? Icons.check_circle_outline
-                        : active
-                        ? Icons.play_circle_outline
-                        : p.status == 'skipped'
-                        ? Icons.skip_next_outlined
-                        : Icons.radio_button_unchecked,
-                    color: color.primary,
-                    size: 22,
+                  Text(
+                    '${index + 1}.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: color.primary),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -919,7 +1076,12 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                         Text(
                           p.carriedTo.isNotEmpty
                               ? 'Weitergeführt · ${displayDate(p.carriedTo)}'
-                              : '$status${p.minutes > 0 ? ' · ${p.minutes} Min.' : ''}',
+                              : [
+                                  if (time.isNotEmpty) time,
+                                  if (p.minutes > 0) '${p.minutes} Min.',
+                                  if (p.status != 'open' || p.minutes == 0)
+                                    status,
+                                ].join(' · '),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -935,32 +1097,69 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               padding: const EdgeInsets.only(left: 34, bottom: 6),
               child: Text(p.resumeNote),
             ),
-          if (!show && p.body.isNotEmpty)
+          if (instruction.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 34, bottom: 6),
-              child: Text(p.body, maxLines: 2, overflow: TextOverflow.ellipsis),
-            ),
-          if (show) ...[
-            if (p.body.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 34, bottom: 8),
-                child: Text(p.body),
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Text(
+                instruction,
+                key: ValueKey('phase-instruction-${p.id}'),
               ),
-            for (final (index, guide) in p.guidance.indexed)
-              ExpansionTile(
-                key: PageStorageKey('flow-guide-$date-${p.id}-$index'),
-                tilePadding: const EdgeInsets.only(left: 32),
-                title: Text(
-                  c.pupils
-                      .where((s) => (guide['pupilIds'] as List).contains(s.id))
-                      .map((s) => s.name)
-                      .join(' · '),
+            )
+          else if (suggested != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Vorschlag',
+                  style: Theme.of(context).textTheme.labelSmall,
                 ),
-                subtitle: guide['minutes'] > 0
-                    ? Text("${guide['minutes']} Min.")
-                    : null,
+                Text(suggested),
+                if (show)
+                  TextButton(
+                    onPressed: busy
+                        ? null
+                        : () => editPhase(p.patch({'body': suggested})),
+                    child: const Text('Vorschlag bearbeiten und übernehmen'),
+                  ),
+              ],
+            )
+          else if (p.guidance.isEmpty && !busy)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => editPhase(p),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Arbeitsauftrag ergänzen'),
+              ),
+            ),
+          for (final (i, guide) in p.guidance.indexed)
+            Container(
+              key: ValueKey('phase-guidance-${p.id}-$i'),
+              margin: const EdgeInsets.only(top: 4, bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(dense: true, title: Text(guide['body'] as String)),
+                  Text(
+                    [
+                      c.pupils
+                          .where(
+                            (s) => (guide['pupilIds'] as List).contains(s.id),
+                          )
+                          .map((s) => s.name)
+                          .join(', '),
+                      if (guide['minutes'] > 0) "${guide['minutes']} Min.",
+                    ].where((s) => s.isNotEmpty).join(' · '),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: color.primary),
+                  ),
+                  if ((guide['body'] as String).trim().isNotEmpty)
+                    Text(guide['body'] as String),
                   for (final m in resolveMaterials(
                     c.classroom,
                     List<String>.from(guide['materialIds']),
@@ -968,42 +1167,43 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                     _material(m),
                 ],
               ),
-            if (p.pupilIds.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 34, bottom: 8),
-                child: Text(
-                  c.pupils
-                      .where((s) => p.pupilIds.contains(s.id))
-                      .map((s) => s.name)
-                      .join(' · '),
-                  style: TextStyle(color: color.primary),
-                ),
+            ),
+          if (p.pupilIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 34, bottom: 8),
+              child: Text(
+                c.pupils
+                    .where((s) => p.pupilIds.contains(s.id))
+                    .map((s) => s.name)
+                    .join(' · '),
+                style: TextStyle(color: color.primary),
               ),
-            for (final m in resolveMaterials(c.classroom, p.materialIds))
-              _material(m),
-            if (p.kind == 'homework')
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: homework,
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('Hausübungen kontrollieren'),
-                ),
+            ),
+          if (p.materialIds.isNotEmpty) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: MaterialGroupingButton(c),
+            ),
+            ...groupedMaterialRows(
+              c,
+              resolveMaterials(c.classroom, p.materialIds),
+              (group) => [for (final m in group) _material(m)],
+              day: date,
+            ),
+          ],
+          if (p.kind == 'homework')
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: homework,
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text('Hausübungen kontrollieren'),
               ),
-            if (active && p.minutes > 0) _PhaseClock(phase: p),
+            ),
+          if (show) ...[
             Wrap(
               spacing: 2,
               children: [
-                if (!active)
-                  TextButton.icon(
-                    onPressed: busy
-                        ? null
-                        : () => save(
-                            activateLessonPhase(current, p.id, DateTime.now()),
-                          ),
-                    icon: const Icon(Icons.play_arrow, size: 18),
-                    label: Text(p.pending ? 'Hier starten' : 'Wieder öffnen'),
-                  ),
                 if (c.classroom.any(
                       (d) =>
                           d.id ==
@@ -1086,13 +1286,16 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               .map((p) => p.name)
               .join(' · ')
         : '';
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: MaterialThumbnail(material: m, width: 36, height: 48),
-      title: Text(m.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: names.isEmpty ? null : Text(names),
-      trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () => guarded(context, () => openFile(m)),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+        leading: MaterialThumbnail(material: m, width: 36, height: 48),
+        title: Text(m.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: names.isEmpty ? null : Text(names),
+        trailing: const Icon(Icons.chevron_right, size: 20),
+        onTap: () => guarded(context, () => openFile(m)),
+      ),
     );
   }
 }

@@ -97,7 +97,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
           ),
           onChanged: (v) => changeFeedback(f.copyWith(note: v)),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         TextButton.icon(
           onPressed: () async {
             final value = await pickFlexDate(
@@ -189,7 +189,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
         onChanged: (tasks) =>
             edit({'tasks': tasks.map((t) => t.toJson()).toList()}),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 8),
       field('subject', 'Fach · optional', maxLength: 100, hint: 'Fach …'),
       dateField('dueDate', 'Fällig am'),
       if (r.revision == 0) ...[
@@ -202,10 +202,29 @@ extension _SchoolEditorForms on _SchoolEditorState {
           selected: recipients,
           onChanged: (v) {
             updateEditor(() => recipients = v);
-            edit({});
+            edit({
+              'assignmentSources': r.assignmentSources
+                  .where((s) => s.pupilId == null || v.contains(s.pupilId))
+                  .map((s) => s.toJson())
+                  .toList(),
+            });
           },
         ),
       ],
+      HomeworkMaterials(
+        controller: c,
+        pupils: c.pupils
+            .where(
+              (p) => (r.revision > 0
+                  ? p.id == r.pupilId
+                  : recipients.contains(p.id)),
+            )
+            .toList(),
+        sources: r.assignmentSources,
+        published: r.revision > 0,
+        onChanged: (v) =>
+            edit({'assignmentSources': v.map((s) => s.toJson()).toList()}),
+      ),
     ],
   );
 
@@ -296,7 +315,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         field(
           'pupilPerspective',
           'Schülerperspektive · optional',
@@ -354,7 +373,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
               '${displayDate(evidence.observedOn)} · ${[if (evidence.lessonQuestion case final q?) q.summary, if (evidence.body.isNotEmpty) evidence.body, ...evidence.positive, ...evidence.neutral, ...evidence.negative].join(' · ')}',
             ),
           ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         TextFormField(
           initialValue: value.note,
           autofocus: true,
@@ -368,7 +387,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
           ),
           onChanged: (v) => change({'note': v}),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -387,7 +406,7 @@ extension _SchoolEditorForms on _SchoolEditorState {
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         if (value.decision == 'continue') ...[
           TextFormField(
             initialValue: value.nextStep,

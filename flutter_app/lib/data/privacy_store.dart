@@ -454,13 +454,16 @@ mixin PrivacyStore on SchoolStore {
         'Zu gelöschten Schülern sind noch Entwürfe vorhanden. Bitte diese zuerst speichern oder verwerfen.',
       );
     }
+    final records = await schoolRecords();
+    final retainedMaterials = {
+      for (final r in records.where((r) => !ids.contains(r.pupilId)))
+        ...r.assignmentSources.map((s) => s.documentId),
+    };
     final owned = {
       ...(await entries())
           .where((e) => ids.contains(e.pupilId))
           .map((e) => e.id),
-      ...(await schoolRecords())
-          .where((r) => ids.contains(r.pupilId))
-          .map((r) => r.id),
+      ...records.where((r) => ids.contains(r.pupilId)).map((r) => r.id),
     };
     final documents = await classroomDocuments(), removeDocuments = <String>{};
     for (final d in documents) {
@@ -486,6 +489,8 @@ mixin PrivacyStore on SchoolStore {
       if (d.kind == ClassroomKind.material &&
           onlyThese &&
           !shared &&
+          !retainedMaterials.contains(d.id) &&
+          !draftData.any((data) => data.contains(jsonEncode(d.id))) &&
           d.rows('links').every((l) => owned.contains(l['id']))) {
         removeDocuments.add(d.id);
         continue;
@@ -600,6 +605,11 @@ mixin PrivacyStore on SchoolStore {
         'DELETE FROM situation_pupils WHERE pupil_id=?',
         [id],
       );
+      for (final key in observationDefaults.keys) {
+        await db.customStatement('DELETE FROM preferences WHERE key=?', [
+          'observation-${pupilCatalogKey(key, id)}',
+        ]);
+      }
       await db.customStatement('DELETE FROM pupils WHERE id=?', [id]);
     }
   }

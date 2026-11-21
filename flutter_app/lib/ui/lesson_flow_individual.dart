@@ -136,8 +136,14 @@ extension _IndividualFlow on _LessonFlowPageState {
             trailing: const Icon(Icons.chevron_right),
             onTap: open,
           ),
+          if (next != null && next.body.trim().isNotEmpty)
+            Text(next.body.trim()),
+          if (next != null)
+            for (final g in next.guidance)
+              if ((g['body'] as String).trim().isNotEmpty)
+                Text(g['body'] as String),
           if (next != null && next.resumeNote.isNotEmpty) Text(next.resumeNote),
-          if (active != null && active.minutes > 0) _PhaseClock(phase: active),
+
           if (nextMaterial != null)
             TextButton.icon(
               onPressed: () => guarded(context, () => openFile(nextMaterial)),
@@ -151,54 +157,20 @@ extension _IndividualFlow on _LessonFlowPageState {
           Wrap(
             spacing: 4,
             children: [
-              if (next != null)
-                TextButton.icon(
-                  key: ValueKey('flow-pupil-start-${pupil.id}'),
-                  onPressed: busy
-                      ? null
-                      : () => save(
-                          active == null
-                              ? activateLessonPhase(
-                                  value,
-                                  next.id,
-                                  DateTime.now(),
-                                )
-                              : finishLessonPhase(
-                                  value,
-                                  active.id,
-                                  DateTime.now(),
-                                ),
-                        ),
-                  icon: Icon(
-                    active == null
-                        ? Icons.play_arrow
-                        : Icons.skip_next_outlined,
-                    size: 19,
-                  ),
-                  label: Text(active == null ? 'Starten' : 'Weiter'),
-                ),
-              if (active != null)
-                IconButton(
-                  tooltip: '${active.running ? 'Pause' : 'Fortsetzen'} · $name',
-                  onPressed: busy
-                      ? null
-                      : () => save(
-                          withLessonPhases(value, [
-                            for (final p in phases)
-                              p.id != active.id
-                                  ? p
-                                  : p.running
-                                  ? p.pause(DateTime.now())
-                                  : p.patch({'startedAt': utcNow()}),
-                          ]),
-                        ),
-                  icon: Icon(active.running ? Icons.pause : Icons.play_arrow),
-                ),
               TextButton.icon(
                 onPressed: () => showMaterials(value),
                 icon: const Icon(Icons.folder_open_outlined, size: 19),
                 label: const Text('Materialien'),
               ),
+              if (next != null)
+                IconButton(
+                  key: ValueKey('flow-pupil-live-${pupil.id}'),
+                  tooltip: 'Live-Steuerung · $name',
+                  icon: const Icon(Icons.timer_outlined, size: 18),
+                  onPressed: busy
+                      ? null
+                      : () => _showLiveControls(forPupil: pupil.id),
+                ),
               IconButton(
                 tooltip: 'Ablauf anpassen · $name',
                 onPressed: busy ? null : open,

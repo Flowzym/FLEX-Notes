@@ -111,7 +111,9 @@ void main() {
       await app(t);
       await tap(t, find.byKey(const ValueKey('page-2')));
       await tap(t, find.byKey(const ValueKey('flow-scope-true')));
-      await tap(t, find.byKey(const ValueKey('flow-pupil-start-anna')));
+      await tap(t, find.byKey(const ValueKey('flow-pupil-live-anna')));
+      await tap(t, find.byKey(const ValueKey('flow-start')));
+      await tap(t, find.byTooltip('Schließen').last);
       expect(
         c.classroom
             .where(
@@ -139,7 +141,7 @@ void main() {
       final materialsButton = find.byKey(const ValueKey('flow-materials'));
       await t.scrollUntilVisible(
         materialsButton,
-        -200,
+        200,
         scrollable: find
             .descendant(
               of: find.byKey(const PageStorageKey('lesson-flow')),

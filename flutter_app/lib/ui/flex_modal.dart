@@ -48,14 +48,21 @@ class EntryFormSections extends StatelessWidget {
           const SizedBox(width: 24),
           Expanded(
             flex: 4,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: Theme.of(context).dividerColor),
+            child: Material(
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow.withValues(alpha: .60),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.only(left: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: column(details),
               ),
             ),
@@ -128,21 +135,6 @@ class FlexModal extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (mobile &&
-                      DetailFlowScope.maybeOf(context) != null &&
-                      !compact)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                      child: Text(
-                        'FLEX.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          letterSpacing: .5,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
                   Container(
                     key: const ValueKey('modal-header'),
                     padding: EdgeInsets.fromLTRB(
@@ -283,7 +275,7 @@ class FlexModal extends StatelessWidget {
                   mobile ? 16 : 24,
                   6,
                   mobile ? 16 : 24,
-                  compact ? 10 : 16,
+                  mobile ? 8 : 16,
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,

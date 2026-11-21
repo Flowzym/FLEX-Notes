@@ -175,7 +175,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               value: 'return',
               onChanged: select,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             content,
           ],
         ),
@@ -758,7 +758,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     value: kind,
                     onChanged: selectKind,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   PersonAssignmentField(
                     pupils: c.pupils,
                     selected: {if (entry.pupilId != null) entry.pupilId!},
@@ -1151,7 +1151,17 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                     const Text('Anzeige in der App'),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  if (Theme.of(context).extension<FlexDialogPresentation>() !=
+                      null)
+                    CompactSwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Später ergänzen'),
+                      value: entry.needsCompletion,
+                      onChanged: busy
+                          ? null
+                          : (v) => change(entry.copyWith(needsCompletion: v)),
+                    ),
                   DocumentAttachmentSection(
                     controller: c,
                     scope: orgaDraftScanContext(c, draftId, value),
@@ -1174,41 +1184,48 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
-          footerContent: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: CompactSwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Später ergänzen'),
-                  value: entry.needsCompletion,
-                  onChanged: busy
-                      ? null
-                      : (v) => change(entry.copyWith(needsCompletion: v)),
+          footerContent:
+              Theme.of(context).extension<FlexDialogPresentation>() != null
+              ? EntryWindowCommands(
+                  close: busy ? null : close,
+                  save: busy ? null : save,
+                  status: status,
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: CompactSwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Später ergänzen'),
+                        value: entry.needsCompletion,
+                        onChanged: busy
+                            ? null
+                            : (v) => change(entry.copyWith(needsCompletion: v)),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            key: const ValueKey('cancel-editor'),
+                            onPressed: busy ? null : close,
+                            child: const Text('Abbrechen'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: busy ? null : save,
+                            child: const Text('Speichern'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      key: const ValueKey('cancel-editor'),
-                      onPressed: busy ? null : close,
-                      child: const Text('Abbrechen'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: busy ? null : save,
-                      child: const Text('Speichern'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     ),

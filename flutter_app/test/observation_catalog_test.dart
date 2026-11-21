@@ -14,6 +14,37 @@ SqliteNotebook fresh() => SqliteNotebook(
 );
 void main() {
   test(
+    'personal options survive backup and stay outside the shared catalog export',
+    () async {
+      final repo = fresh(), restored = fresh();
+      addTearDown(repo.close);
+      addTearDown(restored.close);
+      await repo.initialize();
+      await restored.initialize();
+      await repo.savePupil(const Pupil(id: 'p1', name: 'Ada'));
+      await repo.saveObservationOptions('social-neutral@p1', [
+        'Eigener Einstieg',
+      ]);
+      await repo.toggleObservationFavorite(
+        'social-neutral@p1',
+        'Eigener Einstieg',
+      );
+      expect(
+        (await repo.exportCatalogs()).encode(),
+        isNot(contains('Eigener Einstieg')),
+      );
+      await restored.restoreBackup(await repo.exportBackup());
+      expect(
+        (await restored.observationCatalog('social-neutral@p1')).favorites,
+        ['Eigener Einstieg'],
+      );
+      expect(
+        (await restored.observationCatalog('social-neutral@p2')).options,
+        isEmpty,
+      );
+    },
+  );
+  test(
     'catalog edits and concurrent favorites survive a full backup and invalid restoration rolls back',
     () async {
       final repo = fresh(), restored = fresh(), invalid = fresh();

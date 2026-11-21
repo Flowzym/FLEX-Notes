@@ -1,3 +1,7 @@
+import 'package:flutter/services.dart';
+import 'planning_board.dart';
+import 'week_folder_page.dart';
+import 'notebook_search.dart';
 import 'selection_controls.dart';
 import 'dart:async';
 import '../domain/reminder_action.dart';
@@ -385,7 +389,7 @@ class _NotebookScreenState extends State<NotebookScreen>
     String? draftId,
     bool defaultToClassTask = true,
   }) async {
-    await showDialog<void>(
+    await showFlexDetail<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => OrgaEditor(
@@ -437,14 +441,62 @@ class _NotebookScreenState extends State<NotebookScreen>
     'plans',
     'drive',
   ];
+  Future<void> _searchAll() async {
+    final value = await showNotebookSearch(context, c);
+    if (!mounted || value == null) return;
+    switch (value) {
+      case int section:
+        _sectionTo(section);
+      case 'week':
+        await openWeekFolder(context, c);
+      case 'board':
+        await openPlanningBoard(context, c);
+      case String action:
+        await runQuickAddAction(context, c, action);
+      case Pupil p:
+        await _openPupil(p);
+      case OrgaEntry e:
+        await _editor(e, defaultToClassTask: false);
+      case SchoolRecord r:
+        if (r.kind == SchoolKind.homework) {
+          await showHomeworkDetail(context, c, r.id);
+        } else {
+          await editSchool(context, c, r);
+        }
+      case ClassroomDocument d:
+        switch (d.kind) {
+          case ClassroomKind.material:
+            await showMaterialDetails(context, c, d);
+          case ClassroomKind.materialSet:
+            await showMaterialCollection(context, c, d);
+          case ClassroomKind.plan:
+            await openSavedPlan(context, c, d);
+          case ClassroomKind.returnList:
+            await showReturnDetail(context, c, d.id);
+          default:
+            await showClassroomEditor(context, c, d.kind, document: d);
+        }
+    }
+  }
+
   Widget _moreHome() => ListView(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+    padding: const EdgeInsets.fromLTRB(16, 6, 16, 96),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
         (
           'Admin-Bereich',
           Icons.admin_panel_settings_outlined,
           () => openAdminArea(context, c),
+        ),
+        (
+          'Wochenmappe',
+          Icons.calendar_view_week,
+          () => openWeekFolder(context, c),
+        ),
+        (
+          'Unterrichtsplanung',
+          Icons.view_kanban_outlined,
+          () => openPlanningBoard(context, c),
         ),
         ('Entwürfe (${c.draftCount})', Icons.edit_note, () => _showDrafts()),
         (
@@ -537,162 +589,189 @@ class _NotebookScreenState extends State<NotebookScreen>
     _ => _moreHome(),
   };
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: _destination == 1 && _primary == c.appearance.liveDefaultPage,
-    onPopInvokedWithResult: (didPop, result) {
-      if (!didPop) _main(c.appearance.liveDefaultPage);
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: {
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): _searchAll,
+      const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _searchAll,
     },
-    child: Scaffold(
-      floatingActionButton: _destination == 3 || _destination == 5
-          ? null
-          : QuickAddButton(
-              controller: c,
-              date: _destination == 0 ? _creationDate : null,
-            ),
-      bottomNavigationBar: FlexBottomNavigation(
-        selected: _destination,
-        onSelected: _sectionTo,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: FlexNavigationSwipe(
-          key: const ValueKey('context-page-swipe'),
-          onStep: _swipeContext,
-          child: Column(
-            children: [
-              if (c.appearanceError != null)
-                MaterialBanner(
-                  content: Text(c.appearanceError!),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        _sectionTo(4);
-                        _changeView(() => _moreView = 4);
-                      },
-                      child: const Text('Einstellungen'),
-                    ),
-                  ],
+    child: Focus(
+      autofocus: true,
+      skipTraversal: true,
+      child: PopScope(
+        canPop: _destination == 1 && _primary == c.appearance.liveDefaultPage,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) _main(c.appearance.liveDefaultPage);
+        },
+        child: Scaffold(
+          floatingActionButton: _destination == 3 || _destination == 5
+              ? null
+              : QuickAddButton(
+                  controller: c,
+                  date: _destination == 0 ? _creationDate : null,
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
-                child: Row(
-                  children: [
-                    Text(
-                      'FLEX.',
-                      key: const ValueKey('app-wordmark'),
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: .5,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: .55),
+          bottomNavigationBar: FlexBottomNavigation(
+            selected: _destination,
+            onSelected: _sectionTo,
+          ),
+          body: SafeArea(
+            bottom: false,
+            child: FlexNavigationSwipe(
+              key: const ValueKey('context-page-swipe'),
+              onStep: _swipeContext,
+              child: Column(
+                children: [
+                  if (c.appearanceError != null)
+                    MaterialBanner(
+                      content: Text(c.appearanceError!),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            _sectionTo(4);
+                            _changeView(() => _moreView = 4);
+                          },
+                          child: const Text('Einstellungen'),
+                        ),
+                      ],
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+                    child: Row(
+                      children: [
+                        Text(
+                          'FLEX.',
+                          key: const ValueKey('app-wordmark'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            letterSpacing: .5,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: .55),
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: 'FLEX durchsuchen',
+                          key: const ValueKey('header-search'),
+                          onPressed: _searchAll,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 44,
+                            height: 44,
+                          ),
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.search, size: 21),
+                        ),
+                        Semantics(
+                          selected: _destination == 4,
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: IconButton(
+                              key: const ValueKey('header-more'),
+                              tooltip: 'Weitere Bereiche',
+                              onPressed: () => _sectionTo(4),
+                              padding: EdgeInsets.zero,
+                              iconSize: 23,
+                              icon: const Icon(Icons.menu),
+                              style: IconButton.styleFrom(
+                                backgroundColor: _destination == 4
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer
+                                    : Colors.transparent,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_contextPages.length > 1)
+                    Padding(
+                      padding: FlexPagePills.pagePadding,
+                      child: FlexPagePills(
+                        keyPrefix: _destination == 1
+                            ? 'page'
+                            : 'context-$_destination',
+                        selected: _contextPage,
+                        pages: _contextPages,
+                        onSelected: _contextTo,
                       ),
                     ),
-                    const Spacer(),
-                    Semantics(
-                      selected: _destination == 4,
-                      child: SizedBox(
-                        width: 44,
-                        height: 32,
-                        child: IconButton(
-                          key: const ValueKey('header-more'),
-                          tooltip: 'Weitere Bereiche',
-                          onPressed: () => _sectionTo(4),
-                          padding: EdgeInsets.zero,
-                          iconSize: 23,
-                          icon: const Icon(Icons.more_horiz),
-                          style: IconButton.styleFrom(
-                            backgroundColor: _destination == 4
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Colors.transparent,
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1400),
+                        child: FlexTabTransition(
+                          section: _destination,
+                          index: _contextPages.keys.toList().indexOf(
+                            _contextPage,
+                          ),
+                          direction: _swipeDirection,
+                          child: IndexedStack(
+                            index: _destination,
+                            children: [
+                              if (_visited.contains(0))
+                                CalendarPage(
+                                  key: const ValueKey('main-calendar'),
+                                  controller: c,
+                                  onDateChanged: (date) =>
+                                      setState(() => _creationDate = date),
+                                )
+                              else
+                                const SizedBox(),
+                              IndexedStack(
+                                key: const ValueKey('main-pages'),
+                                index: livePages.keys.toList().indexOf(
+                                  _primary,
+                                ),
+                                children: [
+                                  _overview(),
+                                  _pupils(),
+                                  LessonFlowPage(controller: c),
+                                ],
+                              ),
+                              if (_visited.contains(2))
+                                IndexedStack(
+                                  key: const ValueKey('organisation-pages'),
+                                  index: const [0, 3, 2, 4].indexOf(_orgaView),
+                                  children: [
+                                    _generalOrga('all'),
+                                    _generalOrga('task'),
+                                    _generalOrga('note'),
+                                    _generalOrga('class'),
+                                  ],
+                                )
+                              else
+                                const SizedBox(),
+                              if (_visited.contains(3))
+                                MaterialLibraryPage(
+                                  controller: c,
+                                  externalView: _materialViews[_materialView],
+                                )
+                              else
+                                const SizedBox(),
+                              if (_visited.contains(4))
+                                _moreBody()
+                              else
+                                const SizedBox(),
+                              if (_visited.contains(5))
+                                ScannerLibrary(
+                                  key: const ValueKey('scanner-library-page'),
+                                  controller: c,
+                                )
+                              else
+                                const SizedBox(),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              if (_contextPages.length > 1)
-                Padding(
-                  padding: FlexPagePills.pagePadding,
-                  child: FlexPagePills(
-                    keyPrefix: _destination == 1
-                        ? 'page'
-                        : 'context-$_destination',
-                    selected: _contextPage,
-                    pages: _contextPages,
-                    onSelected: _contextTo,
                   ),
-                ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400),
-                    child: FlexTabTransition(
-                      section: _destination,
-                      index: _contextPages.keys.toList().indexOf(_contextPage),
-                      direction: _swipeDirection,
-                      child: IndexedStack(
-                        index: _destination,
-                        children: [
-                          if (_visited.contains(0))
-                            CalendarPage(
-                              key: const ValueKey('main-calendar'),
-                              controller: c,
-                              onDateChanged: (date) =>
-                                  setState(() => _creationDate = date),
-                            )
-                          else
-                            const SizedBox(),
-                          IndexedStack(
-                            key: const ValueKey('main-pages'),
-                            index: livePages.keys.toList().indexOf(_primary),
-                            children: [
-                              _overview(),
-                              _pupils(),
-                              LessonFlowPage(controller: c),
-                            ],
-                          ),
-                          if (_visited.contains(2))
-                            IndexedStack(
-                              key: const ValueKey('organisation-pages'),
-                              index: const [0, 3, 2, 4].indexOf(_orgaView),
-                              children: [
-                                _generalOrga('all'),
-                                _generalOrga('task'),
-                                _generalOrga('note'),
-                                _generalOrga('class'),
-                              ],
-                            )
-                          else
-                            const SizedBox(),
-                          if (_visited.contains(3))
-                            MaterialLibraryPage(
-                              controller: c,
-                              externalView: _materialViews[_materialView],
-                            )
-                          else
-                            const SizedBox(),
-                          if (_visited.contains(4))
-                            _moreBody()
-                          else
-                            const SizedBox(),
-                          if (_visited.contains(5))
-                            ScannerLibrary(
-                              key: const ValueKey('scanner-library-page'),
-                              controller: c,
-                            )
-                          else
-                            const SizedBox(),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -855,7 +934,7 @@ class _NotebookScreenState extends State<NotebookScreen>
             : width <= 360
             ? 12
             : 24,
-        14,
+        6,
         width > 960
             ? (width.clamp(0, 1400) - 920) / 2
             : width <= 360

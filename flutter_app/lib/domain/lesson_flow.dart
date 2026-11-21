@@ -7,6 +7,19 @@ import 'models.dart';
 export 'lesson_flow_data.dart';
 part 'teaching_flow_changes.dart';
 
+const basicPhaseInstructions = {
+  'Ankommen':
+      'Begrüßen, Materialien bereitlegen und das Ziel für heute besprechen.',
+  'HÜ-Kontrolle':
+      'Hausübungen gemeinsam prüfen. Offene Aufgaben und Fragen beim jeweiligen Schüler festhalten.',
+  'Arbeitsphase':
+      'Den Arbeitsauftrag klären. Die Schüler bearbeiten ihre Aufgaben und halten fest, wobei sie Unterstützung brauchen.',
+  'Austausch':
+      'Lösungswege vorstellen, Ergebnisse vergleichen und offene Fragen besprechen.',
+  'Abschluss':
+      'Ergebnisse sichern. Gemeinsam festhalten, was erledigt ist und was beim nächsten Mal ansteht.',
+};
+
 bool hasLessonFlow(ClassroomDocument d) =>
     d.kind == ClassroomKind.plan && d.map('flow').isNotEmpty;
 bool isFlowTemplate(ClassroomDocument d) =>
@@ -147,6 +160,7 @@ ClassroomDocument lessonFlowFor(
                             LessonPhase(
                               id: newId(),
                               title: p.$1,
+                              body: basicPhaseInstructions[p.$1]!,
                               minutes: p.$2,
                               kind: p.$3,
                             ).toJson(),
@@ -334,6 +348,66 @@ ClassroomDocument flowTemplate(ClassroomDocument source, String title) =>
             .toList(),
       },
     });
+
+/// A copy starts with a fresh work history. Phase IDs are scoped to the plan
+/// and keep the mapping to rows of the source document intact.
+ClassroomDocument copyTeachingPlan(
+  ClassroomDocument source,
+  Iterable<ClassroomDocument> documents, {
+  String? date,
+  String lessonTarget = '',
+}) {
+  final flow = source.map('flow'),
+      actual = hasLessonFlow(source) && !isFlowTemplate(source);
+  final pupil = lessonFlowPupil(source);
+  if (actual && (date == null || !validDate(date))) {
+    throw const DomainError('Bitte einen Unterrichtstag wählen.');
+  }
+  if (actual &&
+      savedLessonFlowFor(documents, date!, lessonTarget, pupilId: pupil) !=
+          null) {
+    throw const DomainError(
+      'Für diesen Unterricht ist bereits ein Ablauf gespeichert.',
+    );
+  }
+  final id = actual
+      ? lessonFlowFor(
+          documents,
+          date!,
+          lessonTarget: lessonTarget,
+          pupilId: pupil,
+        ).id
+      : newId();
+  final now = utcNow();
+  final end = source.text('endDate');
+  final start = source.text('date');
+  final duration = end.isNotEmpty && start.isNotEmpty
+      ? DateTime.parse(
+          '${end}T00:00:00Z',
+        ).difference(DateTime.parse('${start}T00:00:00Z'))
+      : null;
+  return ClassroomDocument.fromJson({
+    ...source.toJson(),
+    'id': id,
+    'revision': 0,
+    'createdAtUtc': now,
+    'updatedAtUtc': now,
+    'title': '${source.title} · Kopie',
+    'status': 'planned',
+    if (actual) 'date': date,
+    if (actual && duration != null)
+      'endDate': dateOnly(DateTime.parse('${date}T00:00:00Z').add(duration)),
+    if (flow.isNotEmpty)
+      'flow': {
+        ...(flow..remove('suggested')),
+        if (actual) 'lessonTarget': lessonTarget,
+        'phases': [
+          for (final phase in lessonPhases(source))
+            phase.fresh().patch({'id': phase.id}).toJson(),
+        ],
+      },
+  });
+}
 
 /// Atomic caller saves both documents. The source retains its history and destination.
 List<ClassroomDocument> carryLessonPhases(

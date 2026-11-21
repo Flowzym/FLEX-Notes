@@ -79,6 +79,48 @@ Future<Pupil?> _choosePupil(BuildContext context, NotebookController c) async {
   );
 }
 
+List<(String, List<(String, String, IconData)>)> quickAddGroups({
+  Pupil? pupil,
+}) => <(String, List<(String, String, IconData)>)>[
+  (
+    'Aufzeichnen',
+    [
+      ('social', 'Sozial', Icons.people_outline),
+      ('work', 'Arbeit', Icons.description_outlined),
+      ('goal', 'Ziel', Icons.track_changes),
+      ('homework', 'Hausübung', Icons.school_outlined),
+    ],
+  ),
+  (
+    'Organisieren',
+    [
+      ('note', 'Notiz', Icons.edit_note),
+      ('task', 'Aufgabe', Icons.task_alt),
+      ('appointment', 'Termin', Icons.event_outlined),
+      ('returnList', 'Rücklauf', Icons.fact_check_outlined),
+    ],
+  ),
+  (
+    'Material',
+    [
+      ('scan', 'Scan / Bild', Icons.document_scanner_outlined),
+      ('file', 'Datei', Icons.upload_file_outlined),
+      ('material', 'Link', Icons.link),
+      ('materialSet', 'Paket', Icons.folder_copy_outlined),
+    ],
+  ),
+  (
+    'Unterricht',
+    [
+      ('plan', 'Planung', Icons.event_note_outlined),
+      ('lesson', 'Unterricht', Icons.table_chart_outlined),
+      ('holiday', 'Ferien / Ausfall', Icons.beach_access_outlined),
+      if (pupil == null) ('pupil', 'Schüler', Icons.person_add_alt_1_outlined),
+      if (pupil == null) ('bulk', 'Gruppeneintrag', Icons.group_add_outlined),
+    ],
+  ),
+];
+
 Future<void> showQuickAdd(
   BuildContext context,
   NotebookController c, {
@@ -124,47 +166,7 @@ Future<void> showQuickAdd(
                   style: Theme.of(ctx).textTheme.titleMedium,
                 ),
               ),
-            for (final group in <(String, List<(String, String, IconData)>)>[
-              (
-                'Aufzeichnen',
-                [
-                  ('social', 'Sozial', Icons.people_outline),
-                  ('work', 'Arbeit', Icons.description_outlined),
-                  ('goal', 'Ziel', Icons.track_changes),
-                  ('homework', 'Hausübung', Icons.school_outlined),
-                ],
-              ),
-              (
-                'Organisieren',
-                [
-                  ('note', 'Notiz', Icons.edit_note),
-                  ('task', 'Aufgabe', Icons.task_alt),
-                  ('appointment', 'Termin', Icons.event_outlined),
-                  ('returnList', 'Rücklauf', Icons.fact_check_outlined),
-                ],
-              ),
-              (
-                'Material',
-                [
-                  ('scan', 'Scan / Bild', Icons.document_scanner_outlined),
-                  ('file', 'Datei', Icons.upload_file_outlined),
-                  ('material', 'Link', Icons.link),
-                  ('materialSet', 'Paket', Icons.folder_copy_outlined),
-                ],
-              ),
-              (
-                'Unterricht',
-                [
-                  ('plan', 'Planung', Icons.event_note_outlined),
-                  ('lesson', 'Unterricht', Icons.table_chart_outlined),
-                  ('holiday', 'Ferien / Ausfall', Icons.beach_access_outlined),
-                  if (pupil == null)
-                    ('pupil', 'Schüler', Icons.person_add_alt_1_outlined),
-                  if (pupil == null)
-                    ('bulk', 'Gruppeneintrag', Icons.group_add_outlined),
-                ],
-              ),
-            ]) ...[
+            for (final group in quickAddGroups(pupil: pupil)) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 14, bottom: 4),
                 child: Text(
@@ -216,6 +218,16 @@ Future<void> showQuickAdd(
     ),
   );
   if (action == null || !context.mounted) return;
+  await runQuickAddAction(context, c, action, pupil: pupil, date: date);
+}
+
+Future<void> runQuickAddAction(
+  BuildContext context,
+  NotebookController c,
+  String action, {
+  Pupil? pupil,
+  String? date,
+}) async {
   if (['goal', 'social', 'work', 'homework'].contains(action)) {
     final selected = pupil ?? await _choosePupil(context, c);
     if (selected == null || !context.mounted) return;

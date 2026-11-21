@@ -29,6 +29,7 @@ import 'flex_modal.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
 import 'homework_task_editor.dart';
+import 'homework_materials.dart';
 import 'draft_buffer.dart';
 import 'dialog_workflows.dart';
 
@@ -233,6 +234,7 @@ class _SchoolEditorState extends State<SchoolEditor>
 
   void edit(Json changes) {
     if (busy) return;
+    final previousPupil = r.pupilId;
     setState(() {
       final question = r.lessonQuestion;
       final reassigned = ['pupilId', 'kind', 'goalId', 'observedOn'].any(
@@ -247,6 +249,10 @@ class _SchoolEditorState extends State<SchoolEditor>
       editGeneration++;
       draftStatus = 'Entwurf wird gesichert …';
     });
+    if (isObservation && previousPupil != r.pupilId) {
+      catalogs.clear();
+      loadCatalogs();
+    }
     schedule();
   }
 
@@ -558,23 +564,32 @@ class _SchoolEditorState extends State<SchoolEditor>
   }
 
   Future<void> loadCatalogs() async {
+    final pupil = r.pupilId;
+    catalogBusy = true;
     try {
-      final keys = observationDefaults.keys.toList();
+      final keys = [
+        for (final key in observationDefaults.keys) ...[
+          key,
+          pupilCatalogKey(key, pupil),
+        ],
+      ];
       final values = await Future.wait(
         keys.map(c.repository.observationCatalog),
       );
-      if (!mounted) return;
+      if (!mounted || r.pupilId != pupil) return;
       setState(() => catalogs.addAll(Map.fromIterables(keys, values)));
     } catch (e) {
       if (mounted) setState(() => error = friendlyError(e));
     } finally {
-      if (mounted) setState(() => catalogBusy = false);
+      if (mounted && r.pupilId == pupil) setState(() => catalogBusy = false);
     }
   }
 
   Future<void> favorite(String text) async {
     if (catalogBusy) return;
-    final key = catalogKey;
+    final key = catalogs[catalogKey]?.options.contains(text) == true
+        ? catalogKey
+        : pupilCatalogKey(catalogKey, r.pupilId);
     setState(() => catalogBusy = true);
     try {
       final value = await c.repository.toggleObservationFavorite(key, text);
@@ -587,7 +602,13 @@ class _SchoolEditorState extends State<SchoolEditor>
   }
 
   Future<void> editOptions() async {
-    await showCatalog(context, c, r.kind.name);
+    await showCatalog(
+      context,
+      c,
+      r.kind.name,
+      pupilId: r.pupilId,
+      initialTone: selectedTone,
+    );
     await loadCatalogs();
   }
 

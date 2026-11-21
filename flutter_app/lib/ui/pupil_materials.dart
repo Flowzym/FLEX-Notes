@@ -171,6 +171,15 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
       return FlexModal(
         headerActions: [
           IconButton(
+            tooltip: 'Dateien für diesen Schüler importieren',
+            icon: const Icon(Icons.upload_file),
+            onPressed: busy
+                ? null
+                : () =>
+                      run(() => importMaterialFile(ctx, c, pupilId: pupil.id)),
+          ),
+
+          IconButton(
             tooltip: 'Material-Explorer öffnen',
             icon: const Icon(Icons.folder_open_outlined),
             onPressed: () => showAssignedMaterials(ctx, c, pupil: pupil),

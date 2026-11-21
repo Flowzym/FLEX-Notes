@@ -40,7 +40,11 @@ extension _SchoolObservationView on _SchoolEditorState {
   Widget observation() {
     final scheme = Theme.of(context).colorScheme;
     final catalog =
-        catalogs[catalogKey] ?? ObservationCatalog.defaults(catalogKey);
+        (catalogs[catalogKey] ?? ObservationCatalog.defaults(catalogKey))
+            .withPersonal(
+              catalogs[pupilCatalogKey(catalogKey, r.pupilId)] ??
+                  ObservationCatalog(options: const []),
+            );
     final selected = r.observations(selectedTone);
     final options = [
       ...catalog.favorites,
@@ -83,7 +87,7 @@ extension _SchoolObservationView on _SchoolEditorState {
             selectedTone = value;
           }),
         ),
-        const Divider(height: 26),
+        const Divider(height: 12),
         if (r.kind == SchoolKind.work) ...[
           label('Auftrag', 'optional'),
           TagTextField(
@@ -145,9 +149,18 @@ extension _SchoolObservationView on _SchoolEditorState {
                       : Theme.of(
                               context,
                             ).extension<FlexSurfaces>()?.palette.button ??
-                            scheme.onSurface.withValues(alpha: .07),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: FlexDesign.shadows(context),
+                            scheme.surface,
+                  borderRadius: BorderRadius.circular(
+                    Theme.of(context).extension<FlexDialogPresentation>() ==
+                            null
+                        ? 24
+                        : 7,
+                  ),
+                  boxShadow:
+                      Theme.of(context).extension<FlexDialogPresentation>() ==
+                          null
+                      ? FlexDesign.shadows(context)
+                      : null,
                   border: Border.all(color: scheme.outlineVariant, width: .8),
                 ),
                 child: IntrinsicWidth(
@@ -224,7 +237,7 @@ extension _SchoolObservationView on _SchoolEditorState {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         label(
           r.kind == SchoolKind.social
               ? 'Was ist passiert?'
@@ -274,7 +287,7 @@ extension _SchoolObservationView on _SchoolEditorState {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
         ],
         TagTextField(
           fieldKey: const ValueKey('record-body'),
@@ -317,103 +330,108 @@ extension _SchoolObservationView on _SchoolEditorState {
             'In der Entwicklung unter „Ohne Tag“. Für eine Bewertung einen Beobachtungsbaustein auswählen.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
 
-        optionalSection(
-          'Zielbezug',
-          goalOpen,
-          (v) => goalOpen = v,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        if (Theme.of(context).extension<FlexDialogPresentation>() == null)
+          ...observationOptions(),
+      ],
+    );
+  }
+
+  List<Widget> observationOptions() => [
+    optionalSection(
+      'Zielbezug',
+      goalOpen,
+      (v) => goalOpen = v,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!c.records.any(
+            (v) =>
+                v.kind == SchoolKind.goal &&
+                v.pupilId == r.pupilId &&
+                !v.deleted,
+          ))
+            const Text('Noch keine Ziele für diesen Schüler.'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              if (!c.records.any(
+              for (final g in c.records.where(
                 (v) =>
                     v.kind == SchoolKind.goal &&
                     v.pupilId == r.pupilId &&
                     !v.deleted,
               ))
-                const Text('Noch keine Ziele für diesen Schüler.'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final g in c.records.where(
-                    (v) =>
-                        v.kind == SchoolKind.goal &&
-                        v.pupilId == r.pupilId &&
-                        !v.deleted,
-                  ))
-                    transparentChip(
-                      FilterChip(
-                        label: Text(g.title),
-                        selected: r.goalId == g.id,
-                        onSelected: (active) => edit({
-                          'goalId': active ? g.id : null,
-                          'goalSnapshot': active ? g.title : '',
-                        }),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        optionalSection(
-          'Reaktion / Unterstützung',
-          supportOpen,
-          (v) => supportOpen = v,
-          field(
-            'support',
-            'Reaktion / Unterstützung',
-            lines: 2,
-            maxLength: 300,
-            hint: 'Unterstützung …',
-          ),
-        ),
-        optionalSection(
-          'Kontext / Quelle',
-          contextOpen,
-          (v) => contextOpen = v,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (r.situationId != null)
-                TextButton(
-                  onPressed: () => showSituation(context, c, r.situationId!),
-                  child: const Text('Gemeinsamen Kontext bearbeiten'),
+                transparentChip(
+                  FilterChip(
+                    label: Text(g.title),
+                    selected: r.goalId == g.id,
+                    onSelected: (active) => edit({
+                      'goalId': active ? g.id : null,
+                      'goalSnapshot': active ? g.title : '',
+                    }),
+                  ),
                 ),
-              const Text('Quelle'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final source in const {
-                    'self': 'Selbst beobachtet',
-                    'reported': 'Berichtet',
-                    'interpretation': 'Eigene Einordnung',
-                  }.entries)
-                    transparentChip(
-                      ChoiceChip(
-                        label: Text(source.value),
-                        selected: r.source == source.key,
-                        onSelected: (_) => edit({'source': source.key}),
-                      ),
-                    ),
-                ],
-              ),
-              field(
-                'context',
-                'Gemeinsamer Ablauf',
-                lines: 2,
-                maxLength: 3000,
-                hint: 'Kontext …',
-              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      ),
+    ),
+    optionalSection(
+      'Reaktion / Unterstützung',
+      supportOpen,
+      (v) => supportOpen = v,
+      field(
+        'support',
+        'Reaktion / Unterstützung',
+        lines: 2,
+        maxLength: 300,
+        hint: 'Unterstützung …',
+      ),
+    ),
+    optionalSection(
+      'Kontext / Quelle',
+      contextOpen,
+      (v) => contextOpen = v,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (r.situationId != null)
+            TextButton(
+              onPressed: () => showSituation(context, c, r.situationId!),
+              child: const Text('Gemeinsamen Kontext bearbeiten'),
+            ),
+          const Text('Quelle'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final source in const {
+                'self': 'Selbst beobachtet',
+                'reported': 'Berichtet',
+                'interpretation': 'Eigene Einordnung',
+              }.entries)
+                transparentChip(
+                  ChoiceChip(
+                    label: Text(source.value),
+                    selected: r.source == source.key,
+                    onSelected: (_) => edit({'source': source.key}),
+                  ),
+                ),
+            ],
+          ),
+          field(
+            'context',
+            'Gemeinsamer Ablauf',
+            lines: 2,
+            maxLength: 3000,
+            hint: 'Kontext …',
+          ),
+        ],
+      ),
+    ),
+  ];
 
   Widget observationEdit() {
     return Column(
@@ -438,7 +456,7 @@ extension _SchoolObservationView on _SchoolEditorState {
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Text(
           r.kind == SchoolKind.social
               ? 'Was ist passiert? · optional bei Auswahl'
@@ -514,7 +532,7 @@ extension _SchoolObservationView on _SchoolEditorState {
             style: Theme.of(context).textTheme.bodySmall,
           ),
         if (r.kind == SchoolKind.work) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const Text('Auftrag'),
           TagTextField(
             fieldKey: const ValueKey('record-subject'),
@@ -589,6 +607,35 @@ extension _SchoolObservationView on _SchoolEditorState {
                     );
                   },
                 ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.tune_outlined),
+                label: const Text('Auswahltexte bearbeiten'),
+                onPressed: catalogBusy ? null : editOptions,
+              ),
+            ),
+            for (final tone in observationTones.keys)
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final option in {
+                    ...?catalogs['${r.kind.name}-$tone']?.options,
+                    ...?catalogs[pupilCatalogKey(
+                          '${r.kind.name}-$tone',
+                          r.pupilId,
+                        )]
+                        ?.options,
+                  }.where((option) => !r.observations(tone).contains(option)))
+                    ActionChip(
+                      label: Text('${observationSigns[tone]} $option'),
+                      onPressed: () => edit({
+                        tone: [...r.observations(tone), option],
+                      }),
+                    ),
+                ],
+              ),
             Wrap(
               spacing: 8,
               children: [

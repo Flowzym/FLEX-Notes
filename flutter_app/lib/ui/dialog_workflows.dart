@@ -1,10 +1,14 @@
 import 'document_attachments.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import 'option_bar.dart';
 import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
 import 'observation_tone_colors.dart';
 import 'homework_task_editor.dart';
+import 'homework_materials.dart';
+import '../domain/assignment_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
@@ -378,15 +382,25 @@ Future<void> showCatalog(
   NotebookController c,
   String kind, {
   DialogDraft? draft,
+  String? pupilId,
+  String? initialTone,
 }) async {
+  final owner = pupilId ?? draft?.data['pupilId'] as String?;
+  final pupil = c.pupils.where((p) => p.id == owner && !p.deleted).firstOrNull;
   final initial = <String, dynamic>{
-    'tone': c.appearance.defaultObservationTone,
+    'tone': initialTone ?? c.appearance.defaultObservationTone,
+    if (pupil != null) 'pupilId': pupil.id,
     'kind': kind,
   };
   for (final tone in observationTones.keys) {
     initial[tone] = (await c.repository.observationCatalog(
       '$kind-$tone',
     )).options.toList();
+    if (pupil != null) {
+      initial['personal-$tone'] = (await c.repository.observationCatalog(
+        pupilCatalogKey('$kind-$tone', pupil.id),
+      )).options.toList();
+    }
   }
   if (!context.mounted) return;
   await showDialog<void>(
@@ -401,41 +415,70 @@ Future<void> showCatalog(
       title:
           '${kind == 'social' ? 'Sozialverhalten' : 'Arbeitsverhalten'} · Auswahl',
       accept: 'Änderungen speichern',
-      save: (data, saved) => c.repository.saveCatalogs({
-        for (final tone in observationTones.keys)
-          '$kind-$tone': [
-            ...List<String>.from(data[tone] as List? ?? initial[tone] as List),
-            if ((data['new-$tone'] as String? ?? '').trim().isNotEmpty)
-              (data['new-$tone'] as String).trim(),
-          ],
-      }, saved),
+      save: (data, saved) {
+        final changed = <String, List<String>>{};
+        for (final tone in observationTones.keys) {
+          for (final personal in [false, if (pupil != null) true]) {
+            final field = personal ? 'personal-$tone' : tone;
+            final values = [
+              ...List<String>.from(
+                data[field] as List? ?? initial[field] as List,
+              ),
+              if ((data['new-$field'] as String? ?? '').trim().isNotEmpty)
+                (data['new-$field'] as String).trim(),
+            ];
+            if (!listEquals(initial[field] as List, values)) {
+              changed[personal
+                      ? pupilCatalogKey('$kind-$tone', pupil!.id)
+                      : '$kind-$tone'] =
+                  values;
+            }
+          }
+        }
+        return c.repository.saveCatalogs(changed, saved);
+      },
       body: (ctx, data, change) {
-        final tone = data['tone'] as String,
-            list = List<String>.from(
-              data[data['tone']] as List? ?? initial[data['tone']] as List,
-            );
+        final activeTone = data['tone'] as String;
+        final personal = pupil != null && data['personal'] == true;
+        final tone = personal ? 'personal-$activeTone' : activeTone;
+        final list = List<String>.from(
+          data[tone] as List? ?? initial[tone] as List,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Diese Auswahllisten gelten für alle Schüler. Bereits gespeicherte Einträge behalten ihren ursprünglichen Text.',
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final t in observationTones.keys)
-                  transparentChip(
-                    ChoiceChip(
-                      label: Text(
-                        '${observationSigns[t]} ${observationTones[t]}',
-                      ),
-                      selected: tone == t,
-                      onSelected: (_) => change({'tone': t}),
-                    ),
+            if (pupil != null) ...[
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Für alle Schüler'),
+                    selected: !personal,
+                    onSelected: (_) =>
+                        change({'personal': false, 'addError': ''}),
                   ),
-              ],
+                  ChoiceChip(
+                    label: Text('Nur für ${pupil.name}'),
+                    selected: personal,
+                    onSelected: (_) =>
+                        change({'personal': true, 'addError': ''}),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+            OptionBar(
+              options: {
+                for (final t in observationTones.entries)
+                  t.key: '${observationSigns[t.key]} ${t.value}',
+              },
+              value: activeTone,
+              colors: observationToneColors,
+              onChanged: (value) => change({'tone': value, 'addError': ''}),
             ),
+            const SizedBox(height: 14),
             if (list.isEmpty)
               const Text('Die Liste ist leer. Füge unten einen Eintrag hinzu.'),
             for (var i = 0; i < list.length; i++)
@@ -449,7 +492,7 @@ Future<void> showCatalog(
                         initialValue: list[i],
                         maxLength: 150,
                         decoration: const InputDecoration(
-                          labelText: 'Beobachtung',
+                          hintText: 'Beobachtung',
                           counterText: '',
                         ),
                         onChanged: (v) {
@@ -497,9 +540,6 @@ Future<void> showCatalog(
                 data['addError'] as String,
                 style: TextStyle(color: Theme.of(ctx).colorScheme.error),
               ),
-            const Text(
-              'Die Änderungen werden erst mit „Änderungen speichern“ übernommen.',
-            ),
           ],
         );
       },
@@ -589,6 +629,7 @@ Future<void> showBulk(
   List<String> initialRecipients = const [],
 }) async {
   final editorKey = GlobalKey<ProtectedDialogState>();
+  final personalCatalogs = await c.repository.personalObservationCatalogs();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;
@@ -687,7 +728,15 @@ Future<void> showBulk(
             PupilTags(
               pupils: c.pupils.where((p) => !p.archived).toList(),
               selected: ids.toSet(),
-              onChanged: (v) => change({'recipients': v.toList()}),
+              onChanged: (v) => change({
+                'recipients': v.toList(),
+                if (data.containsKey('assignmentSources'))
+                  'assignmentSources': (data['assignmentSources'] as List)
+                      .where(
+                        (s) => s['pupilId'] == null || v.contains(s['pupilId']),
+                      )
+                      .toList(),
+              }),
             ),
             const Text('Bereich'),
             Wrap(
@@ -885,7 +934,14 @@ Future<void> showBulk(
                               runSpacing: 6,
                               children: [
                                 for (final option
-                                    in catalogs['$kind-$tone']!.where(
+                                    in {
+                                      ...catalogs['$kind-$tone']!,
+                                      ...?personalCatalogs[pupilCatalogKey(
+                                            '$kind-$tone',
+                                            pupil.id,
+                                          )]
+                                          ?.options,
+                                    }.where(
                                       (v) => !(individual[tone] as List? ?? [])
                                           .contains(v),
                                     ))
@@ -928,6 +984,16 @@ Future<void> showBulk(
                     change({'tasks': tasks.map((t) => t.toJson()).toList()}),
               ),
               text('subject', 'Fach · optional'),
+              HomeworkMaterials(
+                controller: c,
+                pupils: c.pupils.where((p) => ids.contains(p.id)).toList(),
+                sources: (data['assignmentSources'] as List? ?? [])
+                    .map((s) => AssignmentSource.fromJson(Json.from(s as Map)))
+                    .toList(),
+                onChanged: (v) => change({
+                  'assignmentSources': v.map((s) => s.toJson()).toList(),
+                }),
+              ),
             ],
             if (kind == 'orga') ...[
               text('body', 'Eigene Notiz', lines: 4),

@@ -76,6 +76,12 @@ void main() {
           'pupilIds': [a.id],
         }),
       );
+      await repo.saveObservationOptions('work-positive@${a.id}', [
+        'Privater Text',
+      ]);
+      await repo.saveObservationOptions('work-positive@${b.id}', [
+        'Anderer Text',
+      ]);
       await repo.savePupil(a.copyWith(archived: true));
       final target = AdminTarget('pupil', a.id),
           p = await repo.previewAdminDeletion(target);
@@ -86,6 +92,10 @@ void main() {
       expect(await repo.erasedDriveSources(), isEmpty);
       await repo.deleteAdminSelection(p);
       expect((await repo.pupils()).single.id, b.id);
+      expect((await repo.personalObservationCatalogs()).keys, [
+        'work-positive@${b.id}',
+      ]);
+      expect(await repo.exportBackup(), isNot(contains('Privater Text')));
       expect((await repo.schoolRecords()).single.pupilId, b.id);
       expect((await repo.classroomDocuments()).single.strings('pupilIds'), [
         b.id,

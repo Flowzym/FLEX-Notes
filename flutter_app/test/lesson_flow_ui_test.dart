@@ -118,16 +118,9 @@ void main() {
         lessonPhases(c.classroom.singleWhere(hasLessonFlow)).last.title,
         'Lesetraining',
       );
-      await t.scrollUntilVisible(
-        find.byKey(const ValueKey('flow-start')),
-        150,
-        scrollable: find
-            .descendant(
-              of: find.byKey(const PageStorageKey('lesson-flow')),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
+      expect(find.byKey(const ValueKey('flow-start')), findsNothing);
+      await tap(t, find.byTooltip('Ablaufoptionen'));
+      await tap(t, find.text('Live-Steuerung').last);
       await tap(t, find.byKey(const ValueKey('flow-start')));
       expect(
         lessonPhases(c.classroom.singleWhere(hasLessonFlow)).first.running,
@@ -148,6 +141,7 @@ void main() {
         lessonPhases(c.classroom.singleWhere(hasLessonFlow))[1].status,
         'active',
       );
+      await tap(t, find.byTooltip('Schließen').last);
       await t.pumpWidget(const SizedBox());
       await t.pumpAndSettle();
       await c.reload();

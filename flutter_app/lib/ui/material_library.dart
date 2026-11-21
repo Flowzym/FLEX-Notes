@@ -1,3 +1,5 @@
+import 'material_grouping.dart';
+import '../services/material_import.dart';
 import 'selection_controls.dart';
 import 'incoming_shares.dart';
 import 'quick_add.dart';
@@ -497,7 +499,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
         builder: (ctx, _) {
           if (view == 'drive') {
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 88),
               children: [
                 if (widget.externalView == null)
                   TextButton(
@@ -580,7 +582,7 @@ class _MaterialLibraryPageState extends State<MaterialLibraryPage>
                   key: const PageStorageKey('materials-library'),
                   padding: EdgeInsets.fromLTRB(
                     16,
-                    view == 'files' ? 4 : 16,
+                    view == 'files' ? 4 : 6,
                     16,
                     96,
                   ),
@@ -907,8 +909,7 @@ Future<void> importMaterialFile(
   NotebookController c, {
   String? pupilId,
 }) async {
-  final files = const LocalMaterialFiles();
-  final file = await openFile(
+  final selected = await openFiles(
     acceptedTypeGroups: const [
       XTypeGroup(
         label: 'Dokumente und Fotos',
@@ -922,38 +923,21 @@ Future<void> importMaterialFile(
       ),
     ],
   );
-  if (file == null) return;
-  if (await file.length() > 20000000) {
-    throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
-  }
-  final bytes = BytesBuilder();
-  await for (final chunk in file.openRead()) {
-    if (bytes.length + chunk.length > 20000000) {
-      throw const DomainError('Die Datei überschreitet 20 MB.');
-    }
-    bytes.add(chunk);
-  }
-  final data = bytes.takeBytes(), ext = cloudExtension(file.name);
-  validateMaterialBytes(data, ext);
-  final key = newId();
-  await files.write(key, data);
-  late final ClassroomDocument imported;
-  try {
-    imported = await c.repository.saveClassroomDocument(
-      ClassroomDocument.create(ClassroomKind.material, file.name, {
-        if (pupilId != null) 'pupilIds': [pupilId],
-        'localKey': key,
-        'name': file.name,
-        'extension': ext,
-        'size': data.length,
-        'sourceModifiedAt': utcNow(),
-        ...suggestMaterialMetadata(file.name),
-      }),
-    );
-  } catch (_) {
-    await files.remove(key);
-    rethrow;
-  }
+  if (selected.isEmpty) return;
+  final added = await importLocalMaterials(
+    selected,
+    c.repository,
+    const LocalMaterialFiles(),
+    pupilId: pupilId,
+  );
   await c.reload();
-  if (context.mounted) await showMaterialDetails(context, c, imported);
+  if (!context.mounted) return;
+  if (added.length == 1) {
+    final material = c.classroom.firstWhere((m) => m.id == added.single.id);
+    await showMaterialDetails(context, c, material);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${added.length} Dateien importiert.')),
+    );
+  }
 }

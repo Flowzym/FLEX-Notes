@@ -23,6 +23,22 @@ Future<void> showCalendarManagement(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            ListTile(
+              leading: const Icon(Icons.calendar_view_week),
+              title: const Text('Wochenmappe'),
+              onTap: () {
+                Navigator.pop(ctx);
+                openWeekFolder(context, c, date: date);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.view_kanban_outlined),
+              title: const Text('Unterrichtsplanung'),
+              onTap: () {
+                Navigator.pop(ctx);
+                openPlanningBoard(context, c);
+              },
+            ),
             if (chooseFilter != null)
               ListTile(
                 key: const ValueKey('calendar-management-filter'),
