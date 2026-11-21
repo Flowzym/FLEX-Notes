@@ -131,7 +131,7 @@ extension _FlowMaterials on _LessonFlowPageState {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      onTap: () => guarded(ctx, () => openMaterial(ctx, c, m)),
+                      onTap: () => guarded(ctx, () => openFile(m)),
                       trailing: IconButton(
                         tooltip: 'Zuordnen: ${m.title}',
                         icon: const Icon(Icons.add_link),

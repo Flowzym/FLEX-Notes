@@ -89,6 +89,25 @@ Future<void> showCalendarItem(
                   doc.text('room'),
                 ].where((v) => v.isNotEmpty).join(' · '),
               ),
+              if (doc.isTeachingLesson)
+                FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(ctx).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: Text(current.title)),
+                        body: SafeArea(
+                          child: LessonFlowPage(
+                            controller: c,
+                            initialDate: current.date,
+                            initialTarget: current.target,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.playlist_play),
+                  label: const Text('Unterrichtsablauf öffnen'),
+                ),
               if (current.note.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),

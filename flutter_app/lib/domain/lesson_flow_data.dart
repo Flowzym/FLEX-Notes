@@ -14,9 +14,11 @@ class LessonPhase {
     this.elapsed = 0,
     this.startedAt = '',
     this.carriedTo = '',
+    this.guidance = const [],
     this.resumeNote = '',
   });
   final String id, title, body, kind, status, startedAt, carriedTo, resumeNote;
+  final List<Json> guidance;
   final int minutes, elapsed;
   final List<String> materialIds, pupilIds;
   bool get running => startedAt.isNotEmpty;
@@ -39,6 +41,7 @@ class LessonPhase {
     'status': status,
     'materialIds': materialIds,
     'pupilIds': pupilIds,
+    if (guidance.isNotEmpty) 'guidance': guidance,
     'elapsed': elapsed,
     'startedAt': startedAt,
     'carriedTo': carriedTo,
@@ -58,6 +61,7 @@ class LessonPhase {
       'startedAt',
       'carriedTo',
       'resumeNote',
+      'guidance',
     };
     if ((j.containsKey('resumeNote') && j['resumeNote'] is! String) ||
         j.keys.any((k) => !keys.contains(k)) ||
@@ -83,7 +87,34 @@ class LessonPhase {
         )) {
       throw const DomainError('Ungültige Unterrichtsphase.');
     }
+    final aids = j['guidance'] ?? [];
+    if (aids is! List ||
+        aids.length > 500 ||
+        aids.any(
+          (r) =>
+              r is! Map ||
+              r.keys.any(
+                (k) =>
+                    !{'pupilIds', 'materialIds', 'body', 'minutes'}.contains(k),
+              ) ||
+              r['body'] is! String ||
+              (r['body'] as String).length > 12000 ||
+              r['minutes'] is! int ||
+              (r['minutes'] as int) < 0 ||
+              (r['minutes'] as int) > 600 ||
+              ['materialIds', 'pupilIds'].any(
+                (k) =>
+                    r[k] is! List ||
+                    (r[k] as List).length > 500 ||
+                    (r[k] as List).any(
+                      (i) => i is! String || i.isEmpty || i.length > 250,
+                    ),
+              ),
+        )) {
+      throw const DomainError('Ungültige individuelle Unterrichtshilfe.');
+    }
     final p = LessonPhase(
+      guidance: [for (final r in aids) Json.from(r as Map)],
       id: j['id'],
       title: j['title'],
       body: j['body'],
@@ -134,11 +165,34 @@ class LessonPhase {
 
 void validateLessonFlow(Json data) {
   if (data.keys.any(
-        (k) => !{'template', 'lessonTarget', 'phases', 'pupilId'}.contains(k),
+        (k) => !{
+          'template',
+          'lessonTarget',
+          'phases',
+          'pupilId',
+          'sourceId',
+          'sourceVersion',
+          'sourceBase',
+        }.contains(k),
       ) ||
       (data.containsKey('pupilId') &&
           (data['pupilId'] is! String ||
               (data['pupilId'] as String).length > 250)) ||
+      ['sourceId', 'sourceVersion'].any(
+        (k) =>
+            data.containsKey(k) &&
+            (data[k] is! String || (data[k] as String).length > 250),
+      ) ||
+      data.containsKey('sourceBase') &&
+          (data['sourceBase'] is! Map ||
+              (data['sourceBase'] as Map).length > 80 ||
+              (data['sourceBase'] as Map).entries.any(
+                (e) =>
+                    e.key is! String ||
+                    (e.key as String).length > 250 ||
+                    e.value is! String ||
+                    (e.value as String).length > 80,
+              )) ||
       data['template'] is! bool ||
       data['lessonTarget'] is! String ||
       (data['lessonTarget'] as String).length > 300 ||

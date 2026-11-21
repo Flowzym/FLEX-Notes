@@ -14,6 +14,8 @@ import 'pupil_editor.dart';
 import '../domain/material_tags.dart';
 import 'detail_flow.dart';
 import 'material_thumbnail.dart';
+import '../domain/teaching_sheet.dart';
+import 'teaching_review.dart';
 import 'action_heading.dart';
 import 'dart:async';
 import 'dart:typed_data';
@@ -44,6 +46,7 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'material_pdf.dart';
 import '../services/material_index.dart';
+import '../services/material_cache.dart';
 import 'material_docx.dart';
 
 part 'material_workspace_views.dart';

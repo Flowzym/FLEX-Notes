@@ -46,7 +46,7 @@ class _BoundedXmlOutput extends OutputMemoryStream {
 
 /// Content preview only. No HTML, remote relationships, macros or external XML
 /// entities are executed. The original stays available for Word layout/printing.
-List<Json> readDocxPreview(Uint8List bytes) {
+List<Json> readDocxPreview(Uint8List bytes, {bool planningLayout = false}) {
   try {
     validateMaterialBytes(bytes, 'docx');
     final zip = ZipDecoder().decodeBytes(bytes);
@@ -124,19 +124,51 @@ List<Json> readDocxPreview(Uint8List bytes) {
           });
         }
       } else if (e.name.local == 'tbl') {
-        final rows = [
-          for (final row in e.childElements.where((r) => r.name.local == 'tr'))
-            [
-              for (final cell in row.childElements.where(
-                (c) => c.name.local == 'tc',
-              ))
-                cell.descendants
-                    .whereType<XmlElement>()
-                    .where((p) => p.name.local == 'p')
-                    .map(text)
-                    .join('\n'),
-            ],
-        ];
+        final rows = <List<String>>[];
+        final vertical = <int, String>{};
+        for (final row in e.childElements.where((r) => r.name.local == 'tr')) {
+          final cells = <String>[];
+          for (final cell in row.childElements.where(
+            (c) => c.name.local == 'tc',
+          )) {
+            final col = cells.length;
+            var value = cell.descendants
+                .whereType<XmlElement>()
+                .where((p) => p.name.local == 'p')
+                .map(text)
+                .join('\\n');
+            int span = 1;
+            if (planningLayout) {
+              final properties = cell.childElements
+                  .where((x) => x.name.local == 'tcPr')
+                  .firstOrNull;
+              final merge = properties?.childElements
+                  .where((x) => x.name.local == 'vMerge')
+                  .firstOrNull;
+              final spanNode = properties?.childElements
+                  .where((x) => x.name.local == 'gridSpan')
+                  .firstOrNull;
+              String? val(XmlElement? n) => n?.attributes
+                  .where((a) => a.name.local == 'val')
+                  .firstOrNull
+                  ?.value;
+              span = int.tryParse(val(spanNode) ?? '1') ?? 1;
+              if (span < 1 || span > 30 || col + span > 30) {
+                throw const FormatException();
+              }
+              if (merge == null) {
+                vertical.remove(col);
+              } else if (val(merge) == 'restart') {
+                vertical[col] = value;
+              } else if (value.trim().isEmpty) {
+                value = vertical[col] ?? '';
+              }
+            }
+            cells.add(value);
+            cells.addAll(List.filled(span - 1, ''));
+          }
+          rows.add(cells);
+        }
         if (rows.length > 500 || rows.any((r) => r.length > 30)) {
           throw const FormatException();
         }

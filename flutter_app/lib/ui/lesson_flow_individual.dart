@@ -13,6 +13,7 @@ extension _IndividualFlow on _LessonFlowPageState {
         lessonTarget: target,
         pupilId: id,
         sharedFlow: base,
+        pupils: c.pupils,
       ),
     );
     return c.classroom
@@ -139,10 +140,7 @@ extension _IndividualFlow on _LessonFlowPageState {
           if (active != null && active.minutes > 0) _PhaseClock(phase: active),
           if (nextMaterial != null)
             TextButton.icon(
-              onPressed: () => guarded(
-                context,
-                () => openMaterial(context, c, nextMaterial),
-              ),
+              onPressed: () => guarded(context, () => openFile(nextMaterial)),
               icon: const Icon(Icons.description_outlined),
               label: Text(
                 nextMaterial.title,

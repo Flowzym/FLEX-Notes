@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/classroom.dart';
 import '../domain/lesson_flow.dart';
+import '../domain/teaching_sheet.dart';
+import 'teaching_review.dart';
 import '../domain/material_workspace.dart';
 import '../domain/models.dart';
 import 'classroom_editor.dart';
@@ -14,9 +16,20 @@ import 'homework_control.dart';
 part 'lesson_phase_editor.dart';
 part 'lesson_flow_individual.dart';
 part 'lesson_flow_materials.dart';
+part 'lesson_flow_sources.dart';
 
 class LessonFlowPage extends StatefulWidget {
-  const LessonFlowPage({super.key, required this.controller});
+  const LessonFlowPage({
+    super.key,
+    required this.controller,
+    this.initialDate,
+    this.initialTarget,
+    this.onDateChanged,
+    this.openFile,
+  });
+  final String? initialDate, initialTarget;
+  final ValueChanged<String>? onDateChanged;
+  final Future<void> Function(ClassroomDocument)? openFile;
   final NotebookController controller;
   @override
   State<LessonFlowPage> createState() => _LessonFlowPageState();
@@ -25,8 +38,9 @@ class LessonFlowPage extends StatefulWidget {
 class _LessonFlowPageState extends State<LessonFlowPage>
     with AutomaticKeepAliveClientMixin {
   NotebookController get c => widget.controller;
-  String date = dateOnly(DateTime.now());
-  String? target, expanded, pupilId;
+  late String date = widget.initialDate ?? dateOnly(DateTime.now());
+  late String? target = widget.initialTarget;
+  String? expanded, pupilId;
   bool individual = false;
   final individualSeeds = <String, ClassroomDocument>{};
   bool editing = false, busy = false;
@@ -80,14 +94,17 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       target = saved.map('flow')['lessonTarget'] as String;
     }
     target ??= lesson?.target ?? '';
-    final key = '$date|$target';
+    final key =
+        '$date|$target|${identityHashCode(c.classroom)}|${identityHashCode(c.pupils)}';
     if (seed == null || seedKey != key) {
       seedKey = key;
+      individualSeeds.clear();
       seed = lessonFlowFor(
         c.classroom,
         date,
         lesson: lesson,
         lessonTarget: target,
+        pupils: c.pupils,
       );
     }
     return c.classroom
@@ -123,6 +140,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
     if (value != null && mounted) {
       setState(() {
         date = value.$1;
+        widget.onDateChanged?.call(date);
         target = null;
         expanded = null;
       });
@@ -393,6 +411,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       var next = lessonFlowFor(
         c.classroom,
         chosen.$1,
+        pupils: c.pupils,
         pupilId: lessonFlowPupil(baseline),
       );
       if (next.revision == 0) next = withLessonPhases(next, []);
@@ -506,6 +525,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       final next = lessonFlowFor(
         c.classroom,
         day,
+        pupils: c.pupils,
         pupilId: lessonFlowPupil(baseline),
         lesson: targetLesson,
       );
@@ -616,12 +636,14 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                   TextButton(
                     onPressed: () => setState(() {
                       date = dateOnly(DateTime.now());
+                      widget.onDateChanged?.call(date);
                       target = null;
                     }),
                     child: const Text('Heute'),
                   ),
               ],
             ),
+            ...sourcePanel(value),
             _scopeSelector(),
             if (individual && pupilId == null) ...[
               ..._pupilRows(),
@@ -901,6 +923,27 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                 padding: const EdgeInsets.only(left: 34, bottom: 8),
                 child: Text(p.body),
               ),
+            for (final guide in p.guidance)
+              ExpansionTile(
+                tilePadding: const EdgeInsets.only(left: 32),
+                title: Text(
+                  c.pupils
+                      .where((s) => (guide['pupilIds'] as List).contains(s.id))
+                      .map((s) => s.name)
+                      .join(' · '),
+                ),
+                subtitle: guide['minutes'] > 0
+                    ? Text("${guide['minutes']} Min.")
+                    : null,
+                children: [
+                  ListTile(dense: true, title: Text(guide['body'] as String)),
+                  for (final m in resolveMaterials(
+                    c.classroom,
+                    List<String>.from(guide['materialIds']),
+                  ))
+                    _material(m),
+                ],
+              ),
             if (p.pupilIds.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 34, bottom: 8),
@@ -1007,7 +1050,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       title: Text(m.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: names.isEmpty ? null : Text(names),
       trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () => guarded(context, () => openMaterial(context, c, m)),
+      onTap: () => guarded(context, () => openFile(m)),
     );
   }
 }

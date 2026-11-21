@@ -430,11 +430,30 @@ class OneDriveClient extends ChangeNotifier {
     contentType: 'application/octet-stream',
   );
 
+  Future<Json> replaceVersion(
+    String driveId,
+    String itemId,
+    String etag,
+    Uint8List bytes,
+  ) {
+    if (etag.isEmpty) {
+      throw const DomainError('Die Version des Planstands fehlt.');
+    }
+    return _graphRequest(
+      'PUT',
+      '${itemPath(driveId, itemId)}/content',
+      body: bytes,
+      contentType: 'application/json',
+      ifMatch: etag,
+    );
+  }
+
   Future<Json> _graphRequest(
     String method,
     String path, {
     List<int>? body,
     String? contentType,
+    String? ifMatch,
     bool retried = false,
   }) async {
     if (method != 'GET' && !appFolderAccess) {
@@ -452,6 +471,7 @@ class OneDriveClient extends ChangeNotifier {
     }
     final request = http.Request(method, uri)..followRedirects = false;
     request.headers['Authorization'] = 'Bearer ${await _token(force: retried)}';
+    if (ifMatch != null) request.headers['If-Match'] = ifMatch;
     if (body != null) request.bodyBytes = body;
     if (contentType != null) request.headers['Content-Type'] = contentType;
     final response = await client
@@ -467,6 +487,7 @@ class OneDriveClient extends ChangeNotifier {
         path,
         body: body,
         contentType: contentType,
+        ifMatch: ifMatch,
         retried: true,
       );
     }

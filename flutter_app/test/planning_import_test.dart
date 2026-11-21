@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
@@ -11,7 +12,7 @@ import 'package:flex_notizbuch/services/onedrive.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/material_library.dart';
 import 'classroom_test.dart' show classroomMemory;
-import 'material_workspace_test.dart' show MemoryMaterialFiles;
+import 'material_workspace_test.dart' show MemoryMaterialFiles, docx, word;
 
 const mila = Pupil(id: 'p', name: 'Mila Beispiel'),
     mika = Pupil(id: 'q', name: 'Mika Muster');
@@ -43,6 +44,13 @@ class _PlanningDrive extends OneDriveClient {
     return {'id': 'drive'};
   }
 
+  @override
+  Future<Json> item(String drive, String id) async => childrenById.values
+      .expand((items) => items)
+      .firstWhere((item) => item['id'] == id);
+  @override
+  Future<Uint8List> download(Json item, {int maxBytes = 20000000}) async =>
+      docx(word('<w:p><w:r><w:t>Wochenziele</w:t></w:r></w:p>'));
   @override
   Future<List<Json>> children({String? drive, String? folder}) async =>
       childrenById[folder]!;
