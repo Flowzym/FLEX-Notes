@@ -1,3 +1,5 @@
+import 'quick_access.dart';
+import 'material_sync.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flex_device/flex_device.dart';
@@ -8,9 +10,30 @@ import '../data/open_notebook.dart';
 import '../domain/repository.dart';
 import '../platform/backup_mutex.dart';
 import 'app_lock.dart';
+import 'incoming_shares.dart';
 import 'automatic_backup.dart';
+import 'complete_backup.dart';
+import 'stream_backup.dart';
+import 'material_storage.dart';
 import 'reminders.dart';
 import 'secret_store.dart';
+
+const materialSyncTask = 'flex.material-folders.v1';
+Future<void> scheduleMaterialSync(bool enabled) async {
+  if (!enabled) {
+    await Workmanager().cancelByUniqueName(materialSyncTask);
+    return;
+  }
+  await Workmanager().registerPeriodicTask(
+    materialSyncTask,
+    materialSyncTask,
+    frequency: const Duration(minutes: 30),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    constraints: Constraints(networkType: NetworkType.connected),
+    backoffPolicy: BackoffPolicy.exponential,
+    backoffPolicyDelay: const Duration(minutes: 5),
+  );
+}
 
 const backupTask = 'flex.encrypted-backup.v1';
 Future<void> scheduleBackup(int? hours) async {
@@ -36,7 +59,12 @@ Future<void> scheduleBackup(int? hours) async {
 AutomaticBackup makeBackup(NotebookRepository repository) => AutomaticBackup(
   store: DeviceSecretStore(),
   files: const DeviceBackupFiles(),
-  export: repository.exportBackup,
+  export: () => CompleteBackup.capture(repository, const LocalMaterialFiles()),
+  exportStream: (password) => StreamBackup.capture(
+    repository,
+    const LocalMaterialFiles(),
+    password: password,
+  ),
   schedule: scheduleBackup,
   withLock: backupMutex,
 );
@@ -44,7 +72,7 @@ AutomaticBackup makeBackup(NotebookRepository repository) => AutomaticBackup(
 @pragma('vm:entry-point')
 void backgroundDispatcher() {
   Workmanager().executeTask((task, input) async {
-    if (task != backupTask) return true;
+    if (task != backupTask && task != materialSyncTask) return true;
     WidgetsFlutterBinding.ensureInitialized();
     DartPluginRegistrant.ensureInitialized();
     NotebookRepository? repository;
@@ -52,6 +80,13 @@ void backgroundDispatcher() {
     try {
       repository = await openNotebook();
       await repository.initialize();
+      if (task == materialSyncTask) {
+        final result = await syncNotebookMaterials(
+          repository,
+          const LocalMaterialFiles(),
+        );
+        return result.errors.isEmpty;
+      }
       backup = makeBackup(repository);
       await backup.run();
       return true;
@@ -69,8 +104,12 @@ class DeviceServices {
     required this.lock,
     required this.backup,
     required this.reminders,
+    this.incoming,
+    this.quickAccess,
   });
   final AppLock lock;
+  final QuickAccess? quickAccess;
+  final IncomingShares? incoming;
   final AutomaticBackup backup;
   final Reminders reminders;
   Timer? _backupTimer;
@@ -101,7 +140,21 @@ class DeviceServices {
     } catch (_) {
       reminders.error = 'Android-Erinnerungen konnten nicht geladen werden.';
     }
-    return DeviceServices(lock: lock, backup: backup, reminders: reminders);
+    final incoming = IncomingShares()..listen();
+    await incoming.refresh();
+    final quickAccess = QuickAccess();
+    try {
+      await quickAccess.initialize();
+    } catch (_) {
+      /* Optional launcher integration. */
+    }
+    return DeviceServices(
+      lock: lock,
+      backup: backup,
+      reminders: reminders,
+      incoming: incoming,
+      quickAccess: quickAccess,
+    );
   }
 
   void updated(NotebookSnapshot data) {
@@ -115,6 +168,8 @@ class DeviceServices {
   }
 
   void resume() {
+    unawaited(quickAccess?.refresh().catchError((_) {}));
+    unawaited(incoming?.refresh());
     unawaited(backup.load().catchError((Object _) {}));
     if (_snapshot != null) updated(_snapshot!);
   }

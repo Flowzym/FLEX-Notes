@@ -11,8 +11,8 @@ class SchemaTests(unittest.TestCase):
         self.db = sqlite3.connect(':memory:')
         self.db.execute('PRAGMA foreign_keys=ON')
         self.db.executescript(SCHEMA)
-        self.db.execute("INSERT INTO devices VALUES ('synthetic-device')")
-        self.db.execute("INSERT INTO pupils VALUES ('synthetic-pupil','Testkind Alpha',4289248128,0,1)")
+        self.db.execute("INSERT INTO devices(id) VALUES ('synthetic-device')")
+        self.db.execute("INSERT INTO pupils(id,name,color,archived,revision) VALUES ('synthetic-pupil','Testkind Alpha',4289248128,0,1)")
         self.db.commit()
 
     def tearDown(self):

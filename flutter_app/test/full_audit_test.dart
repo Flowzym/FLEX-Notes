@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'package:flex_notizbuch/ui/compact_switch.dart';
 import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
 import 'dart:async';
@@ -6,7 +7,6 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
@@ -27,23 +27,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SqliteNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = SqliteNotebook(
       NotebookDatabase(
@@ -79,12 +63,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();
@@ -376,7 +354,7 @@ void main() {
         final bar = find.byKey(const ValueKey('tone-pill'));
         String tone() => t.widget<OptionBar>(bar).value;
         expect(tone(), 'neutral');
-        expect(t.getSize(bar).height, inInclusiveRange(38, 40));
+        expect(t.getSize(bar).height, inInclusiveRange(42, 46));
         final neutral = observationDefaults['${kind.name}-neutral']!.first;
         await tap(t, find.byKey(ValueKey('observation-$neutral')));
         for (final entry in [
@@ -483,13 +461,23 @@ void main() {
     await tap(t, find.byTooltip('Weitere Bereiche'));
     await tap(t, find.text('Einstellungen'));
     await tap(t, find.byKey(const ValueKey('settings-tab-1')));
-    expect(t.widget<OptionBar>(find.byType(OptionBar)).value, 'neutral');
+    expect(
+      t
+          .widget<OptionBar>(
+            find.byWidgetPredicate(
+              (w) => w is OptionBar && w.keyPrefix == 'default-tone',
+            ),
+          )
+          .value,
+      'neutral',
+    );
     await tap(t, find.byKey(const ValueKey('default-tone-negative')));
     await t.runAsync(c.flushAppearance);
     expect((await repo.appearance()).defaultObservationTone, 'negative');
     await tap(t, find.byKey(const ValueKey('settings-tab-0')));
-    await tap(t, find.text('Darstellung zurücksetzen'));
-    await tap(t, find.widgetWithText(FilledButton, 'Zurücksetzen'));
+    c.previewAppearance({'textScale': 1.2});
+    await t.pumpAndSettle();
+    await tap(t, find.byKey(const ValueKey('appearance-reset-size')));
     expect(c.appearance.defaultObservationTone, 'negative');
     await open(
       t,
@@ -575,6 +563,8 @@ void main() {
       final field = find.byKey(const ValueKey('orga-note'));
       await t.ensureVisible(field);
       await t.enterText(field, 'Nachgereichter Termin');
+      // Let the focused field finish its caret-scroll before moving to Save.
+      await t.pumpAndSettle();
       await tap(t, find.text('Speichern'));
       expect((await repo.entries()).single.appointmentDate, '2030-04-04');
       expect(t.takeException(), isNull);
@@ -658,7 +648,7 @@ void main() {
       'audit render and reachable controls ${view.$1}/${view.$3}/${view.$4}/${view.$5}',
       (t) async {
         await c.saveAppearance(
-          c.appearance.patch({'mode': view.$4, 'uiScale': view.$5}),
+          c.appearance.patch({'mode': view.$4, 'textScale': view.$5}),
         );
         final boundary = GlobalKey();
         final suffix = '${view.$1.toInt()}-${view.$3.toInt()}-${view.$4}';
@@ -705,10 +695,10 @@ void main() {
         final theme = Theme.of(dialogContext);
         final background = theme
             .extension<FlexSurfaces>()!
-            .palette!
-            .modalPerceived
+            .palette
+            .backdrop
             .computeLuminance();
-        expect(IconTheme.of(dialogContext).color, theme.colorScheme.onSurface);
+        expect(IconTheme.of(dialogContext).color, theme.colorScheme.primary);
         final ink = theme.colorScheme.onSurfaceVariant.computeLuminance();
         final contrast = ink > background
             ? (ink + .05) / (background + .05)
@@ -727,24 +717,11 @@ void main() {
           );
           await capture(t, boundary, 'settings-$tab-$suffix');
           if (tab == 0) {
-            for (final name in [
-              'uiScale',
-              'textScale',
-              'cardRadius',
-              'buttonRadius',
-              'fieldRadius',
-              'modalRadius',
-              'footerOpacity',
-            ]) {
-              final control = find.byKey(ValueKey('setting-$name'));
-              expect(control, findsOneWidget);
-              await t.ensureVisible(control);
-              await t.pumpAndSettle();
-            }
-            expect(
-              find.textContaining('App-Skalierung verändert'),
-              findsNothing,
-            );
+            final control = find.byKey(const ValueKey('appearance-text-scale'));
+            expect(control, findsOneWidget);
+            await t.ensureVisible(control);
+            await t.pumpAndSettle();
+            expect(find.textContaining('App-Skalierung'), findsNothing);
           } else if (tab == 2) {
             for (final label in [
               'Exportieren',

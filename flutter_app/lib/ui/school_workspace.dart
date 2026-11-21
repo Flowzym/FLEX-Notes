@@ -1,3 +1,5 @@
+import '../services/pseudonymize.dart';
+import 'work_assignment_sources.dart';
 import 'detail_flow.dart';
 import 'document_attachments.dart';
 import 'collapsible_search.dart';
@@ -5,11 +7,13 @@ import '../domain/document_scanner.dart';
 import '../services/brief_pdf.dart';
 import 'compact_switch.dart';
 import 'homework_record_view.dart';
+import 'homework_reassign.dart';
 import 'pupil_history.dart';
 import 'reminder_actions.dart';
 import 'draft_buffer.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
+import 'lesson_question.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
@@ -27,21 +31,29 @@ Future<void> editSchool(
   String mode = 'entry',
   String? taskId,
   String? feedbackId,
-  bool focusDelivery = false,
 }) async {
-  await showFlexDetail<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => SchoolEditor(
-      controller: c,
-      record: r,
-      draft: draft,
-      mode: mode,
-      taskId: taskId,
-      feedbackId: feedbackId,
-      focusDelivery: focusDelivery,
-    ),
+  Widget editor(BuildContext _) => SchoolEditor(
+    controller: c,
+    record: r,
+    draft: draft,
+    mode: mode,
+    taskId: taskId,
+    feedbackId: feedbackId,
   );
+  if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+      DetailFlowScope.maybeOf(context) == null) {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: editor,
+    );
+  } else {
+    await showFlexDetail<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: editor,
+    );
+  }
   await c.reload();
 }
 
@@ -51,7 +63,9 @@ class SchoolWorkspace extends StatefulWidget {
     required this.controller,
     required this.pupil,
     required this.kind,
+    this.initiallyOpenOnly = false,
   });
+  final bool initiallyOpenOnly;
   final NotebookController controller;
   final Pupil pupil;
   final SchoolKind kind;
@@ -61,7 +75,7 @@ class SchoolWorkspace extends StatefulWidget {
 
 class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   String query = '';
-  bool onlyOpen = false;
+  late bool onlyOpen = widget.initiallyOpenOnly;
   final search = TextEditingController();
 
   @override
@@ -132,14 +146,17 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
             ),
             actions: [
               if (!widget.pupil.archived)
-                IconButton(
-                  tooltip: 'Hausübung hinzufügen',
-                  onPressed: () => editSchool(
-                    context,
-                    widget.controller,
-                    SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                Tooltip(
+                  message: 'Hausübung hinzufügen',
+                  child: TextButton.icon(
+                    onPressed: () => editSchool(
+                      context,
+                      widget.controller,
+                      SchoolRecord.empty(SchoolKind.homework, widget.pupil.id),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('HÜ aufgeben'),
                   ),
-                  icon: const Icon(Icons.add),
                 ),
             ],
           ),
@@ -235,6 +252,27 @@ class _SchoolWorkspaceState extends State<SchoolWorkspace> {
   }
 }
 
+Future<void> showHomeworkDetail(
+  BuildContext context,
+  NotebookController c,
+  String id,
+) => showFlexDetail<void>(
+  context: context,
+  builder: (ctx) => AnimatedBuilder(
+    animation: c,
+    builder: (ctx, _) {
+      final r = c.records.where((v) => v.id == id && !v.deleted).firstOrNull;
+      return FlexModal(
+        title: const Text('Hausübung'),
+        onClose: () => Navigator.pop(ctx),
+        content: r == null
+            ? const Text('Die Hausübung wurde entfernt.')
+            : SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+    },
+  ),
+);
+
 class SchoolRecordCard extends StatefulWidget {
   const SchoolRecordCard({
     super.key,
@@ -255,8 +293,8 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
   SchoolRecord? retryValue;
   SchoolRecord get r => widget.record;
   NotebookController get c => widget.controller;
-  Future<void> mutate(SchoolRecord value) async {
-    if (busy) return;
+  Future<bool> mutate(SchoolRecord value) async {
+    if (busy) return false;
     setState(() {
       busy = true;
       saveError = null;
@@ -273,48 +311,65 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
       }
     }
     if (mounted) setState(() => busy = false);
+    return retryValue == null;
   }
 
   Future<void> setTask(HomeworkTask task, TaskState state) async {
-    if (busy || r.taskState(task) == state) return;
-    final now = DateTime.now();
-    final f = SchoolFeedback(
-      id: newId(),
-      observedOn: dateOnly(now),
-      observedTime:
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-      createdAtUtc: utcNow(),
-      taskId: task.id,
-      taskText: task.text,
-      state: state,
-    );
-    final future = r.liveFeedback.where(
-      (v) =>
-          v.taskId == task.id &&
-          v.state != null &&
-          v.sortKey.compareTo(f.sortKey) > 0,
-    );
-    if (future.isNotEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => FlexModal(
-          title: const Text('Spätere Rückmeldung vorhanden'),
-          content: const Text(
-            'Für diese Aufgabe gibt es bereits einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Schließen'),
-            ),
-          ],
-        ),
-      );
-      return;
+    final saved = await setTasks([task], state);
+    if (saved && mounted && state == TaskState.missing) {
+      final current = c.records.where((v) => v.id == r.id).firstOrNull;
+      if (current != null) {
+        await suggestHomeworkReassignment(context, c, current, task.id);
+      }
     }
-    await mutate(
+  }
+
+  Future<bool> setTasks(List<HomeworkTask> tasks, TaskState state) async {
+    if (busy || r.deleted) return false;
+    final now = DateTime.now(), date = dateOnly(now), created = utcNow();
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final updates = <SchoolFeedback>[];
+    for (final task in tasks) {
+      if (task.reassignedTo != null || r.taskState(task) == state) continue;
+      final feedback = SchoolFeedback(
+        id: newId(),
+        observedOn: date,
+        observedTime: time,
+        createdAtUtc: created,
+        taskId: task.id,
+        taskText: task.text,
+        state: state,
+      );
+      if (r.liveFeedback.any(
+        (v) =>
+            v.taskId == task.id &&
+            v.state != null &&
+            v.sortKey.compareTo(feedback.sortKey) > 0,
+      )) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => FlexModal(
+            title: const Text('Spätere Rückmeldung vorhanden'),
+            content: Text(
+              'Für „${task.text}“ gibt es einen später datierten Stand. Bitte diese Rückmeldung im Verlauf bearbeiten.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Schließen'),
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+      updates.add(feedback);
+    }
+    if (updates.isEmpty) return true;
+    return mutate(
       r.patch({
-        'feedback': [...r.feedback.map((f) => f.toJson()), f.toJson()],
+        'feedback': [...r.feedback, ...updates].map((v) => v.toJson()).toList(),
       }),
     );
   }
@@ -325,11 +380,11 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
     expanded: homeworkExpanded,
     standalone: widget.standalone,
     busy: busy,
+    onOpenReassigned: (id) => showHomeworkDetail(context, c, id),
     onExpand: () => setState(() => homeworkExpanded = !homeworkExpanded),
     onEdit: () => editSchool(context, c, r),
     onTaskState: setTask,
-    onDelivery: () =>
-        editSchool(context, c, r, mode: 'comment', focusDelivery: true),
+    onBatchState: setTasks,
     onComment: (taskId) =>
         editSchool(context, c, r, mode: 'comment', taskId: taskId),
     onReminder: () => showReminderActions(
@@ -587,6 +642,14 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
               },
             ),
             ...[
+              if (r.kind == SchoolKind.work && r.assignmentSources.isNotEmpty)
+                WorkAssignmentSources(
+                  controller: c,
+                  date: r.observedOn,
+                  values: r.assignmentSources,
+                ),
+              if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                Text(q.summary),
               if (r.body.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -606,6 +669,18 @@ class _SchoolRecordCardState extends State<SchoolRecordCard> {
                 Text('Zielbezug: ${r.goalSnapshot}'),
             ],
             if (r.kind == SchoolKind.goal) ...[
+              if (!r.deleted && r.goalStatus == 'active')
+                TextButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => editLessonQuestion(context, c, r),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: Text(
+                    r.lessonQuestion == null
+                        ? 'Beobachtungsfrage vormerken'
+                        : '${displayDate(r.lessonQuestion!.date)} · ${r.lessonQuestion!.text}',
+                  ),
+                ),
               if (r.criterion.isNotEmpty) Text('Kriterium: ${r.criterion}'),
               Text(
                 'Stand: ${const {'active': 'Aktiv', 'achieved': 'Erreicht', 'ended': 'Beendet'}[r.goalStatus]}',
@@ -749,6 +824,21 @@ class SchoolTools extends StatelessWidget {
           const Text(
             'Hier abgelegte Einträge sind ausgeblendet und weiterhin in Sicherungen enthalten.',
           ),
+          for (final pupil in controller.pupils.where((p) => p.deleted))
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: Text(pupil.name),
+              subtitle: const Text('Schüler mit zugehörigen Einträgen'),
+              trailing: TextButton(
+                onPressed: () => guarded(
+                  context,
+                  () => controller.savePupil(
+                    pupil.copyWith(deleted: false, archived: false),
+                  ),
+                ),
+                child: const Text('Wiederherstellen'),
+              ),
+            ),
           for (final e in controller.trashedEntries)
             FlexCard(
               child: ListTile(
@@ -767,7 +857,8 @@ class SchoolTools extends StatelessWidget {
           for (final r in controller.records.where((v) => v.deleted))
             SchoolRecordCard(controller: controller, record: r),
           if (!controller.records.any((v) => v.deleted) &&
-              controller.trashedEntries.isEmpty)
+              controller.trashedEntries.isEmpty &&
+              !controller.pupils.any((p) => p.deleted))
             const EmptyState('Der Papierkorb ist leer.'),
         ],
       );
@@ -777,7 +868,7 @@ class SchoolTools extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const EmptyState(
-            'Gruppenerfassungen konnten nicht geladen werden.',
+            'Die gemeinsam angelegten Einträge konnten nicht geladen werden.',
           );
         }
         if (!snapshot.hasData) {
@@ -786,7 +877,7 @@ class SchoolTools extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text('Gruppenerfassungen'),
+            const Text('Für mehrere Schüler angelegt'),
             for (final group in snapshot.data!)
               FlexCard(
                 child: ListTile(
@@ -801,7 +892,7 @@ class SchoolTools extends StatelessWidget {
                           onPressed: () async {
                             if (await confirmFlex(
                                   context,
-                                  'Gruppenerfassung zurücknehmen?',
+                                  'Gemeinsam angelegte Einträge zurücknehmen?',
                                   'Alle unveränderten Einträge werden in den Papierkorb verschoben. Ein neuer Entwurf erhält die Eingaben.',
                                   accept: 'Rückgängig',
                                 ) &&
@@ -820,7 +911,9 @@ class SchoolTools extends StatelessWidget {
                 ),
               ),
             if (snapshot.data!.isEmpty)
-              const EmptyState('Noch keine Gruppenerfassungen.'),
+              const EmptyState(
+                'Noch keine Einträge für mehrere Schüler angelegt.',
+              ),
           ],
         );
       },
@@ -838,9 +931,15 @@ Future<void> showBrief(
 }) async {
   String? from = initialFrom;
   String? to = initialTo ?? dateOnly(DateTime.now());
-  var names = false;
+  var names = false, pseudonyms = false;
+  var additionalNames = '';
   var preview = '', error = '';
-  final selection = <String>{...initialSelection};
+  String reviewId(SchoolRecord r, GoalReview v) => 'review:${r.id}:${v.id}';
+  final selection = <String>{
+    ...initialSelection,
+    for (final r in c.records.where((r) => initialSelection.contains(r.id)))
+      for (final v in r.reviews) reviewId(r, v),
+  };
   final areas = <String>{'social', 'work', 'goal', 'homework', 'orga'};
   await showDialog<void>(
     context: context,
@@ -865,6 +964,8 @@ Future<void> showBrief(
                 r.title,
                 r.subject,
                 r.body,
+                if (r.lessonQuestion case final q? when q.answer.isNotEmpty)
+                  q.summary,
                 ...r.positive.map((s) => '+ $s'),
                 ...r.neutral.map((s) => '• $s'),
                 ...r.negative.map((s) => '− $s'),
@@ -883,6 +984,34 @@ Future<void> showBrief(
                     .map((f) => '${displayDate(f.observedOn)} · ${f.note}'),
               ].where((s) => s.isNotEmpty).join('\n'),
             ),
+          if (areas.contains('goal'))
+            for (final r in c.records.where(
+              (r) =>
+                  !r.deleted &&
+                  r.pupilId == pupil.id &&
+                  r.kind == SchoolKind.goal,
+            ))
+              for (final review in r.reviews.where(
+                (v) => inRange(v.observedOn),
+              ))
+                (
+                  id: reviewId(r, review),
+                  date: review.observedOn,
+                  label: 'Zielüberprüfung · ${r.title}',
+                  text: [
+                    switch (review.decision) {
+                      'continue' => 'Ziel weiterverfolgen',
+                      'achieved' => 'Ziel erreicht',
+                      'ended' => 'Ziel beendet',
+                      _ => 'Ziel wieder aufgenommen',
+                    },
+                    if (review.note.isNotEmpty) review.note,
+                    if (review.nextStep.isNotEmpty)
+                      'Nächster Schritt: ${review.nextStep}',
+                    if (review.nextReviewDate != null)
+                      'Wiedervorlage: ${displayDate(review.nextReviewDate)}',
+                  ].join('\n'),
+                ),
           for (final e in c.entries.where(
             (e) =>
                 e.pupilId == pupil.id &&
@@ -895,6 +1024,8 @@ Future<void> showBrief(
               label: 'Orga',
               text: [
                 e.body.isEmpty ? e.title : e.body,
+                if (names && e.otherParticipants.isNotEmpty)
+                  'Weitere Namen: ${e.otherParticipants}',
                 if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
                 if (e.dueDate != null) 'Fällig am: ${displayDate(e.dueDate)}',
                 if (e.appointmentDate != null)
@@ -966,6 +1097,32 @@ Future<void> showBrief(
                 ],
               ),
               CompactSwitchListTile(
+                key: const ValueKey('brief-pseudonyms'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Namen beim Export ersetzen'),
+                value: pseudonyms,
+                onChanged: (v) => update(() {
+                  pseudonyms = v;
+                  preview = '';
+                }),
+              ),
+              if (pseudonyms) ...[
+                const Text(
+                  'Bekannte Schülernamen werden durch Person 1, Person 2 usw. ersetzt. Prüfe Freitext und weitere personenbezogene Angaben in der Vorschau.',
+                ),
+                TextFormField(
+                  initialValue: additionalNames,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Weitere Namen, durch Komma getrennt',
+                  ),
+                  onChanged: (v) => update(() {
+                    additionalNames = v;
+                    preview = '';
+                  }),
+                ),
+              ],
+              CompactSwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Namen weiterer Beteiligter aufnehmen'),
                 value: names,
@@ -1010,10 +1167,13 @@ Future<void> showBrief(
                   value: selection.contains(e.id),
                   onChanged: (v) => update(() {
                     preview = '';
+                    final related = entries
+                        .where((row) => row.id.startsWith('review:${e.id}:'))
+                        .map((row) => row.id);
                     if (v == true) {
-                      selection.add(e.id);
+                      selection.addAll([e.id, ...related]);
                     } else {
-                      selection.remove(e.id);
+                      selection.removeAll([e.id, ...related]);
                     }
                   }),
                 ),
@@ -1028,6 +1188,15 @@ Future<void> showBrief(
                   error = '';
                   preview =
                       'Gesprächsvorbereitung · ${pupil.name}\nZeitraum: ${from == null ? 'Beginn' : displayDate(from)} bis ${to == null ? 'heute' : displayDate(to)}\n\n${entries.where((e) => selection.contains(e.id)).map((e) => '${displayDate(e.date)} · ${e.label}\n${e.text}').join('\n\n')}\n\nNächste Schritte\n';
+                  if (pseudonyms) {
+                    preview = pseudonymizeReport(preview, [
+                      pupil.name,
+                      ...c.pupils
+                          .where((p) => p.id != pupil.id)
+                          .map((p) => p.name),
+                      ...additionalNames.split(RegExp(r'[,;\n]')),
+                    ]);
+                  }
                 }),
                 child: const Text('Auswahl zusammenstellen'),
               ),
@@ -1049,10 +1218,10 @@ Future<void> showBrief(
                       final bytes = await briefPdf(
                         text: preview,
                         regularFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Regular.ttf',
+                          'assets/fonts/Inter-Regular.ttf',
                         ),
                         boldFont: await rootBundle.load(
-                          'assets/fonts/Selawik-Bold.ttf',
+                          'assets/fonts/Inter-Bold.ttf',
                         ),
                       );
                       await saveBytesFile(

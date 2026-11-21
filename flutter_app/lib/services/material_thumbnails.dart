@@ -35,28 +35,40 @@ Uint8List thumbnailImage(Uint8List bytes) {
   return Uint8List.fromList(img.encodeJpg(small, quality: 82));
 }
 
+DocumentThumbnail _docxThumbnail(Uint8List bytes) {
+  final cover = readDocxCover(bytes);
+  if (cover != null) {
+    try {
+      return DocumentThumbnail(image: thumbnailImage(cover));
+    } catch (_) {
+      // Some Word files have a damaged cover and a readable document body.
+    }
+  }
+  final blocks = readDocxPreview(bytes);
+  final text = blocks
+      .map(
+        (b) =>
+            b['text'] ??
+            (b['rows'] as List? ?? [])
+                .map((r) => (r as List).join(' · '))
+                .join('\n'),
+      )
+      .join('\n');
+  return DocumentThumbnail(
+    text: text.length > 600 ? text.substring(0, 600) : text,
+  );
+}
+
 Future<DocumentThumbnail> renderDocumentThumbnail(
   Uint8List bytes,
   String extension,
 ) async {
   validateMaterialBytes(bytes, extension);
-  if (extension == 'jpg') {
+  if (extension == 'jpg' || extension == 'png') {
     return DocumentThumbnail(image: await compute(thumbnailImage, bytes));
   }
   if (extension == 'docx') {
-    final blocks = await compute(readDocxPreview, bytes);
-    final text = blocks
-        .map(
-          (b) =>
-              b['text'] ??
-              (b['rows'] as List? ?? [])
-                  .map((r) => (r as List).join(' · '))
-                  .join('\n'),
-        )
-        .join('\n');
-    return DocumentThumbnail(
-      text: text.length > 600 ? text.substring(0, 600) : text,
-    );
+    return compute(_docxThumbnail, bytes);
   }
   await pdfrxFlutterInitialize();
   final pdf = await PdfDocument.openData(

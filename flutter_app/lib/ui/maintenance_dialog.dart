@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
+import '../services/stream_backup.dart';
+import '../platform/backup_transfer.dart';
+import '../services/material_storage.dart';
+import 'backup_dialog.dart';
 import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import 'common.dart';
-import 'draft_buffer.dart';
 import 'flex_modal.dart';
 
 class MaintenanceDialog extends StatefulWidget {
@@ -56,19 +60,28 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
         children: [
           Text(
             widget.emptyTrash
-                ? 'Gelöschte Einträge und ihre früheren Fassungen werden endgültig entfernt. Erstelle zuerst eine vollständige Sicherung.'
-                : 'Der lokale Speicher wird geprüft und optimiert. Einträge, frühere Fassungen und Entwürfe bleiben erhalten.',
+                ? 'Gelöschte Einträge und ihre früheren Versionen werden endgültig entfernt. Erstelle zuerst eine vollständige Sicherung.'
+                : 'Der lokale Speicher wird geprüft und optimiert. Einträge, frühere Versionen und Entwürfe bleiben erhalten.',
           ),
           TextButton(
             onPressed: busy
                 ? null
                 : () => action(() async {
+                    final password = await backupPassword(
+                      context,
+                      opening: false,
+                    );
+                    if (password == null) return;
                     final captured = await widget.controller.repository
                         .exportBackup();
-                    if (await saveTextFile(
-                      'FLEX-Vollstaendige-Sicherung-${dateOnly(DateTime.now())}.json',
-                      captured,
-                      mime: 'application/json',
+                    if (await saveBackupStream(
+                      'FLEX-Vollstaendige-Sicherung-${dateOnly(DateTime.now())}.flexbackup',
+                      StreamBackup.capture(
+                        widget.controller.repository,
+                        const LocalMaterialFiles(),
+                        password: password,
+                        capturedNotebook: captured,
+                      ),
                     )) {
                       if (mounted) {
                         setState(() {
@@ -82,8 +95,10 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
           ),
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Ich habe die Sicherung gespeichert und andere App-Tabs geschlossen.',
+            title: Text(
+              kIsWeb
+                  ? 'Sicherung gespeichert und andere FLEX-Tabs geschlossen'
+                  : 'Sicherung gespeichert',
             ),
             value: confirmed,
             onChanged: busy
@@ -121,6 +136,9 @@ class _MaintenanceDialogState extends State<MaintenanceDialog> {
                     emptyTrash: widget.emptyTrash,
                   );
                   await widget.controller.reload();
+                  await widget.controller.repository.removeUnreferencedFiles(
+                    const LocalMaterialFiles().remove,
+                  );
                   if (context.mounted) Navigator.pop(context);
                 }),
           child: const Text('Ausführen'),

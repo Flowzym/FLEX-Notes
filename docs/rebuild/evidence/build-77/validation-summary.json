@@ -1,0 +1,17 @@
+{
+  "version": "0.27.0+77",
+  "flutterTests": 600,
+  "schemaTests": 11,
+  "nativeJvmTests": 2,
+  "previewServerTests": 3,
+  "analysis": "no issues",
+  "dartFormatting": "214 files unchanged",
+  "webRelease": "passed",
+  "androidRelease": [
+    "arm64-v8a",
+    "armeabi-v7a"
+  ],
+  "physicalAndroidTested": false,
+  "largeBackupStreamingComplete": false,
+  "syntheticBenchmark": "backup-benchmark.json"
+}

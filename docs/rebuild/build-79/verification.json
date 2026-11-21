@@ -1,0 +1,30 @@
+{
+  "version": "0.29.0+79",
+  "sourceCommit": "95be453498d0fd8ceead9f64bac81a0ef46cce6e",
+  "localChecks": {
+    "analysis": "no issues",
+    "format": "246 files unchanged",
+    "schemaTests": 11,
+    "previewServerTests": 3,
+    "nativeTests": 8,
+    "flutterSuite": {
+      "initialPasses": 635,
+      "initialFailures": 10,
+      "reason": "UI test expectations for terminology and embedded tablet workspace",
+      "affectedFilesRerun": "All pass after scope/label corrections; see tests-rerun.log and dialog-final.log",
+      "additionalReminderRegression": "4 tests pass including manual snooze/dismiss handling",
+      "finalTabletRegression": "1 passed",
+      "githubFullSuitePassed": 646
+    },
+    "cameraMemory": "Bounded decoding of high resolution frames and viewport-preserving crop mapping"
+  },
+  "browser": "Synthetic pre-existing notebook; migration, drag+undo, narrow layouts, report dialogs and encrypted backup import preview passed",
+  "physicalAndroidTested": false,
+  "signedGitHubReleaseTested": false,
+  "releaseBlocker": "Repository Secrets API returned 403 Forbidden",
+  "ciStatus": "Analysis, formatting, 11 schema tests and all 646 Flutter tests passed on GitHub for unchanged Dart/DB sources.",
+  "ciTestRun": "https://github.com/Flowzym/FLEX-Notes/actions/runs/43645270426",
+  "ciTestJob": 132601541764,
+  "ciTestCommit": "120cddd54b90c2eabcfe46b883142c9acaa78546",
+  "nativeMemoryCorrectionCommit": "95be453498d0fd8ceead9f64bac81a0ef46cce6e"
+}

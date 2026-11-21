@@ -1,11 +1,77 @@
 import 'detail_flow.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../domain/models.dart';
 import 'surfaces.dart';
 import 'common.dart';
 part 'flex_date_picker.dart';
+
+/// Desktop hosts supply their own window frame around the same editor fields.
+class FlexDialogPresentation extends ThemeExtension<FlexDialogPresentation> {
+  const FlexDialogPresentation(this.frame);
+  final Widget Function(BuildContext, FlexModal, bool embedded) frame;
+  @override
+  FlexDialogPresentation copyWith() => this;
+  @override
+  FlexDialogPresentation lerp(
+    ThemeExtension<FlexDialogPresentation>? other,
+    double t,
+  ) => t < .5 ? this : other as FlexDialogPresentation? ?? this;
+}
+
+/// The narrow form keeps its reading order. On a desktop the related people,
+/// documents and timing controls can sit beside the editor.
+class EntryFormSections extends StatelessWidget {
+  const EntryFormSections({
+    super.key,
+    required this.primary,
+    required this.details,
+  });
+  final List<Widget> primary, details;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      Widget column(List<Widget> items) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: items,
+      );
+      if (Theme.of(context).extension<FlexDialogPresentation>() == null ||
+          box.maxWidth < 780 ||
+          MediaQuery.textScalerOf(context).scale(1) > 1.4) {
+        return column([...primary, ...details]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 7, child: column(primary)),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 4,
+            child: Material(
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow.withValues(alpha: .60),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: column(details),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
 /// Shared shell for entry editors, secondary dialogs and confirmations.
 class FlexModal extends StatelessWidget {
@@ -18,132 +84,43 @@ class FlexModal extends StatelessWidget {
     this.onClose,
     this.closeLabel = 'Schließen',
     this.scrollable = true,
+    this.embedded = false,
     this.maxWidth = 640,
     this.headerContent,
     this.footerContent,
-    this.appearance,
-    this.accentColor,
   });
   final Widget title, content;
   final String closeLabel;
   final Widget? headerContent, footerContent;
-  final Appearance? appearance;
-  final Color? accentColor;
   final List<Widget> actions, headerActions;
   final VoidCallback? onClose;
-  final bool scrollable;
+  final bool scrollable, embedded;
   final double maxWidth;
   @override
   Widget build(BuildContext context) {
+    final presentation = Theme.of(context).extension<FlexDialogPresentation>();
+    if (presentation != null) {
+      return presentation.frame(
+        context,
+        this,
+        embedded || DetailFlowScope.maybeOf(context) != null,
+      );
+    }
     final scheme = Theme.of(context).colorScheme;
     final mobile = MediaQuery.sizeOf(context).width <= 700;
     final surfaces = Theme.of(context).extension<FlexSurfaces>();
-    final appearance = this.appearance ?? surfaces?.appearance;
-    final referenceStyle = appearance != null;
-    final headerColor = surfaces?.header ?? scheme.surfaceContainerHigh;
-    final footerColor = surfaces?.footer ?? scheme.surfaceContainerHigh;
-    final palette = surfaces?.palette;
-    final headerForeground = legibleOn(
-      Color.alphaBlend(headerColor, palette?.modalPerceived ?? scheme.surface),
-    );
-    final footerForeground = legibleOn(
-      Color.alphaBlend(footerColor, palette?.modalPerceived ?? scheme.surface),
-    );
+    final footerColor = surfaces?.palette.backdrop ?? scheme.surface;
+    final footerForeground = scheme.onSurface;
     final baseTheme = Theme.of(context);
-    final referenceTheme = baseTheme.copyWith(
-      textTheme: baseTheme.textTheme.copyWith(
-        bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-        ),
-        bodyMedium: baseTheme.textTheme.bodyMedium?.copyWith(
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-        ),
-        labelLarge: baseTheme.textTheme.labelLarge?.copyWith(
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style:
-            baseTheme.textButtonTheme.style?.copyWith(
-              textStyle: const WidgetStatePropertyAll(
-                TextStyle(fontFamily: 'FlexSans', fontSize: 15),
-              ),
-            ) ??
-            TextButton.styleFrom(
-              textStyle: const TextStyle(
-                fontFamily: 'FlexSans',
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style:
-            FilledButton.styleFrom(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              textStyle: const TextStyle(
-                fontFamily: 'FlexSans',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ).merge(
-              baseTheme.filledButtonTheme.style?.copyWith(
-                backgroundColor: WidgetStatePropertyAll(scheme.primary),
-                foregroundColor: WidgetStatePropertyAll(scheme.onPrimary),
-              ),
-            ),
-      ),
-      switchTheme: SwitchThemeData(
-        thumbColor: const WidgetStatePropertyAll(Colors.white),
-        trackColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? scheme.primary
-              : scheme.onSurface.withValues(alpha: .10),
-        ),
-        trackOutlineColor: WidgetStatePropertyAll(
-          scheme.onSurface.withValues(alpha: .4),
-        ),
-      ),
-      chipTheme: baseTheme.chipTheme.copyWith(
-        shape: const StadiumBorder(),
-        side: BorderSide.none,
-        backgroundColor: baseTheme.chipTheme.backgroundColor,
-        labelStyle: TextStyle(
-          fontFamily: 'FlexSans',
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: WidgetStateColor.resolveWith(
-            (states) => states.contains(WidgetState.selected)
-                ? legibleOn(scheme.primary)
-                : palette?.buttonInk ?? scheme.onSurface,
-          ),
-        ),
-      ),
-      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(appearance?.fieldRadius ?? 14),
-          borderSide: BorderSide(color: scheme.onSurface.withValues(alpha: .3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(appearance?.fieldRadius ?? 14),
-          borderSide: BorderSide(color: scheme.primary),
-        ),
-        fillColor: baseTheme.inputDecorationTheme.fillColor,
-      ),
-    );
     final dialog = Dialog(
       insetPadding: EdgeInsets.all(mobile ? 10 : 16),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(appearance?.modalRadius ?? 24),
+        borderRadius: BorderRadius.circular(FlexDesign.modalRadius),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       child: Theme(
-        data: referenceStyle ? referenceTheme : baseTheme,
+        data: baseTheme,
         child: ConstrainedBox(
           key: const ValueKey('flex-modal-frame'),
           constraints: BoxConstraints(
@@ -154,80 +131,76 @@ class FlexModal extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxHeight < 440;
-              final header = Container(
-                key: const ValueKey('modal-header'),
-                color: headerColor,
-                foregroundDecoration: BoxDecoration(
-                  border: accentColor == null
-                      ? null
-                      : Border(left: BorderSide(color: accentColor!, width: 4)),
-                ),
-                padding: EdgeInsets.fromLTRB(
-                  mobile ? 12 : 20,
-                  compact
-                      ? 4
-                      : mobile
-                      ? 6
-                      : 8,
-                  mobile ? 8 : 14,
-                  compact
-                      ? 4
-                      : mobile
-                      ? 6
-                      : 8,
-                ),
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: IconTheme.merge(
-                    data: IconThemeData(color: headerForeground),
-                    child:
-                        (headerContent == null
-                            ? null
-                            : DefaultTextStyle.merge(
-                                style: TextStyle(color: headerForeground),
+              final header = Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    key: const ValueKey('modal-header'),
+                    padding: EdgeInsets.fromLTRB(
+                      mobile ? 16 : 24,
+                      4,
+                      mobile ? 12 : 18,
+                      4,
+                    ),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: IconTheme.merge(
+                        data: IconThemeData(color: scheme.primary),
+                        child: headerContent != null
+                            ? DefaultTextStyle.merge(
+                                style: TextStyle(color: scheme.onSurface),
                                 child: headerContent!,
-                              )) ??
-                        Row(
-                          children: [
-                            if ((DetailFlowScope.maybeOf(context)?.depth ?? 0) >
-                                0)
-                              IconButton(
-                                tooltip: 'Zurück',
-                                onPressed: onClose,
-                                icon: const Icon(Icons.arrow_back),
-                              ),
-                            Expanded(
-                              child: DefaultTextStyle(
-                                style: Theme.of(context).textTheme.titleLarge!
-                                    .copyWith(
-                                      color: headerForeground,
-                                      fontFamily: 'FlexSerif',
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
+                              )
+                            : Row(
+                                children: [
+                                  if ((DetailFlowScope.maybeOf(
+                                            context,
+                                          )?.depth ??
+                                          0) >
+                                      0)
+                                    IconButton(
+                                      tooltip: 'Zurück',
+                                      onPressed: onClose,
+                                      icon: const Icon(Icons.arrow_back),
                                     ),
-                                child: title,
+                                  Expanded(
+                                    child: DefaultTextStyle(
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge!
+                                          .copyWith(color: scheme.onSurface),
+                                      child: title,
+                                    ),
+                                  ),
+                                  ...headerActions,
+                                  if (onClose != null &&
+                                      (DetailFlowScope.maybeOf(
+                                                context,
+                                              )?.depth ??
+                                              0) ==
+                                          0)
+                                    IconButton(
+                                      tooltip: closeLabel,
+                                      onPressed: onClose,
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                                ],
                               ),
-                            ),
-                            ...headerActions,
-                            if (onClose != null &&
-                                (DetailFlowScope.maybeOf(context)?.depth ??
-                                        0) ==
-                                    0)
-                              IconButton(
-                                tooltip: closeLabel,
-                                onPressed: onClose,
-                                color: headerForeground,
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                          ],
-                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               );
               final footer = Container(
                 key: const ValueKey('modal-footer'),
                 width: double.infinity,
-                color: footerColor,
+                decoration: BoxDecoration(
+                  color: footerColor,
+                  border: Border(
+                    top: BorderSide(color: scheme.outlineVariant, width: .8),
+                  ),
+                ),
                 padding: EdgeInsets.symmetric(
                   horizontal: mobile ? 16 : 24,
                   vertical: compact
@@ -246,18 +219,17 @@ class FlexModal extends StatelessWidget {
                           foregroundBuilder: centeredButtonLabel,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
-                              appearance?.buttonRadius ?? 28,
+                              FlexDesign.buttonRadius,
                             ),
                           ),
-                          backgroundColor: Colors.transparent,
+                          backgroundColor: scheme.surface,
                           foregroundColor: footerForeground,
-                          textStyle: referenceStyle
-                              ? const TextStyle(
-                                  fontFamily: 'FlexSans',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400,
-                                )
-                              : null,
+                          side: BorderSide(color: scheme.outlineVariant),
+                          textStyle: const TextStyle(
+                            fontFamily: 'FlexSans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -266,18 +238,17 @@ class FlexModal extends StatelessWidget {
                           foregroundBuilder: centeredButtonLabel,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
-                              appearance?.buttonRadius ?? 28,
+                              FlexDesign.buttonRadius,
                             ),
                           ),
-                          backgroundColor: Colors.transparent,
+                          backgroundColor: scheme.surface,
                           foregroundColor: footerForeground,
-                          textStyle: referenceStyle
-                              ? const TextStyle(
-                                  fontFamily: 'FlexSans',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400,
-                                )
-                              : null,
+                          side: BorderSide(color: scheme.outlineVariant),
+                          textStyle: const TextStyle(
+                            fontFamily: 'FlexSans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     ),
@@ -300,9 +271,11 @@ class FlexModal extends StatelessWidget {
                 ),
               );
               final body = Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: mobile ? 16 : 24,
-                  vertical: compact ? 10 : 16,
+                padding: EdgeInsets.fromLTRB(
+                  mobile ? 16 : 24,
+                  6,
+                  mobile ? 16 : 24,
+                  mobile ? 8 : 16,
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -316,7 +289,8 @@ class FlexModal extends StatelessWidget {
               // With large type or a keyboard the complete dialog must scroll;
               // fixed header/footer otherwise consume the available height.
               final layout = _ModalSections(
-                expandBody: DetailFlowScope.maybeOf(context) != null,
+                expandBody:
+                    embedded || DetailFlowScope.maybeOf(context) != null,
                 scrollAll:
                     constraints.maxHeight < 520 ||
                     MediaQuery.textScalerOf(context).scale(1) > 1.5,
@@ -327,28 +301,21 @@ class FlexModal extends StatelessWidget {
                     ? footer
                     : null,
               );
-              final surface = ColoredBox(
+              final surface = Material(
                 key: const ValueKey('modal-surface'),
-                color: palette?.modal ?? scheme.surface,
-                child: Material(type: MaterialType.transparency, child: layout),
+                type: MaterialType.transparency,
+                child: layout,
               );
-              return appearance == null
-                  ? surface
-                  : FlexBackground(appearance: appearance, child: surface);
+              return FlexBackground(child: surface);
             },
           ),
         ),
       ),
     );
-    if (DetailFlowScope.maybeOf(context) != null) {
+    if (embedded || DetailFlowScope.maybeOf(context) != null) {
       return dialog.child!;
     }
-    return referenceStyle
-        ? BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-            child: dialog,
-          )
-        : dialog;
+    return dialog;
   }
 }
 

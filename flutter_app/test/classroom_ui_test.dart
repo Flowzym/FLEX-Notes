@@ -1,9 +1,9 @@
+import 'support/app_test_fonts.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'package:flex_notizbuch/ui/conflict_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,18 +15,11 @@ import 'package:flex_notizbuch/ui/classroom_editor.dart';
 import 'package:flex_notizbuch/ui/calendar_page.dart';
 import 'package:flex_notizbuch/ui/return_lists.dart';
 import 'package:flex_notizbuch/ui/development_dialog.dart';
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'classroom_test.dart' show classroomMemory, lesson, returns;
 
 void main() {
-  setUpAll(() async {
-    final loader = FontLoader('FlexSans')
-      ..addFont(rootBundle.load('assets/fonts/Selawik-Regular.ttf'));
-    await loader.load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-  });
+  setUpAll(loadAppTestFonts);
   Future<void> capture(WidgetTester t, GlobalKey key, String name) async {
     final folder = Platform.environment['FLEX_TEST_ARTIFACT_DIR'];
     if (folder == null) return;
@@ -151,22 +144,27 @@ void main() {
           child: FlexApp(controller: c),
         ),
       );
-      await t.runAsync(
-        () => precacheImage(
-          const AssetImage(FlexBackground.defaultDarkImage),
-          t.element(find.byType(FlexBackground).first),
-        ),
-      );
       await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('page-1')));
-      await t.drag(find.byType(PageView), const Offset(-320, 0));
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(-320, 0),
+      );
       await t.pumpAndSettle();
-      expect(find.text('Dieser Bereich wird noch gestaltet.'), findsOneWidget);
+      expect(find.text('Vorgeschlagener Grundablauf'), findsOneWidget);
+      expect(find.text('Ablauf starten'), findsNothing);
+      await t.drag(
+        find.byKey(const ValueKey('main-pages')),
+        const Offset(-320, 0),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const PageStorageKey('overview')), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('bottom-0')));
-      await tap(t, find.byKey(const ValueKey('context-0-1')));
-      expect(find.byKey(const ValueKey('timetable-view')), findsOneWidget);
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('context-2-3')));
+      expect(find.byKey(const ValueKey('general-add-task')), findsOneWidget);
       expect(find.byKey(const ValueKey('calendar-shortcut')), findsNothing);
-      await tap(t, find.byKey(const ValueKey('context-0-0')));
+      await tap(t, find.byKey(const ValueKey('bottom-0')));
       expect(find.byKey(const ValueKey('calendar-view')), findsOneWidget);
       await capture(t, key, 'calendar-phone');
       await tap(t, find.byKey(const ValueKey('bottom-3')));
@@ -177,30 +175,46 @@ void main() {
     },
   );
   testWidgets(
-    'three calendar page buttons remain visible and usable at large text on phone',
+    'three organisation page buttons remain visible and usable at large text on phone',
     (t) async {
-      var selected = -1;
+      var selected = 0;
       await host(
         t,
-        (_) => FlexPagePills(
-          selected: 0,
-          pages: calendarPages,
-          onSelected: (v) => selected = v,
+        (_) => StatefulBuilder(
+          builder: (ctx, update) => FlexPagePills(
+            selected: selected,
+            pages: organisationPages,
+            onSelected: (v) => update(() => selected = v),
+          ),
         ),
         scale: 2,
       );
       final shell = t.getRect(find.byKey(const ValueKey('page-pills')));
-      final active = t.getRect(find.byKey(const ValueKey('page-0')));
+      final active = t.getRect(find.byKey(const ValueKey('page-active')));
       final track = t.getRect(find.byKey(const ValueKey('page-track-0')));
       expect(active.top, lessThan(track.top));
       expect(active.bottom, greaterThan(track.bottom));
       expect(active.left, lessThan(track.left));
-      for (final i in calendarPages.keys) {
+      expect(
+        active.right,
+        greaterThan(t.getRect(find.byKey(const ValueKey('page-0'))).right),
+      );
+      for (final i in organisationPages.keys) {
         final button = t.getRect(find.byKey(ValueKey('page-$i')));
         expect(shell.contains(button.topLeft), isTrue);
         expect(shell.contains(button.bottomRight), isTrue);
         await tap(t, find.byKey(ValueKey('page-$i')));
         expect(selected, i);
+        final highlight = t.getRect(find.byKey(const ValueKey('page-active')));
+        expect(highlight.left, lessThan(button.left));
+        expect(highlight.right, greaterThan(button.right));
+        if (i == organisationPages.keys.last) {
+          final rowTrack = find.byKey(ValueKey('page-track-$i'));
+          final lastTrack = rowTrack.evaluate().isEmpty
+              ? track
+              : t.getRect(rowTrack);
+          expect(highlight.right, greaterThan(lastTrack.right));
+        }
       }
       expect(t.takeException(), isNull);
     },
@@ -415,7 +429,12 @@ void main() {
     final c = await controller();
     await host(t, (_) => CalendarPage(controller: c), scale: 2);
     for (final mode in ['day', 'week', 'month']) {
-      await tap(t, find.byKey(ValueKey('calendar-mode-$mode')));
+      await tap(
+        t,
+        find.byKey(
+          ValueKey('calendar-mode-${['day', 'week', 'month'].indexOf(mode)}'),
+        ),
+      );
       expect(t.takeException(), isNull);
     }
     await t.pumpWidget(const SizedBox());
@@ -443,17 +462,10 @@ void main() {
         scale: 1.5,
       );
       await tap(t, find.text('Start'));
+      await tap(t, find.byKey(const ValueKey('development-filters')));
       await tap(t, find.text('Arbeit'));
       expect(find.text('Gemeinsam gelesen'), findsNothing);
       await tap(t, find.text('Sozial'));
-      await tap(
-        t,
-        find.byKey(
-          ValueKey(
-            'development-week-${dateOnly(DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1)))}',
-          ),
-        ),
-      );
       await t.ensureVisible(find.text('Gemeinsam gelesen'));
       expect(find.text('Gemeinsam gelesen'), findsOneWidget);
       expect(t.takeException(), isNull);

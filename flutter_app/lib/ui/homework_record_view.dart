@@ -1,4 +1,7 @@
 import 'detail_flow.dart';
+import 'work_assignment_sources.dart';
+import 'submission_collection.dart';
+import 'selection_controls.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -21,10 +24,11 @@ class HomeworkRecordView extends StatelessWidget {
     required this.standalone,
     required this.busy,
     required this.onExpand,
+    required this.onOpenReassigned,
     required this.onEdit,
     required this.onTaskState,
+    required this.onBatchState,
     required this.onComment,
-    required this.onDelivery,
     required this.onReminder,
     required this.onDelete,
     required this.onHistory,
@@ -34,20 +38,18 @@ class HomeworkRecordView extends StatelessWidget {
   final SchoolRecord record;
   final bool expanded, standalone, busy;
   final VoidCallback onExpand, onEdit, onReminder, onDelete, onHistory;
+  final ValueChanged<String> onOpenReassigned;
   final void Function(HomeworkTask, TaskState) onTaskState;
+  final Future<bool> Function(List<HomeworkTask>, TaskState) onBatchState;
   final void Function(String?) onComment;
-  final VoidCallback onDelivery;
   final Widget? error;
 
   @override
   Widget build(BuildContext context) {
     final r = record, c = controller;
-    final theme = Theme.of(context), colors = theme.colorScheme;
+    final theme = Theme.of(context);
     final owner = c.pupils.where((p) => p.id == r.pupilId).firstOrNull;
     final title = r.title.isNotEmpty ? r.title : r.subject;
-    final complete = r.tasks
-        .where((t) => r.taskState(t) == TaskState.complete)
-        .length;
     final generalNotes = r.liveFeedback.where(
       (f) => f.taskId == null && f.note.isNotEmpty,
     );
@@ -100,56 +102,40 @@ class HomeworkRecordView extends StatelessWidget {
               ),
           ],
         ),
-        Wrap(
-          spacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (r.dueDate != null)
-              Text(
-                'Fällig: ${displayDate(r.dueDate)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+        if (r.dueDate != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Fällig: ${displayDate(r.dueDate)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-            TextButton(
-              key: ValueKey('homework-delivery-${r.id}'),
-              onPressed: editable ? onDelivery : null,
-              style: _quietButton(context),
-              child: Text('Abgabe: ${homeworkDeliveryLabel(r.delivery)}'),
             ),
-          ],
-        ),
+          ),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            '$complete / ${r.tasks.length} erledigt',
+            r.homeworkProgress,
             key: ValueKey('homework-progress-${r.id}'),
             style: theme.textTheme.bodySmall,
           ),
         ),
         if (expanded || standalone) ...[
-          if (r.tasks.isEmpty)
-            const Text('Noch keine Aufgaben.')
-          else
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.onSurface.withValues(alpha: .035),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                children: [
-                  for (var i = 0; i < r.tasks.length; i++) ...[
-                    if (i > 0)
-                      Divider(
-                        height: 1,
-                        indent: 12,
-                        endIndent: 12,
-                        color: colors.onSurface.withValues(alpha: .1),
-                      ),
-                    _task(context, r.tasks[i]),
-                  ],
-                ],
-              ),
+          _HomeworkTaskList(
+            key: ValueKey('homework-tasks-${r.id}'),
+            record: r,
+            canEdit: editable,
+            onBatchState: onBatchState,
+            onCollect: () =>
+                guarded(context, () => collectHomework(context, c, r)),
+            taskBuilder: (task, onSelect) =>
+                _task(context, task, onSelect: onSelect),
+          ),
+          if (r.assignmentSources.isNotEmpty)
+            WorkAssignmentSources(
+              controller: c,
+              date: r.observedOn,
+              values: r.assignmentSources,
             ),
           if (generalNotes.isNotEmpty)
             Padding(
@@ -214,7 +200,11 @@ class HomeworkRecordView extends StatelessWidget {
     );
   }
 
-  Widget _task(BuildContext context, HomeworkTask task) {
+  Widget _task(
+    BuildContext context,
+    HomeworkTask task, {
+    VoidCallback? onSelect,
+  }) {
     final r = record, theme = Theme.of(context);
     final notes = r.liveFeedback.where(
       (f) => f.taskId == task.id && f.note.isNotEmpty,
@@ -227,6 +217,7 @@ class HomeworkRecordView extends StatelessWidget {
       key: ValueKey('homework-task-details-${task.id}'),
       borderRadius: BorderRadius.circular(12),
       onTap: () => _openTask(context, task.id, number),
+      onLongPress: onSelect,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         child: Row(
@@ -245,7 +236,7 @@ class HomeworkRecordView extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${r.taskState(task).label}${notes.isEmpty ? '' : ' · ${notes.length} Kommentar${notes.length == 1 ? '' : 'e'}'}',
+                    '${r.taskState(task).label}${task.reassignedTo == null ? '' : ' · Erneut aufgegeben'}${notes.isEmpty ? '' : ' · ${notes.length} Kommentar${notes.length == 1 ? '' : 'e'}'}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: .7),
                     ),
@@ -261,7 +252,9 @@ class HomeworkRecordView extends StatelessWidget {
     final states = HomeworkStatusSelector(
       task: task,
       value: r.taskState(task),
-      onChanged: busy || r.deleted ? null : (value) => onTaskState(task, value),
+      onChanged: busy || r.deleted || task.reassignedTo != null
+          ? null
+          : (value) => onTaskState(task, value),
     );
     return Padding(
       key: ValueKey('homework-task-${task.id}'),
@@ -333,6 +326,15 @@ class HomeworkRecordView extends StatelessWidget {
                       'Stand: ${current.taskState(task).label}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (task.reassignedTo != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => onOpenReassigned(task.reassignedTo!),
+                          icon: const Icon(Icons.redo),
+                          label: const Text('Nacharbeit öffnen'),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     if (!current.deleted)
                       Align(
@@ -397,6 +399,143 @@ ButtonStyle _quietButton(BuildContext context) => TextButton.styleFrom(
   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
   textStyle: const TextStyle(fontFamily: 'FlexSans', fontSize: 13),
 );
+
+class _HomeworkTaskList extends StatefulWidget {
+  const _HomeworkTaskList({
+    super.key,
+    required this.record,
+    required this.canEdit,
+    required this.onCollect,
+    required this.onBatchState,
+    required this.taskBuilder,
+  });
+  final SchoolRecord record;
+  final bool canEdit;
+  final VoidCallback onCollect;
+  final Future<bool> Function(List<HomeworkTask>, TaskState) onBatchState;
+  final Widget Function(HomeworkTask, VoidCallback?) taskBuilder;
+  @override
+  State<_HomeworkTaskList> createState() => _HomeworkTaskListState();
+}
+
+class _HomeworkTaskListState extends State<_HomeworkTaskList> {
+  final marked = <String>{};
+  bool selecting = false;
+  void toggle(String id) => setState(() {
+    selecting = true;
+    if (!marked.add(id)) marked.remove(id);
+  });
+  void finish() => setState(() {
+    marked.clear();
+    selecting = false;
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.record, canEdit = widget.canEdit;
+    final available = r.tasks.where((t) => t.reassignedTo == null).toList();
+    final chosen = available.where((t) => marked.contains(t.id)).toList();
+    final all = available.isNotEmpty && chosen.length == available.length;
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (selecting && !r.deleted)
+          SelectionControls(
+            count: chosen.length,
+            allVisibleSelected: all,
+            onToggleAll: canEdit
+                ? () => setState(() {
+                    if (all) {
+                      marked.clear();
+                    } else {
+                      marked.addAll(available.map((t) => t.id));
+                    }
+                  })
+                : null,
+            onFinish: canEdit ? finish : null,
+            actions: [
+              PopupMenuButton<TaskState>(
+                tooltip: 'Status für Auswahl',
+                enabled: canEdit && chosen.isNotEmpty,
+                icon: const Icon(Icons.rule),
+                itemBuilder: (_) => [
+                  for (final state in TaskState.values)
+                    PopupMenuItem(value: state, child: Text(state.label)),
+                ],
+                onSelected: (state) async {
+                  final saved = await widget.onBatchState(chosen, state);
+                  if (saved && mounted) finish();
+                },
+              ),
+            ],
+          )
+        else if (!r.deleted)
+          Wrap(
+            spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.move_to_inbox_outlined),
+                label: const Text('Einsammeln'),
+                onPressed: canEdit ? widget.onCollect : null,
+              ),
+              if (available.length > 1)
+                IconButton(
+                  tooltip: 'Aufgaben auswählen',
+                  icon: const Icon(Icons.checklist),
+                  onPressed: canEdit
+                      ? () => setState(() => selecting = true)
+                      : null,
+                ),
+            ],
+          ),
+        if (r.tasks.isEmpty)
+          const Text('Noch keine Aufgaben.')
+        else
+          Material(
+            color: colors.onSurface.withValues(alpha: .035),
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (final (index, task) in r.tasks.indexed) ...[
+                  if (index > 0)
+                    Divider(
+                      height: 1,
+                      indent: 12,
+                      endIndent: 12,
+                      color: colors.onSurface.withValues(alpha: .1),
+                    ),
+                  if (selecting && !r.deleted)
+                    CheckboxListTile(
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(task.text),
+                      subtitle: Text(
+                        task.reassignedTo == null
+                            ? r.taskState(task).label
+                            : 'Erneut aufgegeben',
+                      ),
+                      value: marked.contains(task.id),
+                      onChanged: canEdit && task.reassignedTo == null
+                          ? (_) => toggle(task.id)
+                          : null,
+                    )
+                  else
+                    widget.taskBuilder(
+                      task,
+                      canEdit && task.reassignedTo == null
+                          ? () => toggle(task.id)
+                          : null,
+                    ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
 
 class HomeworkStatusSelector extends StatelessWidget {
   const HomeworkStatusSelector({

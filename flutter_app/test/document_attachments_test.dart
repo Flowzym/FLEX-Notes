@@ -333,6 +333,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'checking a homework selection updates only the marked tasks in one revision',
+    (t) async {
+      final r = await repo.saveSchoolRecord(taskRecord('p'));
+      await c.reload();
+      await host(
+        t,
+        SchoolRecordCard(controller: c, record: r, standalone: true),
+      );
+      final title = find.byKey(const ValueKey('homework-task-details-child'));
+      await t.ensureVisible(title);
+      await t.longPress(title);
+      await t.pumpAndSettle();
+      await tap(t, find.widgetWithText(CheckboxListTile, 'Weitere Aufgabe'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.byTooltip('Status für Auswahl'));
+      await tap(
+        t,
+        find.widgetWithText(PopupMenuItem<TaskState>, TaskState.complete.label),
+      );
+      final saved = (await repo.schoolRecords()).single;
+      expect(saved.revision, r.revision + 1);
+      expect(saved.taskState(saved.tasks.first), TaskState.open);
+      expect(saved.taskState(saved.tasks[1]), TaskState.complete);
+      expect(saved.taskState(saved.tasks[2]), TaskState.complete);
+      expect(
+        saved.liveFeedback.map((v) => v.taskId),
+        unorderedEquals(['child', 'other']),
+      );
+      await finish(t);
+    },
+  );
+
   for (final layout in [(390.0, 1.0), (320.0, 2.0)]) {
     testWidgets(
       'homework summary survives collapse and actions remain reachable at $layout',
@@ -420,18 +453,14 @@ void main() {
           width: layout.$1,
           scale: layout.$2,
         );
-        await tap(t, find.byKey(ValueKey('homework-delivery-${r.id}')));
-        final editor = t.widget<SchoolEditor>(find.byType(SchoolEditor));
-        expect(editor.mode, 'comment');
-        expect(editor.taskId, isNull);
-        expect(find.text('Vorgelegt'), findsOneWidget);
-        expect(t.testTextInput.isVisible, isFalse);
-        await tap(t, find.text('Vorgelegt'));
-        await tap(t, find.text('Abgabe speichern'));
+        expect(find.byKey(ValueKey('homework-delivery-${r.id}')), findsNothing);
+        expect(find.text('Abgabe: Nicht überprüft'), findsNothing);
+        await tap(t, find.byKey(const ValueKey('status-child-missing')));
+        expect(find.text('Erneut aufgeben?'), findsOneWidget);
+        await tap(t, find.text('So belassen'));
         final saved = (await repo.schoolRecords()).single;
-        expect(saved.delivery, 'submitted');
-        expect(saved.tasks.map(saved.taskState), everyElement(TaskState.open));
-        expect(saved.liveFeedback.single.taskId, isNull);
+        expect(saved.taskState(saved.tasks[1]), TaskState.missing);
+        expect(saved.taskState(saved.tasks.first), TaskState.open);
         expect(t.takeException(), isNull);
         await finish(t);
       },
@@ -576,7 +605,7 @@ void main() {
 
   for (final kind in [SchoolKind.goal, SchoolKind.social, SchoolKind.work]) {
     testWidgets(
-      '${kind.name} bottom scanner saves new entry before assigning it',
+      '${kind.name} bottom scanner assigns draft without publishing new entry',
       (t) async {
         final r = SchoolRecord.empty(kind, 'p').patch({
           'title': 'Lesen',
@@ -586,8 +615,10 @@ void main() {
         await open(t, SchoolEditor(controller: c, record: r));
         await tap(t, action('editor-attachments-entry', 'attachment-scan'));
         final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
-        expect(scope.pupilIds, ['p']);
-        expect(scope.links.single.id, (await repo.schoolRecords()).single.id);
+        expect(scope.pupilIds, isEmpty);
+        expect(await repo.schoolRecords(), isEmpty);
+        expect(scope.links.single.kind, 'schoolDraft');
+        expect(scope.links.single.id, (await repo.schoolDrafts()).single.id);
         expect(scope.links.single.taskId, isEmpty);
         await finish(t);
       },
@@ -595,30 +626,25 @@ void main() {
   }
 
   testWidgets(
-    'new group homework scanner maps selected subtask to every saved pupil',
+    'new group homework scanner retains selected subtask on its draft',
     (t) async {
       await open(t, SchoolEditor(controller: c, record: taskRecord('p')));
       await tap(t, find.byKey(const ValueKey('pupil-tag-q')));
-      await tap(t, action('editor-attachments-child', 'attachment-scan'));
+      await tap(t, action('editor-attachments-child', 'attachment-menu'));
+      await tap(t, find.byKey(const ValueKey('attachment-scan')).last);
       final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
-      final records = await repo.schoolRecords();
-      expect(records.length, 2);
-      expect(scope.pupilIds.toSet(), {'p', 'q'});
-      expect(scope.links.length, 2);
-      for (final r in records) {
-        expect(
-          scope.links.singleWhere((l) => l.id == r.id).taskId,
-          r.tasks[1].id,
-        );
-        expect(r.tasks[1].id, isNot('child'));
-      }
+      expect(await repo.schoolRecords(), isEmpty);
+      final draft = (await repo.schoolDrafts()).single;
+      expect(draft.recipients.toSet(), {'p', 'q'});
+      expect(scope.pupilIds, isEmpty);
+      expect(scope.links.single.kind, 'schoolDraft');
+      expect(scope.links.single.id, draft.id);
+      expect(scope.links.single.taskId, 'child');
       await finish(t);
     },
   );
 
-  testWidgets('bulk capture saves selected subtask links for both pupils', (
-    t,
-  ) async {
+  testWidgets('bulk capture holds subtask link without publishing', (t) async {
     await host(t, const SizedBox());
     final d = await repo.saveDialogDraft(
       DialogDraft(
@@ -642,15 +668,13 @@ void main() {
     );
     unawaited(showBulk(t.element(find.byType(Scaffold)), c, draft: d));
     await t.pumpAndSettle();
-    await tap(t, action('homework-row-child', 'attachment-scan'));
+    await tap(t, action('homework-row-child', 'attachment-menu'));
+    await tap(t, find.byKey(const ValueKey('attachment-scan')).last);
     final scope = t.widget<ScanEditor>(find.byType(ScanEditor)).scope;
-    expect(scope.links.length, 2);
-    for (final r in await repo.schoolRecords()) {
-      expect(
-        scope.links.singleWhere((l) => l.id == r.id).taskId,
-        r.tasks[1].id,
-      );
-    }
+    expect(await repo.schoolRecords(), isEmpty);
+    expect(scope.links.single.kind, 'bulkDraft');
+    expect(scope.links.single.id, d.id);
+    expect(scope.links.single.taskId, 'child');
     await finish(t);
   });
 
@@ -726,13 +750,13 @@ void main() {
       );
       expect(
         t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.id,
-        r.id,
+        (await repo.schoolDrafts()).single.id,
       );
       await finish(t);
     },
   );
 
-  testWidgets('Orga bottom action opens scanner with saved owner', (t) async {
+  testWidgets('Orga bottom action opens scanner with draft owner', (t) async {
     final e = await repo.saveEntry(
       OrgaEntry.empty(
         pupilId: 'p',
@@ -743,9 +767,13 @@ void main() {
     await tap(t, find.byKey(const ValueKey('attachment-scan')));
     expect(
       t.widget<ScanEditor>(find.byType(ScanEditor)).scope.links.single.id,
-      e.id,
+      (await repo.drafts()).single.id,
     );
-    expect(t.widget<ScanEditor>(find.byType(ScanEditor)).scope.pupilIds, ['p']);
+    expect(
+      t.widget<ScanEditor>(find.byType(ScanEditor)).scope.pupilIds,
+      isEmpty,
+    );
+    expect((await repo.entries()).single.revision, e.revision);
     await finish(t);
   });
 }

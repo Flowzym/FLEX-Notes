@@ -1,0 +1,20 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: compact day keeps short events tappable and adjacent lessons separate
+00:02 +1: compact week keeps short events tappable and adjacent lessons separate
+00:02 +2: time marker stays above ongoing blocks and passes taps through
+00:03 +3: shared day updates current time with and without lessons and omits it on other dates
+00:04 +4: today includes current time before and after teaching hours
+00:05 +5: populated day week month remain usable at width 390.0 scale 1.0
+00:06 +6: populated day week month remain usable at width 320.0 scale 2.0
+00:06 +7: populated day week month remain usable at width 1100.0 scale 1.0
+00:07 +8: calendar groups due pupils without losing the original entries
+00:08 +9: month selection keeps month then opens selected day and dated creation
+00:08 +10: week overlaps open every source and weekends with entries stay visible
+00:09 +11: single lesson edit past series end retains preparation and inheritance
+00:10 +12: lesson planning is created and linked atomically to this occurrence
+00:11 +13: file assignment in lesson details changes only the selected occurrence
+00:11 +14: splitting a series preserves occurrence files and linked planning
+00:12 +15: week keeps a conversation visible inside Flexk and both entries reachable
+00:12 +16: (tearDownAll)
+00:12 +16: All tests passed!

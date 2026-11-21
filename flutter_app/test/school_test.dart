@@ -49,20 +49,25 @@ void main() {
   tearDown(() async {
     await repo.close();
   });
-  test('fresh schema is version 7 with 19 domain tables', () async {
-    expect(
-      (await repo.db.customSelect('PRAGMA user_version').getSingle())
-          .data
-          .values
-          .single,
-      7,
-    );
-    final tables = await repo.db
-        .customSelect("SELECT name FROM sqlite_master WHERE type='table'")
-        .get();
-    expect(tables.length, 19);
-    expect(await repo.schoolRecords(), isEmpty);
-  });
+  test(
+    'fresh schema is version 8 with 19 domain tables and derived search index',
+    () async {
+      expect(
+        (await repo.db.customSelect('PRAGMA user_version').getSingle())
+            .data
+            .values
+            .single,
+        8,
+      );
+      final tables = await repo.db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'entry_search%'",
+          )
+          .get();
+      expect(tables.length, 19);
+      expect(await repo.schoolRecords(), isEmpty);
+    },
+  );
   test(
     'homework status changes are independent from comments and delivery',
     () {
@@ -98,6 +103,40 @@ void main() {
         'feedback': [late.copyWith(deleted: true).toJson(), early.toJson()],
       });
       expect(record.taskState(record.tasks.single), TaskState.partial);
+    },
+  );
+  test(
+    'shared homework materials resolve per recipient and survive a retry',
+    () async {
+      final second = await repo.savePupil(
+        const Pupil(id: 'other', name: 'Beta'),
+      );
+      final record = homework(pupil.id).patch({
+        'assignmentSources': [
+          {'documentId': 'all', 'title': 'Blatt A'},
+          {'documentId': 'extra', 'title': 'Blatt B', 'pupilId': second.id},
+          {'documentId': 'all', 'title': 'Blatt A', 'pupilId': second.id},
+        ],
+      });
+      final recipients = [pupil.id, second.id];
+      for (var i = 0; i < 2; i++) {
+        final group = await repo.saveSchoolGroup(
+          record,
+          recipients,
+          'material-group',
+        );
+        expect(group.first.assignmentSources.map((s) => s.documentId), ['all']);
+        expect(group.last.assignmentSources.map((s) => s.documentId), [
+          'all',
+          'extra',
+        ]);
+        expect(
+          group
+              .expand((r) => r.assignmentSources)
+              .every((s) => s.pupilId == null),
+          isTrue,
+        );
+      }
     },
   );
   test('invalid tasks, times, feedback and goal reviews are rejected', () {
@@ -313,7 +352,7 @@ void main() {
       await target.close();
     }
   });
-  test('real version 1 file migrates to schema 7 without losing pupil', () async {
+  test('real version 1 file migrates to schema 8 without losing pupil', () async {
     final dir = Directory.systemTemp.createTempSync('flex-migration-');
     final file = File('${dir.path}/test.sqlite');
     final raw = sqlite.sqlite3.open(file.path);
@@ -337,7 +376,7 @@ void main() {
             .data
             .values
             .single,
-        7,
+        8,
       );
       await migrated.saveSchoolRecord(homework('old'));
     } finally {

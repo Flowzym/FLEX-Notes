@@ -1,0 +1,76 @@
+{
+  "version": "0.19.0+61",
+  "builtOn": "2026-11-12",
+  "applicationSourceCommit": "969820806b31e1f9220727f9a9a29e23d2baee27",
+  "applicationId": "at.flowzym.flex_notizbuch.test",
+  "androidBuild": "success",
+  "artifact": "FLEX-Test-0.19.0+61-unsigned.apk",
+  "bytes": 102486160,
+  "sha256": "1343d9fb57bab62f102e8a4ee594247ba7f58ea50e1c94031ba5ce09e9680451",
+  "signing": "unsigned",
+  "installable": false,
+  "originalKeyFound": false,
+  "requiredSignerSha256": "de26d14a7212166d71f48e7eec46fe30ab474c5d48f08c1eef64fb4a176da443",
+  "zipIntegrity": "passed",
+  "zipAlignment16KB": "passed",
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "elf64Alignment": [
+    {
+      "library": "lib/arm64-v8a/libapp.so",
+      "minimumLoadAlignment": 65536
+    },
+    {
+      "library": "lib/arm64-v8a/libdartjni.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/arm64-v8a/libflutter.so",
+      "minimumLoadAlignment": 65536
+    },
+    {
+      "library": "lib/arm64-v8a/libpdfium.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/arm64-v8a/libpdfrx_pdfium_gate.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/arm64-v8a/libsqlite3.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/x86_64/libapp.so",
+      "minimumLoadAlignment": 65536
+    },
+    {
+      "library": "lib/x86_64/libdartjni.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/x86_64/libflutter.so",
+      "minimumLoadAlignment": 65536
+    },
+    {
+      "library": "lib/x86_64/libpdfium.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/x86_64/libpdfrx_pdfium_gate.so",
+      "minimumLoadAlignment": 16384
+    },
+    {
+      "library": "lib/x86_64/libsqlite3.so",
+      "minimumLoadAlignment": 16384
+    }
+  ],
+  "webBuild": "success",
+  "webMainSha256": "6301c24094948535fcdb00a0d9b51f4751b25eec9ceb99458fc9dd33147cc218",
+  "webMatchesPublishedVersion": true,
+  "verifiedApplicationCI": "https://github.com/Flowzym/FLEX-Notes/actions/runs/43091734629",
+  "webUrl": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site"
+}

@@ -25,11 +25,9 @@ class AppLock extends ChangeNotifier {
   DateTime? get blockedUntil =>
       DateTime.tryParse(_policy?['blockedUntil'] as String? ?? '');
   static const key = 'flex.app-lock.v1';
-  static final kdf = Pbkdf2(
-    macAlgorithm: Hmac.sha256(),
-    iterations: 210000,
-    bits: 256,
-  );
+  static const iterations = 600000;
+  static String _salt() =>
+      base64Encode(List<int>.generate(24, (_) => Random.secure().nextInt(256)));
 
   Future<void> load() async {
     try {
@@ -38,9 +36,11 @@ class AppLock extends ChangeNotifier {
           ? null
           : jsonDecode(raw) as Map<String, dynamic>;
       if (value != null &&
-          (value['version'] != 1 ||
+          (!{1, 2}.contains(value['version']) ||
               value['salt'] is! String ||
-              value['hash'] is! String)) {
+              value['hash'] is! String ||
+              base64Decode(value['salt'] as String).length != 24 ||
+              base64Decode(value['hash'] as String).length != 32)) {
         throw const DomainError('Die App-Sperre konnte nicht geladen werden.');
       }
       _policy = value;
@@ -57,8 +57,8 @@ class AppLock extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> _hash(String pin, String salt) =>
-      compute(_pinHash, {'pin': pin, 'salt': salt});
+  Future<String> _hash(String pin, String salt, {int version = 2}) =>
+      compute(_pinHash, {'pin': pin, 'salt': salt, 'version': version});
   Future<void> configure(
     String pin, {
     required bool useBiometrics,
@@ -74,15 +74,12 @@ class AppLock extends ChangeNotifier {
       throw DomainError(error ?? 'Bisherige PIN erforderlich.');
     }
     final generation = _backgroundGeneration;
-    final random = Random.secure();
-    final salt = base64Encode(
-      List<int>.generate(24, (_) => random.nextInt(256)),
-    );
+    final salt = _salt();
     if (useBiometrics && !await authenticate()) {
       throw const DomainError('Biometrische Bestätigung abgebrochen.');
     }
     final value = <String, dynamic>{
-      'version': 1,
+      'version': 2,
       'salt': salt,
       'hash': await _hash(pin, salt),
       'biometrics': useBiometrics,
@@ -123,7 +120,13 @@ class AppLock extends ChangeNotifier {
         );
       }
       final expected = base64Decode(_policy!['hash'] as String);
-      final actual = base64Decode(await _hash(pin, _policy!['salt'] as String));
+      final actual = base64Decode(
+        await _hash(
+          pin,
+          _policy!['salt'] as String,
+          version: _policy!['version'] as int,
+        ),
+      );
       var difference = expected.length ^ actual.length;
       for (var i = 0; i < min(expected.length, actual.length); i++) {
         difference |= expected[i] ^ actual[i];
@@ -144,6 +147,14 @@ class AppLock extends ChangeNotifier {
         throw const DomainError('PIN nicht korrekt.');
       }
       final value = {..._policy!, 'attempts': 0}..remove('blockedUntil');
+      if (_policy!['version'] == 1) {
+        final salt = _salt();
+        value.addAll({
+          'version': 2,
+          'salt': salt,
+          'hash': await _hash(pin, salt),
+        });
+      }
       await store.write(key, jsonEncode(value));
       _policy = value;
       if (generation != _backgroundGeneration) return false;
@@ -192,9 +203,14 @@ class AppLock extends ChangeNotifier {
   }
 }
 
-Future<String> _pinHash(Map<String, String> input) async => base64Encode(
-  await (await AppLock.kdf.deriveKey(
-    secretKey: SecretKey(utf8.encode(input['pin']!)),
-    nonce: base64Decode(input['salt']!),
-  )).extractBytes(),
+Future<String> _pinHash(Map<String, dynamic> input) async => base64Encode(
+  await (await Pbkdf2(
+        macAlgorithm: Hmac.sha256(),
+        iterations: input['version'] == 1 ? 210000 : AppLock.iterations,
+        bits: 256,
+      ).deriveKey(
+        secretKey: SecretKey(utf8.encode(input['pin'] as String)),
+        nonce: base64Decode(input['salt'] as String),
+      ))
+      .extractBytes(),
 );

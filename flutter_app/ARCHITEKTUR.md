@@ -1,4 +1,7 @@
-# Architektur der Rekonstruktion
+# Architektur der Flutter-App
+
+Aktualisiert für 0.17.1+58. Aktueller Prüfumfang:
+[`docs/rebuild/QUALITY-BUILD-58.md`](../docs/rebuild/QUALITY-BUILD-58.md).
 
 ## Herkunft
 
@@ -6,7 +9,8 @@ Die überlieferte 0.1.0-Implementierung liefert SQLite/Drift, Schülerverwaltung
 Orga, Revisionen, Entwürfe und Controller. Der HTML-Prototyp und die Dokumente
 des Webpreview beschreiben den Ausbau. Die erhaltene SQL-DDL 7 wird bytegleich
 als `assets/schema.sql` verwendet. Neuere originale Dart-Quellen fehlen.
-Das Webpreview wird nicht modifiziert und nicht in die Flutter-App eingebettet.
+Die aktuelle Webvorschau wird aus derselben Flutter-App gebaut; der historische
+HTML-Prototyp wird nicht in die App eingebettet.
 
 ## Schichten
 
@@ -18,20 +22,30 @@ Das Webpreview wird nicht modifiziert und nicht in die Flutter-App eingebettet.
   Zugriffe, Validierung, Transaktionen, Revisionen, Operationen und Outbox.
 - `application/notebook_controller.dart`: Laden und Mutationen. Generations-
   nummern verhindern, dass ältere Nachladevorgänge neuere Ergebnisse ersetzen.
-  Jeder Gesamtabzug wird in einer gemeinsamen SQLite-Lesetransaktion geladen.
-- `ui/flex_modal.dart`: gemeinsame Dialoghülle und Kalender mit optionaler Zeit.
-- `ui/prototype_navigation.dart`, `ui/pupil_card.dart`: zentrierte Pillennavigation
-  und Schülerkarten nach den endgültigen HTML-Regeln. `notebook_screen.dart`
-  öffnet Schülerbereichslisten in derselben gerahmten Dialogfamilie wie Editoren.
-  Die jüngeren Vorgaben aus dem alten Chat bestimmen Außenabstand, Radius und
-  Standardbreite; Hauptseiten bleiben außerhalb der Dialoge.
+  Jeder Gesamtabzug wird in einer gemeinsamen SQLite-Lesetransaktion geladen;
+  nach dem Freigeben des Controllers werden ausstehende Ergebnisse verworfen.
+- `ui/flex_modal.dart`, `ui/detail_flow.dart`: gemeinsame Dialog-/Seitenhülle
+  mit erhaltenem Eingabezustand bei Tastatur- und Größenwechseln.
+- `ui/app_navigation.dart`, `ui/notebook_screen.dart`: untere Bereichsnavigation
+  und obere kontextbezogene Navigationskapseln. Hauptbereiche sind Kalender,
+  Live, Organisation, Material und Mehr.
+- `ui/pupil_card.dart`: offene Schülerzeilen mit fünf direkt sichtbaren Aktionen.
 - `ui/school_editor.dart`: Editoren einschließlich Kommentar-Fokus,
   Empfänger-Tags, Entwürfen und Zielüberprüfung.
 - `ui/school_workspace.dart`: HÜ-Standbuttons, Rückmeldungsverlauf, Papierkorb,
   Gruppenrücknahme und Gesprächsauswahl.
-- `ui/flex_icons.dart`: fünf gefüllte, direkt durch Flutter gezeichnete Symbole.
-- `ui/appearance_settings.dart`, `ui/surfaces.dart`: getrennte Desktop-/Mobil-
-  Hintergrundbilder, Bildmodi, Farben, Deckkraft und kontrastabhängige Schrift.
+- `ui/flex_icons.dart`: gemeinsame Symbole für die fachlichen Bereiche.
+- `ui/appearance_settings.dart`, `ui/surfaces.dart`, `ui/app.dart`: feste
+  Creme-/Salbei-Gestaltung und gemeinsame Flächen-/Schrift-/Formularregeln.
+  Einstellbar bleiben Hell/Dunkel/System und Schriftgröße. Alte Bild-, Farb-,
+  Deckkraft- und Formeinstellungen werden nicht mehr angewendet.
+- `ui/calendar_page.dart`: gemeinsame Kalender-/Stundenplanansichten mit
+  Datumsnavigation und aktueller Zeitmarkierung.
+- `ui/scan_editor.dart`: Scan-/Fotobearbeitung, Entwürfe, Ersetzen und Ausgabe;
+  gespeicherte Metadaten und das nachfolgende Aufräumen alter Dateien bleiben
+  getrennte Schritte.
+- `services/reminders.dart`: Terminableitung und native Planung. Änderungen
+  an Einstellungen werden auch über Berechtigungsabfragen hinweg serialisiert.
 - `security/backup_codec.dart`: Standard-Kryptografie über `cryptography`.
 - `ui/backup_dialog.dart`: Sicherungsdialog, Datei-/Zwischenablage-Ausgabe und
   Wiederherstellung. Native Schlüsselableitung läuft über `compute` außerhalb
@@ -70,7 +84,11 @@ erhält Aufgaben-/Checklistenstände und aktiviert die Erinnerung nicht automati
 ## Prüfung und Grenzen
 
 Repositorytests verwenden echtes SQLite im Speicher bzw. temporäre Dateien.
-Widgettests und Bildausgaben laufen direkt mit Flutter, mit synthetischen Daten
-und ohne Browser. Renderings laden die mitgelieferten Schriften. Browser-
-persistenz, native Dateiwähler und Windows-/Android-Geräte bleiben offene
-Abnahmen. Weitere Unterschiede: `../docs/rebuild/STATUS.md`.
+Widgettests und Bildausgaben laufen direkt mit Flutter und synthetischen Daten.
+Renderings laden dieselben lokalen Inter-Schriften wie die App. Ergänzende
+Chromium-Durchgänge prüfen Browser-Persistenz, Entwürfe, Veröffentlichung und
+Sicherungsexport. Statische Analyse, SQLite-Tests, gesamte Flutter-Suite sowie
+Web- und Android-Build sind Bestandteil von GitHub Actions. Physische Android-
+Kamera, Biometrie und Hintergrund-Erinnerungen sowie echte OneDrive-Anmeldung
+benötigen weiterhin gesonderte Abnahmen. Der aktuelle Stand und die Nachweise
+stehen in [`docs/rebuild/STATUS.md`](../docs/rebuild/STATUS.md).

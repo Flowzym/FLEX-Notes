@@ -1,0 +1,64 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.21.3",
+    "build_number": "67",
+    "package_name": "flex_notizbuch"
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "syntheticData": true,
+  "gestureTarget": "Normal Flutter canvas without synthetic accessibility activation",
+  "touchCases": [
+    {
+      "section": "Live",
+      "expectedForward": "Aktuell",
+      "backViaHeader": true
+    },
+    {
+      "section": "Kalender",
+      "expectedForward": "Aufgaben",
+      "backViaHeader": true
+    },
+    {
+      "section": "Organisation",
+      "expectedForward": "R\u00fcckl\u00e4ufe",
+      "backViaHeader": true
+    },
+    {
+      "section": "Material",
+      "expectedForward": "Bereitgelegt",
+      "backViaHeader": true
+    },
+    {
+      "section": "Mehr",
+      "expectedForward": "Archiv",
+      "backViaHeader": true
+    }
+  ],
+  "visualReviewRequired": false,
+  "pageErrors": [],
+  "visualReviewPassed": true,
+  "additionalViewports": [
+    {
+      "width": 600,
+      "height": 990
+    }
+  ],
+  "reviewedScreenshots": [
+    "canvas-Kalender.png",
+    "canvas-Live.png",
+    "canvas-Material.png",
+    "canvas-Mehr.png",
+    "canvas-Organisation.png",
+    "canvas-back-Kalender.png",
+    "canvas-back-Live.png",
+    "canvas-back-Material.png",
+    "canvas-back-Mehr.png",
+    "canvas-back-Organisation.png",
+    "browser-material.png",
+    "browser-material-wide.png"
+  ]
+}

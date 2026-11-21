@@ -1,0 +1,54 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:01 +1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 390.0/1.0
+00:01 +2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 390.0/1.0
+00:02 +3: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 390.0/1.0
+00:02 +4: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: shared day updates current time with and without lessons and omits it on other dates
+00:03 +5: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 320.0/2.0
+00:03 +6: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: today includes current time before and after teaching hours
+00:03 +7: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: unified calendar and editable base plan at 1100.0/1.0
+00:03 +8: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 390.0 scale 1.0
+00:04 +9: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: base plan editing retains keyboard focus and custom times
+00:04 +10: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: base plan editing retains keyboard focus and custom times
+00:05 +11: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:05 +12: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:05 +13: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:06 +14: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:07 +15: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: span deletion restoration and shared period hours stay editable
+00:07 +16: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: weekends can be hidden despite appointment and stay user controlled
+00:08 +17: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: cancelled block draft resumes without losing its controls
+00:08 +18: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: weekends can be hidden despite homework and stay user controlled
+00:08 +19: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: adding a block leaves existing PDF blocks intact
+00:09 +20: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: weekends can be hidden despite selected Sunday and stay user controlled
+00:09 +21: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: lesson switch preserves selected day, appointments and stored data
+00:09 +22: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:10 +23: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:10 +24: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: lesson planning is created and linked atomically to this occurrence
+00:10 +25: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: file assignment in lesson details changes only the selected occurrence
+00:11 +26: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: splitting a series preserves occurrence files and linked planning
+00:11 +27: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:12 +28: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:13 +29: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:13 +30: /workspace/FLEX-Notes/flutter_app/test/timetable_test.dart: initialization is additive and never restores edited or removed blocks
+00:13 +31: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +32: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +33: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +34: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +35: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +36: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +37: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:13 +38: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:14 +39: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:14 +40: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: individual phases keep independent time and materials can be assigned without editing mode
+00:15 +41: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:15 +42: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:15 +43: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:21 +44: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: calendar body swipes dates without page pills; creation inherits selected date
+00:22 +45: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:22 +46: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 390.0/1.0
+00:22 +47: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:23 +48: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:24 +49: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:25 +50: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:25 +50: All tests passed!

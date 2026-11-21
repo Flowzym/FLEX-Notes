@@ -1,0 +1,59 @@
+{
+  "version": "0.33.0+84",
+  "sourceCommit": "78fdc1ae7da17e5bfd2b1cb0a66e5db7b535be33",
+  "fullFlutterSuite": {
+    "passed": 687,
+    "failed": 0,
+    "note": "Full suite before final shared-thumbnail display correction. The affected return workflow suite, including the additional regression, passed all 10 tests on final source."
+  },
+  "finalReturnRegressionTests": 10,
+  "nativeAndroidTests": 16,
+  "schemaTests": 11,
+  "analysis": "No issues found",
+  "format": "252 files; unchanged",
+  "diffCheck": "passed",
+  "browser": {
+    "version": "0.33.0+84",
+    "isolatedSyntheticData": true,
+    "viewports": [
+      320,
+      390
+    ],
+    "returnCreatedFromPupil": true,
+    "pupilAndTasksShowSameReturn": true,
+    "individualStatusSaved": true,
+    "scanContextRetained": true,
+    "pdfImportedFilteredTaggedSaved": true,
+    "pdfThumbnailAndBytesSurviveReload": true,
+    "pdfOpensAfterReload": true,
+    "sourceAfterLastPreviewFix": "78fdc1ae7da17e5bfd2b1cb0a66e5db7b535be33",
+    "errors": []
+  },
+  "oneDriveBrowser": {
+    "build": "0.33.0+84",
+    "mockMicrosoftOnly": true,
+    "autoBrowseAfterSignIn": true,
+    "jpgHiddenInRootAndSubfolder": true,
+    "oneFileAddedIndividually": true,
+    "bookmarkAdded": true,
+    "errors": [],
+    "calls": [
+      "/v1.0/me/drive/root",
+      "/v1.0/drives/review-drive/items/root/children",
+      "/v1.0/drives/review-drive/items/teaching/children",
+      "/v1.0/drives/review-drive/items/fractions/thumbnails"
+    ]
+  },
+  "webDeployment": {
+    "status": "succeeded",
+    "url": "https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/",
+    "sourceCommit": "3ee860b5cd42dd92fb8185095987c3eea20caaa8"
+  },
+  "physicalAndroidTested": false,
+  "actualMicrosoftAccountTested": false,
+  "buildWarnings": [
+    "cryptography_flutter and workmanager_android still use the Kotlin Gradle Plugin; future Flutter toolchain migration required",
+    "Compiler DWARF warning; final APK libapp.so sections verified stripped",
+    "Android analytics path unavailable; APK build and verification succeeded"
+  ]
+}

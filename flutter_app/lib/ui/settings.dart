@@ -1,4 +1,10 @@
+import 'entry_templates.dart';
+import 'app_navigation.dart';
+import 'school_year_dialog.dart';
+import 'admin_page.dart';
+import 'diagnostics_dialog.dart';
 import 'merge_dialog.dart';
+import 'privacy_details.dart';
 import 'device_settings.dart';
 import 'observation_tone_colors.dart';
 import '../domain/observation_catalog.dart';
@@ -182,6 +188,14 @@ class _SettingsPageState extends State<SettingsPage>
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (c.services != null) DeviceSettings(controller: c, backups: false),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => showPrivacyDetails(context),
+          icon: const Icon(Icons.privacy_tip_outlined),
+          label: const Text('Datenschutz & Speicher'),
+        ),
+      ),
       FlexCard(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -207,7 +221,136 @@ class _SettingsPageState extends State<SettingsPage>
           ),
         ),
       ),
+      FlexCard(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Standardansichten',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              const Text('Beim Wischen nach links'),
+              const SizedBox(height: 6),
+              OptionBar(
+                options: const {
+                  'left': 'Reiter nach rechts',
+                  'right': 'Reiter nach links',
+                },
+                fontSize: 12,
+                value: c.appearance.navigationSwipeNext,
+                keyPrefix: 'navigation-swipe-next',
+                onChanged: (value) =>
+                    c.previewAppearance({'navigationSwipeNext': value}),
+              ),
+              const SizedBox(height: 12),
+              const Text('Kalender'),
+              const SizedBox(height: 6),
+              OptionBar(
+                options: const {
+                  'day': 'Tag',
+                  'week': 'Woche',
+                  'month': 'Monat',
+                },
+                value: c.appearance.calendarDefaultView,
+                keyPrefix: 'calendar-default',
+                onChanged: (value) =>
+                    c.previewAppearance({'calendarDefaultView': value}),
+              ),
+              for (final section in [
+                (
+                  'Live',
+                  'liveDefaultPage',
+                  livePages,
+                  c.appearance.liveDefaultPage,
+                ),
+                (
+                  'Organisation',
+                  'organisationDefaultPage',
+                  {...organisationPages, 4: 'Nur Klasse'},
+                  c.appearance.organisationDefaultPage,
+                ),
+                (
+                  'Material',
+                  'materialDefaultPage',
+                  materialPages,
+                  materialParent(c.appearance.materialDefaultPage),
+                ),
+                (
+                  'Mehr',
+                  'moreDefaultPage',
+                  morePages,
+                  c.appearance.moreDefaultPage,
+                ),
+              ]) ...[
+                const SizedBox(height: 14),
+                Text(section.$1),
+                const SizedBox(height: 6),
+                OptionBar(
+                  keyPrefix: 'default-${section.$2}',
+                  options: {
+                    for (final e in section.$3.entries) '${e.key}': e.value,
+                  },
+                  value: '${section.$4}',
+                  fontSize: 12,
+                  onChanged: (value) =>
+                      c.previewAppearance({section.$2: int.parse(value)}),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
       const SizedBox(height: 18),
+      OutlinedButton.icon(
+        onPressed: () => showDiagnostics(context),
+        icon: const Icon(Icons.bug_report_outlined),
+        label: const Text('Fehlerbericht'),
+      ),
+      if (c.services?.quickAccess != null)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.widgets_outlined),
+          label: const Text('Homescreen-Widget hinzufügen'),
+          onPressed: () => guarded(context, () async {
+            final supported = await c.services!.quickAccess!.pinWidget();
+            if (!supported && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Bitte FLEX in der Widget-Auswahl deines Startbildschirms hinzufügen.',
+                  ),
+                ),
+              );
+            }
+          }),
+        ),
+      const SizedBox(height: 18),
+      OutlinedButton.icon(
+        onPressed: () => showEntryTemplateManager(context, c),
+        icon: const Icon(Icons.library_add_outlined),
+        label: const Text('Eintragsvorlagen'),
+      ),
+      Wrap(
+        spacing: 8,
+        children: [
+          TextButton.icon(
+            onPressed: () =>
+                guarded(context, () => showCatalogTransfer(context, c)),
+            icon: const Icon(Icons.file_upload_outlined),
+            label: const Text('Kataloge exportieren'),
+          ),
+          TextButton.icon(
+            onPressed: () => guarded(
+              context,
+              () => showCatalogTransfer(context, c, importing: true),
+            ),
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Kataloge importieren'),
+          ),
+        ],
+      ),
       Text('Karten-Shortcuts', style: Theme.of(context).textTheme.titleLarge),
       Align(
         alignment: Alignment.centerLeft,
@@ -263,6 +406,23 @@ class _SettingsPageState extends State<SettingsPage>
   Widget data() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => showSchoolYearCloseout(context, c),
+            icon: const Icon(Icons.school_outlined),
+            label: const Text('Schuljahr abschließen'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => openAdminArea(context, c),
+            icon: const Icon(Icons.auto_delete_outlined),
+            label: const Text('Admin-Bereich'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
       if (c.services != null) DeviceSettings(controller: c, backups: true),
       FlexCard(
         child: Padding(
@@ -399,7 +559,7 @@ class _SettingsPageState extends State<SettingsPage>
           style: TextButton.styleFrom(
             minimumSize: const Size(0, 42),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(24),
             ),
             textStyle: const TextStyle(
               fontFamily: 'FlexSans',
@@ -430,15 +590,7 @@ class _SettingsPageState extends State<SettingsPage>
       child: LayoutBuilder(
         builder: (context, constraints) => Container(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).extension<FlexSurfaces>()?.palette?.workspace,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(15),
-          ),
+          decoration: FlexDesign.capsule(context),
           child:
               tabCount > 2 &&
                   constraints.maxWidth < 500 &&
@@ -466,7 +618,7 @@ class _SettingsPageState extends State<SettingsPage>
         key: const PageStorageKey('settings'),
         padding: EdgeInsets.all(
           MediaQuery.sizeOf(context).width < 600 ? 14 : 24,
-        ),
+        ).copyWith(bottom: 96),
         children: [
           Text(
             widget.dataOnly ? 'Daten' : 'Einstellungen',

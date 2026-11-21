@@ -53,6 +53,8 @@ const observationDefaults = <String, List<String>>{
   ],
 };
 
+String pupilCatalogKey(String key, String pupilId) => '$key@$pupilId';
+
 class ObservationCatalog {
   ObservationCatalog({
     required List<String> options,
@@ -62,9 +64,18 @@ class ObservationCatalog {
   final List<String> options, favorites;
   factory ObservationCatalog.defaults(String key) => ObservationCatalog(
     options:
-        observationDefaults[key] ??
-        (throw const DomainError('Unbekannter Beobachtungsbereich.')),
+        key.contains('@') &&
+            observationDefaults.containsKey(key.split('@').first) &&
+            key.indexOf('@') < key.length - 1
+        ? const []
+        : observationDefaults[key] ??
+              (throw const DomainError('Unbekannter Beobachtungsbereich.')),
   );
+  ObservationCatalog withPersonal(ObservationCatalog personal) =>
+      ObservationCatalog(
+        options: {...options, ...personal.options}.toList(),
+        favorites: {...favorites, ...personal.favorites}.toList(),
+      );
   Json toJson() => {'version': 1, 'options': options, 'favorites': favorites};
   factory ObservationCatalog.fromJson(Json json) {
     final options = json['options'], favorites = json['favorites'];

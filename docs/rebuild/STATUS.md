@@ -1,4 +1,415 @@
-# Aktueller Stand: 0.16.0-rebuild.26+46
+# Aktueller Stand: FLEX 0.33.0+84
+
+Rückläufe sind beim Schüler, in Aufgaben und Entwürfen durchgängig erreichbar;
+auch gemeinsame Anhänge erscheinen in der Schüler-Vorschau. Lokal bearbeitete
+OneDrive-Dateien bleiben beim erneuten Einlesen erhalten. Der CameraX-Scanner
+verbindet Dokumente/Fotos mit Live-Kantenanzeige, stabiler automatischer Aufnahme,
+Serienaufnahme und Bildkontrolle in der Creme/Olive-Oberfläche.
+
+[Prüfung, Korrekturen und offene UX-Punkte](INTEGRATION-SCANNER-BUILD-84.md) ·
+[APKs und Prüfnachweise](../../releases/android/build-84/README.md) ·
+[Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+App-Kennung, permanentes Zertifikat und Schema 8 bleiben unverändert.
+Physische Kamera-/Android-Abnahme und echte OneDrive-Anmeldung bleiben offen.
+
+---
+
+# Vorheriger Stand: FLEX 0.32.0+83
+
+Materialien können direkt einzelnen Schülern zugeordnet werden, mit optionalen
+und unabhängigen Einsatzdaten. Überarbeitete Materialdetails, Schülerfilter,
+Suche und persönlich geplante Einsätze unter „Bereitgelegt“.
+[Materialprüfung und Änderungen](MATERIAL-BUILD-83.md).
+
+[APKs](../../releases/android/build-83/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 und bestehende Dateireferenzen bleiben erhalten.
+
+---
+
+# Vorheriger Stand: FLEX 0.31.0+82
+
+Build 82 integriert Microsofts native MSAL-Anmeldung für Android mit der
+bereitgestellten Entra-Registrierung. Die Tokenverwaltung bleibt im SDK;
+Kontobindung und serialisierte Cacheoperationen schützen laufende Anfragen
+beim Abmelden. Web behält die Code-Anmeldung. Vorhandene Daten bleiben erhalten;
+Android verlangt nach dem Update einmalig eine neue Microsoft-Anmeldung.
+
+[OneDrive-Einrichtung und Geräteabnahme](ONEDRIVE-SETUP.md).
+
+
+Vereinheitlichte Navigation mit wählbarer Wischrichtung und Startreiter je
+Bereich. Scanner direkt unten, weitere Bereiche oben; Klassen-Orga unter
+Organisation und direkt sichtbare Filter. Termin-Tags mit Suche, Entwürfen,
+Sicherungen, Vorlagen und ICS-Export.
+
+[Änderungen und Prüfungen](NAVIGATION-BUILD-80.md) ·
+[APKs](../../releases/android/build-82/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 unverändert; neue Felder mit Build 80 oder neuer bearbeiten.
+Hardware-Abnahme und GitHub-Signiersecret-Einrichtung bleiben offen.
+
+---
+
+# Vorheriger Stand: FLEX 0.29.0+79
+
+Kalender mit gleichbleibender Wischrichtung, Terminverschiebung und Zeitgriffen;
+kompaktere Monatsliste und höhere Tages-/Wochenraster. Ausgewählte Review-Punkte
+in Datenhaltung, Datenschutz, Android-Funktionen, Vorlagen und Diagnose ergänzt.
+
+[Umsetzung und genaue Grenzen](REVIEW-CALENDAR-BUILD-79.md) ·
+[Android-Abnahme](ANDROID-ACCEPTANCE-BUILD-79.md) ·
+[Releaseprozess](RELEASING.md) ·
+[APKs](../../releases/android/build-79/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Schema 8 erhält vorhandene Daten; neue Sicherungen benötigen Build 79.
+Hardware-Abnahme und GitHub-Signiersecret-Einrichtung bleiben offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.28.0+78
+
+Blockweise Vollsicherungen mit AES-GCM, geprüfter Wiederherstellung und Android-
+SAF-Streams. Im vergleichbaren synthetischen 100-MB-Linux-Test sank Spitzen-RSS
+von 1.690 auf 508 MB; keine Android-Gerätemessung. Altimport und Browser-Blob-
+Downloads bleiben eingeschränkt. Neue Sicherungen benötigen Build 78 oder neuer.
+
+Android-Dateieingang für PDF, DOCX und Bilder mit verschlüsselter Zwischenablage,
+Vorschauen, Namen, Schülern, Unterricht und Einsatzdatum. Abbrüche und erneutes
+Übernehmen erhalten vorhandene Daten. OneDrive-Registrierung ist vorbereitet,
+aber eine echte Microsoft-Client-ID und Anmeldung fehlen weiterhin.
+
+[Prüfbericht](BACKUP-SHARING-BUILD-78.md) ·
+[Android-Abnahmecheckliste](ANDROID-ACCEPTANCE-BUILD-78.md) ·
+[APKs](../../releases/android/build-78/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+GitHub-CI von Build 77 vollständig erfolgreich; Build 78 wird mit demselben
+Workflow geprüft. Hardware-Abnahme bleibt ausdrücklich offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.27.0+77
+
+Android-Datenbank und Materialdateien mit Geräteschlüssel verschlüsselt; geprüfter
+Migrationspfad mit erhaltenem Original bei Fehlern. Stärkere PIN-/Sicherungsableitung,
+kompatibler Altimport, bestätigtes Entfernen früherer Versionen beim Schwärzen.
+Eigenes Adaptive Icon, verständlichere Texte und Datenschutzinformationen.
+Zwei kleinere APKs (ARM64/ARMv7) mit bisheriger Signatur.
+
+[Änderungen und Prüfnachweise](SECURITY-QUALITY-BUILD-77.md) ·
+[APKs](../../releases/android/build-77/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Vor Installation vollständige Sicherung außerhalb der App erstellen. Android-
+Geräteabnahme und durchgehend speichersparende große Sicherungen bleiben offen.
+Neue Sicherungen benötigen Build 77 oder neuer; alte bleiben lesbar.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.26.0+76
+
+Der Kalender hat eine gemeinsame Datum-/Werkzeugzeile. Verwalten enthält
+Stundenplan und Sa/So. Wischen außen wechselt Tag/Woche/Monat, Wischen im Raster
+den Zeitraum. Berühren eines Zeitfelds legt dort einen Termin an.
+Die Stundenplanverwaltung bietet eine gegliederte Woche, unabhängige Blockkopien,
+Überschneidungshinweise, erweiterbare Stundenzeiten und gesammelte Änderungen.
+
+[Änderungen und Prüfnachweise](CALENDAR-TOUCH-TIMETABLE-BUILD-76.md) ·
+[APK](../../releases/android/build-76/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Neue signierte Android-APK als direktes Update von FLEX Build 62–75.
+Physische Android-Abnahme bleibt offen.
+
+---
+
+# Vorheriger Stand: Webvorschau und Android 0.25.0+75
+
+Monatskalender mit durchgehendem Tagesraster. Neu aufgebautes Entwicklungsmodal
+mit kurzen Verlaufszeilen, Themen-/Tonartfiltern, Originaleinträgen und
+Gesprächsauswahl. Dokumentserien und das Ersetzen einer Dokumentseite verwenden
+nun ebenfalls die Android-Kamera mit Live-Randerkennung; einfache Fotos sind
+eine ausdrücklich angebotene Alternative, falls die Dokumentkamera nicht startet.
+
+[Änderungen und Prüfnachweise](CALENDAR-DEVELOPMENT-SCANNER-BUILD-75.md) ·
+[APK](../../releases/android/build-75/README.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Neue signierte Android-APK als direktes Update von FLEX Build 62–67.
+Echte Kameraaufnahme und Installation auf einem Handy bleiben zu prüfen.
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.1+74
+
+Das Rücklaufformular hat eigene Bereiche für Anlass, Schüler, Frist/Erinnerung
+und Anhänge. Scan/Foto, Bilder/PDF und vorhandenes Material sind direkt erreichbar.
+Dateien und Scanentwürfe zeigen Vorschaubilder. Neue Anhänge bleiben zunächst am
+Rücklaufentwurf und werden beim Speichern gemeinsam mit ihm zugeordnet.
+
+[Änderungen und Prüfnachweise](RETURN-ATTACHMENTS-BUILD-74.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.1+73
+
+Beim Anlegen steht Rücklauf direkt als vierter Button neben Notiz, Aufgabe und
+Termin in der Eintragspille. Der Rücklauf verwendet das bestehende Formular mit
+klarer Schülerauswahl, Alle auswählen und Auswahl leeren. Beim Wechsel bleiben
+angefangene Eingaben als Entwürfe erhalten; bestehende Teilnehmerstände werden
+für weiterhin ausgewählte Schüler beibehalten.
+
+[Änderungen und Prüfnachweise](RETURN-TAB-BUILD-73.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.24.0+72
+
+Einträge erhalten eine gemeinsame Schüler-/Personenzuordnung: Schüler auswählen
+und/oder andere Namen frei eingeben. Zuordnungen bleiben in Entwürfen,
+Sicherungen und beim Typwechsel erhalten. Zugeordnete Aufgaben bleiben zusätzlich
+in der allgemeinen Liste sichtbar und lassen sich nach Namen durchsuchen.
+
+Aufgaben liegen jetzt unter Organisation und enthalten auch Rückläufe. Der eigene
+Rücklaufreiter entfällt; Aufgaben und Orga bieten einen Artenfilter. Der Kalender hat keine obere
+Seitennavigationspille mehr; Tag/Woche/Monat und Zeitraum-Wischen bleiben erhalten.
+Die Kalenderkorrekturen aus Build 71 sind enthalten.
+
+[Änderungen und Prüfnachweise](PERSON-ASSIGNMENT-BUILD-72.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.2+71
+
+Sa/So bleibt auch bei Wochenendterminen, fälligen HÜ und ausgewähltem Sonntag
+umschaltbar. Eine ausdrückliche Auswahl hat Vorrang vor der automatischen
+Einblendung und bleibt beim Wochenwechsel erhalten. Ausgeblendete Einträge
+bleiben über einen kleinen Wochenendhinweis erreichbar.
+
+Beschriftete Werkzeuge, getrennte Anzeigeschalter und eine schlanke
+Fälligkeitszeile ersetzen die gemischte Symbolreihe und den großen Hinweisblock.
+Das globale Plus übernimmt auch einen direkt im Monatsraster gewählten Tag.
+
+[Änderungen und Prüfnachweise](CALENDAR-CLARITY-BUILD-71.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+Keine neue Android-APK (letzte Fassung Build 67).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.1+70
+
+Kalenderaktionen stehen gemeinsam in der obersten Werkzeugzeile. Darunter folgen
+Tag/Woche/Monat und danach der Zeitraum mit unmittelbar benachbartem Heute-Button.
+Die bisherige untere Kalenderleiste entfällt; das schwebende Plus sitzt wieder
+direkt über der Hauptnavigation.
+
+29 unterschiedliche relevante UI-/Integrationstests bestanden; darunter alle
+Kalenderansichten bei 320 Pixel Breite und doppelter Schriftgröße. Statische
+Analyse ohne Befunde. Release-Webbuild und Touch-Browser geprüft.
+Keine neue Android-APK (letzte Fassung Build 67).
+
+[Änderungen und Prüfbericht](CALENDAR-HEADER-BUILD-70.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.23.0+69
+
+Kalender mit kompakterem Kopf, speicherbarer Standardansicht, Zeitraum-Wischen
+und vollständig erreichbarer Woche auf schmalen Displays. Deutlichere aktive
+Navigation, globales Plus-Menü und kontextgerechtes Anlegen. Individuelle Abläufe
+mit eigenen Zeiten und direktem Materialzugriff. Aufgaben mit Unteraufgaben;
+unter Aktuell ein eigener Bereich Überfälliges.
+
+200 unterschiedliche gezielte Prüfungen bestanden, danach 26 UI-Prüfungen zur
+abschließenden Layoutkorrektur. Statische Analyse ohne Befunde. Release-Webbuild
+und Touch-Browser geprüft; keine neue Android-APK (letzte Fassung Build 67).
+
+[Änderungen und Prüfbericht](CALENDAR-FLOW-BUILD-69.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: Webvorschau 0.22.0+68
+
+Live → Ablauf bietet Unterrichtsphasen, Vorlagen, Material- und Schülerzuordnung,
+Zeitmessung mit Pause sowie Weiterführen offener Phasen. HÜ-Kontrolle verwendet
+die bestehenden Hausübungen und Rückmeldungen. Die obere Navigation läuft beim
+Wischen in beiden Richtungen zyklisch weiter, mit demselben kurzen Übergang.
+
+104 gezielte Prüfungen bestanden; anschließend 9 Domänentests einschließlich
+zweier zusätzlicher Grenzfälle bestanden (106 unterschiedliche Prüfungen).
+Analyse ohne Befunde. Release-Webbuild; keine neue Android-APK in diesem Schritt.
+
+[Änderungen und Prüfbericht](LESSON-FLOW-BUILD-68.md) ·
+[Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
+
+---
+
+# Vorheriger Stand: 0.21.3+67
+
+Einheitlicher 140-ms-Übergang beim Tippen und Wischen zwischen allen oberen
+Reitern. Kompakte Materialkarten mit integrierten Aktionen und kleineren
+Vorschaubildern in der Listenansicht. Große Schrift bleibt unterstützt.
+
+36 Navigations-/Materialprüfungen und 10 UI-Prüfungen bestanden; Analyse ohne Befunde.
+
+[Änderungen und Prüfbericht](MOTION-MATERIALS-BUILD-67.md) ·
+[APK und Prüfnachweise](../../releases/android/build-67/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.2+66
+
+Ruhige untere Navigation mit schmaler Aktivmarkierung und einheitlichen
+Linienicons. Alle fünf Bereiche unterstützen Wischen zwischen den oberen
+Reitern, auch direkt auf der Navigationspille. Live startet mit Notizen;
+die Reihenfolge lautet Notizen, Aktuell, Ablauf.
+
+[Änderungen und Prüfnachweise](NAVIGATION-BUILD-66.md) ·
+[APK](../../releases/android/build-66/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.1+65
+
+Kompaktere Abstände zwischen FLEX., Schülername, Seitentitel und Navigation
+in den gemeinsamen Eintragungsseiten. Im Arbeitsverhalten rücken Auftrag und
+Beobachtung näher zusammen. Bedienflächen, Funktionen und Datenformat bleiben gleich.
+
+21 gezielte UI-/Editorprüfungen bestanden, einschließlich großer Schrift und
+verschiedener Bildschirmgrößen. Analyse ohne Befunde; Android- und Web-Release.
+
+[Änderungen und Prüfbericht](SPACING-BUILD-65.md) ·
+[APK und Prüfnachweise](../../releases/android/build-65/README.md).
+
+---
+
+# Vorheriger Stand: 0.21.0+64
+
+Individuelle Materialzuordnung in der Schülerübersicht mit unabhängigen
+Unterrichtsdaten, Kalenderzugriff und erhaltenen gemeinsamen Dateien.
+Breitere Eintragungsköpfe; gleich breite Navigationssegmente mit lesbaren
+Beschriftungen auch bei großer Schrift.
+
+519 Flutter-Tests, 11 SQLite-Tests und 3 Servertests bestanden; Analyse ohne Befunde.
+
+[Bedienung und Datenverträglichkeit](PUPIL-MATERIALS-BUILD-64.md) ·
+[APK und Prüfnachweise](../../releases/android/build-64/README.md).
+
+---
+
+# Vorheriger Stand: 0.20.0+63
+
+Gemeinsamer Kalender für Unterricht, Termine und Fristen. Separate
+Stundenplan-Unterseite entfernt; Grundplan und Stundenzeiten bleiben direkt
+bearbeitbar. Einzeltermine und Änderungen ab Datum sind klar getrennt.
+Serienänderungen erhalten Dokumentzuordnungen, Planungen und Erinnerungen.
+
+514 Flutter-Tests, 11 SQLite-Tests und 3 Servertests bestanden; Analyse ohne
+Befunde. Android- und Web-Release gebaut, Smartphone-Browser geprüft.
+Build 63 aktualisiert die neue FLEX aus Build 62 mit derselben Signatur.
+
+[Änderungen und Datenverträglichkeit](CALENDAR-BUILD-63.md) ·
+[APK und Prüfnachweise](../../releases/android/build-63/README.md).
+
+---
+
+# Vorheriger Stand: 0.19.1+62
+
+Signierte Android-App **FLEX** mit eigener Kennung neben der vorhandenen FLEX Test.
+Dauerhafter Schlüssel, öffentlich festgeschriebener Zertifikatfingerabdruck und
+Release-Abbruch bei fehlendem oder falschem Schlüssel. GitHub CI baut ausdrücklich
+unsigniert. 30 gezielte Sicherungs-/Materialtests sowie vier Signierprüfungen
+bestanden; Android- und Web-Release gebaut und APK geprüft.
+
+[APK und Prüfberichte](../../releases/android/build-62/README.md) ·
+[Datenumzug](ANDROID-UMZUG-62.md) · [Buildnachweise und Grenzen](ANDROID-BUILD-62.md).
+Physische Installation und Vergleich der persönlichen Daten stehen noch aus.
+
+---
+
+# Vorheriger Stand: 0.19.0+61
+
+Auftragsquellen direkt im Arbeitsverhalten: FLEX-Planungen, Tagesmaterialien,
+DOCX-/PDF-Aufgaben und weitere Materialien. Die HÜ-Abgabeprüfung entfällt;
+X bietet erneutes Aufgeben an, mit Erhalt des bisherigen Stands.
+
+Vollsicherungen bündeln Notizbuch, lokale Dateien, Scanentwürfe und Dokumentversionen.
+Filter-Rückgängig bleibt im Entwurf erhalten; bis zu fünf frühere Dateifassungen
+sind wiederherstellbar. Große Editoren sind nach Verantwortlichkeiten aufgeteilt.
+OneDrive lässt sich mit einer öffentlichen Client-ID direkt in der App einrichten.
+
+[Änderungen, Prüfnachweise und verbleibende Voraussetzungen](QUALITY-BUILD-61.md).
+Physische Android-Abnahme und Microsoft-Appregistrierung bleiben offen.
+
+---
+
+# Vorheriger Stand: 0.18.0+60
+
+Anhänge bereits vor dem Speichern eines Eintrags, gemeinsame Tag-Auswahl und
+Tag-Verwaltung, echtes Teilen sowie Stapelfilter mit Seitenauswahl, Vorschau und
+Rückgängig-Funktion. Live steht unten mittig; Abstände, Titel, Uhrzeiteingabe und
+Swipe-Übergänge sind angepasst.
+
+500 Flutter-Tests, 11 Schematests und 3 Servertests bestanden. Zusätzliche
+Nachprüfungen der abschließenden Datenfluss-/Materialänderungen: 34 + 17 Tests.
+Analyse ohne Befunde; Release-Webbuild erfolgreich. Android-Geräteprüfung bleibt offen.
+[Änderungen, kritisches Review und Prüfgrenzen](QUALITY-BUILD-60.md).
+
+---
+
+# Vorheriger Stand: 0.17.2+59
+
+Schülerzeilen haben mehr Abstand zur Trennlinie: unten 10 statt 2 logische Pixel,
+oben 6 statt 2. Jede Zeile ist damit 12 Pixel höher. Die fünf Eintragungsaktionen
+bleiben direkt sichtbar und behalten ihre Berührungsflächen. Der vorhandene
+Smartphone-Test berücksichtigt, dass die sechste Zeile nun Scrollen benötigen kann.
+
+22 bestehende UI-Tests bestanden; Analyse und Formatprüfung ohne Befunde,
+Release-Webbuild erfolgreich. Helle und dunkle Smartphone-Renderings geprüft.
+
+---
+
+# Vorheriger Stand: 0.17.1+58
+
+Gestaltung näher an der freigegebenen Vorlage: Inter, sanfte Flächen/Schatten und
+gemeinsame Bedienelemente. Code und Tests konsolidiert; Fehler bei verspätetem
+Nachladen, Erinnerungseinstellungen und Scanner-Aufräumen behoben.
+486 Flutter-Tests, 11 Schematests und 3 Servertests bestanden; Analyse ohne Befunde.
+[Änderungen, Prüfumfang und Grenzen](QUALITY-BUILD-58.md).
+
+Webvorschau und bestehender GitHub-PR werden aktualisiert. Datenmodell und
+Vorschau-Adresse bleiben erhalten. Die Android-Geräteabnahme bleibt offen.
+
+---
+
+# Vorheriger Stand: 0.17.0+57
+
+Umsetzung der freigegebenen creme-/salbeifarbenen Smartphone-Entwürfe in der Flutter-App.
+Offene Schülerzeilen, einheitliche Navigation und Formulare; zwei Anzeigeeinstellungen.
+[Umfang, Datenverträglichkeit und Prüfung](CREAM-SAGE-BUILD-57.md).
+
+Webvorschau und Quellstand sind die Auslieferung dieser Runde. Ein kompatibles Android-Testupdate benötigt weiterhin den ursprünglichen Test-Signierschlüssel.
+
+---
+
+# Vorheriger Stand: 0.16.0-rebuild.26+46
 
 Build 46: [Scannerzugänge und Anhänge je HÜ-Aufgabe](../../audit/SCANNER_ZUGAENGE_BUILD_46.md).
 

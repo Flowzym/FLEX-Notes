@@ -1,0 +1,21 @@
+{
+  "client_id": "299f0cd6-a732-425b-8318-e7d7364dd2e3",
+  "authorization_user_agent": "DEFAULT",
+  "redirect_uri": "msauth://at.flowzym.flex_notizbuch/O%2Fs4RU8YApv43yNF9HMVr8OKo80%3D",
+  "account_mode": "SINGLE",
+  "broker_redirect_uri_registered": false,
+  "logging": {
+    "pii_enabled": false,
+    "logcat_enabled": false,
+    "log_level": "ERROR"
+  },
+  "authorities": [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADandPersonalMicrosoftAccount",
+        "tenant_id": "common"
+      }
+    }
+  ]
+}

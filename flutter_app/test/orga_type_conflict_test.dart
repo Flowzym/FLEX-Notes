@@ -78,6 +78,7 @@ void main() {
             dueDate: appointment ? null : '2030-04-04',
             appointmentDate: appointment ? '2030-04-04' : null,
             appointmentTime: appointment ? '14:30' : '',
+            tags: appointment ? ['Schularbeit'] : [],
           ),
         );
         await c.reload();
@@ -122,6 +123,7 @@ void main() {
             dueDate: appointment ? null : '2030-04-04',
             appointmentDate: appointment ? '2030-04-04' : null,
             appointmentTime: appointment ? '14:30' : '',
+            tags: appointment ? ['Schularbeit'] : [],
           ),
         );
         await c.reload();
@@ -160,6 +162,7 @@ void main() {
             dueDate: appointment ? null : '2030-04-04',
             appointmentDate: appointment ? '2030-04-04' : null,
             appointmentTime: appointment ? '14:30' : '',
+            tags: appointment ? ['Schularbeit'] : [],
             items: const [
               CheckItem(id: 'item', text: 'Unterlagen', checked: true),
             ],
@@ -213,6 +216,7 @@ void main() {
         final saved = (await repo.entries()).single;
         expect(saved.appointmentDate, original.appointmentDate);
         expect(saved.appointmentTime, original.appointmentTime);
+        expect(saved.tags, original.tags);
         expect(saved.dueDate, original.dueDate);
         expect(saved.done, original.done);
         expect(saved.items.single.toJson(), original.items.single.toJson());
@@ -233,6 +237,7 @@ void main() {
             dueDate: appointment ? null : '2030-04-04',
             appointmentDate: appointment ? '2030-04-04' : null,
             appointmentTime: appointment ? '14:30' : '',
+            tags: appointment ? ['Schularbeit'] : [],
           ),
         );
         await c.reload();

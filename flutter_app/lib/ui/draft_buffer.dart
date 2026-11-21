@@ -54,6 +54,7 @@ class DraftBuffer {
     String? baseline,
     this.onPersisted,
     this.onStatusChanged,
+    this.retainEmpty,
   }) : baseline =
            initial?.baseline ?? baseline ?? dialogDraftSignature(type, data),
        draft =
@@ -69,6 +70,7 @@ class DraftBuffer {
   }
   final NotebookRepository repository;
   final String baseline;
+  final bool Function(DialogDraft)? retainEmpty;
   final Future<void> Function()? onPersisted;
   final VoidCallback? onStatusChanged;
   DialogDraft draft;
@@ -78,7 +80,8 @@ class DraftBuffer {
   Object? error;
   Future<void> pending = Future.value();
   bool get hasContent =>
-      dialogDraftSignature(draft.type, draft.data) != baseline;
+      dialogDraftSignature(draft.type, draft.data) != baseline ||
+      (retainEmpty?.call(draft) ?? false);
   void change(Json data) {
     dirty = true;
     generation++;
@@ -102,16 +105,18 @@ class DraftBuffer {
     });
   }
 
-  Future<void> flush() async {
+  Future<void> flush({bool force = false}) async {
     timer?.cancel();
-    if (!dirty) {
+    if (!dirty && !force) {
       await pending;
       return;
     }
     final snapshot = draft, revisionGeneration = generation;
     pending = pending.catchError((Object _) {}).then((_) async {
       var revision = 0;
-      if (dialogDraftSignature(snapshot.type, snapshot.data) != baseline) {
+      if (force ||
+          dialogDraftSignature(snapshot.type, snapshot.data) != baseline ||
+          (retainEmpty?.call(snapshot) ?? false)) {
         final saved = await repository.saveDialogDraft(
           DialogDraft(
             id: snapshot.id,

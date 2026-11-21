@@ -1,12 +1,14 @@
-import 'dart:convert';
-import '../domain/document_scanner.dart';
 import 'document_attachments.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import 'option_bar.dart';
 import 'compact_switch.dart';
 import 'draft_actions.dart';
 import 'surfaces.dart';
 import 'tag_text_field.dart';
 import 'observation_tone_colors.dart';
 import 'homework_task_editor.dart';
+import 'homework_materials.dart';
+import '../domain/assignment_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../application/notebook_controller.dart';
@@ -19,8 +21,14 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'school_editor.dart';
 import 'school_workspace.dart';
+import 'entry_navigation.dart';
 
 typedef DraftBody = Widget Function(BuildContext, Json, ValueChanged<Json>);
+typedef DraftNavigation =
+    Widget Function(
+      Widget content,
+      Future<void> Function(ValueChanged<DialogDraft>) navigate,
+    );
 
 class ProtectedDialog extends StatefulWidget {
   const ProtectedDialog({
@@ -35,6 +43,8 @@ class ProtectedDialog extends StatefulWidget {
     this.draft,
     this.accept = 'Speichern',
     this.maxWidth = 760,
+    this.navigation,
+    this.entryOwner,
   });
   final NotebookController controller;
   final String type, ownerId, title, accept;
@@ -43,16 +53,38 @@ class ProtectedDialog extends StatefulWidget {
   final Future<void> Function(Json, DialogDraft) save;
   final DialogDraft? draft;
   final double maxWidth;
+  final DraftNavigation? navigation;
+  final String? entryOwner;
+  static ProtectedDialogState of(BuildContext context) =>
+      context.findAncestorStateOfType<ProtectedDialogState>()!;
+
   @override
-  State<ProtectedDialog> createState() => _ProtectedDialogState();
+  State<ProtectedDialog> createState() => ProtectedDialogState();
 }
 
-class _ProtectedDialogState extends State<ProtectedDialog>
+class ProtectedDialogState extends State<ProtectedDialog>
     with WidgetsBindingObserver {
   late DraftBuffer buffer;
   late Json data;
   bool busy = false, canPop = false;
   String? error;
+  final errorAnchor = GlobalKey();
+
+  void showError(Object failure) {
+    if (!mounted) return;
+    setState(() => error = friendlyError(failure));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = errorAnchor.currentContext;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(
+          target,
+          alignment: .5,
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +101,14 @@ class _ProtectedDialogState extends State<ProtectedDialog>
         if (mounted) setState(() {});
       },
       initial: widget.draft,
+      retainEmpty: (draft) {
+        if (!{'bulk', 'classroom'}.contains(draft.type)) return false;
+        final scope = draft.type == 'bulk'
+            ? bulkDraftScanContext(draft.id)
+            : classroomDraftScanContext(draft);
+        return widget.controller.classroom.any(scope.matchesMaterial) ||
+            widget.controller.dialogDrafts.any(scope.matchesDraft);
+      },
     );
   }
 
@@ -113,7 +153,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       await widget.controller.reload();
       if (mounted) await pop();
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -140,7 +180,7 @@ class _ProtectedDialogState extends State<ProtectedDialog>
           );
           await pop();
         } catch (discardError) {
-          if (mounted) setState(() => error = friendlyError(discardError));
+          showError(discardError);
         }
       }
     } finally {
@@ -148,9 +188,54 @@ class _ProtectedDialogState extends State<ProtectedDialog>
     }
   }
 
-  Future<void> save({
-    Future<void> Function(BuildContext, DialogDraft)? afterSave,
-  }) async {
+  /// Persist the owner before capture/import can leave the app. Keep attachment
+  /// links on the draft until its record is successfully published.
+  Future<void> withSavedDraft(Future<void> Function(DialogDraft) action) async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      await action(buffer.draft);
+      await widget.controller.reload();
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      showError(e);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> openAttachment(bool scan, {String? taskId}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush(force: true);
+      if (!mounted) return;
+      final scope = bulkDraftScanContext(buffer.draft.id, taskId: taskId);
+      if (scan) {
+        await scanAndShow(context, widget.controller, scope);
+      } else {
+        await showContextDocuments(context, widget.controller, scope);
+      }
+      if (mounted) {
+        buffer.change(data);
+        await buffer.flush();
+      }
+    } catch (e) {
+      showError(e);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> save() async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -161,16 +246,26 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       await widget.save(data, buffer.draft);
       await widget.controller.reload();
       if (mounted) {
-        final host = Navigator.of(context).context;
         await pop();
-        if (afterSave != null && host.mounted) {
-          await afterSave(host, buffer.draft);
-        }
       }
     } catch (e) {
-      if (mounted) setState(() => error = friendlyError(e));
+      showError(e);
     }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> navigate(ValueChanged<DialogDraft> changePage) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await buffer.flush();
+      await widget.controller.reload();
+      if (mounted) changePage(buffer.draft);
+    } catch (e) {
+      showError(e);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -180,13 +275,33 @@ class _ProtectedDialogState extends State<ProtectedDialog>
       if (!didPop) close();
     },
     child: CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): close,
+        if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+            !busy) ...{
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): save,
+        },
+      },
       child: Focus(
         autofocus: true,
         child: FlexModal(
           closeLabel: 'Schließen und Entwurf sichern',
           maxWidth: widget.maxWidth,
           title: Text(widget.title),
+          headerContent: widget.entryOwner == null
+              ? null
+              : EntryPageHeader(
+                  owner: widget.entryOwner!,
+                  title: widget.title,
+                  onClose: busy ? null : close,
+                  titleActions: [
+                    if (buffer.hasContent || buffer.draft.revision > 0)
+                      EditorDraftDeleteButton(
+                        onPressed: busy ? null : deleteDraft,
+                      ),
+                  ],
+                ),
           headerActions: [
             if (buffer.hasContent || buffer.draft.revision > 0)
               EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
@@ -198,15 +313,22 @@ class _ProtectedDialogState extends State<ProtectedDialog>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                widget.body(context, data, change),
+                if (widget.navigation case final navigation?)
+                  navigation(widget.body(context, data, change), navigate)
+                else
+                  widget.body(context, data, change),
                 DraftStatus(buffer: buffer),
                 if (error != null)
                   Padding(
+                    key: errorAnchor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ),
                   ),
@@ -260,15 +382,25 @@ Future<void> showCatalog(
   NotebookController c,
   String kind, {
   DialogDraft? draft,
+  String? pupilId,
+  String? initialTone,
 }) async {
+  final owner = pupilId ?? draft?.data['pupilId'] as String?;
+  final pupil = c.pupils.where((p) => p.id == owner && !p.deleted).firstOrNull;
   final initial = <String, dynamic>{
-    'tone': c.appearance.defaultObservationTone,
+    'tone': initialTone ?? c.appearance.defaultObservationTone,
+    if (pupil != null) 'pupilId': pupil.id,
     'kind': kind,
   };
   for (final tone in observationTones.keys) {
     initial[tone] = (await c.repository.observationCatalog(
       '$kind-$tone',
     )).options.toList();
+    if (pupil != null) {
+      initial['personal-$tone'] = (await c.repository.observationCatalog(
+        pupilCatalogKey('$kind-$tone', pupil.id),
+      )).options.toList();
+    }
   }
   if (!context.mounted) return;
   await showDialog<void>(
@@ -283,41 +415,70 @@ Future<void> showCatalog(
       title:
           '${kind == 'social' ? 'Sozialverhalten' : 'Arbeitsverhalten'} · Auswahl',
       accept: 'Änderungen speichern',
-      save: (data, saved) => c.repository.saveCatalogs({
-        for (final tone in observationTones.keys)
-          '$kind-$tone': [
-            ...List<String>.from(data[tone] as List? ?? initial[tone] as List),
-            if ((data['new-$tone'] as String? ?? '').trim().isNotEmpty)
-              (data['new-$tone'] as String).trim(),
-          ],
-      }, saved),
+      save: (data, saved) {
+        final changed = <String, List<String>>{};
+        for (final tone in observationTones.keys) {
+          for (final personal in [false, if (pupil != null) true]) {
+            final field = personal ? 'personal-$tone' : tone;
+            final values = [
+              ...List<String>.from(
+                data[field] as List? ?? initial[field] as List,
+              ),
+              if ((data['new-$field'] as String? ?? '').trim().isNotEmpty)
+                (data['new-$field'] as String).trim(),
+            ];
+            if (!listEquals(initial[field] as List, values)) {
+              changed[personal
+                      ? pupilCatalogKey('$kind-$tone', pupil!.id)
+                      : '$kind-$tone'] =
+                  values;
+            }
+          }
+        }
+        return c.repository.saveCatalogs(changed, saved);
+      },
       body: (ctx, data, change) {
-        final tone = data['tone'] as String,
-            list = List<String>.from(
-              data[data['tone']] as List? ?? initial[data['tone']] as List,
-            );
+        final activeTone = data['tone'] as String;
+        final personal = pupil != null && data['personal'] == true;
+        final tone = personal ? 'personal-$activeTone' : activeTone;
+        final list = List<String>.from(
+          data[tone] as List? ?? initial[tone] as List,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Diese Auswahllisten gelten für alle Schüler. Bereits gespeicherte Einträge behalten ihren ursprünglichen Text.',
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final t in observationTones.keys)
-                  transparentChip(
-                    ChoiceChip(
-                      label: Text(
-                        '${observationSigns[t]} ${observationTones[t]}',
-                      ),
-                      selected: tone == t,
-                      onSelected: (_) => change({'tone': t}),
-                    ),
+            if (pupil != null) ...[
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Für alle Schüler'),
+                    selected: !personal,
+                    onSelected: (_) =>
+                        change({'personal': false, 'addError': ''}),
                   ),
-              ],
+                  ChoiceChip(
+                    label: Text('Nur für ${pupil.name}'),
+                    selected: personal,
+                    onSelected: (_) =>
+                        change({'personal': true, 'addError': ''}),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+            OptionBar(
+              options: {
+                for (final t in observationTones.entries)
+                  t.key: '${observationSigns[t.key]} ${t.value}',
+              },
+              value: activeTone,
+              colors: observationToneColors,
+              onChanged: (value) => change({'tone': value, 'addError': ''}),
             ),
+            const SizedBox(height: 14),
             if (list.isEmpty)
               const Text('Die Liste ist leer. Füge unten einen Eintrag hinzu.'),
             for (var i = 0; i < list.length; i++)
@@ -331,7 +492,7 @@ Future<void> showCatalog(
                         initialValue: list[i],
                         maxLength: 150,
                         decoration: const InputDecoration(
-                          labelText: 'Beobachtung',
+                          hintText: 'Beobachtung',
                           counterText: '',
                         ),
                         onChanged: (v) {
@@ -379,9 +540,6 @@ Future<void> showCatalog(
                 data['addError'] as String,
                 style: TextStyle(color: Theme.of(ctx).colorScheme.error),
               ),
-            const Text(
-              'Die Änderungen werden erst mit „Änderungen speichern“ übernommen.',
-            ),
           ],
         );
       },
@@ -468,9 +626,10 @@ Future<void> showBulk(
   DialogDraft? draft,
   String initialKind = 'social',
   String initialSubject = '',
+  List<String> initialRecipients = const [],
 }) async {
-  final editorKey = GlobalKey<_ProtectedDialogState>();
-  final attachmentOwner = newId();
+  final editorKey = GlobalKey<ProtectedDialogState>();
+  final personalCatalogs = await c.repository.personalObservationCatalogs();
   final catalogs = <String, List<String>>{};
   for (final key in observationDefaults.keys) {
     catalogs[key] = (await c.repository.observationCatalog(key)).options;
@@ -490,7 +649,11 @@ Future<void> showBulk(
       accept: 'Für ausgewählte Schüler speichern',
       initial: {
         'kind': initialKind,
-        'recipients': <String>[],
+        'recipients': [
+          for (final p in c.pupils)
+            if (!p.archived && !p.deleted && initialRecipients.contains(p.id))
+              p.id,
+        ],
         'context': '',
         'subject': initialSubject,
         'body': '',
@@ -514,71 +677,23 @@ Future<void> showBulk(
         final kind = data['kind'] as String,
             ids = List<String>.from(data['recipients'] as List);
         final individuals = Json.from(data['individual'] as Map);
-        Future<void> openDocuments(
+        Widget attachments({
           HomeworkTask? task,
-          bool scan,
-        ) => guarded(ctx, () async {
-          final tasks = (data['tasks'] as List? ?? [])
-              .map((t) => HomeworkTask.fromJson(Json.from(t as Map)))
-              .where((t) => t.text.trim().isNotEmpty)
-              .toList();
-          final index = task == null
-              ? -1
-              : tasks.indexWhere((t) => t.id == task.id);
-          if (task != null && index < 0) {
-            throw const DomainError(
-              'Bitte die Aufgabe vor dem Hinzufügen eines Dokuments benennen.',
-            );
-          }
-          await editorKey.currentState?.save(
-            afterSave: (host, saved) async {
-              final group = (await c.repository.schoolGroups()).firstWhere(
-                (g) => g['id'] == saved.id,
-              );
-              final request = Json.from(
-                jsonDecode(group['request'] as String) as Map,
-              );
-              final records = (request['school'] as List)
-                  .map((r) => SchoolRecord.fromJson(Json.from(r as Map)))
-                  .toList();
-              final entries = (request['orga'] as List)
-                  .map((e) => OrgaEntry.fromJson(Json.from(e as Map)))
-                  .toList();
-              final scope = records.isNotEmpty
-                  ? schoolScanContext(
-                      c,
-                      records,
-                      taskIds: {
-                        if (index >= 0)
-                          for (final r in records) r.id: r.tasks[index].id,
-                      },
-                    )
-                  : ScanContext(
-                      pupilIds: ids,
-                      links: entries
-                          .map((e) => DocumentLink('orga', e.id))
-                          .toList(),
-                      title: 'FLEX-Klasse · Orga',
-                      category: 'form',
-                    );
-              if (!host.mounted) return;
-              if (scan) {
-                await scanAndShow(host, c, scope);
-              } else {
-                await showContextDocuments(host, c, scope);
-              }
-            },
-          );
-        });
-        Widget attachments({HomeworkTask? task}) => DocumentAttachmentSection(
+          bool showActions = true,
+        }) => DocumentAttachmentSection(
           controller: c,
-          // This context is deliberately unique until the group has been saved.
-          scope: ScanContext(links: [DocumentLink('school', attachmentOwner)]),
-          saveFirst: true,
+          scope: bulkDraftScanContext(
+            editorKey.currentState!.buffer.draft.id,
+            taskId: task?.id,
+          ),
           compact: task != null,
-          showFiles: task == null,
-          onScan: () => openDocuments(task, true),
-          onDocuments: () => openDocuments(task, false),
+          attachmentMenu: task != null,
+          showActions: showActions,
+          showFiles: task == null || !showActions,
+          onScan: () =>
+              editorKey.currentState?.openAttachment(true, taskId: task?.id),
+          onDocuments: () =>
+              editorKey.currentState?.openAttachment(false, taskId: task?.id),
         );
         Widget text(String key, String label, {int lines = 1}) => TextFormField(
           key: ValueKey('bulk-$kind-$key'),
@@ -613,7 +728,15 @@ Future<void> showBulk(
             PupilTags(
               pupils: c.pupils.where((p) => !p.archived).toList(),
               selected: ids.toSet(),
-              onChanged: (v) => change({'recipients': v.toList()}),
+              onChanged: (v) => change({
+                'recipients': v.toList(),
+                if (data.containsKey('assignmentSources'))
+                  'assignmentSources': (data['assignmentSources'] as List)
+                      .where(
+                        (s) => s['pupilId'] == null || v.contains(s['pupilId']),
+                      )
+                      .toList(),
+              }),
             ),
             const Text('Bereich'),
             Wrap(
@@ -712,6 +835,7 @@ Future<void> showBulk(
                 }),
               ),
             ],
+            text('otherParticipants', 'Andere Person / weitere Namen'),
             if (kind == 'social' || kind == 'work') ...[
               const Text('Gemeinsamer Ablauf'),
               if (kind == 'social')
@@ -754,7 +878,6 @@ Future<void> showBulk(
                 ],
                 onChanged: (v) => change({'context': v}),
               ),
-              if (kind == 'social') text('otherParticipants', 'Weitere Namen'),
               for (final pupil in c.pupils.where((p) => ids.contains(p.id)))
                 Builder(
                   builder: (ctx) {
@@ -811,7 +934,14 @@ Future<void> showBulk(
                               runSpacing: 6,
                               children: [
                                 for (final option
-                                    in catalogs['$kind-$tone']!.where(
+                                    in {
+                                      ...catalogs['$kind-$tone']!,
+                                      ...?personalCatalogs[pupilCatalogKey(
+                                            '$kind-$tone',
+                                            pupil.id,
+                                          )]
+                                          ?.options,
+                                    }.where(
                                       (v) => !(individual[tone] as List? ?? [])
                                           .contains(v),
                                     ))
@@ -845,6 +975,8 @@ Future<void> showBulk(
             if (kind == 'homework') ...[
               HomeworkTaskEditor(
                 attachmentActionsBuilder: (task) => attachments(task: task),
+                attachmentBuilder: (task) =>
+                    attachments(task: task, showActions: false),
                 tasks: (data['tasks'] as List)
                     .map((v) => HomeworkTask.fromJson(Json.from(v as Map)))
                     .toList(),
@@ -852,6 +984,16 @@ Future<void> showBulk(
                     change({'tasks': tasks.map((t) => t.toJson()).toList()}),
               ),
               text('subject', 'Fach · optional'),
+              HomeworkMaterials(
+                controller: c,
+                pupils: c.pupils.where((p) => ids.contains(p.id)).toList(),
+                sources: (data['assignmentSources'] as List? ?? [])
+                    .map((s) => AssignmentSource.fromJson(Json.from(s as Map)))
+                    .toList(),
+                onChanged: (v) => change({
+                  'assignmentSources': v.map((s) => s.toJson()).toList(),
+                }),
+              ),
             ],
             if (kind == 'orga') ...[
               text('body', 'Eigene Notiz', lines: 4),

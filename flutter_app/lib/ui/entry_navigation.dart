@@ -3,12 +3,115 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/school.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
+import 'classroom_editor.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 import 'common.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
+
+/// Shared context and heading for the school and organisation editors.
+class EntryPageHeader extends StatelessWidget {
+  const EntryPageHeader({
+    super.key,
+    required this.owner,
+    required this.title,
+    required this.onClose,
+    this.actions = const [],
+    this.titleActions = const [],
+  });
+  final String owner, title;
+  final VoidCallback? onClose;
+  final List<Widget> actions, titleActions;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+          constraints.maxWidth >= 520) {
+        return Row(
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 14,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleLarge),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        owner,
+                        key: const ValueKey('entry-owner'),
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...actions,
+            ...titleActions,
+            IconButton(
+              key: const ValueKey('entry-back'),
+              tooltip: 'Schließen und Entwurf sichern',
+              onPressed: onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        );
+      }
+      final tools = [...actions, ...titleActions];
+      final stacked =
+          tools.isNotEmpty &&
+          constraints.maxWidth - 48 * (tools.length + 1) <
+              MediaQuery.textScalerOf(context).scale(128);
+      final labels = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            owner,
+            key: const ValueKey('entry-owner'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      );
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                key: const ValueKey('entry-back'),
+                tooltip: 'Zurück',
+                onPressed: onClose,
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Expanded(child: labels),
+              if (!stacked) ...tools,
+            ],
+          ),
+          if (stacked)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(children: tools),
+            ),
+        ],
+      );
+    },
+  );
+}
 
 int entryDraftCount(
   NotebookController c, {
@@ -33,9 +136,12 @@ int entryDraftCount(
     c.dialogDrafts
         .where(
           (d) =>
+              d.id != exclude &&
+                  kind == null &&
+                  isReturnDraft(d, pupilId: pupilId) ||
               d.type == 'bulk' &&
-              d.data['kind'] == (kind?.name ?? 'orga') &&
-              (d.data['recipients'] as List).contains(pupilId),
+                  d.data['kind'] == (kind?.name ?? 'orga') &&
+                  (d.data['recipients'] as List).contains(pupilId),
         )
         .length;
 
@@ -116,6 +222,24 @@ Future<void> showEntryDrafts(
                 Future<void> Function() discard,
               })
             >[
+              if (kind == null)
+                for (final d in c.dialogDrafts.where(
+                  (d) => d.id != exclude && isReturnDraft(d, pupilId: pupilId),
+                ))
+                  (
+                    id: 'return-${d.id}',
+                    preview: d.data['title'] as String? ?? '',
+                    time: d.updatedAtUtc,
+                    mode: 'Rücklauf',
+                    open: () => showClassroomEditor(
+                      ctx,
+                      c,
+                      ClassroomKind.returnList,
+                      draft: d,
+                    ),
+                    discard: () =>
+                        c.repository.discardDialogDraft(d.id, d.revision),
+                  ),
               for (final d in school)
                 (
                   id: 'school-${d.id}',
@@ -233,8 +357,9 @@ Future<void> showEntryDrafts(
 Future<void> showAssignedHomework(
   BuildContext context,
   NotebookController c,
-  String pupilId,
-) => showFlexDetail<void>(
+  String pupilId, {
+  bool onlyOpen = false,
+}) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
@@ -242,54 +367,73 @@ Future<void> showAssignedHomework(
       final pupil = c.pupils.firstWhere((p) => p.id == pupilId);
       return FlexModal(
         title: const Text('Hausübungen'),
-        headerContent: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    pupil.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                IconButton(
-                  tooltip: (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
-                      ? 'Zurück'
-                      : 'Schließen',
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(
-                    (DetailFlowScope.maybeOf(context)?.depth ?? 0) > 0
-                        ? Icons.arrow_back
-                        : Icons.close,
-                  ),
-                ),
-              ],
-            ),
-            const Text(
-              'Hausübungen',
-              style: TextStyle(
-                fontFamily: 'FlexSerif',
-                fontSize: 20,
-                height: 1.3,
-              ),
-            ),
-          ],
+        headerContent: EntryPageHeader(
+          owner: pupil.name,
+          title: 'Hausübungen',
+          onClose: () => Navigator.pop(ctx),
         ),
         onClose: () => Navigator.pop(ctx),
         scrollable: false,
-        content: SizedBox(
-          height: MediaQuery.sizeOf(ctx).height * .65,
-          child: SchoolWorkspace(
-            controller: c,
-            pupil: pupil,
-            kind: SchoolKind.homework,
+        content: LayoutBuilder(
+          builder: (_, box) => SizedBox(
+            height: box.hasBoundedHeight
+                ? box.maxHeight
+                : MediaQuery.sizeOf(ctx).height * .75,
+            child: SchoolWorkspace(
+              controller: c,
+              pupil: pupil,
+              kind: SchoolKind.homework,
+              initiallyOpenOnly: onlyOpen,
+            ),
           ),
         ),
       );
     },
   ),
 );
+
+/// Command strip used by desktop hosts. Properties live beside the input.
+class EntryWindowCommands extends StatelessWidget {
+  const EntryWindowCommands({
+    super.key,
+    required this.close,
+    required this.save,
+    this.status = '',
+    this.saveKey,
+    this.saveLabel = 'Speichern',
+  });
+  final VoidCallback? close, save;
+  final String status, saveLabel;
+  final Key? saveKey;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Semantics(
+          liveRegion: true,
+          child: Text(
+            status,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      ),
+      TextButton(
+        key: const ValueKey('cancel-editor'),
+        onPressed: close,
+        child: const Text('Abbrechen'),
+      ),
+      const SizedBox(width: 10),
+      Tooltip(
+        message: 'Speichern (Strg+S)',
+        child: FilledButton.icon(
+          key: saveKey,
+          onPressed: save,
+          icon: const Icon(Icons.check, size: 16),
+          label: Text(saveLabel),
+        ),
+      ),
+    ],
+  );
+}

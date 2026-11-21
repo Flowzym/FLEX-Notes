@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../services/diagnostics.dart';
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
 
@@ -11,9 +13,12 @@ Widget centeredButtonLabel(
   child: child ?? const SizedBox.shrink(),
 );
 
-String friendlyError(Object e) => e is DomainError
-    ? e.message
-    : 'Speichern oder Laden fehlgeschlagen. Deine Eingaben bleiben erhalten. Bitte Speicherplatz und Berechtigungen prüfen.';
+String friendlyError(Object e) {
+  if (e is DomainError) return e.message;
+  unawaited(diagnostics.capture(e, StackTrace.current));
+  return 'Speichern oder Laden fehlgeschlagen. Deine Eingaben bleiben erhalten. Bitte Speicherplatz und Berechtigungen prüfen.';
+}
+
 Future<bool> guarded(
   BuildContext context,
   Future<void> Function() action,

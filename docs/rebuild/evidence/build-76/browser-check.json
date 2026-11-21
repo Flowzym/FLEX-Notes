@@ -1,0 +1,23 @@
+{
+  "version": "0.26.0+76",
+  "syntheticData": true,
+  "widths": [
+    320,
+    390
+  ],
+  "timezone": "Europe/Vienna",
+  "checks": [
+    "single toolbar row",
+    "real touch time field, save and reload",
+    "outside swipe changes view",
+    "inside swipe changes period",
+    "weekends in management",
+    "timetable pills one row",
+    "independent block copy in selected week",
+    "overlap warning",
+    "hours editor",
+    "changes panel"
+  ],
+  "pageErrors": [],
+  "physicalAndroidTested": false
+}

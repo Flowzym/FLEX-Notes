@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "existing schema7 synthetic notebook opens in build79",
+    "school year closeout at320",
+    "retention review at390 without deleting",
+    "template manager",
+    "diagnostic report preview",
+    "tablet master/detail at1200",
+    "phone notes at390"
+  ],
+  "pageErrors": []
+}

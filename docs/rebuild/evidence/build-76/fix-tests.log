@@ -1,0 +1,6 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_interaction_ui_test.dart: long press an occupied appointment starts another; ordinary tap edits it
+00:02 +1: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: copy creates an independent block; exceptions retain notes on undo
+00:03 +2: /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart: (tearDownAll)
+00:03 +2: All tests passed!

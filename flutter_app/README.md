@@ -1,27 +1,18 @@
 # FLEX – bearbeitbares Flutter-Projekt
 
-Version **0.16.0-rebuild.29+49** ist eine neue Rekonstruktion aus den Quellen
-0.1.0+1, dem HTML-Prototyp und den Referenzen des Webpreview 0.15.3+19. Sie ist
-nicht identisch mit den fehlenden Originalquellen von 0.16.0+20.
+Aktuell: **0.32.0+83**, Branch `redesign/cream-olive`.
+[Materialverwaltung und Prüfungen](../docs/rebuild/MATERIAL-BUILD-83.md) ·
+[Projektstatus](../docs/rebuild/STATUS.md) ·
+[Android-APKs](../releases/android/build-83/README.md) ·
+[Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/).
 
-Die Oberfläche besteht aus Flutter-Widgets und direkt gezeichneten Symbolen.
-Sie bettet den HTML-Prototyp nicht ein. Das Original-Webpreview bleibt im
-Repository unter `recovery/webpreview/0.15.3+19/` unverändert erhalten.
-
-Aktueller Prüfstand: [UI-Prüfung und überarbeitete Bedienung](../audit/UI_PRUEFUNG_BUILD_49.md),
-[Dokumentvorschauen, Kalender und Scannerverwaltung](../audit/DOKUMENTE_KALENDER_BUILD_48.md),
-[Scannerausbau und kompakte Oberfläche](../audit/SCANNER_AUSBAU_BUILD_47.md),
- [Scannerzugänge und HÜ-Anhänge](../audit/SCANNER_ZUGAENGE_BUILD_46.md),
-[Bereichsnavigation, Fotos und Tags](../audit/NAVIGATION_FOTOS_BUILD_45.md),
-[Dokumentenscanner](../audit/DOKUMENTENSCANNER_BUILD_44.md),
-[Navigation, Farben und Zeitlinie](../audit/NAVIGATION_FARBEN_ZEIT_BUILD_43.md),
-[Kalender-Unterseiten](../audit/KALENDER_UNTERSEITEN_BUILD_42.md),
-[Bearbeitbarer Stundenplan](../audit/STUNDENPLAN_BUILD_41.md),
-[Kalender](../audit/KALENDER_BUILD_40.md) und [Materialien](../audit/MATERIALIEN_BUILD_39.md).
-Android-Testapp: [Installation und Bau](ANDROID-TEST.md).
-Die private Webvorschau verwendet denselben Flutter-Code. Nutzerdaten bleiben lokal
-im jeweiligen Browser bzw. Gerät. Automatisierte Tests und Flutter-Renderings ersetzen
-keinen Browser- oder physischen Android-Gerätelauf.
+Die App verwendet Flutter-Widgets und direkt gezeichnete Symbole; sie bettet den
+HTML-Prototyp nicht ein. Sie entwickelt die wiedergefundenen Rekonstruktionsquellen
+weiter. Historische Quellen und Prüfungen bleiben im Repository erhalten.
+Nutzerdaten liegen im jeweiligen Browser bzw. Gerät. Android schützt die Datenbank
+mit SQLCipher und Materialdateien mit AES-GCM/Keystore; Webspeicher erhält dadurch
+keine zusätzliche Geräteverschlüsselung. Automatisierte Tests ersetzen keine
+[physische Android-Abnahme](../docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md).
 
 ## Neue Funktionen einrichten
 
@@ -33,8 +24,11 @@ keinen Browser- oder physischen Android-Gerätelauf.
 - **Gespräch vorbereiten:** Zeitraum/Bereiche/Einträge auswählen, zusammenstellen und als PDF sichern.
 
 Automatische Sicherungen, OS-Erinnerungen und App-Sperre werden auf Android angeboten.
-Die Zugangssperre ist keine Datenbankverschlüsselung. Gerätespezifische Geheimnisse und
-Berechtigungen sind nicht Bestandteil von exportierten Sicherungen.
+Die Zugangssperre und die Android-Speicherverschlüsselung sind getrennte Schutzmaßnahmen.
+Gerätespezifische Geheimnisse und Berechtigungen sind nicht Bestandteil exportierter Sicherungen.
+
+Android bietet außerdem „Teilen → FLEX“ für PDF, DOCX und Bilder mit Vorschau und
+Schüler-/Unterrichtszuordnung. [OneDrive-Einrichtung](../docs/rebuild/ONEDRIVE-SETUP.md).
 
 ## Automatische Prüfungen
 
@@ -100,8 +94,9 @@ Alternativ für die Entwicklung:
 flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8081
 ```
 
-Windows- und Android-Runnerquellen sind enthalten. Die [Android-Testapp](ANDROID-TEST.md)
-wird mit `flutter build apk --release` gebaut und als **FLEX Test** installiert.
+Windows- und Android-Runnerquellen sind enthalten. Die [Android-App](ANDROID-TEST.md)
+wird als **FLEX** mit dauerhafter Signatur gebaut; die ursprüngliche FLEX Test bleibt
+separat. Zum Releasebau die dort dokumentierte externe Signierkonfiguration verwenden.
 Zum nativen Entwicklungsstart sind die jeweiligen Plattformwerkzeuge erforderlich
 (`flutter doctor`, danach `flutter run -d windows` oder `flutter run -d <Android-Gerät>`).
 Kein nativer Windows-Build und keine Tests auf Android-/Windows-Geräten.
@@ -109,20 +104,23 @@ Kein nativer Windows-Build und keine Tests auf Android-/Windows-Geräten.
 ## Daten und Versionsgrenzen
 
 - Neue Arbeitsbereiche starten leer. Tests verwenden synthetische Daten.
-- Die neue Datenbank heißt `flex_notizbuch_rebuild_v1`. Damit wird der lokale
-  Speicher des gesicherten Webpreview nicht automatisch geöffnet oder verändert.
+- Der Webspeicher verwendet weiterhin `flex_notizbuch_rebuild_v1`. Android migriert
+  die lokale Datenbank in die verschlüsselte Geräteablage. Speicher historischer
+  Webpreview-Installationen wird nicht automatisch geöffnet oder verändert.
 - Die DDL entspricht dem erhaltenen SQL-Schema 7. Die zusätzlichen Fach-Payloads
   sind mit `rebuildFormat: 1` ausdrücklich als Rekonstruktion gekennzeichnet.
 - Eine echte SQLite-Datei des erhaltenen Schemas 1 kann nach Schema 7 migriert
   werden. Unbekannte Zwischenversionen werden vor Änderungen abgewiesen.
-- Eigene Sicherungen heißen `FLEX-Flutter-Rebuild-Backup`, Version 1, Schema 7.
+- Der innere Notizbuchstand heißt `FLEX-Flutter-Rebuild-Backup`, Version 1, Schema 7.
   Originale Flutter-0.1-Sicherungen sind importierbar. Kompatibilität mit den
   fehlenden neueren Flutter-Quellen bzw. ihren Payloads ist nicht nachgewiesen.
-- Passwortschutz verwendet das erhaltene `FLEX-Encrypted`-Format mit PBKDF2-
-  SHA256 und AES-256-GCM. Ein kompatibler Verschlüsselungscontainer bedeutet
-  nicht automatisch ein kompatibles inneres Datenformat.
-- HTML-Sicherungen werden unverändert vorgemerkt, nicht automatisch als aktive
-  Daten übernommen. Die aktive Datenbank ist unverschlüsselt.
+- Neue vollständige Sicherungen verwenden das blockweise verarbeitete binäre Format
+  `FLEXBACKUP3` / `.flexbackup` mit PBKDF2-SHA256 und AES-256-GCM; Build 78 oder neuer
+  ist zum Öffnen erforderlich. Alte JSON-/FLEX-Encrypted-Sicherungen bleiben lesbar.
+  Containerkompatibilität bedeutet nicht automatisch kompatible innere Daten.
+- HTML-Sicherungen werden unverändert vorgemerkt, nicht automatisch als aktive Daten
+  übernommen. Browser-Downloads und ältere JSON-Importe können weiterhin viel Speicher
+  benötigen. Grenzen und Vergleichsmessungen stehen im aktuellen Prüfbericht.
 
 ## Quellenpakete
 

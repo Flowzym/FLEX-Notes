@@ -1,4 +1,7 @@
-import 'package:flex_notizbuch/ui/prototype_navigation.dart';
+import 'support/app_test_fonts.dart';
+import 'package:flex_notizbuch/ui/detail_flow.dart';
+import 'package:flex_notizbuch/ui/entry_navigation.dart';
+import 'package:flex_notizbuch/ui/app_navigation.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -16,7 +19,6 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/option_bar.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 import 'classroom_test.dart' show classroomMemory;
 import 'support/ui_audit_data.dart';
 
@@ -40,15 +42,7 @@ void main() {
           .setMockMethodCallHandler(MethodChannel(channel), null);
     }
   });
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': 'assets/fonts/Selawik-Regular.ttf',
-      'FlexSerif': 'assets/fonts/Gelasio-Regular.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(font.key)..addFont(rootBundle.load(font.value))).load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   Future<NotebookController> controller() async {
     final c = NotebookController(classroomMemory());
     await c.initialize();
@@ -75,12 +69,6 @@ void main() {
       RepaintBoundary(
         key: key,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();
@@ -110,55 +98,59 @@ void main() {
     });
   }
 
+  testWidgets(
+    'More pills keep all labels inside their touch targets with large text',
+    (t) async {
+      t.view.physicalSize = const Size(320, 740);
+      t.view.devicePixelRatio = 1;
+      t.platformDispatcher.textScaleFactorTestValue = 1.8;
+      addTearDown(t.view.reset);
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      const pages = {
+        0: 'Weitere',
+        1: 'Archiv',
+        2: 'Papierkorb',
+        3: 'Daten',
+        4: 'Einstellungen',
+      };
+      await t.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'FlexSans'),
+          home: Scaffold(
+            body: FlexPagePills(
+              selected: 4,
+              pages: pages,
+              keyPrefix: 'more-check',
+              onSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      final widths = pages.keys
+          .map((i) => t.getSize(find.byKey(ValueKey('more-check-$i'))).width)
+          .toList();
+      expect(widths.every((w) => (w - widths.first).abs() < .01), isTrue);
+      for (final entry in pages.entries) {
+        final label = t.getRect(find.text(entry.value));
+        final button = t.getRect(
+          find.byKey(ValueKey('more-check-${entry.key}')),
+        );
+        expect(label.top, greaterThanOrEqualTo(button.top));
+        expect(label.bottom, lessThanOrEqualTo(button.bottom));
+        expect(button.height, greaterThanOrEqualTo(40));
+      }
+      expect(t.takeException(), isNull);
+    },
+  );
+
   for (final view in [
+    (390.0, 844.0, 1.0, 'light'),
     (390.0, 844.0, 1.0, 'dark'),
     (320.0, 740.0, 1.8, 'light'),
     (768.0, 1024.0, 1.0, 'light'),
     (1280.0, 900.0, 1.0, 'dark'),
   ]) {
-    testWidgets(
-      'More pills keep all labels inside their touch targets with large text',
-      (t) async {
-        t.view.physicalSize = const Size(320, 740);
-        t.view.devicePixelRatio = 1;
-        t.platformDispatcher.textScaleFactorTestValue = 1.8;
-        addTearDown(t.view.reset);
-        addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
-        const pages = {
-          0: 'Weitere',
-          1: 'Archiv',
-          2: 'Papierkorb',
-          3: 'Daten',
-          4: 'Einstellungen',
-          5: 'Scanner',
-        };
-        await t.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(fontFamily: 'FlexSans'),
-            home: Scaffold(
-              body: FlexPagePills(
-                selected: 4,
-                pages: pages,
-                keyPrefix: 'more-check',
-                onSelected: (_) {},
-              ),
-            ),
-          ),
-        );
-        await t.pumpAndSettle();
-        for (final entry in pages.entries) {
-          final label = t.getRect(find.text(entry.value));
-          final button = t.getRect(
-            find.byKey(ValueKey('more-check-${entry.key}')),
-          );
-          expect(label.top, greaterThanOrEqualTo(button.top));
-          expect(label.bottom, lessThanOrEqualTo(button.bottom));
-          expect(button.height, greaterThanOrEqualTo(40));
-        }
-        expect(t.takeException(), isNull);
-      },
-    );
-
     testWidgets(
       'populated navigation and editors remain usable at ${view.$1}/${view.$3}/${view.$4}',
       (t) async {
@@ -172,20 +164,78 @@ void main() {
           scale: view.$3,
         );
         final suffix = '${view.$1.toInt()}-${view.$3}-${view.$4}';
-        for (final destination in [(1, 3), (0, 3), (2, 3), (3, 4), (4, 6)]) {
-          await tap(t, find.byKey(ValueKey('bottom-${destination.$1}')));
-          for (var tab = 0; tab < destination.$2; tab++) {
-            await tap(
-              t,
-              find.byKey(
-                ValueKey(
-                  destination.$1 == 1
-                      ? 'page-$tab'
-                      : 'context-${destination.$1}-$tab',
-                ),
+        for (final destination in [
+          (1, [0, 1, 2]),
+          (0, [0]),
+          (2, [0, 3, 2]),
+          (3, [1, 0, 4]),
+          (4, [0, 1, 2, 3, 4]),
+          (5, [0]),
+        ]) {
+          await tap(
+            t,
+            find.byKey(
+              ValueKey(
+                destination.$1 == 4
+                    ? 'header-more'
+                    : 'bottom-${destination.$1}',
               ),
-            );
+            ),
+          );
+          for (final tab in destination.$2) {
+            if (destination.$1 != 0 && destination.$1 != 5) {
+              await tap(
+                t,
+                find.byKey(
+                  ValueKey(
+                    destination.$1 == 1
+                        ? 'page-$tab'
+                        : 'context-${destination.$1}-$tab',
+                  ),
+                ),
+              );
+            }
             await capture(t, key, 'page-${destination.$1}-$tab-$suffix');
+            if (destination.$1 == 0 && view.$1 == 390) {
+              // Calendar is its own page; tasks now live under Organisation.
+              expect(
+                find.byKey(const ValueKey('context-0-track-1')),
+                findsNothing,
+              );
+              expect(
+                find.byKey(const ValueKey('context-0-track-2')),
+                findsNothing,
+              );
+            }
+            if (destination.$1 == 1 && tab == 1 && view.$1 == 390) {
+              // Every pupil keeps all five actions reachable by scrolling.
+              for (final pupil in [
+                'audit-p0',
+                'audit-p4',
+                'audit-p8',
+                'audit-p10',
+                'audit-p2',
+                'audit-p6',
+              ]) {
+                await t.ensureVisible(
+                  find.byKey(ValueKey('shortcut-$pupil-orga')),
+                );
+                await t.pumpAndSettle();
+                for (final action in [
+                  'goal',
+                  'social',
+                  'work',
+                  'homework',
+                  'orga',
+                ]) {
+                  final button = find.byKey(
+                    ValueKey('shortcut-$pupil-$action'),
+                  );
+                  expect(button.hitTestable(), findsOneWidget);
+                  expect(t.getSize(button).height, greaterThanOrEqualTo(44));
+                }
+              }
+            }
           }
         }
         await tap(t, find.byKey(const ValueKey('bottom-1')));
@@ -193,7 +243,7 @@ void main() {
         final ctx = t.element(find.byType(Scaffold).first);
         for (final kind in SchoolKind.values) {
           unawaited(
-            showDialog<void>(
+            showFlexDetail<void>(
               context: ctx,
               builder: (_) => SchoolEditor(
                 controller: c,
@@ -204,10 +254,33 @@ void main() {
           await t.pumpAndSettle();
           await capture(t, key, 'editor-${kind.name}-$suffix');
           await tap(t, find.byKey(const ValueKey('cancel-editor')));
+          if (view.$1 == 390 && view.$4 == 'light') {
+            unawaited(
+              showFlexDetail<void>(
+                context: ctx,
+                builder: (_) => SchoolEditor(
+                  controller: c,
+                  record: SchoolRecord.empty(kind, 'audit-p0'),
+                ),
+              ),
+            );
+            await t.pumpAndSettle();
+            final owner = find.descendant(
+              of: find.byType(EntryPageHeader),
+              matching: find.text('Alex Beispiel 1'),
+            );
+            expect(
+              t.renderObject<RenderParagraph>(owner).didExceedMaxLines,
+              isFalse,
+              reason: '${kind.name} keeps the pupil name readable',
+            );
+            await capture(t, key, 'new-${kind.name}-$suffix');
+            await tap(t, find.byKey(const ValueKey('cancel-editor')));
+          }
         }
         for (final kind in ['note', 'task', 'appointment']) {
           unawaited(
-            showDialog<void>(
+            showFlexDetail<void>(
               context: ctx,
               builder: (_) => OrgaEditor(
                 controller: c,
@@ -277,9 +350,13 @@ void main() {
       await host(t, c);
       await tap(t, find.byKey(const ValueKey('bottom-2')));
       expect(find.text('Kopien vorbereiten'), findsOneWidget);
+      expect(find.byTooltip('Erledigen').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Papierkorb'), findsNothing);
+      expect(find.text('0 / 0 Unteraufgaben'), findsNothing);
+      await tap(t, find.byTooltip('Aufgabendetails'));
       for (final label in [
         'Scannen / Foto',
-        'Dokumente · 0',
+        'Dateien · 0',
         'Erledigen',
         'Wiederholung',
         'Erinnerung verschieben',
@@ -292,9 +369,9 @@ void main() {
           reason: label,
         );
       }
-      await tap(t, find.byTooltip('Erledigen'));
+      await tap(t, find.byTooltip('Erledigen').hitTestable());
       expect(c.entries.single.done, isTrue);
-      await tap(t, find.byTooltip('Wieder öffnen'));
+      await tap(t, find.byTooltip('Wieder öffnen').hitTestable());
       expect(c.entries.single.done, isFalse);
       await t.pumpWidget(const SizedBox());
     },
@@ -343,7 +420,14 @@ void main() {
       expect(t.widget(bar), isA<OptionBar>());
       for (final label in ['Notiz', 'Aufgabe', 'Termin']) {
         final text = find.descendant(of: bar, matching: find.text(label));
-        expect(t.getSize(text).height, lessThan(30), reason: label);
+        final paragraph = t.renderObject<RenderParagraph>(text);
+        expect(
+          paragraph.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: label.length),
+          ),
+          hasLength(1),
+          reason: label,
+        );
       }
       await tap(t, find.byKey(const ValueKey('orga-kind-appointment')));
       expect(

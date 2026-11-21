@@ -1,3 +1,7 @@
+import '../domain/school_year.dart';
+import '../domain/drive_rules.dart';
+import '../services/material_sync.dart';
+import '../services/material_storage.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
@@ -11,7 +15,10 @@ class NotebookController extends ChangeNotifier {
   final DeviceServices? services;
   final NotebookRepository repository;
   List<Pupil> pupils = [];
+  List<SchoolYearArchive> schoolYears = [];
   List<OrgaEntry> entries = [];
+  List<OrgaEntry> _hiddenEntries = [];
+  List<SchoolRecord> _hiddenRecords = [];
   List<OrgaEntry> trashedEntries = [];
   List<EditDraft> drafts = [];
   List<SchoolRecord> records = [];
@@ -20,9 +27,10 @@ class NotebookController extends ChangeNotifier {
   List<ClassroomDocument> classroom = [];
   NotebookSnapshot get currentSnapshot => NotebookSnapshot(
     pupils: pupils,
-    entries: [...entries, ...trashedEntries],
+    schoolYears: schoolYears,
+    entries: [...entries, ...trashedEntries, ..._hiddenEntries],
     drafts: drafts,
-    records: records,
+    records: [...records, ..._hiddenRecords],
     schoolDrafts: schoolDrafts,
     dialogDrafts: dialogDrafts,
     appearance: appearance,
@@ -38,6 +46,53 @@ class NotebookController extends ChangeNotifier {
   Future<void> _appearanceWrites = Future.value();
   int _appearanceGeneration = 0, _appearancePending = 0;
   bool _disposed = false;
+  String syncMessage = '';
+  Future<void>? _syncing;
+  bool get syncingMaterials => _syncing != null;
+  String _pendingSignature = '';
+  bool _rulesActive = false;
+  Future<void> syncMaterials() {
+    if (_disposed || !classroom.any(isDriveRule)) return Future.value();
+    final current = _syncing;
+    if (current != null) return current;
+    final pendingBefore = _pendingSignature.split('|').toSet();
+    final next = Future<void>(() async {
+      try {
+        final result = await syncNotebookMaterials(
+          repository,
+          const LocalMaterialFiles(),
+        );
+        syncMessage = result.errors.isEmpty
+            ? result.summary
+            : result.errors.join('\n');
+      } catch (e) {
+        syncMessage = e is DomainError
+            ? e.message
+            : 'OneDrive ist derzeit nicht erreichbar.';
+      } finally {
+        try {
+          await reload();
+        } finally {
+          _syncing = null;
+          if (!_disposed) {
+            notifyListeners();
+            if (_rulesActive &&
+                _pendingSignature
+                    .split('|')
+                    .any(
+                      (key) => key.isNotEmpty && !pendingBefore.contains(key),
+                    )) {
+              unawaited(syncMaterials());
+            }
+          }
+        }
+      }
+    });
+    _syncing = next;
+    notifyListeners();
+    return next;
+  }
+
   String? appearanceError;
   bool get appearanceSaving =>
       _appearanceTimer != null || _appearancePending > 0;
@@ -48,15 +103,33 @@ class NotebookController extends ChangeNotifier {
   }
 
   Future<void> reload() async {
+    if (_disposed) return;
     final generation = ++_loadGeneration;
     final appearanceGeneration = _appearanceGeneration;
-    final next = await repository.snapshot();
-    if (generation != _loadGeneration) return;
+    final next = (await repository.snapshot()).active();
+    if (_disposed || generation != _loadGeneration) return;
     pupils = next.pupils;
-    entries = next.entries.where((e) => !e.deleted).toList();
-    trashedEntries = next.entries.where((e) => e.deleted).toList();
+    schoolYears = next.schoolYears;
+    final deletedPupils = pupils
+        .where((p) => p.deleted)
+        .map((p) => p.id)
+        .toSet();
+    _hiddenEntries = next.entries
+        .where((e) => deletedPupils.contains(e.pupilId))
+        .toList();
+    entries = next.entries
+        .where((e) => !e.deleted && !deletedPupils.contains(e.pupilId))
+        .toList();
+    trashedEntries = next.entries
+        .where((e) => e.deleted && !deletedPupils.contains(e.pupilId))
+        .toList();
     drafts = next.drafts;
-    records = next.records;
+    records = next.records
+        .where((r) => !deletedPupils.contains(r.pupilId))
+        .toList();
+    _hiddenRecords = next.records
+        .where((r) => deletedPupils.contains(r.pupilId))
+        .toList();
     schoolDrafts = next.schoolDrafts;
     dialogDrafts = next.dialogDrafts;
     classroom = next.classroom;
@@ -65,6 +138,27 @@ class NotebookController extends ChangeNotifier {
       _savedAppearance = appearance;
     }
     stagedLegacyCount = next.legacyCount;
+    final rules = classroom.any(
+      (f) => isDriveRule(f) && (f.flag('incoming') || f.flag('outgoing')),
+    );
+    final pending = classroom
+        .where(
+          (d) =>
+              !d.deleted &&
+              d.kind == ClassroomKind.material &&
+              d.map('cloudUpload')['state'] == 'pending',
+        )
+        .map((d) => d.text('localKey'))
+        .join('|');
+    final shouldSync =
+        rules &&
+        (!_rulesActive || pending.isNotEmpty && _pendingSignature != pending);
+    if (services != null && rules != _rulesActive) {
+      unawaited(scheduleMaterialSync(rules).catchError((Object _) {}));
+    }
+    _pendingSignature = pending;
+    _rulesActive = rules;
+    if (shouldSync && _syncing == null) unawaited(syncMaterials());
     services?.updated(next);
     notifyListeners();
   }
@@ -176,10 +270,17 @@ class NotebookController extends ChangeNotifier {
   }
 
   String owner(OrgaEntry e) {
-    if (e.pupilId == null) return 'Klasse';
+    if (e.pupilId == null) {
+      return e.otherParticipants.trim().isEmpty
+          ? 'Klasse'
+          : e.otherParticipants.trim();
+    }
     final matching = pupils.where((p) => p.id == e.pupilId);
     if (matching.isEmpty) return 'Unbekannte Zuordnung';
-    return '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}';
+    return [
+      '${matching.first.name}${matching.first.archived ? ' · Archiv' : ''}',
+      if (e.otherParticipants.trim().isNotEmpty) e.otherParticipants.trim(),
+    ].join(' · ');
   }
 
   List<OrgaEntry> upcoming(Iterable<OrgaEntry> values) =>

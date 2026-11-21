@@ -1,0 +1,9 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/timetable_ui_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: unified calendar and editable base plan at 390.0/1.0
+00:02 +1: unified calendar and editable base plan at 320.0/2.0
+00:03 +2: unified calendar and editable base plan at 1100.0/1.0
+00:03 +3: copy creates an independent block; exceptions retain notes on undo
+00:05 +4: hours can be extended while used periods cannot be removed
+00:06 +5: (tearDownAll)
+00:06 +5: All tests passed!

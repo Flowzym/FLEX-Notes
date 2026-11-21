@@ -1,0 +1,35 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.23.2",
+    "build_number": "71",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 320,
+      "height": 844
+    }
+  ],
+  "normalCanvasTouch": true,
+  "selectedWeekendCanBeHiddenAndRestored": true,
+  "choiceSurvivesWeekSwipe": true,
+  "openedToolbarDialogs": [
+    "Unterlagen",
+    "Stundenplan",
+    "Verwalten",
+    "Filter"
+  ],
+  "pageErrors": [],
+  "visualReviewPassed": true,
+  "reviewedScreenshots": [
+    "initial.png",
+    "weekends-off.png",
+    "week-320.png"
+  ]
+}

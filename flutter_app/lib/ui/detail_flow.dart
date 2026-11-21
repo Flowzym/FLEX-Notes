@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'flex_modal.dart' show FlexDialogPresentation;
 
 /// A single adaptive surface owns a sequence of details. Child details replace
 /// its body instead of piling a second blurred dialog on top of the first.
@@ -61,6 +62,8 @@ class _DetailFlowState<T> extends State<_DetailFlow<T>> {
   @override
   Widget build(BuildContext context) {
     final phone = MediaQuery.sizeOf(context).width < 700;
+    final desktop =
+        Theme.of(context).extension<FlexDialogPresentation>() != null;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.zero,
@@ -68,10 +71,19 @@ class _DetailFlowState<T> extends State<_DetailFlow<T>> {
           insetPadding: EdgeInsets.all(phone ? 0 : 20),
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(phone ? 0 : 24),
+            borderRadius: BorderRadius.circular(
+              desktop
+                  ? 8
+                  : phone
+                  ? 0
+                  : 24,
+            ),
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1120),
+            constraints: BoxConstraints(
+              maxWidth: desktop ? 1040 : 1120,
+              maxHeight: desktop ? 850 : double.infinity,
+            ),
             child: NavigatorPopHandler<T>(
               onPopWithResult: (_) => navigator.currentState?.maybePop(),
               child: Navigator(

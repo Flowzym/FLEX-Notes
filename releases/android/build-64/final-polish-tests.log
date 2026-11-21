@@ -1,0 +1,23 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: file title opens directly and edit/star controls have independent targets
+00:03 +1: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:06 +2: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+00:09 +3: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+00:13 +4: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material format, sort, layout and reset work together
+00:16 +5: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: today shortcut preserves other prepared files and favorite is independent
+00:17 +6: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material trash can restore a file without exposing preparation actions
+00:18 +7: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+00:24 +8: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared day removes reference only; next day has a separate selection
+00:24 +9: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: package picker expands file references and clearing does not lose other choices
+00:25 +10: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+00:27 +11: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil unlink keeps shared material and package accessible elsewhere
+00:27 +12: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: plan editor saves minimal name and keeps text focus through autosave
+00:28 +13: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 1.0
+00:28 +14: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 2.0
+00:29 +15: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared dialog retains title/close and fits large text
+00:29 +16: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:32 +17: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 320.0/2.0
+00:35 +18: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+00:37 +19: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: (tearDownAll)
+00:37 +19: All tests passed!

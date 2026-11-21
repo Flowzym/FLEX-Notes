@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="at.flowzym.flex_device.VaultFileCodecTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:22:12.366Z" hostname="5593e77cc0b2" time="0.126">
+  <properties/>
+  <testcase name="rejectsChangesWrongKeyAndRenaming" classname="at.flowzym.flex_device.VaultFileCodecTest" time="0.096"/>
+  <testcase name="roundTripUsesUniqueNoncesAndContainsNoPlaintext" classname="at.flowzym.flex_device.VaultFileCodecTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

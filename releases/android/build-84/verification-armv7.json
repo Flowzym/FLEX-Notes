@@ -1,0 +1,28 @@
+{
+  "version": "0.33.0+84",
+  "applicationId": "at.flowzym.flex_notizbuch",
+  "label": "FLEX",
+  "oldApplicationId": "at.flowzym.flex_notizbuch.test",
+  "sameStorageAsOldApp": false,
+  "certificateSha256": "9e50d1e2393e2bf867fc33b11e50383fd066f7b2df5026fd1f2a1d2790fdcd79",
+  "artifact": "FLEX-0.33.0+84-armv7.apk",
+  "bytes": 35621514,
+  "sha256": "4695bfcc63d05c9bd0674a0a200a0fbe667a1a4b600129abb3fab7cc0b560a50",
+  "signature": "v1/v2/v3 verified",
+  "apkDebugSections": false,
+  "generatedRegistrantBuildUriRetained": true,
+  "mlKitRemoved": true,
+  "zipIntegrity": "verified",
+  "zipAlignment16KB": "verified",
+  "elf64Alignment16KB": "verified",
+  "privateSigningDataInApk": false,
+  "abis": [
+    "armeabi-v7a"
+  ],
+  "deviceInstallTested": false,
+  "nativeMsalRedirectVerified": true,
+  "nativeMsalConfigurationVerified": true,
+  "googleCredentialProvidersViaMsal": true,
+  "realMicrosoftLoginTested": false,
+  "sqlcipherBundled": true
+}

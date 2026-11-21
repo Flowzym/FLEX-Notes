@@ -1,0 +1,21 @@
+{
+  "version": "0.25.0+75",
+  "syntheticData": true,
+  "widths": [
+    320,
+    390
+  ],
+  "checks": [
+    "month grid screenshots",
+    "nonempty assignment-only rows",
+    "work area 3 records",
+    "exact topic filter 1 record",
+    "select matching for conversation",
+    "open original",
+    "filter clears selection",
+    "positive tone filter",
+    "goals reachable"
+  ],
+  "pageErrors": [],
+  "physicalCameraTested": false
+}

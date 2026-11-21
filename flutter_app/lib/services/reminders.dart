@@ -1,3 +1,4 @@
+import '../domain/reminder_action.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,19 +15,28 @@ class ReminderRequest {
     required this.target,
     required this.when,
     required this.label,
+    this.revision = 0,
+    this.completable = false,
   });
-  final int id;
+  final int id, revision;
+  final bool completable;
+  String get payload => ReminderAction(
+    target: target,
+    revision: revision,
+    scheduledAt: when.toUtc().toIso8601String(),
+  ).encode();
   final String target, label;
   final DateTime when;
-  String get fingerprint =>
-      '$id|$target|${when.toUtc().toIso8601String()}|$label';
+  String get fingerprint => '$id|$payload|$label|$completable';
 }
 
 List<ReminderRequest> planReminders(
   NotebookSnapshot data,
   Map<String, dynamic> settings,
-  DateTime now,
-) {
+  DateTime now, {
+  Set<int>? retainDelivered,
+}) {
+  data = data.active();
   final active = data.pupils.where((p) => !p.archived).map((p) => p.id).toSet();
   final hour = (settings['hour'] as int? ?? 9).clamp(0, 23);
   final minute = (settings['minute'] as int? ?? 0).clamp(0, 59);
@@ -41,7 +51,7 @@ List<ReminderRequest> planReminders(
     final override = overrides[target];
     if (override?.flag('dismissed') == true) return;
     final at = override == null ? when : DateTime.parse(override.text('at'));
-    if (at.isAfter(now)) {
+    if (at.isAfter(now) || retainDelivered != null) {
       candidates.add((target: target, when: at, label: label));
     }
   }
@@ -106,11 +116,9 @@ List<ReminderRequest> planReminders(
   }
   for (final d in data.classroom.where(
     (d) =>
-        !d.deleted && d.kind == ClassroomKind.returnList && !d.flag('closed'),
+        !d.deleted && d.kind == ClassroomKind.returnList && !d.returnFinished,
   )) {
-    if (d.text('dueDate').isNotEmpty &&
-        d.rows('participants').any(returnPending) &&
-        settings['tasks'] != false) {
+    if (d.text('dueDate').isNotEmpty && settings['tasks'] != false) {
       final due = schoolDay(
         d.text('dueDate'),
       ).subtract(Duration(days: d.number('remindDays')));
@@ -142,17 +150,19 @@ List<ReminderRequest> planReminders(
           l.date,
           l.start,
         ).subtract(Duration(minutes: l.document.number('remindMinutes'))),
-        'Unterricht',
+        l.document.calendarCategory == 'lesson' ? 'Unterricht' : 'Termin',
       );
     }
   }
   // Keep nearest reminders within Android/OEM alarm limits. Refresh on resume
   // replenishes the horizon; IDs remain stable when the visible window changes.
-  candidates.sort((a, b) => a.when.compareTo(b.when));
-  if (candidates.length > 200) candidates.removeRange(200, candidates.length);
   candidates.sort((a, b) => a.target.compareTo(b.target));
   final used = <int>{};
-  return candidates.map((item) {
+  final entryById = {for (final e in data.entries) e.id: e};
+  final recordById = {for (final e in data.records) e.id: e};
+  final documentById = {for (final e in data.classroom) e.id: e};
+  final future = <ReminderRequest>[];
+  for (final item in candidates) {
     var id = 0x811c9dc5;
     for (final byte in utf8.encode(item.target)) {
       id = ((id ^ byte) * 0x01000193) & 0x7fffffff;
@@ -160,20 +170,41 @@ List<ReminderRequest> planReminders(
     while (!used.add(id)) {
       id = (id + 1) & 0x7fffffff;
     }
-    return ReminderRequest(
-      id: id,
-      target: item.target,
-      when: item.when,
-      label: item.label,
+    if (!item.when.isAfter(now)) {
+      retainDelivered?.add(id);
+      continue;
+    }
+    future.add(
+      ReminderRequest(
+        id: id,
+        target: item.target,
+        when: item.when,
+        label: item.label,
+        revision: switch (item.target.split(':').first) {
+          'orga' => entryById[item.target.substring(5)]?.revision ?? 0,
+          'school' => recordById[item.target.substring(7)]?.revision ?? 0,
+          _ => documentById[item.target.split(':')[1]]?.revision ?? 0,
+        },
+        completable:
+            item.target.startsWith('orga:') &&
+            entryById[item.target.substring(5)]?.isTask == true,
+      ),
     );
-  }).toList();
+  }
+  future.sort((a, b) => a.when.compareTo(b.when));
+  return future.take(200).toList()
+    ..sort((a, b) => a.target.compareTo(b.target));
 }
 
 abstract interface class ReminderPort {
   Future<String?> initialize(ValueChanged<String> onTap);
   Future<bool> permission({bool request = false});
   Future<bool> exactPermission({bool request = false});
-  Future<void> apply(List<ReminderRequest> requests, {required bool exact});
+  Future<void> apply(
+    List<ReminderRequest> requests, {
+    required bool exact,
+    Set<int> retainDelivered = const {},
+  });
 }
 
 class AndroidReminderPort implements ReminderPort {
@@ -189,12 +220,19 @@ class AndroidReminderPort implements ReminderPort {
         android: AndroidInitializationSettings('ic_notification'),
       ),
       onDidReceiveNotificationResponse: (response) {
-        if (response.payload != null) onTap(response.payload!);
+        if (response.payload != null) {
+          onTap(ReminderAction.response(response.payload!, response.actionId));
+        }
       },
     );
     final launch = await plugin.getNotificationAppLaunchDetails();
     return launch?.didNotificationLaunchApp == true
-        ? launch?.notificationResponse?.payload
+        ? (launch?.notificationResponse?.payload == null
+              ? null
+              : ReminderAction.response(
+                  launch!.notificationResponse!.payload!,
+                  launch.notificationResponse!.actionId,
+                ))
         : null;
   }
 
@@ -214,13 +252,17 @@ class AndroidReminderPort implements ReminderPort {
   Future<void> apply(
     List<ReminderRequest> requests, {
     required bool exact,
+    Set<int> retainDelivered = const {},
   }) async {
     final wanted = requests.map((r) => r.id).toSet();
     for (final existing in await plugin.pendingNotificationRequests()) {
-      if (!wanted.contains(existing.id)) await plugin.cancel(id: existing.id);
+      if (!wanted.contains(existing.id) &&
+          !retainDelivered.contains(existing.id)) {
+        await plugin.cancel(id: existing.id);
+      }
     }
     for (final delivered in await plugin.getActiveNotifications()) {
-      if (delivered.id != null && !wanted.contains(delivered.id)) {
+      if (delivered.id != null && !retainDelivered.contains(delivered.id)) {
         await plugin.cancel(id: delivered.id!);
       }
     }
@@ -230,11 +272,11 @@ class AndroidReminderPort implements ReminderPort {
         scheduledDate: tz.TZDateTime.from(request.when, tz.UTC),
         title: 'FLEX · ${request.label}',
         body: 'FLEX öffnen, um den Eintrag anzusehen.',
-        payload: request.target,
+        payload: request.payload,
         androidScheduleMode: exact
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'flex_reminders',
             'FLEX-Erinnerungen',
@@ -243,6 +285,21 @@ class AndroidReminderPort implements ReminderPort {
             priority: Priority.high,
             visibility: NotificationVisibility.private,
             category: AndroidNotificationCategory.reminder,
+            actions: [
+              if (request.completable)
+                const AndroidNotificationAction(
+                  'done',
+                  'Erledigt',
+                  showsUserInterface: true,
+                  cancelNotification: true,
+                ),
+              const AndroidNotificationAction(
+                'snooze',
+                'Später · 1 Std.',
+                showsUserInterface: true,
+                cancelNotification: true,
+              ),
+            ],
           ),
         ),
       );
@@ -264,6 +321,7 @@ class Reminders extends ChangeNotifier {
   int count = 0;
   NotebookSnapshot? _snapshot;
   Future<void> _pending = Future.value();
+  Future<void> _configurationWrites = Future.value();
   Future<void> initialize() async {
     final raw = await store.read(key);
     settings = raw == null
@@ -278,16 +336,26 @@ class Reminders extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> configure(Map<String, dynamic> changes) async {
-    if (changes['enabled'] == true && !await port.permission(request: true)) {
-      throw const DomainError('Android hat Benachrichtigungen nicht erlaubt.');
-    }
-    final value = {...settings, ...changes};
-    await store.write(key, jsonEncode(value));
-    settings = value;
-    _applied = null;
-    if (_snapshot != null) await sync(_snapshot!);
-    notifyListeners();
+  Future<void> configure(Map<String, dynamic> changes) {
+    final patch = Map<String, dynamic>.of(changes);
+    // Merge only after the preceding write and permission prompt finish.
+    // Rapid switches otherwise overwrite each other or re-enable a later-off
+    // setting when Android eventually answers an earlier permission request.
+    final write = _configurationWrites.then((_) async {
+      if (patch['enabled'] == true && !await port.permission(request: true)) {
+        throw const DomainError(
+          'Android hat Benachrichtigungen nicht erlaubt.',
+        );
+      }
+      final value = {...settings, ...patch};
+      await store.write(key, jsonEncode(value));
+      settings = value;
+      _applied = null;
+      if (_snapshot != null) await sync(_snapshot!);
+      notifyListeners();
+    });
+    _configurationWrites = write.catchError((Object _) {});
+    return write;
   }
 
   Future<void> requestExact() async {
@@ -302,12 +370,19 @@ class Reminders extends ChangeNotifier {
       try {
         permitted = await port.permission();
         exact = await port.exactPermission();
+        final delivered = <int>{};
         final plan = enabled && permitted
-            ? planReminders(_snapshot!, settings, now())
+            ? planReminders(
+                _snapshot!,
+                settings,
+                now(),
+                retainDelivered: delivered,
+              )
             : <ReminderRequest>[];
-        final stamp = '$exact|${plan.map((r) => r.fingerprint).join('\n')}';
+        final stamp =
+            '$exact|${delivered.join(',')}|${plan.map((r) => r.fingerprint).join('\n')}';
         if (stamp != _applied) {
-          await port.apply(plan, exact: exact);
+          await port.apply(plan, exact: exact, retainDelivered: delivered);
           _applied = stamp;
         }
         count = plan.length;

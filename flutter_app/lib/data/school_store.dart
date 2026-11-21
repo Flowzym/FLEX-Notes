@@ -24,9 +24,65 @@ mixin SchoolStore {
     return r;
   }
 
-  Future<List<SchoolRecord>> schoolRecords() async => (await _rows(
-    'SELECT * FROM school_records ORDER BY id',
-  )).map(_record).toList();
+  Future<List<SchoolRecord>> schoolRecords() async {
+    final records = (await _rows(
+      'SELECT * FROM school_records ORDER BY id',
+    )).map(_record).toList();
+    // Earlier versions recorded the reassignment as a dated feedback item in
+    // the same transaction as the new homework. Match only unambiguous copies.
+    final byPupil = <String, List<SchoolRecord>>{};
+    for (final r in records.where((r) => r.kind == SchoolKind.homework)) {
+      byPupil.putIfAbsent(r.pupilId, () => []).add(r);
+    }
+    for (var i = 0; i < records.length; i++) {
+      final r = records[i];
+      if (r.kind != SchoolKind.homework) continue;
+      final links = <String, String>{};
+      for (final f in r.liveFeedback) {
+        if (f.taskId == null ||
+            f.state != null ||
+            !f.note.startsWith('Erneut aufgegeben')) {
+          continue;
+        }
+        final task = r.tasks
+            .where((t) => t.id == f.taskId && t.reassignedTo == null)
+            .firstOrNull;
+        if (task == null || f.taskText != task.text) continue;
+        final copies = byPupil[r.pupilId]!.where((copy) {
+          final elapsed = DateTime.parse(
+            f.createdAtUtc,
+          ).difference(DateTime.parse(copy.createdAtUtc));
+          return copy.id != r.id &&
+              !elapsed.isNegative &&
+              elapsed.inSeconds < 5 &&
+              copy.title == r.title &&
+              copy.subject == r.subject &&
+              copy.body == r.body &&
+              copy.tasks.firstOrNull?.text == task.text &&
+              f.note ==
+                  'Erneut aufgegeben${copy.dueDate == null ? '' : ' · fällig ${copy.dueDate}'}';
+        }).toList();
+        if (copies.length != 1) continue;
+        links[task.id] = copies.single.id;
+        for (final child in r.tasks.where((t) => t.parentId == task.id)) {
+          if (copies.single.tasks.any(
+            (t) => t.parentId != null && t.text == child.text,
+          )) {
+            links[child.id] = copies.single.id;
+          }
+        }
+      }
+      if (links.isNotEmpty) {
+        records[i] = r.patch({
+          'tasks': [
+            for (final t in r.tasks)
+              t.copyWith(reassignedTo: links[t.id]).toJson(),
+          ],
+        });
+      }
+    }
+    return records;
+  }
 
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
@@ -127,11 +183,96 @@ mixin SchoolStore {
       }
     }
     if (draftId != null) {
+      await (this as SqliteNotebook)._publishSchoolAttachments(
+        draftId,
+        record,
+        [saved],
+      );
       await db.customStatement('DELETE FROM school_drafts WHERE id=?', [
         draftId,
       ]);
     }
     return saved;
+  });
+
+  Future<SchoolRecord> reassignHomeworkTask(
+    SchoolRecord source,
+    String taskId, {
+    String? dueDate,
+  }) => db.transaction(() async {
+    final rows = await _rows('SELECT * FROM school_records WHERE id=?', [
+      source.id,
+    ]);
+    if (rows.isEmpty) throw const StaleRevision();
+    var current = _record(rows.single);
+    if (current.feedback.any((f) => f.note.startsWith('Erneut aufgegeben'))) {
+      current = (await schoolRecords()).firstWhere((r) => r.id == source.id);
+    }
+    if (current.revision != source.revision) throw const StaleRevision();
+    final task = current.tasks.where((t) => t.id == taskId).firstOrNull;
+    if (current.deleted ||
+        current.kind != SchoolKind.homework ||
+        task == null ||
+        task.reassignedTo != null ||
+        current.taskState(task) != TaskState.missing) {
+      throw const DomainError(
+        'Die Aufgabe ist nicht mehr als nicht erledigt markiert.',
+      );
+    }
+    final ids = <String>{taskId};
+    for (final t in current.tasks) {
+      if (ids.contains(t.parentId) && t.reassignedTo == null) ids.add(t.id);
+    }
+    final mapping = {for (final id in ids) id: newId()};
+    final next = await saveSchoolRecord(
+      SchoolRecord.empty(SchoolKind.homework, current.pupilId).patch({
+        'title': current.title,
+        'assignmentSources': homeworkSourcesFor(
+          current.assignmentSources,
+          current.pupilId,
+        ),
+        'subject': current.subject,
+        'body': current.body,
+        'dueDate': dueDate,
+        'tasks': [
+          for (final t in current.tasks.where((t) => ids.contains(t.id)))
+            HomeworkTask(
+              id: mapping[t.id]!,
+              text: t.text,
+              parentId: mapping[t.parentId],
+            ).toJson(),
+        ],
+      }),
+    );
+    final note = SchoolFeedback(
+      id: newId(),
+      observedOn: dateOnly(DateTime.now()),
+      createdAtUtc: utcNow(),
+      taskId: task.id,
+      taskText: task.text,
+      note: 'Erneut aufgegeben${dueDate == null ? '' : ' · fällig $dueDate'}',
+    );
+    await saveSchoolRecord(
+      current.patch({
+        'tasks': [
+          for (final t in current.tasks)
+            (ids.contains(t.id) ? t.copyWith(reassignedTo: next.id) : t)
+                .toJson(),
+        ],
+        'feedback': [...current.feedback.map((f) => f.toJson()), note.toJson()],
+      }),
+    );
+    await (this as SqliteNotebook)._rewriteAttachmentLinks(
+      (l) =>
+          l.kind == 'school' &&
+          l.id == current.id &&
+          (l.taskId.isEmpty || ids.contains(l.taskId)),
+      (l) => [
+        l,
+        DocumentLink('school', next.id, taskId: mapping[l.taskId] ?? ''),
+      ],
+    );
+    return next;
   });
 
   Future<List<SchoolRecord>> saveSchoolGroup(
@@ -146,7 +287,7 @@ mixin SchoolStore {
     if (existing.isNotEmpty) {
       if (existing.single['undone_at_utc'] != null) {
         throw const DomainError(
-          'Diese Gruppenerfassung wurde bereits zurückgenommen.',
+          'Diese Einträge wurden bereits gemeinsam zurückgenommen.',
         );
       }
       final request = Json.from(
@@ -178,6 +319,13 @@ mixin SchoolStore {
       final next = record.patch({
         'id': newId(),
         'pupilId': pupil,
+        if (record.kind == SchoolKind.homework) ...{
+          'homeworkGroup': requestId,
+          'assignmentSources': homeworkSourcesFor(
+            record.assignmentSources,
+            pupil,
+          ),
+        },
         'situationId': null,
         'tasks': record.tasks
             .map(
@@ -204,6 +352,11 @@ mixin SchoolStore {
         }),
         utcNow(),
       ],
+    );
+    await (this as SqliteNotebook)._publishSchoolAttachments(
+      requestId,
+      record,
+      result,
     );
     await db.customStatement('DELETE FROM school_drafts WHERE id=?', [
       requestId,
@@ -266,6 +419,19 @@ mixin SchoolStore {
           updatedAtUtc: utcNow(),
         ),
       );
+      await (this as SqliteNotebook)._recoverGroupAttachments(
+        'bulkDraft',
+        recovered.id,
+        (request['school'] as List)
+            .map((j) => SchoolRecord.fromJson(Json.from(j as Map)))
+            .toList(),
+        (request['orga'] as List)
+            .map((j) => OrgaEntry.fromJson(Json.from(j as Map)))
+            .toList(),
+        (originalDraft.data['tasks'] as List? ?? [])
+            .map((j) => HomeworkTask.fromJson(Json.from(j as Map)))
+            .toList(),
+      );
       await db.customStatement(
         'UPDATE group_saves SET undone_at_utc=?,recovery_draft_id=? WHERE id=?',
         [utcNow(), recovered.id, id],
@@ -301,6 +467,13 @@ mixin SchoolStore {
         recipients: List<String>.from(request['recipients'] as List),
         updatedAtUtc: utcNow(),
       ),
+    );
+    await (this as SqliteNotebook)._recoverGroupAttachments(
+      'schoolDraft',
+      draftId,
+      originals,
+      [],
+      SchoolRecord.fromJson(Json.from(request['template'] as Map)).tasks,
     );
     await db.customStatement(
       'UPDATE group_saves SET undone_at_utc=?,recovery_draft_id=? WHERE id=?',
@@ -338,6 +511,7 @@ mixin SchoolStore {
       'SELECT payload FROM school_drafts WHERE id=?',
       [draft.id],
     );
+    final removedTasks = <String>{};
     if (existing.isNotEmpty) {
       final j = Json.from(
         jsonDecode(existing.single['payload'] as String) as Map,
@@ -345,6 +519,11 @@ mixin SchoolStore {
       if (j['editRevision'] != draft.editRevision) {
         throw const StaleRevision();
       }
+      removedTasks.addAll(
+        SchoolRecord.fromJson(Json.from(j['record'] as Map)).tasks
+            .map((t) => t.id)
+            .where((id) => !draft.record.tasks.any((t) => t.id == id)),
+      );
     } else if (draft.editRevision != 0) {
       throw const StaleRevision();
     }
@@ -368,6 +547,15 @@ mixin SchoolStore {
         saved.updatedAtUtc,
       ],
     );
+    if (removedTasks.isNotEmpty) {
+      await (this as SqliteNotebook)._rewriteAttachmentLinks(
+        (link) =>
+            link.kind == 'schoolDraft' &&
+            link.id == saved.id &&
+            removedTasks.contains(link.taskId),
+        (_) => [DocumentLink('schoolDraft', saved.id)],
+      );
+    }
     return saved;
   });
   Future<void> discardSchoolDraft(String id, {int? expectedRevision}) =>
@@ -375,6 +563,10 @@ mixin SchoolStore {
         if (expectedRevision != null) {
           await _checkDraftRevision(id, expectedRevision);
         }
+        await (this as SqliteNotebook)._detachDraftAttachments(
+          'schoolDraft',
+          id,
+        );
         await db.customStatement('DELETE FROM school_drafts WHERE id=?', [id]);
       });
 

@@ -127,7 +127,7 @@ class _DocumentThumbnailViewState extends State<DocumentThumbnailView> {
             child: Tooltip(
               message: missing
                   ? 'Vorschau nicht verfügbar · Datei öffnen oder offline laden'
-                  : widget.extension == 'docx'
+                  : data?.text != null
                   ? 'Textvorschau'
                   : 'Vorschau',
               child: ClipRRect(
@@ -162,14 +162,32 @@ class _DocumentThumbnailViewState extends State<DocumentThumbnailView> {
                           ),
                         )
                       : Center(
-                          child: Icon(
-                            s.connectionState != ConnectionState.done
-                                ? Icons.more_horiz
-                                : missing
-                                ? Icons.image_not_supported_outlined
-                                : Icons.description_outlined,
-                            size: 22,
-                          ),
+                          child: missing && widget.extension.isNotEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      widget.extension.toUpperCase(),
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      style: Theme.of(ctx).textTheme.labelSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  s.connectionState != ConnectionState.done
+                                      ? Icons.more_horiz
+                                      : missing
+                                      ? Icons.image_not_supported_outlined
+                                      : Icons.description_outlined,
+                                  size: 22,
+                                ),
                         ),
                 ),
               ),

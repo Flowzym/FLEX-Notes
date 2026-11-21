@@ -1,3 +1,4 @@
+import 'assignment_sources.dart';
 import 'models.dart';
 
 enum SchoolKind { social, work, goal, homework }
@@ -10,6 +11,18 @@ extension SchoolKindLabel on SchoolKind {
     SchoolKind.homework => 'Hausübung',
   };
 }
+
+Set<String> homeworkGroupRecordIds(Map request) =>
+    request['type'] == 'dialog-bulk'
+    ? {
+        for (final row in request['school'] as List? ?? [])
+          if (row is Map && row['kind'] == 'homework' && row['id'] is String)
+            row['id'] as String,
+      }
+    : {
+        for (final id in request['ids'] as List? ?? [])
+          if (id is String) id,
+      };
 
 enum TaskState { open, complete, partial, missing }
 
@@ -28,30 +41,35 @@ class HomeworkTask {
     required this.text,
     this.parentId,
     this.initialState = TaskState.open,
+    this.reassignedTo,
   });
   final String id, text;
-  final String? parentId;
+  final String? parentId, reassignedTo;
   final TaskState initialState;
   HomeworkTask copyWith({
     String? text,
     String? parentId,
     bool clearParent = false,
+    String? reassignedTo,
   }) => HomeworkTask(
     id: id,
     text: text ?? this.text,
     parentId: clearParent ? null : parentId ?? this.parentId,
     initialState: initialState,
+    reassignedTo: reassignedTo ?? this.reassignedTo,
   );
   Json toJson() => {
     'id': id,
     'text': text,
     'parentId': parentId,
     'initialState': initialState.name,
+    if (reassignedTo != null) 'reassignedTo': reassignedTo,
   };
   factory HomeworkTask.fromJson(Json j) => HomeworkTask(
     id: j['id'] as String,
     text: j['text'] as String,
     parentId: j['parentId'] as String?,
+    reassignedTo: j['reassignedTo'] as String?,
     initialState: TaskState.values.byName(
       j['initialState'] as String? ?? 'open',
     ),
@@ -153,6 +171,55 @@ class GoalReview {
 
 /// Newly reconstructed payload. Unknown historical formats are never silently
 /// interpreted as this format or rewritten by opening the application.
+const focusAnswers = ['Selbstständig', 'Nach einem Hinweis', 'Mit Begleitung'];
+
+class LessonQuestion {
+  const LessonQuestion(
+    this.text,
+    this.date, {
+    this.start = '',
+    this.end = '',
+    this.answer = '',
+  });
+  final String text, date, start, end, answer;
+  String get summary => answer.isEmpty ? text : '$text · $answer';
+  Json toJson() => {
+    'text': text,
+    'date': date,
+    if (start.isNotEmpty) 'start': start,
+    if (end.isNotEmpty) 'end': end,
+    if (answer.isNotEmpty) 'answer': answer,
+  };
+  factory LessonQuestion.fromJson(Json data) {
+    final question = LessonQuestion(
+      data['text'] as String,
+      data['date'] as String,
+      start: data['start'] as String? ?? '',
+      end: data['end'] as String? ?? '',
+      answer: data['answer'] as String? ?? '',
+    );
+    if (question.text.trim().isEmpty ||
+        question.text.length > 300 ||
+        !validDate(question.date) ||
+        !validTime(question.start) ||
+        !validTime(question.end) ||
+        question.start.isEmpty != question.end.isEmpty ||
+        question.start.isNotEmpty &&
+            question.start.compareTo(question.end) >= 0 ||
+        question.answer.isNotEmpty && !focusAnswers.contains(question.answer)) {
+      throw const DomainError(
+        'Bitte Frage, Unterrichtszeit und Antwort prüfen.',
+      );
+    }
+    return question;
+  }
+  bool applies(String day, String time) =>
+      day == date &&
+      (start.isEmpty ||
+          time.isEmpty ||
+          time.compareTo(start) >= 0 && time.compareTo(end) < 0);
+}
+
 class SchoolRecord {
   SchoolRecord({
     required this.id,
@@ -167,6 +234,7 @@ class SchoolRecord {
     this.subject = '',
     this.taskFree,
     List<String> taskTags = const [],
+    List<AssignmentSource> assignmentSources = const [],
     this.context = '',
     this.situation = '',
     this.source = 'self',
@@ -174,6 +242,8 @@ class SchoolRecord {
     this.criterion = '',
     this.pupilPerspective = '',
     this.goalStatus = 'active',
+    this.lessonQuestion,
+    this.homeworkGroup = '',
     this.dueDate,
     this.nextReviewDate,
     this.goalId,
@@ -189,7 +259,8 @@ class SchoolRecord {
     List<HomeworkTask> tasks = const [],
     List<SchoolFeedback> feedback = const [],
     List<GoalReview> reviews = const [],
-  }) : taskTags = List.unmodifiable(taskTags),
+  }) : assignmentSources = List.unmodifiable(assignmentSources),
+       taskTags = List.unmodifiable(taskTags),
        positive = List.unmodifiable(positive),
        neutral = List.unmodifiable(neutral),
        negative = List.unmodifiable(negative),
@@ -222,9 +293,12 @@ class SchoolRecord {
       goalSnapshot,
       otherParticipants;
   final String? dueDate, nextReviewDate, goalId, situationId;
+  final LessonQuestion? lessonQuestion;
+  final String homeworkGroup;
   // Old free-form assignments remain whole; never split narrative on " · ".
   final String? taskFree;
   final List<String> taskTags;
+  final List<AssignmentSource> assignmentSources;
   String get assignmentFree => taskFree ?? subject;
   final SchoolKind kind;
   final int revision;
@@ -254,12 +328,26 @@ class SchoolRecord {
     return changes.isEmpty ? 'unknown' : changes.last.delivery!;
   }
 
+  String get homeworkProgress {
+    final active = tasks.where((t) => t.reassignedTo == null);
+    final reassigned = tasks.length - active.length;
+    return [
+      if (active.isNotEmpty || reassigned == 0)
+        '${active.where((t) => taskState(t) == TaskState.complete).length} / ${active.length} erledigt',
+      if (reassigned > 0) '$reassigned erneut aufgegeben',
+    ].join(' · ');
+  }
+
   bool get pending =>
       !deleted &&
       (kind == SchoolKind.goal
           ? goalStatus == 'active'
           : kind == SchoolKind.homework &&
-                tasks.any((t) => taskState(t) != TaskState.complete));
+                tasks.any(
+                  (t) =>
+                      t.reassignedTo == null &&
+                      taskState(t) != TaskState.complete,
+                ));
   String get searchText => [
     title,
     body,
@@ -268,10 +356,12 @@ class SchoolRecord {
     support,
     criterion,
     goalSnapshot,
+    if (lessonQuestion != null) lessonQuestion!.summary,
     otherParticipants,
     ...positive,
     ...neutral,
     ...negative,
+    ...assignmentSources.map((s) => '${s.title} ${s.text}'),
     ...tasks.map((t) => t.text),
     ...liveFeedback.map((f) => f.note),
   ].join(' ');
@@ -288,6 +378,7 @@ class SchoolRecord {
     'createdAtUtc': createdAtUtc,
     'subject': subject,
     'taskTags': taskTags,
+    'assignmentSources': assignmentSources.map((s) => s.toJson()).toList(),
     'taskFree': taskFree,
     'context': context,
     'situation': situation,
@@ -296,6 +387,8 @@ class SchoolRecord {
     'criterion': criterion,
     'pupilPerspective': pupilPerspective,
     'goalStatus': goalStatus,
+    if (homeworkGroup.isNotEmpty) 'homeworkGroup': homeworkGroup,
+    if (lessonQuestion != null) 'lessonQuestion': lessonQuestion!.toJson(),
     'dueDate': dueDate,
     'nextReviewDate': nextReviewDate,
     'goalId': goalId,
@@ -315,7 +408,7 @@ class SchoolRecord {
   factory SchoolRecord.fromJson(Json j) {
     if (j['rebuildFormat'] != 1) {
       throw const DomainError(
-        'Dieser fachliche Datenstand stammt aus einer anderen Fassung. Er bleibt unverändert; eine Migration ist erforderlich.',
+        'Diese Einträge stammen aus einer anderen App-Version und können noch nicht übernommen werden. Die vorhandenen Daten bleiben erhalten.',
       );
     }
     return SchoolRecord(
@@ -330,6 +423,9 @@ class SchoolRecord {
       createdAtUtc: j['createdAtUtc'] as String,
       subject: j['subject'] as String,
       taskTags: List<String>.from(j['taskTags'] as List? ?? const []),
+      assignmentSources: (j['assignmentSources'] as List? ?? [])
+          .map((s) => AssignmentSource.fromJson(Json.from(s as Map)))
+          .toList(),
       taskFree: j['taskFree'] as String?,
       context: j['context'] as String,
       situation: j['situation'] as String,
@@ -338,6 +434,10 @@ class SchoolRecord {
       criterion: j['criterion'] as String,
       pupilPerspective: j['pupilPerspective'] as String,
       goalStatus: j['goalStatus'] as String,
+      homeworkGroup: j['homeworkGroup'] as String? ?? '',
+      lessonQuestion: j['lessonQuestion'] == null
+          ? null
+          : LessonQuestion.fromJson(Json.from(j['lessonQuestion'] as Map)),
       dueDate: j['dueDate'] as String?,
       nextReviewDate: j['nextReviewDate'] as String?,
       goalId: j['goalId'] as String?,
@@ -379,7 +479,22 @@ class SchoolRecord {
     if (!['active', 'achieved', 'ended'].contains(goalStatus) ||
         !['', 'before', 'during', 'after', 'break'].contains(situation) ||
         !['self', 'reported', 'interpretation'].contains(source)) {
-      throw const DomainError('Ungültiger fachlicher Stand.');
+      throw const DomainError('Der gespeicherte Eintrag ist ungültig.');
+    }
+    if (homeworkGroup.length > 250 ||
+        homeworkGroup.isNotEmpty && kind != SchoolKind.homework) {
+      throw const DomainError('Ungültige Hausübungsgruppe.');
+    }
+    if (lessonQuestion case final q?) {
+      if (!(kind == SchoolKind.goal && q.answer.isEmpty ||
+          kind == SchoolKind.work &&
+              q.answer.isNotEmpty &&
+              goalId != null &&
+              q.date == observedOn)) {
+        throw const DomainError(
+          'Diese Beobachtungsfrage gehört zu einem anderen Eintrag.',
+        );
+      }
     }
     if (!draft && kind == SchoolKind.goal && title.trim().isEmpty) {
       throw const DomainError('Bitte ein Ziel formulieren.');
@@ -387,18 +502,41 @@ class SchoolRecord {
     if (!draft &&
         [SchoolKind.social, SchoolKind.work].contains(kind) &&
         body.trim().isEmpty &&
+        lessonQuestion == null &&
         positive.isEmpty &&
         neutral.isEmpty &&
         negative.isEmpty &&
         (situationId == null || context.trim().isEmpty) &&
-        (kind != SchoolKind.work || subject.trim().isEmpty)) {
+        (kind != SchoolKind.work ||
+            subject.trim().isEmpty && assignmentSources.isEmpty)) {
       throw DomainError(
         kind == SchoolKind.work
             ? 'Bitte einen Auftrag, eine Auswahl oder eine Beobachtung eingeben.'
             : 'Bitte kurz beschreiben, was passiert ist, oder eine Beobachtung auswählen.',
       );
     }
-    if (body.length > 12000 ||
+    final scopedHomework = kind == SchoolKind.homework && revision == 0;
+    if (assignmentSources.any((s) => s.pupilId != null) && !scopedHomework) {
+      throw const DomainError(
+        'Eine persönliche Materialauswahl gehört zu einer neuen Hausübung.',
+      );
+    }
+    if (scopedHomework && assignmentSources.length > 30) {
+      final shared = assignmentSources.where((s) => s.pupilId == null).length;
+      final counts = <String, int>{};
+      for (final source in assignmentSources.where((s) => s.pupilId != null)) {
+        counts.update(source.pupilId!, (v) => v + 1, ifAbsent: () => 1);
+      }
+      if (shared > 30 || counts.values.any((n) => shared + n > 30)) {
+        throw const DomainError(
+          'Bitte höchstens 30 Materialien pro Schüler auswählen.',
+        );
+      }
+    }
+    if (!scopedHomework && assignmentSources.length > 30 ||
+        assignmentSources.map((s) => s.identity).toSet().length !=
+            assignmentSources.length ||
+        body.length > 12000 ||
         title.length > 3000 ||
         criterion.length > 2000 ||
         pupilPerspective.length > 2000 ||

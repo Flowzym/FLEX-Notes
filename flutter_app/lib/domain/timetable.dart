@@ -117,7 +117,7 @@ ClassroomDocument timetableBlock(
 Future<void> initializeFlexTimetable(NotebookRepository repository) async {
   final docs = await repository.classroomDocuments();
   if (docs.any(
-    (d) => d.kind == ClassroomKind.timetable || d.kind == ClassroomKind.lesson,
+    (d) => d.kind == ClassroomKind.timetable || d.isTeachingLesson,
   )) {
     return;
   }

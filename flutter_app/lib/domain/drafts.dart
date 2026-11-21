@@ -12,6 +12,7 @@ Object? _content(Object? value) {
     for (final item in value) {
       if (item is Map &&
           item.containsKey('text') &&
+          !item.containsKey('documentId') &&
           (item['text'] as String? ?? '').trim().isEmpty) {
         continue;
       }
@@ -23,7 +24,16 @@ Object? _content(Object? value) {
   if (value is Map) {
     final map = <String, Object?>{};
     final isDocumentLink =
-        {'orga', 'school', 'classroom', 'lesson'}.contains(value['kind']) &&
+        {
+          'orga',
+          'school',
+          'orgaDraft',
+          'schoolDraft',
+          'bulkDraft',
+          'classroomDraft',
+          'classroom',
+          'lesson',
+        }.contains(value['kind']) &&
         value.keys.every(
           (key) => {'kind', 'id', 'date', 'taskId'}.contains(key),
         );
@@ -59,6 +69,7 @@ String dialogDraftSignature(String type, Json data) => draftSignature({
           'reminderOpen',
         }.contains(entry.key) &&
         !entry.key.startsWith('append-') &&
+        !(type == 'catalog' && entry.key == 'personal') &&
         !(type == 'bulk' && entry.key == 'kind'))
       entry.key: entry.value,
 });

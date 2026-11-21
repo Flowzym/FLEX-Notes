@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 const observationToneColors = {
-  'positive': Color(0xff24543c),
-  'neutral': Color(0xff254d70),
-  'negative': Color(0xff702c35),
+  'positive': Color(0xff526a50),
+  'neutral': Color(0xff526c7d),
+  'negative': Color(0xff955a52),
 };

@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "move existing appointment 10:00 to 11:00",
+    "undo to 10:00",
+    "seven-day week at 320px",
+    "compact month agenda"
+  ],
+  "pageErrors": []
+}

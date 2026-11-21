@@ -59,7 +59,7 @@ class PreviewServerTests(unittest.TestCase):
         paths = ['index.html', 'version.json', 'flutter_bootstrap.js', 'main.dart.js',
                  'drift_worker.js', 'sqlite3.wasm', 'canvaskit/canvaskit.js',
                  'canvaskit/canvaskit.wasm', 'assets/assets/schema.sql',
-                 'assets/assets/fonts/Selawik-Regular.ttf']
+                 'assets/assets/fonts/Inter-Regular.ttf']
         for path in paths:
             with self.subTest(path=path), self.client.open(self.url(path), timeout=5) as response:
                 self.assertEqual(response.status, 200)

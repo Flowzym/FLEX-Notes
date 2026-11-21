@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'document_scanner.dart' show validateScanData;
 
 import 'package:uuid/uuid.dart';
@@ -25,7 +23,7 @@ class DomainError implements Exception {
 class StaleRevision extends DomainError {
   const StaleRevision()
     : super(
-        'Dieser Eintrag wurde inzwischen geändert. Dein Entwurf bleibt erhalten. Öffne die aktuelle Fassung, bevor du die Änderungen übernimmst.',
+        'Dieser Eintrag wurde inzwischen geändert. Dein Entwurf bleibt erhalten. Öffne die aktuelle Version, bevor du die Änderungen übernimmst.',
       );
 }
 
@@ -35,22 +33,47 @@ class Pupil {
     required this.name,
     this.color = 0xffa8bb80,
     this.archived = false,
+    this.deleted = false,
+    this.createdAtUtc,
+    this.updatedAtUtc,
+    this.deletedAtUtc,
     this.revision = 0,
   });
   final String id, name;
   final int color, revision;
-  final bool archived;
-  Pupil copyWith({String? name, int? color, bool? archived, int? revision}) =>
-      Pupil(
-        id: id,
-        name: name ?? this.name,
-        color: color ?? this.color,
-        archived: archived ?? this.archived,
-        revision: revision ?? this.revision,
-      );
+  final bool archived, deleted;
+  final String? createdAtUtc, updatedAtUtc, deletedAtUtc;
+  Pupil copyWith({
+    String? name,
+    int? color,
+    bool? archived,
+    bool? deleted,
+    int? revision,
+    String? createdAtUtc,
+    String? updatedAtUtc,
+    Object? deletedAtUtc = _unset,
+  }) => Pupil(
+    id: id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    archived: archived ?? this.archived,
+    revision: revision ?? this.revision,
+    deleted: deleted ?? this.deleted,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    deletedAtUtc: identical(deletedAtUtc, _unset)
+        ? this.deletedAtUtc
+        : deletedAtUtc as String?,
+  );
   void validate() {
     if (id.isEmpty || name.trim().isEmpty || name.trim().length > 80) {
       throw const DomainError('Bitte einen Namen mit 1–80 Zeichen eingeben.');
+    }
+    if (deleted && !archived ||
+        [createdAtUtc, updatedAtUtc, deletedAtUtc].whereType<String>().any(
+          (s) => !s.endsWith('Z') || DateTime.tryParse(s) == null,
+        )) {
+      throw const DomainError('Ungültiger Schülerstatus oder Zeitpunkt.');
     }
     if (color < 0 || color > 0xffffffff || revision < 0) {
       throw const DomainError('Ungültige Schülerdaten.');
@@ -62,6 +85,10 @@ class Pupil {
     'name': name,
     'color': color,
     'archived': archived,
+    'deleted': deleted,
+    'createdAtUtc': createdAtUtc,
+    'updatedAtUtc': updatedAtUtc,
+    'deletedAtUtc': deletedAtUtc,
     'revision': revision,
   };
   factory Pupil.fromJson(Json j) => Pupil(
@@ -69,6 +96,10 @@ class Pupil {
     name: j['name'] as String,
     color: j['color'] as int,
     archived: j['archived'] as bool,
+    deleted: j['deleted'] as bool? ?? false,
+    createdAtUtc: j['createdAtUtc'] as String?,
+    updatedAtUtc: j['updatedAtUtc'] as String?,
+    deletedAtUtc: j['deletedAtUtc'] as String?,
     revision: j['revision'] as int,
   );
 }
@@ -94,12 +125,26 @@ enum ReminderState { none, planned, acknowledged, cancelled }
 
 const _unset = Object();
 
+void validateOrgaTags(List<String> tags) {
+  if (tags.length > 30 ||
+      tags.any(
+        (tag) => tag.trim().isEmpty || tag.length > 64 || tag.contains(','),
+      ) ||
+      tags.map((tag) => tag.trim().toLowerCase()).toSet().length !=
+          tags.length) {
+    throw const DomainError(
+      'Bitte bis zu 30 unterschiedliche Tags mit je 1–64 Zeichen ohne Komma verwenden.',
+    );
+  }
+}
+
 class OrgaEntry {
   OrgaEntry({
     required this.id,
     this.pupilId,
     required this.title,
     this.body = '',
+    this.otherParticipants = '',
     this.isTask = false,
     this.done = false,
     this.deleted = false,
@@ -109,6 +154,7 @@ class OrgaEntry {
     this.reminderHasTime = true,
     this.appointmentDate,
     this.appointmentTime = '',
+    this.appointmentEndTime = '',
     this.dueDate,
     this.reminderAtUtc,
     this.reminderZone = 'UTC',
@@ -118,7 +164,9 @@ class OrgaEntry {
     required this.createdAtUtc,
     required this.updatedAtUtc,
     List<CheckItem> items = const [],
-  }) : items = List.unmodifiable(items);
+    List<String> tags = const [],
+  }) : items = List.unmodifiable(items),
+       tags = List.unmodifiable(tags);
   factory OrgaEntry.empty({String? pupilId}) {
     final now = utcNow();
     return OrgaEntry(
@@ -131,13 +179,15 @@ class OrgaEntry {
     );
   }
   final String id, title, body, reminderZone, createdAtUtc, updatedAtUtc;
+  final String otherParticipants;
   final String? pupilId, dueDate, reminderAtUtc, appointmentDate;
-  final String appointmentTime;
+  final String appointmentTime, appointmentEndTime;
   final bool isTask, done, needsCompletion, deleted, reminderHasTime;
   final String observedOn, observedTime, reminderText;
   final int revision;
   final ReminderState reminderState;
   final List<CheckItem> items;
+  final List<String> tags;
   bool get isAppointment => appointmentDate != null;
   bool appointmentIsUpcoming(DateTime now) {
     if (appointmentDate == null) return false;
@@ -168,8 +218,10 @@ class OrgaEntry {
   }
 
   OrgaEntry copyWith({
+    Object? pupilId = _unset,
     String? title,
     String? body,
+    String? otherParticipants,
     bool? isTask,
     bool? done,
     bool? deleted,
@@ -179,6 +231,7 @@ class OrgaEntry {
     bool? reminderHasTime,
     Object? appointmentDate = _unset,
     String? appointmentTime,
+    String? appointmentEndTime,
     Object? dueDate = _unset,
     Object? reminderAtUtc = _unset,
     String? reminderZone,
@@ -187,11 +240,13 @@ class OrgaEntry {
     int? revision,
     String? updatedAtUtc,
     List<CheckItem>? items,
+    List<String>? tags,
   }) => OrgaEntry(
     id: id,
-    pupilId: pupilId,
+    pupilId: identical(pupilId, _unset) ? this.pupilId : pupilId as String?,
     title: title ?? this.title,
     body: body ?? this.body,
+    otherParticipants: otherParticipants ?? this.otherParticipants,
     isTask: isTask ?? this.isTask,
     done: done ?? this.done,
     deleted: deleted ?? this.deleted,
@@ -203,6 +258,7 @@ class OrgaEntry {
         ? this.appointmentDate
         : appointmentDate as String?,
     appointmentTime: appointmentTime ?? this.appointmentTime,
+    appointmentEndTime: appointmentEndTime ?? this.appointmentEndTime,
     dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as String?,
     reminderAtUtc: identical(reminderAtUtc, _unset)
         ? this.reminderAtUtc
@@ -214,15 +270,26 @@ class OrgaEntry {
     createdAtUtc: createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
     items: items ?? this.items,
+    tags: tags ?? this.tags,
   );
   OrgaEntry complete() {
     if (!isTask) throw const DomainError('Eine Notiz ist keine Aufgabe.');
     return copyWith(
       done: true,
+      items: items.map((i) => i.copyWith(checked: true)).toList(),
       reminderState: reminderState == ReminderState.planned
           ? ReminderState.cancelled
           : reminderState,
     );
+  }
+
+  OrgaEntry withTaskItems(List<CheckItem> next) {
+    final changed = copyWith(items: next);
+    if (!isTask) return changed;
+    if (next.isNotEmpty && next.every((i) => i.checked)) {
+      return changed.complete();
+    }
+    return next.any((i) => !i.checked) ? changed.reopen() : changed;
   }
 
   OrgaEntry reopen() => copyWith(done: false);
@@ -234,6 +301,7 @@ class OrgaEntry {
   }
 
   void validate() {
+    validateOrgaTags(tags);
     if (observedOn.isNotEmpty && !validDate(observedOn) ||
         observedTime.isNotEmpty &&
             !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(observedTime)) {
@@ -241,6 +309,9 @@ class OrgaEntry {
     }
     if (id.isEmpty || title.trim().isEmpty || title.trim().length > 160) {
       throw const DomainError('Bitte einen Titel mit 1–160 Zeichen eingeben.');
+    }
+    if (otherParticipants.length > 2000) {
+      throw const DomainError('Bitte Namen auf 2000 Zeichen begrenzen.');
     }
     if ((appointmentDate != null && !validDate(appointmentDate!)) ||
         (appointmentTime.isNotEmpty &&
@@ -250,6 +321,14 @@ class OrgaEntry {
                 ).hasMatch(appointmentTime))) ||
         (isAppointment && isTask)) {
       throw const DomainError('Bitte einen gültigen Termin wählen.');
+    }
+    if (appointmentEndTime.isNotEmpty &&
+        (appointmentTime.isEmpty ||
+            !RegExp(
+              r'^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$',
+            ).hasMatch(appointmentEndTime) ||
+            appointmentEndTime.compareTo(appointmentTime) <= 0)) {
+      throw const DomainError('Das Terminende muss nach dem Beginn liegen.');
     }
     if (!isTask && (done || dueDate != null)) {
       throw const DomainError(
@@ -293,6 +372,7 @@ class OrgaEntry {
     'pupilId': pupilId,
     'title': title,
     'body': body,
+    'otherParticipants': otherParticipants,
     'isTask': isTask,
     'done': done,
     'deleted': deleted,
@@ -302,6 +382,7 @@ class OrgaEntry {
     'reminderHasTime': reminderHasTime,
     'appointmentDate': appointmentDate,
     'appointmentTime': appointmentTime,
+    'appointmentEndTime': appointmentEndTime,
     'dueDate': dueDate,
     'reminderAtUtc': reminderAtUtc,
     'reminderZone': reminderZone,
@@ -311,12 +392,15 @@ class OrgaEntry {
     'createdAtUtc': createdAtUtc,
     'updatedAtUtc': updatedAtUtc,
     'items': items.map((i) => i.toJson()).toList(),
+    'tags': tags,
   };
   factory OrgaEntry.fromJson(Json j) => OrgaEntry(
     id: j['id'] as String,
     pupilId: j['pupilId'] as String?,
     title: j['title'] as String,
     body: j['body'] as String,
+    otherParticipants: j['otherParticipants'] as String? ?? '',
+    tags: List<String>.from(j['tags'] as List? ?? const []),
     isTask: j['isTask'] as bool,
     done: j['done'] as bool,
     deleted: j['deleted'] as bool? ?? false,
@@ -326,6 +410,7 @@ class OrgaEntry {
     reminderHasTime: j['reminderHasTime'] as bool? ?? true,
     appointmentDate: j['appointmentDate'] as String?,
     appointmentTime: j['appointmentTime'] as String? ?? '',
+    appointmentEndTime: j['appointmentEndTime'] as String? ?? '',
     dueDate: j['dueDate'] as String?,
     reminderAtUtc: j['reminderAtUtc'] as String?,
     reminderZone: j['reminderZone'] as String,
@@ -348,10 +433,13 @@ class OrgaTypeDraft {
     this.done = false,
     this.appointmentDate,
     this.appointmentTime = '',
+    this.appointmentEndTime = '',
+    this.appointmentTags = const [],
   });
   final String? dueDate, appointmentDate;
   final bool done;
-  final String appointmentTime;
+  final String appointmentTime, appointmentEndTime;
+  final List<String> appointmentTags;
 
   OrgaTypeDraft remember(OrgaEntry entry) => OrgaTypeDraft(
     dueDate: entry.isTask ? entry.dueDate : dueDate,
@@ -362,6 +450,10 @@ class OrgaTypeDraft {
     appointmentTime: entry.isAppointment
         ? entry.appointmentTime
         : appointmentTime,
+    appointmentEndTime: entry.isAppointment
+        ? entry.appointmentEndTime
+        : appointmentEndTime,
+    appointmentTags: entry.isAppointment ? entry.tags : appointmentTags,
   );
 
   OrgaEntry select(OrgaEntry entry, String kind) {
@@ -376,6 +468,8 @@ class OrgaTypeDraft {
           ? appointmentDate ?? dateOnly(DateTime.now())
           : null,
       appointmentTime: kind == 'appointment' ? appointmentTime : '',
+      appointmentEndTime: kind == 'appointment' ? appointmentEndTime : '',
+      tags: kind == 'appointment' ? appointmentTags : const [],
       reminderState:
           kind == 'task' && done && entry.reminderState == ReminderState.planned
           ? ReminderState.cancelled
@@ -388,6 +482,8 @@ class OrgaTypeDraft {
     if (excluding?.isAppointment != true) ...{
       'appointmentDate': appointmentDate,
       'appointmentTime': appointmentTime,
+      'appointmentEndTime': appointmentEndTime,
+      'appointmentTags': appointmentTags,
     },
   };
 
@@ -397,7 +493,12 @@ class OrgaTypeDraft {
       done: json['done'] as bool? ?? false,
       appointmentDate: json['appointmentDate'] as String?,
       appointmentTime: json['appointmentTime'] as String? ?? '',
+      appointmentEndTime: json['appointmentEndTime'] as String? ?? '',
+      appointmentTags: List<String>.unmodifiable(
+        json['appointmentTags'] as List? ?? const [],
+      ),
     );
+    validateOrgaTags(result.appointmentTags);
     if (result.dueDate != null && !validDate(result.dueDate!) ||
         result.appointmentDate != null && !validDate(result.appointmentDate!) ||
         result.appointmentTime.isNotEmpty &&
@@ -406,6 +507,14 @@ class OrgaTypeDraft {
                   r'^([01]\d|2[0-3]):[0-5]\d$',
                 ).hasMatch(result.appointmentTime))) {
       throw const DomainError('Ungültige Datumsangaben im Orga-Entwurf.');
+    }
+    if (result.appointmentEndTime.isNotEmpty &&
+        (result.appointmentTime.isEmpty ||
+            !RegExp(
+              r'^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$',
+            ).hasMatch(result.appointmentEndTime) ||
+            result.appointmentEndTime.compareTo(result.appointmentTime) <= 0)) {
+      throw const DomainError('Ungültiges Terminende im Entwurf.');
     }
     return result;
   }
@@ -475,6 +584,17 @@ class DialogDraft {
       validateScanData(data);
     } else if (j['type'] == 'pupil') {
       final pupil = Pupil.fromJson(data);
+      final edit = data['_materialEdit'];
+      if (edit != null &&
+          (edit is! Map ||
+              edit['year'] is! String ||
+              !RegExp(r'^\d{4}-\d{2}$').hasMatch(edit['year'] as String) ||
+              edit['code'] is! String ||
+              edit['aliases'] is! String ||
+              edit['revision'] is! int ||
+              (edit['revision'] as int) < 0)) {
+        throw const DomainError('Ungültiger Entwurf für das Materialkürzel.');
+      }
       if (pupil.id != j['ownerId'] ||
           pupil.color < 0 ||
           pupil.color > 0xffffffff ||
@@ -533,6 +653,7 @@ class DialogDraft {
             'endDate',
             'status',
             'followUp',
+            'otherParticipants',
             'documentType',
             'audience',
           ].any((key) => data.containsKey(key) && data[key] is! String) ||
@@ -550,6 +671,8 @@ class DialogDraft {
       }
     } else if (j['type'] == 'bulk') {
       if (!['social', 'work', 'homework', 'orga'].contains(data['kind']) ||
+          (data.containsKey('otherParticipants') &&
+              data['otherParticipants'] is! String) ||
           data['recipients'] is! List ||
           data['observedOn'] is! String ||
           !(data['recipients'] as List).every((v) => v is String) ||
@@ -569,326 +692,130 @@ class DialogDraft {
   }
 }
 
+/// User preferences independent from the fixed FLEX visual language.
+/// Legacy appearance keys are intentionally not restored from databases/backups.
+enum MaterialLayout { list, compact, grid }
+
 class Appearance {
   const Appearance({
-    this.defaultObservationTone = 'neutral',
-    this.materialGrid = false,
-    this.materialSort = 'recent',
-    this.pupilCompact = false,
-    this.mode = 'dark',
-    this.accent = 0xffdae9a6,
+    this.mode = 'light',
     this.textScale = 1,
-    this.uiScale = 1,
-    this.fieldRadius = 14,
-    this.buttonRadius = 28,
-    this.modalRadius = 24,
-    this.compact = false,
-    this.dialogColor = 0,
-    this.cardColor = 0,
-    this.buttonColor = 0,
-    this.headerOpacity = .18,
-    this.footerOpacity = .18,
-    this.cardOpacity = .28,
-    this.buttonOpacity = .20,
-    this.desktopImage = '',
-    this.mobileImage = '',
-    this.desktopFit = 'cover',
-    this.mobileFit = 'cover',
-    this.backgroundOpacity = .35,
-    this.coupleSurfaces = false,
-    this.serifHeaders = false,
-    this.backgroundColor = 0xff4f6038,
-    this.workspaceColor = 0,
-    this.fieldColor = 0,
-    this.modalColor = 0,
-    this.workspaceOpacity = .12,
-    this.fieldOpacity = .22,
-    this.modalOpacity = .78,
-    this.backgroundTint = 0xff203a2d,
-    this.backgroundTintStrength = 0,
-    this.backgroundDim = 0,
-    this.imageEnabled = true,
-    this.defaultTexture = true,
-    this.readabilityProtection = false,
-    this.desktopImageName = '',
-    this.mobileImageName = '',
-    this.cardRadius = 22,
+    this.defaultObservationTone = 'neutral',
+    this.calendarDefaultView = 'day',
+    this.navigationSwipeNext = 'left',
+    this.liveDefaultPage = 1,
+    this.organisationDefaultPage = 0,
+    this.materialDefaultPage = 0,
+    this.moreDefaultPage = 0,
+    this.materialLayout = MaterialLayout.list,
+    this.weekFolderWeekends = false,
+    this.groupMaterialsByPupil = false,
+    this.materialSort = 'recent',
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
-  final String defaultObservationTone;
-  final bool materialGrid, pupilCompact;
-  final String materialSort;
-  final String mode, desktopImage, mobileImage, desktopFit, mobileFit;
-  final int accent, dialogColor, cardColor, buttonColor;
-  final double uiScale, fieldRadius, buttonRadius, modalRadius;
-  final double textScale,
-      headerOpacity,
-      footerOpacity,
-      cardOpacity,
-      buttonOpacity,
-      backgroundOpacity;
-  final bool compact, coupleSurfaces, serifHeaders;
-  final int backgroundColor,
-      workspaceColor,
-      fieldColor,
-      modalColor,
-      backgroundTint;
-  final double workspaceOpacity,
-      fieldOpacity,
-      modalOpacity,
-      backgroundTintStrength,
-      backgroundDim,
-      cardRadius;
-  final bool imageEnabled, defaultTexture, readabilityProtection;
-  final String desktopImageName, mobileImageName;
+  final String mode, defaultObservationTone, materialSort, calendarDefaultView;
+  final String navigationSwipeNext;
+  final int liveDefaultPage,
+      organisationDefaultPage,
+      materialDefaultPage,
+      moreDefaultPage;
+  final double textScale;
+  final MaterialLayout materialLayout;
+  final bool weekFolderWeekends, groupMaterialsByPupil;
+  bool get materialGrid => materialLayout == MaterialLayout.grid;
   final List<String> shortcutOrder;
-  bool get hasImage => desktopImage.isNotEmpty || mobileImage.isNotEmpty;
-  bool get imageActive => imageEnabled && (hasImage || defaultTexture);
-  String imageForWidth(double width) => width <= 700
-      ? (mobileImage.isEmpty ? desktopImage : mobileImage)
-      : (desktopImage.isEmpty ? mobileImage : desktopImage);
-  String fitForWidth(double width) => width <= 700 ? mobileFit : desktopFit;
-  static const surfaceColors = [
-    'workspaceColor',
-    'cardColor',
-    'buttonColor',
-    'fieldColor',
-    'modalColor',
-    'dialogColor',
-  ];
-  static const surfaceOpacities = [
-    'workspaceOpacity',
-    'cardOpacity',
-    'buttonOpacity',
-    'fieldOpacity',
-    'modalOpacity',
-    'headerOpacity',
-    'footerOpacity',
-  ];
-  Appearance change(Json changes) {
-    final next = {...toJson(), ...changes};
-    if (next['coupleSurfaces'] == true) {
-      final color = !coupleSurfaces
-          ? 'buttonColor'
-          : surfaceColors.where((k) => changes.containsKey(k)).firstOrNull;
-      final opacity = !coupleSurfaces
-          ? 'buttonOpacity'
-          : surfaceOpacities.where((k) => changes.containsKey(k)).firstOrNull;
-      if (color != null) {
-        for (final key in surfaceColors) {
-          next[key] = next[color];
-        }
-      }
-      if (opacity != null) {
-        for (final key in surfaceOpacities) {
-          next[key] = next[opacity];
-        }
-      }
-    }
-    if (!changes.containsKey('readabilityProtection') &&
-        surfaceOpacities.any(
-          (key) =>
-              changes.containsKey(key) &&
-              (next['coupleSurfaces'] == true ||
-                  !['buttonOpacity', 'fieldOpacity'].contains(key)),
-        )) {
-      next['readabilityProtection'] = false;
-    }
-    return Appearance.fromJson(next);
-  }
 
-  Appearance preset(String id) => change({
-    'imageEnabled': id != 'calm',
-    'defaultTexture': false,
-    'backgroundColor': 0xff4f6038,
-    'workspaceColor': 0,
-    'cardColor': 0,
-    if (id != 'calm') ...{
-      'backgroundTint': 0xff203a2d,
-      'backgroundTintStrength': id == 'image-soft' ? .25 : .1,
-      'backgroundDim': id == 'image-soft' ? .45 : .3,
-    },
-    'workspaceOpacity': id == 'calm'
-        ? .88
-        : id == 'image-soft'
-        ? .65
-        : .2,
-    'cardOpacity': id == 'calm'
-        ? .82
-        : id == 'image-soft'
-        ? .6
-        : .2,
-    'headerOpacity': id == 'image-clear' ? .2 : .65,
-    'footerOpacity': id == 'image-clear' ? .2 : .65,
-    'readabilityProtection': id != 'image-clear',
+  Appearance copyWith({String? mode, double? textScale}) =>
+      patch({'mode': ?mode, 'textScale': ?textScale});
+  Appearance change(Json changes) => patch(changes);
+  Appearance patch(Json changes) => Appearance.fromJson({
+    ...toJson(),
+    if (changes.containsKey('materialGrid')) 'materialLayout': null,
+    ...changes,
   });
-  Appearance copyWith({
-    String? mode,
-    int? accent,
-    double? textScale,
-    bool? compact,
-  }) => patch({
-    'mode': ?mode,
-    'accent': ?accent,
-    'textScale': ?textScale,
-    'compact': ?compact,
-  });
-  Appearance patch(Json changes) =>
-      Appearance.fromJson({...toJson(), ...changes});
   Json toJson() => {
-    'surfaceDefaultsVersion': 3,
+    'designVersion': 1,
     'mode': mode,
-    'accent': accent,
     'textScale': textScale,
-    'uiScale': uiScale,
-    'fieldRadius': fieldRadius,
-    'buttonRadius': buttonRadius,
-    'modalRadius': modalRadius,
-    'compact': compact,
-    'dialogColor': dialogColor,
-    'cardColor': cardColor,
-    'buttonColor': buttonColor,
-    'headerOpacity': headerOpacity,
-    'footerOpacity': footerOpacity,
-    'cardOpacity': cardOpacity,
-    'buttonOpacity': buttonOpacity,
-    'desktopImage': desktopImage,
-    'mobileImage': mobileImage,
-    'desktopFit': desktopFit,
-    'mobileFit': mobileFit,
-    'backgroundOpacity': backgroundOpacity,
-    'coupleSurfaces': coupleSurfaces,
-    'serifHeaders': serifHeaders,
-    'backgroundColor': backgroundColor,
-    'workspaceColor': workspaceColor,
-    'fieldColor': fieldColor,
-    'modalColor': modalColor,
-    'workspaceOpacity': workspaceOpacity,
-    'fieldOpacity': fieldOpacity,
-    'modalOpacity': modalOpacity,
-    'backgroundTint': backgroundTint,
-    'backgroundTintStrength': backgroundTintStrength,
-    'backgroundDim': backgroundDim,
-    'imageEnabled': imageEnabled,
-    'defaultTexture': defaultTexture,
-    'readabilityProtection': readabilityProtection,
-    'desktopImageName': desktopImageName,
-    'mobileImageName': mobileImageName,
-    'cardRadius': cardRadius,
-    'shortcutOrder': shortcutOrder,
     'defaultObservationTone': defaultObservationTone,
+    'calendarDefaultView': calendarDefaultView,
+    'navigationSwipeVersion': 1,
+    'navigationSwipeNext': navigationSwipeNext,
+    'liveDefaultPage': liveDefaultPage,
+    'organisationDefaultPage': organisationDefaultPage,
+    'materialDefaultPage': materialDefaultPage,
+    'moreDefaultPage': moreDefaultPage,
     'materialGrid': materialGrid,
+    'materialLayout': materialLayout.name,
+    'weekFolderWeekends': weekFolderWeekends,
+    'groupMaterialsByPupil': groupMaterialsByPupil,
     'materialSort': materialSort,
-    'pupilCompact': pupilCompact,
+    'shortcutOrder': shortcutOrder,
   };
+
   factory Appearance.fromJson(Json source) {
-    final j = {...source};
-    const old = {
-      'headerOpacity': .65,
-      'footerOpacity': .65,
-      'cardOpacity': .82,
-      'buttonOpacity': .94,
-      'fieldOpacity': .94,
-      'workspaceOpacity': .88,
-    };
-    // Only migrate the unchanged automatic palette; preserve custom colors and alpha values.
-    if (!j.containsKey('surfaceDefaultsVersion') &&
-        j['coupleSurfaces'] != true &&
-        surfaceColors.every((key) => (j[key] ?? 0) == 0) &&
-        old.entries.every(
-          (entry) => (j[entry.key] ?? entry.value) == entry.value,
-        )) {
-      j.addAll({
-        'headerOpacity': .18,
-        'footerOpacity': .18,
-        'cardOpacity': .28,
-        'buttonOpacity': .20,
-        'fieldOpacity': .22,
-        'workspaceOpacity': .12,
-      });
-    }
-    if ((j['surfaceDefaultsVersion'] as int? ?? 0) < 3 &&
-        surfaceColors.every((key) => (j[key] ?? 0) == 0) &&
-        (j['modalOpacity'] ?? 0) == 0 &&
-        (j['cardOpacity'] ?? .28) == .28 &&
-        j['coupleSurfaces'] != true) {
-      j['modalOpacity'] = .78;
+    final swipeNext = source['navigationSwipeNext'] as String? ?? 'left';
+    if (!['left', 'right'].contains(swipeNext)) {
+      throw const DomainError('Ungültige Wischrichtung.');
     }
     final a = Appearance(
-      materialGrid: j['materialGrid'] == true,
-      pupilCompact: j['pupilCompact'] == true,
+      // The first opening after the redesign starts with the approved cream theme.
+      // Subsequent choices round-trip normally, including through backups.
+      mode: source['designVersion'] == 1
+          ? source['mode'] as String? ?? 'light'
+          : 'light',
+      textScale: (source['textScale'] as num? ?? 1).toDouble(),
+      defaultObservationTone:
+          source['defaultObservationTone'] as String? ?? 'neutral',
+      calendarDefaultView: source['calendarDefaultView'] as String? ?? 'day',
+      // Build 80 persisted the reversed default with every appearance update.
+      // Correct that once; subsequent explicit choices round-trip normally.
+      navigationSwipeNext: source['navigationSwipeVersion'] == 1
+          ? swipeNext
+          : 'left',
+      liveDefaultPage: source['liveDefaultPage'] as int? ?? 1,
+      organisationDefaultPage: source['organisationDefaultPage'] as int? ?? 0,
+      materialDefaultPage: source['materialDefaultPage'] as int? ?? 0,
+      moreDefaultPage: source['moreDefaultPage'] as int? ?? 0,
+      weekFolderWeekends: source['weekFolderWeekends'] == true,
+      groupMaterialsByPupil: source['groupMaterialsByPupil'] == true,
+      materialLayout:
+          MaterialLayout.values
+              .where((v) => v.name == source['materialLayout'])
+              .firstOrNull ??
+          (source['materialGrid'] == true
+              ? MaterialLayout.grid
+              : MaterialLayout.list),
       materialSort:
           const {
             'recent',
             'name',
             'format',
             'subject',
-          }.contains(j['materialSort'])
-          ? j['materialSort'] as String
+          }.contains(source['materialSort'])
+          ? source['materialSort'] as String
           : 'recent',
-      mode: j['mode'] as String? ?? 'dark',
-      accent: j['accent'] as int? ?? 0xffdae9a6,
-      textScale: (j['textScale'] as num? ?? 1).toDouble(),
-      uiScale: (j['uiScale'] as num? ?? 1).toDouble(),
-      fieldRadius: (j['fieldRadius'] as num? ?? 14).toDouble(),
-      buttonRadius: (j['buttonRadius'] as num? ?? 28).toDouble(),
-      modalRadius: (j['modalRadius'] as num? ?? 24).toDouble(),
-      compact: j['compact'] as bool? ?? false,
-      dialogColor: j['dialogColor'] as int? ?? 0,
-      cardColor: j['cardColor'] as int? ?? 0,
-      buttonColor: j['buttonColor'] as int? ?? 0,
-      headerOpacity: (j['headerOpacity'] as num? ?? .18).toDouble(),
-      footerOpacity: (j['footerOpacity'] as num? ?? .18).toDouble(),
-      cardOpacity: (j['cardOpacity'] as num? ?? .28).toDouble(),
-      buttonOpacity: (j['buttonOpacity'] as num? ?? .20).toDouble(),
-      desktopImage: j['desktopImage'] as String? ?? '',
-      mobileImage: j['mobileImage'] as String? ?? '',
-      desktopFit: j['desktopFit'] as String? ?? 'cover',
-      mobileFit: j['mobileFit'] as String? ?? 'cover',
-      backgroundOpacity: (j['backgroundOpacity'] as num? ?? .35).toDouble(),
-      coupleSurfaces: j['coupleSurfaces'] as bool? ?? false,
-      serifHeaders: j['serifHeaders'] as bool? ?? false,
-      backgroundColor: j['backgroundColor'] as int? ?? 0xff4f6038,
-      workspaceColor: j['workspaceColor'] as int? ?? 0,
-      fieldColor: j['fieldColor'] as int? ?? 0,
-      modalColor: j['modalColor'] as int? ?? 0,
-      workspaceOpacity: (j['workspaceOpacity'] as num? ?? .12).toDouble(),
-      fieldOpacity: (j['fieldOpacity'] as num? ?? .22).toDouble(),
-      modalOpacity: (j['modalOpacity'] as num? ?? .78).toDouble(),
-      backgroundTint: j['backgroundTint'] as int? ?? 0xff203a2d,
-      backgroundTintStrength: (j['backgroundTintStrength'] as num? ?? 0)
-          .toDouble(),
-      backgroundDim: (j['backgroundDim'] as num? ?? 0).toDouble(),
-      imageEnabled: j['imageEnabled'] as bool? ?? true,
-      defaultTexture: j['defaultTexture'] as bool? ?? true,
-      readabilityProtection: j['readabilityProtection'] as bool? ?? false,
-      desktopImageName: j['desktopImageName'] as String? ?? '',
-      mobileImageName: j['mobileImageName'] as String? ?? '',
-      cardRadius: (j['cardRadius'] as num? ?? 22).toDouble(),
-      defaultObservationTone:
-          j['defaultObservationTone'] as String? ?? 'neutral',
       shortcutOrder: List<String>.unmodifiable(
-        (j['shortcutOrder'] as List? ??
+        (source['shortcutOrder'] as List? ??
                 const ['goal', 'social', 'work', 'homework', 'orga'])
             .cast<String>(),
       ),
     );
-    if (![
+    if (!['day', 'week', 'month'].contains(a.calendarDefaultView) ||
+        !['left', 'right'].contains(a.navigationSwipeNext) ||
+        ![0, 1, 2].contains(a.liveDefaultPage) ||
+        ![0, 3, 2, 4].contains(a.organisationDefaultPage) ||
+        ![0, 1, 2, 3, 4].contains(a.materialDefaultPage) ||
+        ![0, 1, 2, 3, 4].contains(a.moreDefaultPage) ||
+        !['light', 'dark', 'system'].contains(a.mode) ||
+        !a.textScale.isFinite ||
+        a.textScale < .8 ||
+        a.textScale > 1.6 ||
+        ![
           'positive',
           'neutral',
           'negative',
         ].contains(a.defaultObservationTone) ||
-        !a.cardRadius.isFinite ||
-        a.cardRadius < 0 ||
-        a.cardRadius > 32 ||
-        !a.backgroundDim.isFinite ||
-        a.backgroundDim < 0 ||
-        a.backgroundDim > .8 ||
-        !a.backgroundTintStrength.isFinite ||
-        a.backgroundTintStrength < 0 ||
-        a.backgroundTintStrength > .8 ||
-        a.desktopImageName.length > 120 ||
-        a.mobileImageName.length > 120 ||
         a.shortcutOrder.length != 5 ||
         a.shortcutOrder.toSet().length != 5 ||
         !a.shortcutOrder.toSet().containsAll(const [
@@ -897,71 +824,8 @@ class Appearance {
           'work',
           'homework',
           'orga',
-        ]) ||
-        !['system', 'dark', 'light'].contains(a.mode) ||
-        !a.textScale.isFinite ||
-        a.textScale < .8 ||
-        a.textScale > 1.6 ||
-        !a.uiScale.isFinite ||
-        a.uiScale < .8 ||
-        a.uiScale > 1.2 ||
-        [
-          a.fieldRadius,
-          a.buttonRadius,
-          a.modalRadius,
-        ].any((v) => !v.isFinite || v < 0 || v > 32) ||
-        [
-          a.accent,
-          a.backgroundColor,
-          a.workspaceColor,
-          a.fieldColor,
-          a.modalColor,
-          a.backgroundTint,
-          a.dialogColor,
-          a.cardColor,
-          a.buttonColor,
-        ].any((c) => c < 0 || c > 0xffffffff) ||
-        [
-          a.workspaceOpacity,
-          a.fieldOpacity,
-          a.modalOpacity,
-          a.headerOpacity,
-          a.footerOpacity,
-          a.cardOpacity,
-          a.buttonOpacity,
-          a.backgroundOpacity,
-        ].any((v) => !v.isFinite || v < 0 || v > 1) ||
-        ![
-          'cover',
-          'contain',
-          'fitWidth',
-          'fitHeight',
-          'fill',
-          'none',
-          'tile',
-        ].contains(a.desktopFit) ||
-        ![
-          'cover',
-          'contain',
-          'fitWidth',
-          'fitHeight',
-          'fill',
-          'none',
-          'tile',
-        ].contains(a.mobileFit) ||
-        [a.desktopImage, a.mobileImage].any(
-          (v) =>
-              v.length > 6800000 ||
-              !RegExp(r'^[A-Za-z0-9+/]*={0,2}$').hasMatch(v),
-        )) {
+        ])) {
       throw const DomainError('Ungültige Darstellung.');
-    }
-    try {
-      for (final image in [a.desktopImage, a.mobileImage]) {
-        if (image.isNotEmpty) base64Decode(image);
-      }
-    } catch (_) {
-      throw const DomainError('Ungültige Bilddaten.');
     }
     return a;
   }

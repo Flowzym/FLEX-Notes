@@ -1,3 +1,4 @@
+import 'dictation.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import '../domain/models.dart';
@@ -58,12 +59,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
           decoration: BoxDecoration(
             color: theme.inputDecorationTheme.fillColor,
             border: Border.all(color: theme.colorScheme.outline),
-            borderRadius: BorderRadius.circular(
-              Theme.of(
-                    context,
-                  ).extension<FlexSurfaces>()?.appearance?.fieldRadius ??
-                  14,
-            ),
+            borderRadius: BorderRadius.circular(FlexDesign.fieldRadius),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -96,7 +92,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final inline =
-                            constraints.maxWidth >= 440 &&
+                            constraints.maxWidth >= 265 &&
                             MediaQuery.textScalerOf(context).scale(1) < 1.4;
                         final field = Row(
                           children: [
@@ -124,13 +120,13 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                                 label: task.parentId == null
                                     ? 'Aufgabe'
                                     : 'Teilaufgabe',
-                                child: TextFormField(
-                                  key: ValueKey('task-${task.id}'),
+                                child: DictationTextField(
+                                  fieldKey: ValueKey('task-${task.id}'),
                                   focusNode: taskFocus.putIfAbsent(
                                     task.id,
                                     () => FocusNode(),
                                   ),
-                                  initialValue: task.text,
+                                  value: task.text,
                                   maxLength: 1000,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
@@ -157,7 +153,7 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                                         )
                                         .toList(),
                                   ),
-                                  onFieldSubmitted: (_) => addTask(after: task),
+                                  onSubmitted: (_) => addTask(after: task),
                                 ),
                               ),
                             ),
@@ -168,35 +164,48 @@ class _HomeworkTaskEditorState extends State<HomeworkTaskEditor> {
                           children: [
                             if (widget.attachmentActionsBuilder != null)
                               widget.attachmentActionsBuilder!(task),
-                            IconButton(
-                              key: ValueKey('task-next-${task.id}'),
-                              tooltip: 'Weitere Aufgabenzeile',
-                              onPressed: () => addTask(after: task),
-                              icon: const Icon(Icons.keyboard_return),
-                            ),
-                            IconButton(
-                              key: ValueKey('task-child-${task.id}'),
-                              tooltip: 'Teilaufgabe hinzufügen',
-                              onPressed: () => addTask(
-                                parent: task.parentId ?? task.id,
-                                after: task,
-                              ),
-                              icon: const Icon(Icons.subdirectory_arrow_right),
-                            ),
-                            IconButton(
-                              key: ValueKey('task-remove-${task.id}'),
-                              tooltip: 'Aufgabe entfernen',
-                              onPressed: () => change(
-                                tasks
-                                    .where((t) => t.id != task.id)
-                                    .map(
-                                      (t) => t.copyWith(
-                                        clearParent: t.parentId == task.id,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                              icon: const Icon(Icons.close),
+                            PopupMenuButton<String>(
+                              key: ValueKey('task-menu-${task.id}'),
+                              tooltip: 'Aufgabe verwalten',
+                              icon: const Icon(Icons.more_horiz),
+                              onSelected: (v) {
+                                if (v == 'next') addTask(after: task);
+                                if (v == 'child') {
+                                  addTask(
+                                    parent: task.parentId ?? task.id,
+                                    after: task,
+                                  );
+                                }
+                                if (v == 'remove') {
+                                  change(
+                                    tasks
+                                        .where((t) => t.id != task.id)
+                                        .map(
+                                          (t) => t.copyWith(
+                                            clearParent: t.parentId == task.id,
+                                          ),
+                                        )
+                                        .toList(),
+                                  );
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                PopupMenuItem(
+                                  key: ValueKey('task-next-${task.id}'),
+                                  value: 'next',
+                                  child: const Text('Weitere Aufgabenzeile'),
+                                ),
+                                PopupMenuItem(
+                                  key: ValueKey('task-child-${task.id}'),
+                                  value: 'child',
+                                  child: const Text('Teilaufgabe hinzufügen'),
+                                ),
+                                PopupMenuItem(
+                                  key: ValueKey('task-remove-${task.id}'),
+                                  value: 'remove',
+                                  child: const Text('Aufgabe entfernen'),
+                                ),
+                              ],
                             ),
                           ],
                         );

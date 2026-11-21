@@ -1,3 +1,4 @@
+import 'detail_flow.dart';
 import 'compact_switch.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'flex_modal.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'surfaces.dart';
+import 'return_lists.dart';
 
 String readableRecord(Json value) {
   if (value['format'] == 'flex-classroom-1') {
@@ -36,6 +38,7 @@ String readableRecord(Json value) {
       r.title,
       r.subject,
       r.body,
+      if (r.lessonQuestion case final q?) q.summary,
       ...r.positive.map((v) => '+ $v'),
       ...r.neutral.map((v) => '• $v'),
       ...r.negative.map((v) => '− $v'),
@@ -66,6 +69,7 @@ String readableRecord(Json value) {
   return [
     'Orga · ${displayDate(e.observedOn)} ${e.observedTime}',
     e.body.isEmpty ? e.title : e.body,
+    if (e.otherParticipants.isNotEmpty) 'Weitere Namen: ${e.otherParticipants}',
     for (final item in e.items) '${item.checked ? '☑' : '☐'} ${item.text}',
     if (e.isTask) e.done ? 'Aufgabe erledigt' : 'Aufgabe offen',
     if (e.dueDate != null) 'Termin: ${displayDate(e.dueDate)}',
@@ -84,25 +88,25 @@ Widget readableRevision(Json row) {
     try {
       return readableRecord(Json.from(jsonDecode(text) as Map));
     } catch (_) {
-      return 'Diese historische Fassung verwendet ein anderes Datenformat.';
+      return 'Diese historische Version verwendet ein anderes Datenformat.';
     }
   }
 
   return ExpansionTile(
     title: Text(
-      'Fassung ${row['revision']} · ${displayDate(row['captured_at_utc'] as String)}',
+      'Version ${row['revision']} · ${displayDate(row['captured_at_utc'] as String)}',
     ),
     childrenPadding: const EdgeInsets.all(12),
     expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const Text(
-        'Bisherige Fassung',
+        'Bisherige Version',
         style: TextStyle(fontWeight: FontWeight.w600),
       ),
       SelectableText(describe(row['before_payload'] as String?)),
       const SizedBox(height: 12),
       const Text(
-        'Gespeicherte Fassung',
+        'Gespeicherte Version',
         style: TextStyle(fontWeight: FontWeight.w600),
       ),
       SelectableText(describe(row['after_payload'] as String?)),
@@ -147,6 +151,25 @@ Future<void> showPupilHistory(
                 ),
           );
           final rows = <({String date, Widget child})>[
+            if (area == 'all' || area == 'orga')
+              for (final d in c.classroom.where(
+                (d) =>
+                    !d.deleted &&
+                    d.returnParticipant(pupilId) != null &&
+                    accepts(
+                      d.text('createdAtUtc').substring(0, 10),
+                      d.returnSearchText(pupilId),
+                      d.returnPendingFor(pupilId),
+                    ),
+              ))
+                (
+                  date: d.text('createdAtUtc'),
+                  child: ReturnListCard(
+                    controller: c,
+                    document: d,
+                    pupilId: pupilId,
+                  ),
+                ),
             for (final r in records)
               (
                 date: '${r.observedOn} ${r.observedTime}',
@@ -166,7 +189,7 @@ Future<void> showPupilHistory(
                           spacing: 8,
                           children: [
                             TextButton(
-                              onPressed: () => showDialog<void>(
+                              onPressed: () => showFlexDetail<void>(
                                 context: ctx,
                                 barrierDismissible: false,
                                 builder: (_) =>
@@ -198,7 +221,7 @@ Future<void> showPupilHistory(
                             ),
                             TextButton(
                               onPressed: () => showJournal(ctx, c, e.id),
-                              child: const Text('Frühere Fassungen'),
+                              child: const Text('Frühere Versionen'),
                             ),
                           ],
                         ),

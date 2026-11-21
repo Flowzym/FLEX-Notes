@@ -1,10 +1,41 @@
+import 'entry_template.dart';
+import 'admin_deletion.dart';
+import 'reminder_action.dart';
+import 'school_year.dart';
 import 'models.dart';
 import 'school.dart';
 import 'observation_catalog.dart';
 import 'classroom.dart';
 
 abstract interface class NotebookRepository {
+  Future<AdminDeletionPreview> previewAdminDeletion(AdminTarget target);
+  Future<void> deleteAdminSelection(AdminDeletionPreview preview);
+  Future<Set<String>> erasedDriveSources();
+  Future<List<EntryTemplate>> entryTemplates();
+  Future<void> saveEntryTemplate(EntryTemplate template);
+  Future<void> deleteEntryTemplate(String id);
+  Future<CatalogBundle> exportCatalogs();
+  Future<void> importCatalogs(CatalogBundle bundle, {required bool replace});
+  Future<bool> applyReminderAction(ReminderAction action, DateTime now);
+  Future<void> removeUnreferencedFiles(
+    Future<void> Function(String key) remove,
+  );
+  Future<List<SchoolYearArchive>> schoolYears();
+  Future<void> archiveSchoolYear(
+    SchoolYearArchive archive,
+    String capturedBackup,
+  );
+  Future<void> reopenSchoolYear(String id);
+  Future<RetentionPolicy> retentionPolicy();
+  Future<void> saveRetentionPolicy(RetentionPolicy policy);
+  Future<List<RetentionCandidate>> retentionReview(DateTime now);
+  Future<void> purgeRetained(
+    Set<String> keys,
+    String capturedBackup, {
+    DateTime? now,
+  });
   Future<List<ClassroomDocument>> classroomDocuments();
+  Future<void> renameMaterialTag(String oldTag, String? newTag);
   Future<ClassroomDocument> saveClassroomDocument(
     ClassroomDocument document, {
     DialogDraft? draft,
@@ -23,7 +54,12 @@ abstract interface class NotebookRepository {
   Future<void> initialize();
   Future<List<Pupil>> pupils();
   Future<Pupil> savePupil(Pupil pupil);
+  Future<Set<String>> searchEntryKeys(String query, {String? pupilId});
   Future<List<OrgaEntry>> entries();
+  Future<void> saveOrganisationSelection(
+    List<OrgaEntry> entries,
+    List<ClassroomDocument> returns,
+  );
   Future<OrgaEntry> saveEntry(
     OrgaEntry entry, {
     String? draftId,
@@ -36,6 +72,7 @@ abstract interface class NotebookRepository {
   Future<Appearance> appearance();
   Future<void> saveAppearance(Appearance appearance);
   Future<ObservationCatalog> observationCatalog(String key);
+  Future<Map<String, ObservationCatalog>> personalObservationCatalogs();
   Future<ObservationCatalog> saveObservationOptions(
     String key,
     List<String> options,
@@ -67,12 +104,26 @@ abstract interface class NotebookRepository {
   Future<void> saveBulkDialog(DialogDraft draft);
   Future<DialogDraft> saveDialogDraft(DialogDraft draft);
   Future<void> discardDialogDraft(String id, int revision);
-  Future<Pupil> savePupilDialog(Pupil pupil, DialogDraft? draft);
+  Future<Pupil> savePupilDialog(
+    Pupil pupil,
+    DialogDraft? draft, {
+    ClassroomDocument? materialProfile,
+    List<ClassroomDocument> materialUpdates = const [],
+  });
+  Future<void> savePlanningSync(
+    List<ClassroomDocument> changes,
+    Map<String, int> rosterRevisions,
+  );
   Future<void> saveCatalogs(
     Map<String, List<String>> options,
     DialogDraft? draft,
   );
   Future<List<SchoolRecord>> schoolRecords();
+  Future<SchoolRecord> reassignHomeworkTask(
+    SchoolRecord source,
+    String taskId, {
+    String? dueDate,
+  });
   Future<SchoolRecord> saveSchoolRecord(
     SchoolRecord record, {
     String? draftId,
@@ -102,6 +153,7 @@ class NotebookSnapshot {
     required this.legacyCount,
     this.dialogDrafts = const [],
     this.classroom = const [],
+    this.schoolYears = const [],
   });
   final List<Pupil> pupils;
   final List<OrgaEntry> entries;
@@ -110,8 +162,26 @@ class NotebookSnapshot {
   final List<SchoolDraft> schoolDrafts;
   final List<DialogDraft> dialogDrafts;
   final List<ClassroomDocument> classroom;
+  final List<SchoolYearArchive> schoolYears;
   final Appearance appearance;
   final int legacyCount;
+  NotebookSnapshot active() {
+    final entryIds = schoolYears.expand((y) => y.orgaIds).toSet();
+    final recordIds = schoolYears.expand((y) => y.recordIds).toSet();
+    final documentIds = schoolYears.expand((y) => y.documentIds).toSet();
+    return NotebookSnapshot(
+      pupils: pupils,
+      entries: entries.where((e) => !entryIds.contains(e.id)).toList(),
+      records: records.where((r) => !recordIds.contains(r.id)).toList(),
+      classroom: classroom.where((d) => !documentIds.contains(d.id)).toList(),
+      drafts: drafts,
+      schoolDrafts: schoolDrafts,
+      dialogDrafts: dialogDrafts,
+      appearance: appearance,
+      legacyCount: legacyCount,
+      schoolYears: schoolYears,
+    );
+  }
 }
 
 class LegacyReport {

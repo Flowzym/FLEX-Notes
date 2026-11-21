@@ -41,6 +41,12 @@ class _FolderReviewState extends State<_FolderReview> {
         widget.drive,
         widget.folder,
         widget.controller.classroom,
+        boundaryFolders: {
+          for (final other in widget.controller.classroom.where(isDriveRule))
+            if (other.id != widget.folder.id &&
+                other.text('driveId') == widget.folder.text('driveId'))
+              other.text('itemId'),
+        },
         cancelled: () => !mounted,
         progress: (a, b) {
           if (mounted) {
@@ -53,7 +59,14 @@ class _FolderReviewState extends State<_FolderReview> {
       );
       if (!mounted) return;
       setState(() {
-        documents = result;
+        final roster = PlanningRoster(
+          widget.controller.classroom,
+          widget.controller.pupils,
+        );
+        documents = [
+          for (final d in result)
+            roster.suggestedImport(d, rule: widget.folder),
+        ];
         selected.addAll(result.where((d) => d.revision == 0).map((d) => d.id));
       });
     } catch (e) {

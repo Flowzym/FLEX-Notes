@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@drawable/quick_background" android:padding="12dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FLEX." android:textSize="13sp" android:textStyle="bold" android:textColor="#626D43" android:paddingBottom="6dp"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/quick_notes" style="@style/FlexWidgetAction" android:text="Notizen" android:contentDescription="Schülernotizen öffnen"/>
+        <TextView android:id="@+id/quick_calendar" style="@style/FlexWidgetAction" android:text="Kalender"/>
+        <TextView android:id="@+id/quick_scan" style="@style/FlexWidgetAction" android:text="Scannen"/>
+        <TextView android:id="@+id/quick_homework" style="@style/FlexWidgetAction" android:text="HÜ" android:contentDescription="Hausübungskontrolle öffnen"/>
+    </LinearLayout>
+</LinearLayout>

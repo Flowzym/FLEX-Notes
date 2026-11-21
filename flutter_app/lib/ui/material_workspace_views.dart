@@ -81,6 +81,9 @@ class _MaterialRowState extends State<MaterialRow> {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
+                onLongPress: widget.selected == null && widget.onSelect != null
+                    ? () => widget.onSelect!(true)
+                    : null,
                 onTap: widget.selected == null
                     ? widget.onOpen
                     : () => widget.onSelect?.call(!widget.selected!),
@@ -107,7 +110,10 @@ class _MaterialRowState extends State<MaterialRow> {
                               [
                                 d.text('extension').toUpperCase(),
                                 d.text('subject'),
-                                if (d.text('documentType', 'other') != 'other')
+                                if (teachingUse(d).isNotEmpty)
+                                  planningUses[teachingUse(d)]!
+                                else if (d.text('documentType', 'other') !=
+                                    'other')
                                   materialTypes[d.text('documentType')]!,
                               ].where((s) => s.isNotEmpty).join(' · '),
                               style: Theme.of(context).textTheme.bodySmall,
@@ -117,9 +123,11 @@ class _MaterialRowState extends State<MaterialRow> {
                               builder: (_, s) => Text(
                                 s.data == true
                                     ? 'Offline verfügbar'
-                                    : d.text('url').isEmpty
-                                    ? 'Datei auf diesem Gerät nicht verfügbar'
-                                    : 'Online',
+                                    : d.flag('sourceMissing')
+                                    ? 'Quelle fehlt'
+                                    : hasMaterialSource(d)
+                                    ? 'Online'
+                                    : 'Datei auf diesem Gerät nicht verfügbar',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ),
@@ -167,19 +175,158 @@ Future<void> showMaterialDetails(
         final d =
             c.classroom.where((m) => m.id == material.id).firstOrNull ??
             material;
+        final folder = c.classroom
+            .where((f) => isDriveRule(f) && f.id == d.text('cloudRule'))
+            .firstOrNull;
+        final lastSync = DateTime.tryParse(
+          folder?.text('lastSync') ?? '',
+        )?.toLocal();
         return FlexModal(
           title: Text(d.title),
           onClose: () => Navigator.pop(ctx),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: MaterialThumbnail(material: d, width: 96, height: 120),
+              if (isTeachingSource(d))
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.playlist_play),
+                  title: const Text('Unterrichtsplanung öffnen'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => openTeachingReview(ctx, c, d),
                 ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MaterialThumbnail(material: d, width: 64, height: 84),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          [
+                            {'jpg', 'png'}.contains(d.text('extension'))
+                                ? 'Foto'
+                                : d.text('extension').toUpperCase(),
+                            materialTypes[d.text('documentType', 'other')]!,
+                            if (d.text('audience', 'all') != 'all')
+                              materialAudiences[d.text('audience')]!,
+                            d.text('subject'),
+                          ].where((s) => s.isNotEmpty).join(' · '),
+                        ),
+                        if (d.text('topic').isNotEmpty) Text(d.text('topic')),
+                        if (d.strings('tags').isNotEmpty)
+                          Text(
+                            d.strings('tags').map((tag) => '#$tag').join(' '),
+                            style: Theme.of(ctx).textTheme.bodySmall,
+                          ),
+                        if (d.flag('scan'))
+                          Text('${d.number('pageCount')} Seiten'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              if (d.map('planning').isNotEmpty) _PlanningDetails(c, d),
+              ListTile(
+                key: const ValueKey('material-detail-assign'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.people_outline),
+                title: const Text('Schüler & Einsatz'),
+                subtitle: Text(
+                  d.strings('pupilIds').isEmpty
+                      ? 'Schüler zuordnen · Datum optional'
+                      : [
+                          for (final id in d.strings('pupilIds'))
+                            [
+                              c.pupils
+                                      .where((p) => p.id == id)
+                                      .firstOrNull
+                                      ?.name ??
+                                  'Nicht verfügbarer Schüler',
+                              if (pupilMaterialDates(d, id).isNotEmpty)
+                                pupilMaterialDates(
+                                  d,
+                                  id,
+                                ).map(displayDate).join(', ')
+                              else
+                                'Ohne Einsatzdatum',
+                            ].join(' · '),
+                        ].join('\n'),
+                ),
+                trailing: d.deleted ? null : const Icon(Icons.chevron_right),
+                onTap: d.deleted
+                    ? null
+                    : () => showMaterialAssignments(ctx, c, [d]),
+              ),
+              if (!d.deleted)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => guarded(ctx, () async {
+                        final links = await chooseDocumentLinks(
+                          ctx,
+                          c,
+                          d.rows('links').map(DocumentLink.fromJson).toList(),
+                        );
+                        if (links != null) {
+                          await c.saveClassroom(
+                            d.patch({
+                              'links': links.map((l) => l.toJson()).toList(),
+                              'pupilIds': {
+                                ...d.strings('pupilIds'),
+                                ...documentLinkPupils(c, links),
+                              }.toList(),
+                            }),
+                          );
+                        }
+                      }),
+                      icon: const Icon(Icons.link),
+                      label: const Text('Einträge zuordnen'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => showClassroomEditor(
+                        ctx,
+                        c,
+                        ClassroomKind.material,
+                        document: d,
+                      ),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Angaben bearbeiten'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => prepareForDate(ctx, c, [d.id])),
+                      icon: const Icon(Icons.today_outlined),
+                      label: const Text('Bereitlegen'),
+                    ),
+                  ],
+                ),
+              if (d.rows('links').isNotEmpty) ...[
+                const SizedBox(height: 8),
+                for (final link in d.rows('links').map(DocumentLink.fromJson))
+                  Text(
+                    documentLinkLabel(c, link),
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+              ],
+              if (d.text('otherParticipants').isNotEmpty)
+                Text('Weitere Namen: ${d.text('otherParticipants')}'),
+              if (d.text('note').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(d.text('note')),
+                ),
+              const Divider(height: 24),
+              if (d.flag('sourceMissing'))
+                const Text('Die Quelle fehlt im verknüpften Ordner.'),
+              if (uploadLabel(d).isNotEmpty) Text(uploadLabel(d)),
+              Text('Datei', style: Theme.of(ctx).textTheme.titleSmall),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
@@ -192,28 +339,15 @@ Future<void> showMaterialDetails(
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Öffnen'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () => guarded(ctx, () async {
-                      final links = await chooseDocumentLinks(
-                        ctx,
-                        c,
-                        d.rows('links').map(DocumentLink.fromJson).toList(),
-                      );
-                      if (links != null) {
-                        await c.saveClassroom(
-                          d.patch({
-                            'links': links.map((l) => l.toJson()).toList(),
-                            'pupilIds': {
-                              ...d.strings('pupilIds'),
-                              ...documentLinkPupils(c, links),
-                            }.toList(),
-                          }),
-                        );
-                      }
-                    }),
-                    icon: const Icon(Icons.link),
-                    label: const Text('Einträge zuordnen'),
-                  ),
+                  if (d.text('itemId').isNotEmpty &&
+                      d.text('url').isNotEmpty &&
+                      !d.flag('sourceMissing'))
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => _launchMaterial(d.text('url'))),
+                      icon: const Icon(Icons.cloud_outlined),
+                      label: const Text('In OneDrive öffnen'),
+                    ),
                   if ({'pdf', 'jpg'}.contains(d.text('extension')) &&
                       d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
@@ -228,6 +362,13 @@ Future<void> showMaterialDetails(
                     ),
                   if (d.text('localKey').isNotEmpty)
                     OutlinedButton.icon(
+                      onPressed: () =>
+                          guarded(ctx, () => shareMaterials(ctx, [d])),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Teilen'),
+                    ),
+                  if (d.text('localKey').isNotEmpty)
+                    OutlinedButton.icon(
                       onPressed: () => guarded(ctx, () async {
                         final bytes = await const LocalMaterialFiles().read(
                           d.text('localKey'),
@@ -235,66 +376,32 @@ Future<void> showMaterialDetails(
                         await saveBytesFile(
                           d.text('name', '${d.title}.${d.text('extension')}'),
                           bytes,
-                          mime: d.text('extension') == 'pdf'
-                              ? 'application/pdf'
-                              : d.text('extension') == 'jpg'
-                              ? 'image/jpeg'
-                              : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          mime: materialMime(d.text('extension')),
                         );
                       }),
-                      icon: const Icon(Icons.ios_share),
-                      label: const Text('Teilen / Exportieren'),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Exportieren'),
                     ),
-                  OutlinedButton.icon(
-                    onPressed: () => showClassroomEditor(
-                      ctx,
-                      c,
-                      ClassroomKind.material,
-                      document: d,
+                  if (d.rows('versions').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => showMaterialVersions(ctx, c, d),
+                      icon: const Icon(Icons.history),
+                      label: Text('Versionen · ${d.rows('versions').length}'),
                     ),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Angaben bearbeiten'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        guarded(ctx, () => prepareForDate(ctx, c, [d.id])),
-                    icon: const Icon(Icons.today_outlined),
-                    label: const Text('Bereitlegen'),
-                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                [
-                  materialTypes[d.text('documentType', 'other')]!,
-                  materialAudiences[d.text('audience', 'all')]!,
-                  d.text('subject'),
-                  d.text('topic'),
-                ].where((s) => s.isNotEmpty).join(' · '),
-              ),
-              for (final link in d.rows('links').map(DocumentLink.fromJson))
-                Text(documentLinkLabel(c, link)),
-              if (d.flag('scan')) Text('${d.number('pageCount')} Seiten · PDF'),
-              if (d.strings('pupilIds').isNotEmpty)
+              if (lastSync != null)
                 Text(
-                  c.pupils
-                      .where((p) => d.strings('pupilIds').contains(p.id))
-                      .map((p) => p.name)
-                      .join(', '),
-                ),
-              if (d.strings('tags').isNotEmpty)
-                Text(d.strings('tags').join(' · ')),
-              if (d.text('note').isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(d.text('note')),
+                  'Ordnerabgleich am ${displayDate(dateOnly(lastSync))} · ${TimeOfDay.fromDateTime(lastSync).format(ctx)}',
                 ),
               if (d.text('sourcePath').isNotEmpty)
                 Text(
                   d.text('sourcePath'),
                   style: Theme.of(ctx).textTheme.bodySmall,
                 ),
-              if (materialDeviceAvailable && d.text('itemId').isNotEmpty)
+              if (materialDeviceAvailable &&
+                  d.text('itemId').isNotEmpty &&
+                  d.text('extension') != 'link')
                 OutlinedButton.icon(
                   onPressed: () => guarded(ctx, () async {
                     final client = drive ?? OneDriveClient();
@@ -313,12 +420,39 @@ Future<void> showMaterialDetails(
                   icon: const Icon(Icons.download_outlined),
                   label: const Text('Offline laden / aktualisieren'),
                 ),
+              if (d.text('itemId').isNotEmpty &&
+                  d.text('localKey').isNotEmpty) ...[
+                if (DateTime.tryParse(d.text('cachedAt')) case final date?)
+                  Text(
+                    'Offline geladen am ${displayDate(dateOnly(date.toLocal()))}',
+                  ),
+                if (d.text('remoteName').isNotEmpty &&
+                    (cloudExtension(d.text('remoteName')) !=
+                            d.text('extension') ||
+                        d.text('remoteEtag').isNotEmpty &&
+                            d.text('remoteEtag') != d.text('etag') ||
+                        d.text('remoteModifiedAt').isNotEmpty &&
+                            d.text('remoteModifiedAt') !=
+                                d.text('sourceModifiedAt')))
+                  const Text('Neuere OneDrive-Fassung verfügbar'),
+              ],
               if (materialDeviceAvailable &&
                   d.text('localKey').isNotEmpty &&
                   d.text('url').isNotEmpty)
                 TextButton.icon(
                   onPressed: () => guarded(ctx, () async {
-                    await c.saveClassroom(d.patch({'localKey': ''}));
+                    final name = d.text('remoteName');
+                    await c.saveClassroom(
+                      d.patch({
+                        'localKey': '',
+                        'etag': '',
+                        'cachedAt': '',
+                        if (name.isNotEmpty) ...{
+                          'name': name,
+                          'extension': cloudExtension(name),
+                        },
+                      }),
+                    );
                     await removeUnusedMaterialFile(
                       c,
                       const LocalMaterialFiles(),
@@ -355,22 +489,32 @@ Future<void> showPreparedMaterials(
   BuildContext context,
   NotebookController c, {
   String? date,
+  String query = '',
 }) => showDialog<void>(
   context: context,
-  builder: (_) =>
-      _PreparedMaterials(controller: c, date: date ?? dateOnly(DateTime.now())),
+  builder: (_) => _PreparedMaterials(
+    controller: c,
+    date: date ?? dateOnly(DateTime.now()),
+    query: query,
+  ),
 );
 
 class _PreparedMaterials extends StatefulWidget {
-  const _PreparedMaterials({required this.controller, required this.date});
+  const _PreparedMaterials({
+    required this.controller,
+    required this.date,
+    this.query = '',
+  });
   final NotebookController controller;
   final String date;
+  final String query;
   @override
   State<_PreparedMaterials> createState() => _PreparedMaterialsState();
 }
 
 class _PreparedMaterialsState extends State<_PreparedMaterials> {
   late String date = widget.date;
+  late String query = widget.query;
   bool busy = false;
   NotebookController get c => widget.controller;
   Future<void> run(Future<void> Function() operation) async {
@@ -385,15 +529,59 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
     animation: c,
     builder: (ctx, _) {
       final doc = preparationFor(c.classroom, date);
-      final ids = doc.strings('materialIds');
-      final materials = resolveMaterials(c.classroom, ids);
-      final suggestions = suggestedMaterials(c.classroom, date);
+      final ids = doc.deleted ? <String>[] : doc.strings('materialIds');
+      final allMaterials = resolveMaterials(c.classroom, ids);
+      bool matches(ClassroomDocument m) =>
+          materialMatches(m, query, pupils: c.pupils);
+      final materials = allMaterials.where(matches).toList();
+      final scheduled = pupilMaterialsOnDay(
+        c.classroom,
+        date,
+      ).where(matches).toList();
+      final dayMaterials = preparedDayMaterials(c.classroom, date);
+      final planned = dayMaterials
+          .where(
+            (d) =>
+                teachingDay(d) == date &&
+                !ids.contains(d.id) &&
+                !scheduled.any((s) => s.id == d.id) &&
+                matches(d),
+          )
+          .toList();
+      final weekly = c.classroom
+          .where(
+            (d) =>
+                !d.deleted &&
+                d.kind == ClassroomKind.material &&
+                teachingDay(d).isEmpty &&
+                teachingWeek(d) == weekOfDay(date) &&
+                !ids.contains(d.id) &&
+                matches(d),
+          )
+          .toList();
+      final suggestions = suggestedMaterials(c.classroom, date)
+          .where(
+            (m) =>
+                matches(m) &&
+                !dayMaterials.any((d) => d.id == m.id) &&
+                !weekly.any((d) => d.id == m.id),
+          )
+          .toList();
       return FlexModal(
         title: const Text('Bereitgelegt'),
         onClose: () => Navigator.pop(ctx),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (query.trim().isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InputChip(
+                  label: Text('Suche: $query'),
+                  onDeleted: () => setState(() => query = ''),
+                  deleteButtonTooltipMessage: 'Alle Materialien anzeigen',
+                ),
+              ),
             Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -458,75 +646,162 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                   icon: const Icon(Icons.add),
                   label: const Text('Dateien / Paket'),
                 ),
-                OutlinedButton.icon(
-                  onPressed:
-                      busy || materials.isEmpty || !materialDeviceAvailable
-                      ? null
-                      : () => run(() => cacheMaterials(ctx, c, materials)),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Offline laden'),
-                ),
               ],
             ),
-            if (busy) const LinearProgressIndicator(),
-            if (materials.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text('Für diesen Tag ist noch nichts bereitgelegt.'),
+            if (dayMaterials.isNotEmpty)
+              PreparedOfflineStatus(
+                key: ValueKey(date),
+                controller: c,
+                materials: dayMaterials,
+                details: true,
               ),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              itemCount: materials.length,
-              onReorderItem: (from, to) {
-                if (busy) return;
-                // Keep hidden trash references intact; reorder only visible references.
-                final visible = materials.map((m) => m.id).toList();
-                visible.insert(to, visible.removeAt(from));
-                var index = 0;
-                final active = visible.toSet();
-                final next = [
-                  for (final id in ids)
-                    if (active.contains(id)) visible[index++] else id,
-                ];
-                run(() => c.saveClassroom(doc.patch({'materialIds': next})));
-              },
-              itemBuilder: (_, i) => MaterialRow(
-                key: ValueKey(materials[i].id),
-                material: materials[i],
-                onOpen: () => run(() => openMaterial(ctx, c, materials[i])),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Vom Tag entfernen',
-                      onPressed: busy
-                          ? null
-                          : () => run(
-                              () => c.saveClassroom(
-                                doc.patch({
-                                  'materialIds': ids
-                                      .where((id) => id != materials[i].id)
-                                      .toList(),
-                                }),
-                              ),
-                            ),
-                      icon: const Icon(Icons.remove_circle_outline),
-                    ),
-                    ReorderableDragStartListener(
-                      index: i,
-                      child: const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Icon(Icons.drag_handle),
-                      ),
-                    ),
-                  ],
+            if (busy) const LinearProgressIndicator(),
+            if (materials.isEmpty &&
+                scheduled.isEmpty &&
+                planned.isEmpty &&
+                weekly.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  query.trim().isEmpty
+                      ? 'Für diesen Tag ist noch nichts bereitgelegt.'
+                      : 'Keine passenden Materialien an diesem Tag.',
                 ),
               ),
-            ),
-            if (ids.length > materials.length)
+            if (dayMaterials.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(c),
+              ),
+            if (c.appearance.groupMaterialsByPupil)
+              ...groupedMaterialRows(
+                c,
+                materials,
+                (group) => [
+                  for (final m in group)
+                    MaterialRow(
+                      material: m,
+                      onOpen: () => run(() => openMaterial(ctx, c, m)),
+                      onEdit: () => showMaterialDetails(ctx, c, m),
+                      trailing: IconButton(
+                        tooltip: 'Vom Tag entfernen',
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: busy
+                            ? null
+                            : () => run(
+                                () => c.saveClassroom(
+                                  doc.patch({
+                                    'materialIds': ids
+                                        .where((id) => id != m.id)
+                                        .toList(),
+                                  }),
+                                ),
+                              ),
+                      ),
+                    ),
+                ],
+                day: date,
+              )
+            else
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                itemCount: materials.length,
+                onReorderItem: (from, to) {
+                  if (busy) return;
+                  // Keep hidden trash references intact; reorder only visible references.
+                  final visible = materials.map((m) => m.id).toList();
+                  visible.insert(to, visible.removeAt(from));
+                  var index = 0;
+                  final active = visible.toSet();
+                  final next = [
+                    for (final id in ids)
+                      if (active.contains(id)) visible[index++] else id,
+                  ];
+                  run(() => c.saveClassroom(doc.patch({'materialIds': next})));
+                },
+                itemBuilder: (_, i) => MaterialRow(
+                  key: ValueKey(materials[i].id),
+                  material: materials[i],
+                  onOpen: () => run(() => openMaterial(ctx, c, materials[i])),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Vom Tag entfernen',
+                        onPressed: busy
+                            ? null
+                            : () => run(
+                                () => c.saveClassroom(
+                                  doc.patch({
+                                    'materialIds': ids
+                                        .where((id) => id != materials[i].id)
+                                        .toList(),
+                                  }),
+                                ),
+                              ),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      ReorderableDragStartListener(
+                        index: i,
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(Icons.drag_handle),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (ids.length > allMaterials.length)
               const Text('Dateien im Papierkorb werden hier ausgeblendet.'),
+            if (planned.isNotEmpty)
+              _PlanningFiles(c, 'Für diesen Unterrichtstag', planned),
+            if (weekly.isNotEmpty) _PlanningFiles(c, 'Für diese Woche', weekly),
+            if (scheduled.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(
+                'Für Schüler geplant',
+                style: Theme.of(ctx).textTheme.titleSmall,
+              ),
+              ...groupedMaterialRows(
+                c,
+                scheduled,
+                (group) => [
+                  for (final m in group)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        MaterialRow(
+                          material: m,
+                          onOpen: () => run(() => openMaterial(ctx, c, m)),
+                          onEdit: () => showMaterialDetails(ctx, c, m),
+                        ),
+                        Wrap(
+                          children: [
+                            for (final p in c.pupils.where(
+                              (p) => pupilMaterialDates(m, p.id).contains(date),
+                            ))
+                              TextButton.icon(
+                                onPressed: busy
+                                    ? null
+                                    : () => showPupilMaterials(ctx, c, p),
+                                icon: const Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                ),
+                                label: Text(p.name),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                ],
+                day: date,
+                scope: 'scheduled',
+              ),
+            ],
             if (suggestions.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text(
@@ -534,10 +809,9 @@ class _PreparedMaterialsState extends State<_PreparedMaterials> {
                 style: Theme.of(ctx).textTheme.titleSmall,
               ),
               for (final m in suggestions)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(m.title),
-                  leading: const Icon(Icons.description_outlined),
+                MaterialRow(
+                  material: m,
+                  onOpen: () => run(() => openMaterial(ctx, c, m)),
                   trailing: IconButton(
                     tooltip: 'Zum Tag hinzufügen',
                     onPressed: busy
@@ -563,12 +837,20 @@ Future<void> cacheMaterials(
   NotebookController c,
   List<ClassroomDocument> materials, {
   OneDriveClient? drive,
+  bool offerSignIn = false,
 }) async {
   final client = drive ?? OneDriveClient();
   var cached = 0;
   final failed = <String>[];
   try {
-    if (drive == null) await client.load();
+    if (drive == null && materials.any((m) => m.text('itemId').isNotEmpty)) {
+      await client.load();
+    }
+    if (offerSignIn && !client.connected) {
+      if (!context.mounted) return;
+      await connectOneDrive(context, client);
+      if (!client.connected || !context.mounted) return;
+    }
     for (final m in materials) {
       try {
         if (m.text('itemId').isNotEmpty) {
@@ -579,8 +861,8 @@ Future<void> cacheMaterials(
           throw const DomainError('Nur als Link verfügbar');
         }
         cached++;
-      } catch (_) {
-        failed.add(m.title);
+      } catch (e) {
+        failed.add('${m.title} · ${friendlyError(e)}');
       }
     }
   } finally {
@@ -693,11 +975,22 @@ Future<void> showMaterialCollection(
                 padding: EdgeInsets.all(16),
                 child: Text('Noch keine Dateien zugeordnet.'),
               ),
-            for (final m in materials)
-              MaterialRow(
-                material: m,
-                onOpen: () => guarded(ctx, () => openMaterial(ctx, c, m)),
+            if (materials.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MaterialGroupingButton(c),
               ),
+            ...groupedMaterialRows(
+              c,
+              materials,
+              (group) => [
+                for (final m in group)
+                  MaterialRow(
+                    material: m,
+                    onOpen: () => guarded(ctx, () => openMaterial(ctx, c, m)),
+                  ),
+              ],
+            ),
             if (d.kind == ClassroomKind.plan &&
                 d.text('followUp').isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -725,173 +1018,61 @@ Future<void> showMaterialCollection(
   ),
 );
 
-Future<void> showPupilMaterials(
-  BuildContext context,
-  NotebookController c,
-  Pupil pupil,
-) => showDialog<void>(
-  context: context,
-  builder: (ctx) => AnimatedBuilder(
-    animation: c,
-    builder: (ctx, _) {
-      final direct = c.classroom.where(
-        (d) =>
-            !d.deleted &&
-            d.kind == ClassroomKind.material &&
-            d.strings('pupilIds').contains(pupil.id),
-      );
-      final collections = c.classroom.where(
-        (d) =>
-            !d.deleted &&
-            (d.kind == ClassroomKind.materialSet ||
-                d.kind == ClassroomKind.plan) &&
-            d.strings('pupilIds').contains(pupil.id),
-      );
-      return FlexModal(
-        title: Text('${pupil.name} · Unterlagen'),
-        onClose: () => Navigator.pop(ctx),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              spacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => scanAndShow(
-                    ctx,
-                    c,
-                    ScanContext(
-                      pupilIds: [pupil.id],
-                      title: pupil.name,
-                      category: 'pupilWork',
-                    ),
-                  ),
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scannen'),
-                ),
-                DocumentAttachmentsButton(
-                  showPreviews: false,
-                  controller: c,
-                  scope: ScanContext(
-                    pupilIds: [pupil.id],
-                    title: pupil.name,
-                    category: 'pupilWork',
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () => guarded(ctx, () async {
-                    final baseline = c.classroom
-                        .where(
-                          (d) => !d.deleted && d.kind == ClassroomKind.material,
-                        )
-                        .toList();
-                    final ids = await chooseMaterials(
-                      ctx,
-                      c,
-                      direct.map((d) => d.id).toList(),
-                    );
-                    if (ids == null) return;
-                    final changes = <ClassroomDocument>[];
-                    for (final d in baseline) {
-                      final pupils = d.strings('pupilIds').toSet();
-                      if (ids.contains(d.id) != pupils.contains(pupil.id)) {
-                        if (ids.contains(d.id)) {
-                          pupils.add(pupil.id);
-                        } else {
-                          pupils.remove(pupil.id);
-                        }
-                        changes.add(d.patch({'pupilIds': pupils.toList()}));
-                      }
-                    }
-                    await c.repository.saveClassroomDocuments(changes);
-                    await c.reload();
-                  }),
-                  icon: const Icon(Icons.attach_file),
-                  label: const Text('Dateien zuordnen'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => showClassroomEditor(
-                    ctx,
-                    c,
-                    ClassroomKind.plan,
-                    fields: {
-                      'pupilIds': [pupil.id],
-                    },
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Planung'),
-                ),
-              ],
-            ),
-            if (direct.isEmpty && collections.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Noch keine Unterlagen zugeordnet.'),
-              ),
-            for (final d in direct)
-              MaterialRow(
-                material: d,
-                onOpen: () => guarded(ctx, () => openMaterial(ctx, c, d)),
-                trailing: IconButton(
-                  tooltip: 'Schülerzuordnung entfernen',
-                  icon: const Icon(Icons.link_off),
-                  onPressed: () => guarded(
-                    ctx,
-                    () => c.saveClassroom(
-                      d.patch({
-                        'pupilIds': d
-                            .strings('pupilIds')
-                            .where((id) => id != pupil.id)
-                            .toList(),
-                      }),
-                    ),
-                  ),
-                ),
-              ),
-            for (final d in collections)
-              ListTile(
-                leading: Icon(
-                  d.kind == ClassroomKind.plan
-                      ? Icons.event_note_outlined
-                      : Icons.folder_copy_outlined,
-                ),
-                title: Text(d.title),
-                subtitle: Text(d.label),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => showMaterialCollection(ctx, c, d),
-              ),
-          ],
-        ),
-      );
-    },
-  ),
-);
-
 class PreparedMaterialsTile extends StatelessWidget {
   const PreparedMaterialsTile({
     super.key,
     required this.controller,
     required this.date,
+    this.query = '',
   });
   final NotebookController controller;
   final String date;
+  final String query;
   @override
   Widget build(BuildContext context) {
-    final count = resolveMaterials(
-      controller.classroom,
-      preparationFor(controller.classroom, date).strings('materialIds'),
-    ).length;
+    final dayMaterials = preparedDayMaterials(controller.classroom, date);
+    final materials = dayMaterials
+        .where((m) => materialMatches(m, query, pupils: controller.pupils))
+        .toList();
+    final count = materials.length;
+    final now = DateTime.now();
+    final tomorrow = dateOnly(DateTime(now.year, now.month, now.day + 1));
+    final dayLabel = date == dateOnly(now)
+        ? 'Heute · '
+        : date == tomorrow
+        ? 'Morgen · '
+        : '';
     return ListTile(
+      key: ValueKey('prepared-day-$date'),
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.folder_open_outlined),
-      title: Text(
-        count == 0
-            ? 'Unterlagen bereitlegen'
-            : '$count Unterlagen bereitgelegt',
+      leading: materials.isEmpty
+          ? const Icon(Icons.folder_open_outlined)
+          : MaterialThumbnail(material: materials.first, width: 40, height: 52),
+      title: Text('$dayLabel${displayDate(date)}'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              count == 0
+                  ? 'Unterlagen bereitlegen'
+                  : '$count ${count == 1 ? 'Material' : 'Materialien'}',
+              if (materials.isNotEmpty)
+                materials.map((m) => m.title).join(', '),
+            ].join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (dayMaterials.isNotEmpty)
+            PreparedOfflineStatus(
+              controller: controller,
+              materials: dayMaterials,
+            ),
+        ],
       ),
-      subtitle: Text(displayDate(date)),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => showPreparedMaterials(context, controller, date: date),
+      onTap: () =>
+          showPreparedMaterials(context, controller, date: date, query: query),
     );
   }
 }

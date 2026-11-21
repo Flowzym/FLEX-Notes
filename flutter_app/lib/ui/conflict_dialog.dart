@@ -19,6 +19,7 @@ const conflictFieldLabels = <String, String>{
   'label': 'Bezeichnung',
   'taskFree': 'Freier Auftrag',
   'taskTags': 'Auftrag-Tags',
+  'assignmentSources': 'Verknüpfte Aufträge und Materialien',
   'positive': 'Positive Beobachtungen',
   'neutral': 'Neutrale Beobachtungen',
   'negative': 'Negative Beobachtungen',
@@ -36,7 +37,8 @@ const conflictFieldLabels = <String, String>{
   'nextReviewDate': 'Nächste Überprüfung',
   'dueDate': 'Termin',
   'appointmentDate': 'Termindatum',
-  'appointmentTime': 'Terminzeit',
+  'appointmentTime': 'Terminbeginn',
+  'appointmentEndTime': 'Terminende',
   'observedOn': 'Datum',
   'observedTime': 'Uhrzeit',
   'needsCompletion': 'Später ergänzen',
@@ -67,6 +69,7 @@ const conflictFieldLabels = <String, String>{
   'room': 'Raum',
   'materialIds': 'Materialien',
   'pupilIds': 'Schülerzuordnungen',
+  'pupilDates': 'Unterrichtsdaten pro Schüler',
   'lessonIds': 'Unterrichtszuordnungen',
   'planIds': 'Planungen dieser Stunde',
   'documentType': 'Dokumentart',
@@ -322,9 +325,9 @@ class _ConflictDialogState extends State<ConflictDialog> {
                     return constraints.maxWidth < 600
                         ? Column(
                             children: [
-                              side('Aktuelle Fassung', item.current[key]),
+                              side('Aktuelle Version', item.current[key]),
                               const SizedBox(height: 12),
-                              side('Andere Fassung', item.other[key]),
+                              side('Andere Version', item.other[key]),
                             ],
                           )
                         : Row(
@@ -332,13 +335,13 @@ class _ConflictDialogState extends State<ConflictDialog> {
                             children: [
                               Expanded(
                                 child: side(
-                                  'Aktuelle Fassung',
+                                  'Aktuelle Version',
                                   item.current[key],
                                 ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
-                                child: side('Andere Fassung', item.other[key]),
+                                child: side('Andere Version', item.other[key]),
                               ),
                             ],
                           );
@@ -346,7 +349,7 @@ class _ConflictDialogState extends State<ConflictDialog> {
                 ),
               ),
             const Text(
-              'Die Auswahl übernimmt die gesamte Fassung. Frühere Fassungen bleiben erhalten.',
+              'Die Auswahl übernimmt die gesamte Version. Frühere Versionen bleiben erhalten.',
             ),
             Wrap(
               spacing: 8,

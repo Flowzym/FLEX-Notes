@@ -2,6 +2,7 @@ name: FLEX CI
 
 on:
   push:
+    branches: ['**']
     paths:
       - 'flutter_app/**'
       - '.github/**'
@@ -10,6 +11,7 @@ on:
       - 'flutter_app/**'
       - '.github/**'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -47,7 +49,7 @@ jobs:
           target: checks
 
       - name: Check Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart packages/flex_device/lib
+        run: dart format --output=none --set-exit-if-changed lib test tool/drift_worker.dart tool/benchmark_backup.dart tool/benchmark_stream_backup.dart packages/flex_device/lib
 
       - name: Analyze Dart and Flutter code
         run: flutter analyze --no-pub --fatal-infos --fatal-warnings
@@ -113,19 +115,33 @@ jobs:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358'
 
       - name: Build the Android release configuration
+        env:
+          ORG_GRADLE_PROJECT_flexUnsignedRelease: 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/flex-android-reports"
-          flutter build apk --release --no-pub 2>&1 | tee "$RUNNER_TEMP/flex-android-reports/build.log"
+          flutter build apk --release --no-pub --obfuscate --split-debug-info="$RUNNER_TEMP/flex-unsigned-symbols" 2>&1 | tee "$RUNNER_TEMP/flex-android-reports/build.log"
           test -s build/app/outputs/flutter-apk/app-release.apk
-        # This uses an ephemeral runner debug key. Do not publish this APK as
-        # an update to FLEX Test; its installation key stays outside CI.
+          if "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify build/app/outputs/flutter-apk/app-release.apk > "$RUNNER_TEMP/flex-android-reports/signature-check.log" 2>&1; then
+            echo 'CI APK must remain unsigned.' >&2
+            exit 1
+          fi
+        # Compile without the permanent private key. This APK is unsigned and
+        # must not be distributed; the installation key stays outside GitHub.
 
-      - name: Save Android build log
+      - name: Test native encrypted storage and document detection
+        working-directory: flutter_app/android
+        env:
+          ORG_GRADLE_PROJECT_flexUnsignedRelease: 'true'
+        run: ./gradlew :flex_device:testDebugUnitTest --console=plain 2>&1 | tee "$RUNNER_TEMP/flex-android-reports/native-tests.log"
+
+      - name: Save Android build and test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: android-build-log-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/flex-android-reports/
+          path: |
+            ${{ runner.temp }}/flex-android-reports/
+            flutter_app/build/flex_device/test-results/testDebugUnitTest/
           retention-days: 14
           if-no-files-found: warn
 
