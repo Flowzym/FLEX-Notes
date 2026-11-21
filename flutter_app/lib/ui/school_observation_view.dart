@@ -146,8 +146,17 @@ extension _SchoolObservationView on _SchoolEditorState {
                               context,
                             ).extension<FlexSurfaces>()?.palette.button ??
                             scheme.onSurface.withValues(alpha: .07),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: FlexDesign.shadows(context),
+                  borderRadius: BorderRadius.circular(
+                    Theme.of(context).extension<FlexDialogPresentation>() ==
+                            null
+                        ? 24
+                        : 5,
+                  ),
+                  boxShadow:
+                      Theme.of(context).extension<FlexDialogPresentation>() ==
+                          null
+                      ? FlexDesign.shadows(context)
+                      : null,
                   border: Border.all(color: scheme.outlineVariant, width: .8),
                 ),
                 child: IntrinsicWidth(
@@ -319,101 +328,106 @@ extension _SchoolObservationView on _SchoolEditorState {
           ),
         const SizedBox(height: 24),
 
-        optionalSection(
-          'Zielbezug',
-          goalOpen,
-          (v) => goalOpen = v,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        if (Theme.of(context).extension<FlexDialogPresentation>() == null)
+          ...observationOptions(),
+      ],
+    );
+  }
+
+  List<Widget> observationOptions() => [
+    optionalSection(
+      'Zielbezug',
+      goalOpen,
+      (v) => goalOpen = v,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!c.records.any(
+            (v) =>
+                v.kind == SchoolKind.goal &&
+                v.pupilId == r.pupilId &&
+                !v.deleted,
+          ))
+            const Text('Noch keine Ziele für diesen Schüler.'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              if (!c.records.any(
+              for (final g in c.records.where(
                 (v) =>
                     v.kind == SchoolKind.goal &&
                     v.pupilId == r.pupilId &&
                     !v.deleted,
               ))
-                const Text('Noch keine Ziele für diesen Schüler.'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final g in c.records.where(
-                    (v) =>
-                        v.kind == SchoolKind.goal &&
-                        v.pupilId == r.pupilId &&
-                        !v.deleted,
-                  ))
-                    transparentChip(
-                      FilterChip(
-                        label: Text(g.title),
-                        selected: r.goalId == g.id,
-                        onSelected: (active) => edit({
-                          'goalId': active ? g.id : null,
-                          'goalSnapshot': active ? g.title : '',
-                        }),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        optionalSection(
-          'Reaktion / Unterstützung',
-          supportOpen,
-          (v) => supportOpen = v,
-          field(
-            'support',
-            'Reaktion / Unterstützung',
-            lines: 2,
-            maxLength: 300,
-            hint: 'Unterstützung …',
-          ),
-        ),
-        optionalSection(
-          'Kontext / Quelle',
-          contextOpen,
-          (v) => contextOpen = v,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (r.situationId != null)
-                TextButton(
-                  onPressed: () => showSituation(context, c, r.situationId!),
-                  child: const Text('Gemeinsamen Kontext bearbeiten'),
+                transparentChip(
+                  FilterChip(
+                    label: Text(g.title),
+                    selected: r.goalId == g.id,
+                    onSelected: (active) => edit({
+                      'goalId': active ? g.id : null,
+                      'goalSnapshot': active ? g.title : '',
+                    }),
+                  ),
                 ),
-              const Text('Quelle'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final source in const {
-                    'self': 'Selbst beobachtet',
-                    'reported': 'Berichtet',
-                    'interpretation': 'Eigene Einordnung',
-                  }.entries)
-                    transparentChip(
-                      ChoiceChip(
-                        label: Text(source.value),
-                        selected: r.source == source.key,
-                        onSelected: (_) => edit({'source': source.key}),
-                      ),
-                    ),
-                ],
-              ),
-              field(
-                'context',
-                'Gemeinsamer Ablauf',
-                lines: 2,
-                maxLength: 3000,
-                hint: 'Kontext …',
-              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      ),
+    ),
+    optionalSection(
+      'Reaktion / Unterstützung',
+      supportOpen,
+      (v) => supportOpen = v,
+      field(
+        'support',
+        'Reaktion / Unterstützung',
+        lines: 2,
+        maxLength: 300,
+        hint: 'Unterstützung …',
+      ),
+    ),
+    optionalSection(
+      'Kontext / Quelle',
+      contextOpen,
+      (v) => contextOpen = v,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (r.situationId != null)
+            TextButton(
+              onPressed: () => showSituation(context, c, r.situationId!),
+              child: const Text('Gemeinsamen Kontext bearbeiten'),
+            ),
+          const Text('Quelle'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final source in const {
+                'self': 'Selbst beobachtet',
+                'reported': 'Berichtet',
+                'interpretation': 'Eigene Einordnung',
+              }.entries)
+                transparentChip(
+                  ChoiceChip(
+                    label: Text(source.value),
+                    selected: r.source == source.key,
+                    onSelected: (_) => edit({'source': source.key}),
+                  ),
+                ),
+            ],
+          ),
+          field(
+            'context',
+            'Gemeinsamer Ablauf',
+            lines: 2,
+            maxLength: 3000,
+            hint: 'Kontext …',
+          ),
+        ],
+      ),
+    ),
+  ];
 
   Widget observationEdit() {
     return Column(

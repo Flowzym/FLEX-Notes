@@ -51,6 +51,60 @@ extension _DataViews on _DesktopWorkspaceState {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Einträge und Vorlagen',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            const Text('Standard für neue Beobachtungen'),
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: OptionBar(
+                options: observationTones,
+                value: c.notebook.appearance.defaultObservationTone,
+                colors: observationToneColors,
+                keyPrefix: 'desktop-default-tone',
+                onChanged: (v) =>
+                    c.notebook.previewAppearance({'defaultObservationTone': v}),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      showEntryTemplateManager(context, c.notebook),
+                  icon: const Icon(Icons.library_books_outlined, size: 16),
+                  label: const Text('Eintragsvorlagen verwalten'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      run(() => showCatalogTransfer(context, c.notebook)),
+                  child: const Text('Kataloge exportieren'),
+                ),
+                TextButton(
+                  onPressed: () => run(
+                    () => showCatalogTransfer(
+                      context,
+                      c.notebook,
+                      importing: true,
+                    ),
+                  ),
+                  child: const Text('Kataloge importieren'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      Surface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             const Text(
               'OneDrive',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
@@ -180,7 +234,7 @@ extension _DataViews on _DesktopWorkspaceState {
               onPressed: () => showLicensePage(
                 context: context,
                 applicationName: 'FLEX Desktop',
-                applicationVersion: '1.2.1',
+                applicationVersion: '1.2.2',
               ),
               child: const Text('Open-Source-Lizenzen'),
             ),

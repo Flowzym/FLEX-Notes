@@ -49,6 +49,9 @@ import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
 import 'package:flex_notizbuch/ui/repeat_editor.dart' show showOrgaRepeat;
 import 'package:flex_notizbuch/ui/reminder_actions.dart';
 import 'package:flex_notizbuch/ui/flex_modal.dart';
+import 'package:flex_notizbuch/ui/entry_templates.dart'
+    show showEntryTemplateManager, showCatalogTransfer;
+import 'package:flex_notizbuch/ui/option_bar.dart' show OptionBar;
 import 'design.dart';
 part 'desk.dart';
 part 'week.dart';
