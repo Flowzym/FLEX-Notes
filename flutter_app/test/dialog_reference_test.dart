@@ -1,3 +1,4 @@
+import 'package:flex_notizbuch/ui/admin_page.dart';
 import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -1270,7 +1271,26 @@ void main() {
         }
         if (scenario.key == 'menu-trash') {
           expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
-          expect(find.text('Papierkorb endgültig leeren'), findsOneWidget);
+          expect(find.text('Papierkorb endgültig leeren'), findsNothing);
+          await t.tap(find.byTooltip('Weitere Bereiche'));
+          await t.pumpAndSettle();
+          await t.ensureVisible(find.text('Admin-Bereich').last);
+          await t.tap(find.text('Admin-Bereich').last);
+          await t.pumpAndSettle();
+          await t.runAsync(repo.snapshot);
+          await t.pumpAndSettle();
+          final erase = find.text('Papierkorb endgültig leeren');
+          await t.scrollUntilVisible(
+            erase,
+            220,
+            scrollable: find
+                .descendant(
+                  of: find.byType(AdminArea),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+          expect(erase, findsOneWidget);
           expect(t.takeException(), isNull);
           await finish(t);
           continue;

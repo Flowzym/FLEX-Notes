@@ -6,9 +6,9 @@ class _AdminRollback implements Exception {
 }
 
 mixin AdminStore on PrivacyStore, ClassroomStore {
+  Future<DialogDraft> saveDialogDraft(DialogDraft draft);
   Future<Pupil> savePupil(Pupil value);
   Future<void> discardDraft(String id, {int? expectedRevision});
-  Future<void> discardDialogDraft(String id, int revision);
   Future<Set<String>> erasedDriveSources() async => {
     for (final r in await _rows(
       "SELECT key FROM preferences WHERE key LIKE 'erased-drive:%'",
@@ -125,10 +125,26 @@ mixin AdminStore on PrivacyStore, ClassroomStore {
     for (final draft in await dialogDrafts()) {
       if (!refers(draft.toJson())) continue;
       final group = List<String>.from(draft.data['recipients'] as List? ?? []);
-      if (group.any(ids.contains) && group.any((p) => !ids.contains(p))) {
-        throw const DomainError(
-          'Ein offener Gruppenentwurf betrifft weitere Schüler. Bitte ihn zuerst speichern oder die betroffene Person aus dem Entwurf entfernen.',
+      if (draft.type == 'bulk' &&
+          group.any(ids.contains) &&
+          group.any((p) => !ids.contains(p))) {
+        final individual = Json.from(draft.data['individual'] as Map? ?? {})
+          ..removeWhere((key, _) => ids.contains(key));
+        await saveDialogDraft(
+          DialogDraft(
+            id: draft.id,
+            type: draft.type,
+            ownerId: draft.ownerId,
+            revision: draft.revision,
+            updatedAtUtc: utcNow(),
+            data: {
+              ...draft.data,
+              'recipients': group.where((id) => !ids.contains(id)).toList(),
+              'individual': individual,
+            },
+          ),
         );
+        continue;
       }
       if (draft.type == 'scan') {
         for (final key in scanFileKeys(draft.data)) {
@@ -148,11 +164,32 @@ mixin AdminStore on PrivacyStore, ClassroomStore {
     }
     for (final d in await schoolDrafts()) {
       if (refers([d.record.toJson(), d.recipients])) {
-        if (d.recipients.any(ids.contains) &&
-            d.recipients.any((p) => !ids.contains(p))) {
-          throw const DomainError(
-            'Bitte den gemeinsamen Schülerentwurf zuerst speichern.',
-          );
+        final recipients = {
+          d.record.pupilId,
+          ...d.recipients,
+        }.where((id) => !ids.contains(id)).toList();
+        if (d.mode == 'entry' &&
+            !ids.contains(d.record.id) &&
+            recipients.isNotEmpty &&
+            (d.record.revision == 0 || !ids.contains(d.record.pupilId))) {
+          final record = d.record.patch({
+            'pupilId': recipients.first,
+            'participantIds': d.record.participantIds
+                .where((id) => !ids.contains(id))
+                .toList(),
+          });
+          if (!refers(record.toJson())) {
+            await saveSchoolDraft(
+              SchoolDraft(
+                id: d.id,
+                record: record,
+                updatedAtUtc: utcNow(),
+                recipients: recipients,
+                editRevision: d.editRevision,
+              ),
+            );
+            continue;
+          }
         }
         await discardSchoolDraft(d.id, expectedRevision: d.editRevision);
       }

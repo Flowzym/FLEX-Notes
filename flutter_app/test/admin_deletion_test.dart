@@ -9,6 +9,34 @@ import 'classroom_test.dart' show classroomMemory;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
+    'Einzeln gelöschter Serientermin bleibt beim Öffnen und nach Sicherung gelöscht',
+    () async {
+      final repo = classroomMemory();
+      await repo.initialize();
+      addTearDown(repo.close);
+      final source = await repo.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Übungsrunde',
+          isTask: true,
+          dueDate: dateOnly(DateTime.now()),
+        ),
+      );
+      await repo.configureRepeat(source, const RepeatRule(frequency: 'weekly'));
+      final generated = (await repo.entries()).firstWhere(
+        (e) => e.id != source.id,
+      );
+      final before = (await repo.entries()).length;
+      await repo.deleteAdminSelection(
+        await repo.previewAdminDeletion(AdminTarget('orga', generated.id)),
+      );
+      await repo.snapshot();
+      final remaining = await repo.entries();
+      expect(remaining.where((e) => e.id == generated.id), isEmpty);
+      expect(remaining.length, before - 1);
+      expect((await repo.exportBackup()), contains('excludedDates'));
+    },
+  );
+  test(
     'Vorschau ist reversibel, einzelne Schülerlöschung bewahrt geteilte Dateien und fremde Einträge',
     () async {
       final repo = classroomMemory();
