@@ -1,5 +1,7 @@
 #define AppName "FLEX Desktop"
-#define AppVersion "1.4.1"
+#ifndef AppVersion
+#define AppVersion GetStringFileInfo(AddBackslash(SourcePath) + "..\build\windows\x64\runner\Release\flex_desktop.exe", "ProductVersion")
+#endif
 [Setup]
 AppId={{E8D09B86-DA04-42CF-8E4B-21C0BBEB4613}
 AppName={#AppName}
