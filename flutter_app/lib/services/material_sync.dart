@@ -8,14 +8,21 @@ import '../domain/repository.dart';
 import 'material_files.dart';
 import 'material_index.dart';
 import 'onedrive.dart';
+import 'teaching_sync.dart';
 
 class MaterialSyncResult {
-  int imported = 0, uploaded = 0, paused = 0, assigned = 0, linked = 0;
+  int imported = 0,
+      uploaded = 0,
+      paused = 0,
+      assigned = 0,
+      linked = 0,
+      plans = 0;
   final List<String> errors = [];
   String get summary => [
     '$imported aktualisiert',
     if (linked > 0) '$linked mit Schülerzuordnung',
     if (assigned > 0) '$assigned neu zugeordnet',
+    if (plans > 0) '$plans Unterrichtsplanungen gelesen',
     '$uploaded hochgeladen',
     if (paused > 0) '$paused Ordner pausiert (Konto oder Schüler prüfen)',
   ].join(' · ');
@@ -234,6 +241,27 @@ class MaterialSync {
     result.imported = changes.values
         .where((d) => d.kind == ClassroomKind.material)
         .length;
+    final activeRules = rules
+        .where(
+          (r) =>
+              complete.contains(r.id) &&
+              r.flag('incoming') &&
+              !r.flag('personal'),
+        )
+        .map((r) => r.id)
+        .toSet();
+    if (activeRules.isNotEmpty) {
+      result.plans = await syncTeachingSources(
+        repo,
+        drive,
+        writer,
+        files,
+        account,
+        activeRules,
+        archived,
+        result.errors,
+      );
+    }
     return result;
   }
 

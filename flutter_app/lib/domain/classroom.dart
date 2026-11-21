@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import 'models.dart';
 import 'planning_fields.dart';
+import 'teaching_sheet_data.dart';
 import 'lesson_flow_data.dart';
 import 'material_versions.dart';
 import 'document_scanner.dart' show DocumentLink;
@@ -243,6 +244,14 @@ class ClassroomDocument {
         !fields.containsKey('cloudUpload')) {
       next.remove('cloudUpload');
     }
+    if (kind == ClassroomKind.material &&
+        [
+          'driveId',
+          'itemId',
+        ].any((k) => fields.containsKey(k) && fields[k] != text(k))) {
+      next.remove('planSheet');
+      next.remove('planEdits');
+    }
     // Removing a pupil assignment also removes only that pupil's teaching dates.
     if (kind == ClassroomKind.material &&
         fields.containsKey('pupilIds') &&
@@ -352,6 +361,8 @@ class ClassroomDocument {
         'cloudBinding',
         'planning',
         'planningOverride',
+        'planSheet',
+        'planEdits',
         'planningDecisions',
         'planningAutoDates',
         'planningDismissed',
@@ -488,7 +499,15 @@ class ClassroomDocument {
       }
     }
     if (kind == ClassroomKind.materialProfile) validateMaterialProfile(_json);
-    if (kind == ClassroomKind.material) validatePlanningFields(_json);
+    if (kind == ClassroomKind.material) {
+      validatePlanningFields(_json);
+      if (_json.containsKey('planSheet')) {
+        validateTeachingSheet(_json['planSheet']);
+      }
+      if (_json.containsKey('planEdits')) {
+        validateTeachingSheet(_json['planEdits'], edits: true);
+      }
+    }
     if (kind == ClassroomKind.folder) {
       if (flag('planningFolder') && (flag('personal') || flag('outgoing')) ||
           text('folderPath').length > 5000) {

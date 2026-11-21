@@ -187,6 +187,14 @@ Future<void> showMaterialDetails(
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (isTeachingSource(d))
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.playlist_play),
+                  title: const Text('Unterrichtsplanung öffnen'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => openTeachingReview(ctx, c, d),
+                ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

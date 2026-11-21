@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import 'teaching_sheet.dart';
 import 'classroom.dart';
 import 'lesson_flow_data.dart';
 import 'models.dart';
@@ -37,6 +39,8 @@ ClassroomDocument lessonFlowFor(
   String? lessonTarget,
   String pupilId = '',
   ClassroomDocument? sharedFlow,
+  Iterable<Pupil> pupils = const [],
+  ClassroomDocument? chosenSource,
 }) {
   final target = lessonTarget ?? lesson?.target ?? '';
   final existing = docs
@@ -58,10 +62,51 @@ ClassroomDocument lessonFlowFor(
   final shared = pupilId.isEmpty
       ? null
       : sharedFlow ??
-            lessonFlowFor(docs, date, lesson: lesson, lessonTarget: target);
+            lessonFlowFor(
+              docs,
+              date,
+              lesson: lesson,
+              lessonTarget: target,
+              pupils: pupils,
+            );
+  final candidates = shared == null
+      ? dayCandidates(docs, date, lesson)
+      : const <ClassroomDocument>[];
+  final simultaneous =
+      lesson != null &&
+      lessonOccurrences(docs, date, date).any(
+        (l) =>
+            l.document.isTeachingLesson &&
+            l.target != lesson.target &&
+            l.start.compareTo(lesson.end) < 0 &&
+            l.end.compareTo(lesson.start) > 0,
+      );
+  final source =
+      chosenSource ??
+      (!simultaneous && candidates.length == 1 ? candidates.single : null);
+  final imported = source == null
+      ? null
+      : buildTeachingFlow(
+          source,
+          docs,
+          pupils,
+          lesson: lesson,
+          explicit: chosenSource != null,
+        );
+  final personal = shared == null
+      ? null
+      : [
+          for (final phase in lessonPhases(shared))
+            if (phase.pupilIds.isEmpty || phase.pupilIds.contains(pupilId))
+              individualTeachingPhase(phase, pupilId),
+        ];
+  final parentSourceId = shared?.map('flow')['sourceId'];
+  final parentSource = parentSourceId == null
+      ? null
+      : docs.where((d) => d.id == parentSourceId).firstOrNull;
   return ClassroomDocument.create(
     ClassroomKind.plan,
-    shared?.title ?? lesson?.title ?? 'FLEX-Klasse',
+    shared?.title ?? lesson?.title ?? source?.title ?? 'FLEX-Klasse',
     {
       'date': date,
       'status': 'planned',
@@ -69,27 +114,31 @@ ClassroomDocument lessonFlowFor(
         'template': false,
         'lessonTarget': target,
         if (pupilId.isNotEmpty) 'pupilId': pupilId,
-        'phases': shared != null
-            ? [
-                for (final p in lessonPhases(shared))
-                  if (p.pupilIds.isEmpty || p.pupilIds.contains(pupilId))
-                    p.fresh().patch({'pupilIds': <String>[]}).toJson(),
-              ]
-            : [
-                for (final p in [
-                  ('Ankommen', 10, 'work'),
-                  ('HÜ-Kontrolle', 10, 'homework'),
-                  ('Arbeitsphase', 30, 'work'),
-                  ('Austausch', 10, 'work'),
-                  ('Abschluss', 5, 'work'),
-                ])
-                  LessonPhase(
-                    id: newId(),
-                    title: p.$1,
-                    minutes: p.$2,
-                    kind: p.$3,
-                  ).toJson(),
-              ],
+        if (imported != null) ...teachingFlowOrigin(imported),
+        if (parentSource != null && personal != null)
+          ...teachingFlowOrigin(
+            ImportedTeachingFlow(parentSource, personal, {}),
+          ),
+        'phases': personal != null
+            ? personal.map((p) => p.toJson()).toList()
+            : imported?.phases.map((p) => p.toJson()).toList() ??
+                  (candidates.isNotEmpty
+                      ? <Json>[]
+                      : [
+                          for (final p in [
+                            ('Ankommen', 10, 'work'),
+                            ('HÜ-Kontrolle', 10, 'homework'),
+                            ('Arbeitsphase', 30, 'work'),
+                            ('Austausch', 10, 'work'),
+                            ('Abschluss', 5, 'work'),
+                          ])
+                            LessonPhase(
+                              id: newId(),
+                              title: p.$1,
+                              minutes: p.$2,
+                              kind: p.$3,
+                            ).toJson(),
+                        ]),
       },
     },
     id: docs.any((d) => d.id == stableId) ? newId() : stableId,
@@ -137,7 +186,9 @@ ClassroomDocument flowTemplate(ClassroomDocument source, String title) =>
       'flow': {
         'template': true,
         'lessonTarget': '',
-        'phases': lessonPhases(source).map((p) => p.fresh().toJson()).toList(),
+        'phases': lessonPhases(
+          source,
+        ).map((p) => p.fresh().patch({'guidance': <Json>[]}).toJson()).toList(),
       },
     });
 
@@ -189,4 +240,82 @@ List<ClassroomDocument> carryLessonPhases(
       if (phaseId != null) ...lessonPhases(target),
     ]),
   ];
+}
+
+String _phaseSignature(LessonPhase p) => sheetHash(
+  jsonEncode([
+    p.title,
+    p.body,
+    p.minutes,
+    p.kind,
+    p.materialIds,
+    p.pupilIds,
+    p.guidance,
+  ]),
+);
+String teachingFlowVersion(ImportedTeachingFlow f) => sheetHash(
+  jsonEncode([
+    teachingVersion(f.source),
+    for (final p in f.phases) _phaseSignature(p),
+  ]),
+);
+Json teachingFlowOrigin(ImportedTeachingFlow f) => {
+  'sourceId': f.source.id,
+  'sourceVersion': teachingFlowVersion(f),
+  'sourceBase': {for (final p in f.phases) p.id: _phaseSignature(p)},
+};
+
+/// A running session is a snapshot. On explicit refresh only untouched, open
+/// source phases follow the document. Local deletions, additions and timers survive.
+ClassroomDocument reconcileTeachingFlow(
+  ClassroomDocument current,
+  ImportedTeachingFlow incoming,
+) {
+  final old = current.map('flow'), base = old['sourceBase'] as Map? ?? {};
+  final fresh = {for (final p in incoming.phases) p.id: p},
+      held = lessonPhases(current);
+  bool untouched(LessonPhase p) =>
+      p.status == 'open' &&
+      !p.running &&
+      p.elapsed == 0 &&
+      base[p.id] == _phaseSignature(p);
+  final next = <LessonPhase>[
+    for (final p in held)
+      if (!untouched(p)) p else if (fresh.containsKey(p.id)) fresh[p.id]!,
+  ];
+  // Follow new source ordering only if the teacher has kept the original order.
+  final oldIds = held.map((p) => p.id).toSet();
+  if (jsonEncode(
+        held.where((p) => base.containsKey(p.id)).map((p) => p.id).toList(),
+      ) ==
+      jsonEncode(base.keys.where(oldIds.contains).toList())) {
+    final movable = held.where(untouched).map((p) => p.id).toSet();
+    final ordered = incoming.phases
+        .where((p) => movable.contains(p.id))
+        .iterator;
+    for (var i = 0; i < next.length; i++) {
+      if (movable.contains(next[i].id) && ordered.moveNext()) {
+        next[i] = ordered.current;
+      }
+    }
+  }
+  for (final (index, p) in incoming.phases.indexed) {
+    if (base.containsKey(p.id) || next.any((other) => other.id == p.id)) {
+      continue;
+    }
+    final before = incoming.phases.take(index).map((p) => p.id).toSet();
+    final previous = next.lastIndexWhere((p) => before.contains(p.id));
+    next.insert(previous < 0 ? 0 : previous + 1, p);
+  }
+  if (next.length > 80) {
+    throw const DomainError(
+      'Bitte zuerst Phasen zusammenfassen. Ein Ablauf enthält höchstens 80 Phasen.',
+    );
+  }
+  return withLessonPhases(
+    current.patch({
+      'flow': {...old, ...teachingFlowOrigin(incoming)},
+    }),
+    next,
+  );
 }
