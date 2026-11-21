@@ -316,8 +316,19 @@ mixin PrivacyStore on SchoolStore {
   }) {
     Object? clean(Object? value, [String key = '']) {
       if (value is Map) {
+        if (key == 'cloudUpload' &&
+            (documents.contains(value['ruleId']) ||
+                (value['pupilIds'] as List? ?? []).any(people.contains) ||
+                (value['targetPupils'] as List? ?? []).any(people.contains))) {
+          return <String, dynamic>{};
+        }
+        final dropOrigin =
+            key == 'flow' && documents.contains(value['sourceId']);
         return {
-          for (final e in value.entries) e.key: clean(e.value, e.key as String),
+          for (final e in value.entries)
+            if (!(dropOrigin &&
+                {'sourceId', 'sourceVersion', 'sourceBase'}.contains(e.key)))
+              e.key: clean(e.value, e.key as String),
         };
       }
       if (value is List) {
@@ -332,6 +343,13 @@ mixin PrivacyStore on SchoolStore {
         }.contains(key)) {
           return value.where((v) => !people.contains(v)).toList();
         }
+        if (key == 'guidance') {
+          return [
+            for (final r in value)
+              if ((r['pupilIds'] as List).any((id) => !people.contains(id)))
+                clean(r),
+          ];
+        }
         if (key == 'links') {
           return value
               .where((v) => !documents.contains((v as Map)['id']))
@@ -345,6 +363,10 @@ mixin PrivacyStore on SchoolStore {
               .toList();
         }
         return value.map((v) => clean(v)).toList();
+      }
+      if ({'cloudRule', 'cloudReview'}.contains(key) &&
+          documents.contains(value)) {
+        return '';
       }
       if (key == 'lessonTarget' &&
           value is String &&
@@ -362,6 +384,12 @@ mixin PrivacyStore on SchoolStore {
     for (final d in await classroomDocuments()) {
       if (ids.contains(d.id)) {
         if (d.kind == ClassroomKind.material) {
+          if (d.text('driveId').isNotEmpty && d.text('itemId').isNotEmpty) {
+            await _preference(
+              'erased-drive:${erasedDriveSource(d.text('driveId'), d.text('itemId'))}',
+              {},
+            );
+          }
           for (final key in materialFileKeys(d.toJson())) {
             await _preference('pending-file-delete:$key', {
               'key': key,
@@ -373,7 +401,12 @@ mixin PrivacyStore on SchoolStore {
           'classroom:${d.id}',
         ]);
       } else {
-        final cleaned = _cleanDocumentReferences(d.toJson(), documents: ids);
+        final data = d.toJson();
+        if (ids.contains(d.text('timetableId'))) {
+          data.remove('timetableId');
+          data.remove('slotIds');
+        }
+        final cleaned = _cleanDocumentReferences(data, documents: ids);
         if (canonical(cleaned) != canonical(d.toJson())) {
           await _writeClassroom(ClassroomDocument.fromJson(cleaned));
         }
@@ -441,6 +474,10 @@ mixin PrivacyStore on SchoolStore {
       }
       final assigned = d.strings('pupilIds');
       final onlyThese = assigned.isNotEmpty && assigned.every(ids.contains);
+      if (d.kind == ClassroomKind.folder && d.flag('personal') && onlyThese) {
+        removeDocuments.add(d.id);
+        continue;
+      }
       final shared = documents.any(
         (other) =>
             other.id != d.id &&

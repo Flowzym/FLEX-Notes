@@ -271,7 +271,14 @@ class ProtectedDialogState extends State<ProtectedDialog>
       if (!didPop) close();
     },
     child: CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): close,
+        if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+            !busy) ...{
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): save,
+        },
+      },
       child: Focus(
         autofocus: true,
         child: FlexModal(

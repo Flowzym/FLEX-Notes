@@ -6,6 +6,66 @@ import 'surfaces.dart';
 import 'common.dart';
 part 'flex_date_picker.dart';
 
+/// Desktop hosts supply their own window frame around the same editor fields.
+class FlexDialogPresentation extends ThemeExtension<FlexDialogPresentation> {
+  const FlexDialogPresentation(this.frame);
+  final Widget Function(BuildContext, FlexModal, bool embedded) frame;
+  @override
+  FlexDialogPresentation copyWith() => this;
+  @override
+  FlexDialogPresentation lerp(
+    ThemeExtension<FlexDialogPresentation>? other,
+    double t,
+  ) => t < .5 ? this : other as FlexDialogPresentation? ?? this;
+}
+
+/// The narrow form keeps its reading order. On a desktop the related people,
+/// documents and timing controls can sit beside the editor.
+class EntryFormSections extends StatelessWidget {
+  const EntryFormSections({
+    super.key,
+    required this.primary,
+    required this.details,
+  });
+  final List<Widget> primary, details;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      Widget column(List<Widget> items) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: items,
+      );
+      if (Theme.of(context).extension<FlexDialogPresentation>() == null ||
+          box.maxWidth < 780 ||
+          MediaQuery.textScalerOf(context).scale(1) > 1.4) {
+        return column([...primary, ...details]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 7, child: column(primary)),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 4,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: Theme.of(context).dividerColor),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: column(details),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// Shared shell for entry editors, secondary dialogs and confirmations.
 class FlexModal extends StatelessWidget {
   const FlexModal({
@@ -31,6 +91,14 @@ class FlexModal extends StatelessWidget {
   final double maxWidth;
   @override
   Widget build(BuildContext context) {
+    final presentation = Theme.of(context).extension<FlexDialogPresentation>();
+    if (presentation != null) {
+      return presentation.frame(
+        context,
+        this,
+        embedded || DetailFlowScope.maybeOf(context) != null,
+      );
+    }
     final scheme = Theme.of(context).colorScheme;
     final mobile = MediaQuery.sizeOf(context).width <= 700;
     final surfaces = Theme.of(context).extension<FlexSurfaces>();

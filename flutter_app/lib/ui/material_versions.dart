@@ -13,6 +13,7 @@ Future<void> showMaterialVersions(
   BuildContext context,
   NotebookController c,
   ClassroomDocument original, {
+  bool allowDeletion = false,
   MaterialFiles files = const LocalMaterialFiles(),
 }) async {
   var busy = false;
@@ -117,16 +118,17 @@ Future<void> showMaterialVersions(
                                     : () => apply(v['id'] as String),
                                 child: const Text('Wiederherstellen'),
                               ),
-                              IconButton(
-                                tooltip: 'Version löschen',
-                                onPressed: busy
-                                    ? null
-                                    : () => apply(
-                                        v['id'] as String,
-                                        remove: true,
-                                      ),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
+                              if (allowDeletion)
+                                IconButton(
+                                  tooltip: 'Version löschen',
+                                  onPressed: busy
+                                      ? null
+                                      : () => apply(
+                                          v['id'] as String,
+                                          remove: true,
+                                        ),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
                             ],
                           ),
                         ],

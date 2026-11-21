@@ -583,7 +583,9 @@ extension _ScanEditorView on _ScanEditorState {
                       ? null
                       : capture,
                   icon: Icons.document_scanner_outlined,
-                  label: 'Scannen',
+                  label: windowsAcquisitionAvailable
+                      ? 'Windows-Scanner'
+                      : 'Scannen',
                 ),
               if (widget.capturePhoto != null && widget.capturePages == null)
                 ScanTool(

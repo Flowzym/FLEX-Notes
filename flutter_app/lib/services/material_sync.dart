@@ -120,6 +120,7 @@ class MaterialSync {
       pupils,
       includeFolders: true,
     );
+    final erased = await repo.erasedDriveSources();
     final known = {for (final d in docs) d.id: d};
     final found = <String>{};
     final complete = <String>{};
@@ -155,7 +156,11 @@ class MaterialSync {
         var newlyAssigned = 0, linked = 0;
         for (var m in values) {
           final old = known[m.id];
-          if (m.deleted ||
+          if (old == null &&
+                  erased.contains(
+                    erasedDriveSource(m.text('driveId'), m.text('itemId')),
+                  ) ||
+              m.deleted ||
               archived.contains(m.id) ||
               pendingNames.contains((f.id, m.text('remoteName'))) &&
                   directFileIds.contains(m.text('itemId'))) {

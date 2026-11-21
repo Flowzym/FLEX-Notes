@@ -30,6 +30,7 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'scan_page_editor.dart';
 import 'scan_tools.dart';
+import '../services/windows_input.dart';
 import 'material_thumbnail.dart';
 import 'material_tags.dart';
 
@@ -51,6 +52,7 @@ Future<ClassroomDocument?> showDocumentScanner(
     draft: draft,
     source: source,
     importOnOpen: importOnOpen,
+    capturePages: windowsAcquisitionAvailable ? acquireWindowsPage : null,
   ),
 );
 

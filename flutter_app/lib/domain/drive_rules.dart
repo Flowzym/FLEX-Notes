@@ -1,5 +1,11 @@
 import 'classroom.dart';
+import 'package:uuid/uuid.dart';
 import 'models.dart';
+
+String erasedDriveSource(String drive, String item) => const Uuid().v5(
+  Namespace.url.value,
+  'flex:erased:${drive.length}:$drive$item',
+);
 
 const drivePurposes = {
   'all': 'Alle Unterlagen',

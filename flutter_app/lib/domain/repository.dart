@@ -1,4 +1,5 @@
 import 'entry_template.dart';
+import 'admin_deletion.dart';
 import 'reminder_action.dart';
 import 'school_year.dart';
 import 'models.dart';
@@ -7,6 +8,9 @@ import 'observation_catalog.dart';
 import 'classroom.dart';
 
 abstract interface class NotebookRepository {
+  Future<AdminDeletionPreview> previewAdminDeletion(AdminTarget target);
+  Future<void> deleteAdminSelection(AdminDeletionPreview preview);
+  Future<Set<String>> erasedDriveSources();
   Future<List<EntryTemplate>> entryTemplates();
   Future<void> saveEntryTemplate(EntryTemplate template);
   Future<void> deleteEntryTemplate(String id);

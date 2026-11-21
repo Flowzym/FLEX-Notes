@@ -673,7 +673,14 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       if (!didPop) close();
     },
     child: CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): close,
+        if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+            !busy) ...{
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): save,
+        },
+      },
       child: Focus(
         autofocus: true,
         child: FlexModal(
@@ -734,10 +741,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             child: OptionSwipe(
               key: const ValueKey('orga-kind-swipe'),
               onChanged: swipeKind,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: EntryFormSections(
+                primary: [
                   if (status.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -1053,6 +1058,8 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                ],
+                details: [
                   if (entry.isAppointment)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),

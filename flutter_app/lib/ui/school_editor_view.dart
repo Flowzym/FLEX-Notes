@@ -15,7 +15,15 @@ extension _SchoolEditorView on _SchoolEditorState {
         if (!didPop) close();
       },
       child: CallbackShortcuts(
-        bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): close,
+          if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+              !busy) ...{
+            const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
+            const SingleActivator(LogicalKeyboardKey.enter, control: true):
+                save,
+          },
+        },
         child: Focus(
           autofocus: true,
           child: FlexModal(
@@ -61,10 +69,8 @@ extension _SchoolEditorView on _SchoolEditorState {
             onClose: busy ? null : close,
             content: AbsorbPointer(
               absorbing: busy,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: EntryFormSections(
+                primary: [
                   if (r.revision > 0 && mode != 'entry')
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -102,6 +108,8 @@ extension _SchoolEditorView on _SchoolEditorState {
                             child: observation(),
                           ),
                   const SizedBox(height: 12),
+                ],
+                details: [
                   if (mode == 'entry')
                     PersonAssignmentField(
                       pupils: c.pupils,

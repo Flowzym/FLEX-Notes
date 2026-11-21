@@ -1,7 +1,11 @@
 part of 'material_library.dart';
 
 bool get materialDeviceAvailable =>
-    kIsWeb || defaultTargetPlatform == TargetPlatform.android;
+    kIsWeb ||
+    {
+      TargetPlatform.android,
+      TargetPlatform.windows,
+    }.contains(defaultTargetPlatform);
 Future<Uint8List> _packMaterials(Map<String, dynamic> args) =>
     MaterialBundle.encode(
       (args['documents'] as List)
@@ -281,7 +285,8 @@ Future<void> openMaterial(
         builder: (_) => MaterialDocx(
           title: current.title,
           bytes: bytes,
-          openOriginal: () => kIsWeb
+          openOriginal: () =>
+              kIsWeb || defaultTargetPlatform == TargetPlatform.windows
               ? saveBytesFile(
                   current.text('name', '${current.title}.docx'),
                   bytes,

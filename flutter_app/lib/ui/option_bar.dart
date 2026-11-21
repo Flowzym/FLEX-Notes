@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'surfaces.dart';
+import 'flex_modal.dart';
 
 /// Equal, directly visible options. Large text can use one option per row.
 class OptionBar extends StatelessWidget {
@@ -25,6 +26,8 @@ class OptionBar extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final scheme = Theme.of(context).colorScheme;
+      final desktop =
+          Theme.of(context).extension<FlexDialogPresentation>() != null;
       Widget button(MapEntry<String, String> entry) {
         final selected = entry.key == value;
         final color = colors[entry.key] ?? scheme.primary;
@@ -40,8 +43,10 @@ class OptionBar extends StatelessWidget {
               foregroundColor: foreground,
               backgroundBuilder: (context, states, child) => DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: selected ? FlexDesign.wash(color) : null,
+                  borderRadius: BorderRadius.circular(desktop ? 4 : 24),
+                  gradient: selected && !desktop
+                      ? FlexDesign.wash(color)
+                      : null,
                 ),
                 child: child,
               ),
@@ -56,7 +61,11 @@ class OptionBar extends StatelessWidget {
                 fontSize: fontSize,
                 height: 1.2,
               ),
-              shape: const StadiumBorder(),
+              shape: desktop
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    )
+                  : const StadiumBorder(),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -103,9 +112,15 @@ class OptionBar extends StatelessWidget {
       });
       return Container(
         padding: const EdgeInsets.all(2),
-        decoration: FlexDesign.capsule(
-          context,
-        ).copyWith(borderRadius: BorderRadius.circular(vertical ? 18 : 99)),
+        decoration: desktop
+            ? BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                border: Border.all(color: scheme.outlineVariant),
+                borderRadius: BorderRadius.circular(5),
+              )
+            : FlexDesign.capsule(context).copyWith(
+                borderRadius: BorderRadius.circular(vertical ? 18 : 99),
+              ),
         child: vertical
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
