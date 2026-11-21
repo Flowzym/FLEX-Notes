@@ -1272,7 +1272,7 @@ void main() {
         if (scenario.key == 'menu-trash') {
           expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
           expect(find.text('Papierkorb endgültig leeren'), findsNothing);
-          await t.tap(find.byTooltip('Weitere Bereiche'));
+          await t.tap(find.byKey(const ValueKey('context-4-0')));
           await t.pumpAndSettle();
           await t.ensureVisible(find.text('Admin-Bereich').last);
           await t.tap(find.text('Admin-Bereich').last);
