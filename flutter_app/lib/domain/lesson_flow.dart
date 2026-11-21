@@ -5,6 +5,7 @@ import 'classroom.dart';
 import 'lesson_flow_data.dart';
 import 'models.dart';
 export 'lesson_flow_data.dart';
+part 'teaching_flow_changes.dart';
 
 bool hasLessonFlow(ClassroomDocument d) =>
     d.kind == ClassroomKind.plan && d.map('flow').isNotEmpty;
@@ -145,6 +146,115 @@ ClassroomDocument lessonFlowFor(
   );
 }
 
+/// Only an unsaved, generated starter can be replaced on first import.
+bool isSuggestedLessonFlow(ClassroomDocument d) =>
+    d.revision == 0 &&
+    d.map('flow')['sourceId'] == null &&
+    lessonPhases(d).map((p) => p.title).join('|') ==
+        'Ankommen|HÜ-Kontrolle|Arbeitsphase|Austausch|Abschluss';
+
+ClassroomDocument carryDestination(
+  Iterable<ClassroomDocument> docs,
+  String date, {
+  required Iterable<Pupil> pupils,
+  String pupilId = '',
+  LessonOccurrence? lesson,
+  ClassroomDocument? chosenSource,
+}) {
+  final shared = lessonFlowFor(
+    docs,
+    date,
+    pupils: pupils,
+    lesson: lesson,
+    chosenSource: chosenSource,
+  );
+  final target = pupilId.isEmpty
+      ? shared
+      : lessonFlowFor(
+          docs,
+          date,
+          pupilId: pupilId,
+          pupils: pupils,
+          lesson: lesson,
+          sharedFlow: shared,
+        );
+  return isSuggestedLessonFlow(target) ? withLessonPhases(target, []) : target;
+}
+
+String weekPhaseTitle(Json row) =>
+    row['type'] == 'week' ? sheetText(row, 'task') : sheetText(row, 'goal');
+
+LessonPhase? coveredWeekPhase(
+  ClassroomDocument flow,
+  ClassroomDocument source,
+  Json row,
+) {
+  final phases = lessonPhases(flow);
+  final imported = phases
+      .where((p) => p.sourceId == source.id && p.sourceRow == row['id'])
+      .firstOrNull;
+  if (imported != null) return imported;
+  final title = sheetFold(weekPhaseTitle(row));
+  for (final p in phases) {
+    if (title.isNotEmpty &&
+        (sheetFold(p.title) == title ||
+            p.body
+                .split('\n')
+                .any(
+                  (s) =>
+                      sheetFold(s.replaceFirst(RegExp(r'^Ziel · '), '')) ==
+                      title,
+                ))) {
+      return p;
+    }
+  }
+  return null;
+}
+
+LessonPhase weekPhaseDraft(
+  ClassroomDocument source,
+  Json row,
+  TeachingLinks links,
+) {
+  final title = weekPhaseTitle(row);
+  return LessonPhase(
+    id: sheetHash('week/${source.id}/${row['id']}'),
+    title: title.length > 160 ? title.substring(0, 160) : title,
+    sourceId: source.id,
+    sourceRow: sheetText(row, 'id'),
+    body: [
+      if (title.length > 160) title,
+      sheetText(row, 'subject'),
+      sheetText(row, 'prep'),
+      sheetText(row, 'time'),
+      sheetText(row, 'refs'),
+    ].where((s) => s.isNotEmpty).join('\n'),
+    minutes:
+        int.tryParse(sheetText(row, 'duration')) ??
+        sheetMinutes(sheetText(row, 'time')) ??
+        0,
+    materialIds: {
+      ...links.rowMaterials(row),
+      if (!row.containsKey('files'))
+        ...links.materialIds(sheetText(row, 'prep')),
+    }.toList(),
+  );
+}
+
+ClassroomDocument addWeekPhase(ClassroomDocument flow, LessonPhase phase) {
+  final phases = isSuggestedLessonFlow(flow)
+      ? <LessonPhase>[]
+      : lessonPhases(flow);
+  if (phases.any(
+    (p) =>
+        p.id == phase.id ||
+        p.sourceId == phase.sourceId && p.sourceRow == phase.sourceRow,
+  )) {
+    throw const DomainError('Dieser Wochenauftrag ist bereits in der Stunde.');
+  }
+  return withLessonPhases(flow, [...phases, phase]);
+}
+
 ClassroomDocument activateLessonPhase(
   ClassroomDocument d,
   String id,
@@ -186,9 +296,15 @@ ClassroomDocument flowTemplate(ClassroomDocument source, String title) =>
       'flow': {
         'template': true,
         'lessonTarget': '',
-        'phases': lessonPhases(
-          source,
-        ).map((p) => p.fresh().patch({'guidance': <Json>[]}).toJson()).toList(),
+        'phases': lessonPhases(source)
+            .map(
+              (p) => p.fresh().patch({
+                'guidance': <Json>[],
+                'sourceId': '',
+                'sourceRow': '',
+              }).toJson(),
+            )
+            .toList(),
       },
     });
 
@@ -199,6 +315,7 @@ List<ClassroomDocument> carryLessonPhases(
   DateTime now, {
   String? phaseId,
   String? resumeNote,
+  int? insertAt,
 }) {
   if (source.id == target.id || source.text('date') == target.text('date')) {
     throw const DomainError('Bitte einen anderen Unterrichtstag wählen.');
@@ -221,6 +338,13 @@ List<ClassroomDocument> carryLessonPhases(
   if (pending.isEmpty) {
     throw const DomainError('Keine offenen Phasen vorhanden.');
   }
+  final existing = lessonPhases(target);
+  final position = insertAt ?? (phaseId == null ? existing.length : 0);
+  if (position < 0 ||
+      position > existing.length ||
+      existing.length + pending.length > 80) {
+    throw const DomainError('Die Phasen passen nicht in den gewählten Ablauf.');
+  }
   return [
     withLessonPhases(source, [
       for (final p in lessonPhases(source))
@@ -234,10 +358,10 @@ List<ClassroomDocument> carryLessonPhases(
           p,
     ]),
     withLessonPhases(target, [
-      if (phaseId == null) ...lessonPhases(target),
+      ...existing.take(position),
       for (final p in pending)
         p.fresh().patch({'resumeNote': resumeNote?.trim() ?? p.resumeNote}),
-      if (phaseId != null) ...lessonPhases(target),
+      ...existing.skip(position),
     ]),
   ];
 }
@@ -263,14 +387,18 @@ Json teachingFlowOrigin(ImportedTeachingFlow f) => {
   'sourceId': f.source.id,
   'sourceVersion': teachingFlowVersion(f),
   'sourceBase': {for (final p in f.phases) p.id: _phaseSignature(p)},
+  'sourceRows': {for (final p in f.phases) p.id: _phaseAnchor(p)},
 };
 
 /// A running session is a snapshot. On explicit refresh only untouched, open
 /// source phases follow the document. Local deletions, additions and timers survive.
 ClassroomDocument reconcileTeachingFlow(
   ClassroomDocument current,
-  ImportedTeachingFlow incoming,
-) {
+  ImportedTeachingFlow source, {
+  Map<String, String> decisions = const {},
+  Set<String> restore = const {},
+}) {
+  final incoming = TeachingFlowChanges(current, source).normalized(decisions);
   final old = current.map('flow'), base = old['sourceBase'] as Map? ?? {};
   final fresh = {for (final p in incoming.phases) p.id: p},
       held = lessonPhases(current);
@@ -281,7 +409,15 @@ ClassroomDocument reconcileTeachingFlow(
       base[p.id] == _phaseSignature(p);
   final next = <LessonPhase>[
     for (final p in held)
-      if (!untouched(p)) p else if (fresh.containsKey(p.id)) fresh[p.id]!,
+      if (!untouched(p))
+        fresh[p.id] == null
+            ? p
+            : p.patch({
+                'sourceId': fresh[p.id]!.sourceId,
+                'sourceRow': fresh[p.id]!.sourceRow,
+              })
+      else if (fresh.containsKey(p.id))
+        fresh[p.id]!,
   ];
   // Follow new source ordering only if the teacher has kept the original order.
   final oldIds = held.map((p) => p.id).toSet();
@@ -300,7 +436,8 @@ ClassroomDocument reconcileTeachingFlow(
     }
   }
   for (final (index, p) in incoming.phases.indexed) {
-    if (base.containsKey(p.id) || next.any((other) => other.id == p.id)) {
+    if (base.containsKey(p.id) && !restore.contains(p.id) ||
+        next.any((other) => other.id == p.id)) {
       continue;
     }
     final before = incoming.phases.take(index).map((p) => p.id).toSet();

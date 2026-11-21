@@ -122,6 +122,7 @@ class _RowEditorState extends State<_RowEditor> {
         'phase',
         'time',
         'task',
+        'who',
         'goal',
         'subject',
         'duration',
@@ -129,8 +130,8 @@ class _RowEditorState extends State<_RowEditor> {
         'refs',
       ],
       'aid' => ['phase', 'who', 'task', 'duration', 'refs'],
-      'week' => ['day', 'task', 'prep'],
-      'goal' => ['subject', 'goal', 'time'],
+      'week' => ['day', 'task', 'prep', 'duration', 'refs'],
+      'goal' => ['subject', 'goal', 'time', 'duration', 'refs'],
       _ => ['task'],
     };
     return AlertDialog(
@@ -154,6 +155,28 @@ class _RowEditorState extends State<_RowEditor> {
               ],
               onChanged: (v) => setState(() => type = v!),
             ),
+            if (type == 'phase')
+              DropdownButtonFormField<String>(
+                initialValue: fields['groupMode']!.text == 'separate'
+                    ? 'separate'
+                    : '',
+                decoration: const InputDecoration(
+                  labelText: 'Aufträge mit Schülerkürzel',
+                ),
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(
+                    value: '',
+                    child: Text('Individuelle Hilfe zur Klassenphase'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'separate',
+                    child: Text('Eigene Phasen pro Gruppe'),
+                  ),
+                ],
+                onChanged: (v) =>
+                    setState(() => fields['groupMode']!.text = v ?? ''),
+              ),
             for (final k in visible) ...[
               const SizedBox(height: 10),
               TextField(

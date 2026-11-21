@@ -5,6 +5,7 @@ import 'models.dart';
 import 'planning_import.dart';
 import 'teaching_sheet_data.dart';
 export 'teaching_sheet_data.dart';
+part 'teaching_groups.dart';
 
 bool isTeachingSource(ClassroomDocument d) =>
     !d.deleted &&
@@ -18,8 +19,24 @@ String sourceStamp(ClassroomDocument m) => [
   m.text('remoteName'),
   m.number('size'),
 ].join('|');
-List<Json> teachingRows(ClassroomDocument m) =>
-    effectiveSheetRows(m.map('planSheet'), m.map('planEdits'));
+List<Json> teachingRows(ClassroomDocument m) {
+  final sheet = m.map('planSheet');
+  // Older offline imports classified timed group tables as help tables.
+  if (sheet['parser'] == null) {
+    sheet['rows'] = [
+      for (final r in sheetList(sheet, 'rows'))
+        if ((r['type'] == 'aid' || r['type'] == 'review') &&
+            sheetTime(sheetText(r, 'time')) != null &&
+            sheetText(r, 'phase').isNotEmpty &&
+            sheetText(r, 'task').isNotEmpty)
+          {...r, 'type': 'phase'}
+        else
+          r,
+    ];
+  }
+  return effectiveSheetRows(sheet, m.map('planEdits'));
+}
+
 String teachingVersion(ClassroomDocument m) => sheetHash(
   jsonEncode([
     m.map('planSheet')['stamp'],
@@ -192,6 +209,10 @@ bool _all(String who) => {
   'alle schueler',
   'flex klasse',
   'gesamtgruppe',
+  'gesamte klasse',
+  'ganze klasse',
+  'plenum',
+  'alle kinder',
 }.contains(sheetFold(who));
 bool _allPhases(String phase) =>
     {'alle', 'alle phasen', 'durchgehend'}.contains(sheetFold(phase));
@@ -212,18 +233,21 @@ bool _inWindow(Json r, LessonOccurrence? lesson) {
       phase.$2 > window.$1;
 }
 
-List<Json> weeklyContext(ClassroomDocument m, String date) =>
-    sourceDateWarning(m).isNotEmpty
-    ? []
-    : [
-        for (final row in teachingRows(m))
-          if (row['type'] == 'goal' ||
-              row['type'] == 'week' &&
-                  sheetWeekdays(
-                    sheetText(row, 'day'),
-                  ).contains(schoolDay(date).weekday))
-            row,
-      ];
+List<Json> weeklyContext(ClassroomDocument m, String date) {
+  if (teachingWeek(m) != weekOfDay(date) || sourceDateWarning(m).isNotEmpty) {
+    return [];
+  }
+  final weekday = schoolDay(date).weekday;
+  return teachingRows(m).where((row) {
+    if (row['type'] == 'week') {
+      return sheetWeekdays(sheetText(row, 'day')).contains(weekday);
+    }
+    if (row['type'] != 'goal') return false;
+    final days = sheetWeekdays(sheetText(row, 'time'));
+    return days.isEmpty || days.contains(weekday);
+  }).toList();
+}
+
 String sourceDateWarning(ClassroomDocument m) {
   final plan = teachingPlan(m);
   final weekly = teachingUse(m) == 'weekPlan';
@@ -303,14 +327,6 @@ ImportedTeachingFlow buildTeachingFlow(
   )) {
     links.issues.add('${r['line']} · Phase „${r['phase']}“ zuordnen');
   }
-  final seq = <String, int>{}, keys = <String, String>{};
-  for (final r in sheetList(m.map('planSheet'), 'rows')) {
-    final name = sheetFold(sheetText(r, 'phase'));
-    if (r['type'] == 'phase') {
-      keys[r['id'] as String] =
-          '$name-${seq.update(name, (i) => i + 1, ifAbsent: () => 1)}';
-    }
-  }
   for (final r in all) {
     final time = sheetText(r, 'time'), span = sheetTime(time);
     if (span == null) links.issues.add('${r['line']} · Zeit prüfen');
@@ -335,16 +351,34 @@ ImportedTeachingFlow buildTeachingFlow(
       links.issues.add('${r['line']} · Dauer prüfen');
       continue;
     }
+    final who = sheetText(r, 'who');
+    final restricted = who.isNotEmpty && !_all(who);
+    final audience = restricted ? links.pupilIds(who) : <String>{};
+    if (restricted && audience.isEmpty) continue;
+    final instructions = _groupInstructions(
+      sheetText(r, 'task'),
+      links,
+      audience,
+    );
+    final references = _groupInstructions(
+      sheetText(r, 'refs'),
+      links,
+      audience,
+      materials: true,
+    );
     final body = <String>[
       if (time.isNotEmpty) time,
-      if (sheetText(r, 'task').isNotEmpty) r['task'],
+      if (instructions.common.isNotEmpty) instructions.common,
       if (sheetText(r, 'goal').isNotEmpty) 'Ziel · ${r['goal']}',
       if (sheetText(r, 'subject').isNotEmpty) r['subject'],
       if (sheetText(r, 'owner').isNotEmpty) 'Zuständig · ${r['owner']}',
-      if (sheetText(r, 'refs').isNotEmpty) 'Material · ${r['refs']}',
+      if (references.common.isNotEmpty) 'Material · ${references.common}',
     ];
-    final materialIds = links.rowMaterials(r).toSet();
-    final guidance = <Json>[];
+    final materialIds = links.rowMaterials({
+      ...r,
+      'refs': references.common,
+    }).toSet();
+    final guidance = [...instructions.groups, ...references.groups];
     for (final aid in aids.where(
       (a) => _phaseMatch(sheetText(a, 'phase'), title),
     )) {
@@ -371,8 +405,18 @@ ImportedTeachingFlow buildTeachingFlow(
         });
       }
     }
+    if (instructions.exclusive && guidance.isEmpty) continue;
     final phase = LessonPhase(
-      id: sheetHash('${m.id}:${keys[r['id']] ?? r['id']}'),
+      id: sheetHash('${m.id}:row:${r['id']}'),
+      sourceId: m.id,
+      sourceRow: sheetText(r, 'id'),
+      pupilIds: audience.isNotEmpty
+          ? audience.toList()
+          : instructions.exclusive
+          ? {
+              for (final g in guidance) ...List<String>.from(g['pupilIds']),
+            }.toList()
+          : [],
       title: title,
       body: body.where((s) => s.isNotEmpty).join('\n'),
       minutes: minutes,
@@ -411,17 +455,18 @@ ImportedTeachingFlow buildTeachingFlow(
         '${r['line']} · Unterschiedliche Dauern für dieselbe Person prüfen',
       );
     }
-    draftSize += jsonEncode(phase.toJson()).length;
-    if (draftSize > 290000) {
-      links.issues.add('Weitere Phasen im Original prüfen.');
-      break;
-    }
-    phases.add(phase);
-    if (phases.length == 80) {
-      if (all.length > 80) {
+    final generated =
+        sheetText(r, 'groupMode') == 'separate' &&
+            instructions.groups.isNotEmpty
+        ? _groupPhases(phase, instructions.groups)
+        : [phase];
+    for (final next in generated) {
+      draftSize += jsonEncode(next.toJson()).length;
+      if (draftSize > 290000 || phases.length == 80) {
         links.issues.add('Weitere Phasen im Original prüfen.');
+        return ImportedTeachingFlow(m, phases, links.issues);
       }
-      break;
+      phases.add(next);
     }
   }
   return ImportedTeachingFlow(m, phases, links.issues);

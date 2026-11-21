@@ -16,8 +16,11 @@ class LessonPhase {
     this.carriedTo = '',
     this.guidance = const [],
     this.resumeNote = '',
+    this.sourceId = '',
+    this.sourceRow = '',
   });
   final String id, title, body, kind, status, startedAt, carriedTo, resumeNote;
+  final String sourceId, sourceRow;
   final List<Json> guidance;
   final int minutes, elapsed;
   final List<String> materialIds, pupilIds;
@@ -46,6 +49,8 @@ class LessonPhase {
     'startedAt': startedAt,
     'carriedTo': carriedTo,
     if (resumeNote.isNotEmpty) 'resumeNote': resumeNote,
+    if (sourceId.isNotEmpty) 'sourceId': sourceId,
+    if (sourceRow.isNotEmpty) 'sourceRow': sourceRow,
   };
   factory LessonPhase.fromJson(Json j) {
     const keys = {
@@ -61,9 +66,15 @@ class LessonPhase {
       'startedAt',
       'carriedTo',
       'resumeNote',
+      'sourceId',
+      'sourceRow',
       'guidance',
     };
-    if ((j.containsKey('resumeNote') && j['resumeNote'] is! String) ||
+    if ([
+          'resumeNote',
+          'sourceId',
+          'sourceRow',
+        ].any((k) => j.containsKey(k) && j[k] is! String) ||
         j.keys.any((k) => !keys.contains(k)) ||
         [
           'id',
@@ -127,6 +138,8 @@ class LessonPhase {
       startedAt: j['startedAt'],
       carriedTo: j['carriedTo'],
       resumeNote: j['resumeNote'] as String? ?? '',
+      sourceId: j['sourceId'] as String? ?? '',
+      sourceRow: j['sourceRow'] as String? ?? '',
     );
     if (p.id.isEmpty ||
         p.id.length > 250 ||
@@ -134,6 +147,8 @@ class LessonPhase {
         p.title.length > 160 ||
         p.body.length > 12000 ||
         p.resumeNote.length > 300 ||
+        p.sourceId.length > 250 ||
+        p.sourceRow.length > 80 ||
         p.minutes < 0 ||
         p.minutes > 600 ||
         p.elapsed < 0 ||
@@ -173,6 +188,7 @@ void validateLessonFlow(Json data) {
           'sourceId',
           'sourceVersion',
           'sourceBase',
+          'sourceRows',
         }.contains(k),
       ) ||
       (data.containsKey('pupilId') &&
@@ -192,6 +208,27 @@ void validateLessonFlow(Json data) {
                     (e.key as String).length > 250 ||
                     e.value is! String ||
                     (e.value as String).length > 80,
+              )) ||
+      data.containsKey('sourceRows') &&
+          (data['sourceRows'] is! Map ||
+              (data['sourceRows'] as Map).length > 80 ||
+              (data['sourceRows'] as Map).entries.any(
+                (e) =>
+                    e.key is! String ||
+                    (e.key as String).length > 250 ||
+                    e.value is! Map ||
+                    (e.value as Map).entries.any(
+                      (a) =>
+                          !{
+                            'row',
+                            'slot',
+                            'task',
+                            'content',
+                            'name',
+                          }.contains(a.key) ||
+                          a.value is! String ||
+                          (a.value as String).length > 200,
+                    ),
               )) ||
       data['template'] is! bool ||
       data['lessonTarget'] is! String ||

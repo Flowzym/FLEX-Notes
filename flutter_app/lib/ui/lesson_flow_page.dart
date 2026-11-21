@@ -17,6 +17,8 @@ part 'lesson_phase_editor.dart';
 part 'lesson_flow_individual.dart';
 part 'lesson_flow_materials.dart';
 part 'lesson_flow_sources.dart';
+part 'lesson_flow_compare.dart';
+part 'lesson_flow_transfer.dart';
 
 class LessonFlowPage extends StatefulWidget {
   const LessonFlowPage({
@@ -25,10 +27,12 @@ class LessonFlowPage extends StatefulWidget {
     this.initialDate,
     this.initialTarget,
     this.onDateChanged,
+    this.onSourceChanged,
     this.openFile,
   });
   final String? initialDate, initialTarget;
   final ValueChanged<String>? onDateChanged;
+  final ValueChanged<(String, String?)>? onSourceChanged;
   final Future<void> Function(ClassroomDocument)? openFile;
   final NotebookController controller;
   @override
@@ -46,6 +50,16 @@ class _LessonFlowPageState extends State<LessonFlowPage>
   bool editing = false, busy = false;
   ClassroomDocument? seed;
   String seedKey = '';
+  (String, String?)? lastSource;
+  void reportSource(ClassroomDocument flow) {
+    final value = (flow.id, flow.map('flow')['sourceId'] as String?);
+    if (widget.onSourceChanged == null || lastSource == value) return;
+    lastSource = value;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && lastSource == value) widget.onSourceChanged?.call(value);
+    });
+  }
+
   @override
   bool get wantKeepAlive => true;
   List<LessonOccurrence> get lessons => lessonOccurrences(
@@ -407,18 +421,15 @@ class _LessonFlowPageState extends State<LessonFlowPage>
       title: 'Offene Phasen weiterführen',
     );
     if (chosen == null || !mounted) return;
-    await run(() async {
-      var next = lessonFlowFor(
-        c.classroom,
-        chosen.$1,
-        pupils: c.pupils,
-        pupilId: lessonFlowPupil(baseline),
+    if (chosen.$1.compareTo(date) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte einen späteren Unterrichtstag wählen.'),
+        ),
       );
-      if (next.revision == 0) next = withLessonPhases(next, []);
-      await c.saveClassroomBatch(
-        carryLessonPhases(baseline, next, DateTime.now()),
-      );
-    });
+      return;
+    }
+    await previewCarry(baseline, chosen.$1);
   }
 
   Future<void> continuePhase(LessonPhase phase) async {
@@ -573,6 +584,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
         final value = current,
             phases = lessonPhases(value),
             colors = Theme.of(context).colorScheme;
+        reportSource(value);
         final active = phases.where((p) => p.status == 'active').firstOrNull;
         final pending = phases.where((p) => p.pending).toList();
         final materials = {
@@ -645,6 +657,16 @@ class _LessonFlowPageState extends State<LessonFlowPage>
               ],
             ),
             ...sourcePanel(value),
+            if (isSuggestedLessonFlow(value))
+              const ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.view_list_outlined),
+                title: Text('Vorgeschlagener Grundablauf'),
+                subtitle: Text(
+                  'Für diese Stunde ist noch keine Tagesplanung übernommen.',
+                ),
+              ),
             _scopeSelector(),
             if (individual && pupilId == null) ...[
               ..._pupilRows(),
@@ -981,6 +1003,24 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                           ),
                     icon: const Icon(Icons.play_arrow, size: 18),
                     label: Text(p.pending ? 'Hier starten' : 'Wieder öffnen'),
+                  ),
+                if (c.classroom.any(
+                      (d) =>
+                          d.id ==
+                              (p.sourceId.isEmpty
+                                  ? value.map('flow')['sourceId']
+                                  : p.sourceId) &&
+                          !d.deleted,
+                    ) &&
+                    (p.sourceRow.isNotEmpty ||
+                        (value.map('flow')['sourceBase'] as Map?)?.containsKey(
+                              p.id,
+                            ) ==
+                            true))
+                  TextButton.icon(
+                    onPressed: () => reviewPhaseSource(value, p),
+                    icon: const Icon(Icons.find_in_page_outlined, size: 18),
+                    label: const Text('Planzeile öffnen'),
                   ),
                 IconButton(
                   tooltip: 'Materialien für ${p.title}',
