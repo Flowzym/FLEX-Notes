@@ -454,6 +454,7 @@ class ClassroomDocument {
         'template',
         'stopped',
         'generated',
+        'excludedDates',
       },
       ClassroomKind.reminder => {'target', 'at', 'dismissed'},
     };
@@ -846,6 +847,13 @@ class ClassroomDocument {
       }
     }
     if (kind == ClassroomKind.repeat) {
+      if (_json.containsKey('excludedDates') &&
+          (_json['excludedDates'] is! List ||
+              (_json['excludedDates'] as List).any(
+                (s) => s is! String || !validDate(s),
+              ))) {
+        throw const DomainError('Ungültiges ausgenommenes Seriendatum.');
+      }
       if (map('generated').entries.any(
         (e) => !validDate(e.key) || e.value is! int || (e.value as int) < 1,
       )) {
