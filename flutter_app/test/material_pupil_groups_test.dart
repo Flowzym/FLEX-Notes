@@ -55,6 +55,8 @@ void main() {
         400,
         scrollable: find.byType(Scrollable).first,
       );
+      await Scrollable.ensureVisible(t.element(group), alignment: .5);
+      await t.pumpAndSettle();
       await t.tap(group);
       await t.pumpAndSettle();
       await t.scrollUntilVisible(
