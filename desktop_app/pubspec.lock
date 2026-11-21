@@ -278,7 +278,7 @@ packages:
       path: "../flutter_app"
       relative: true
     source: path
-    version: "0.39.0+91"
+    version: "0.40.0+92"
   flutter:
     dependency: "direct main"
     description: flutter
