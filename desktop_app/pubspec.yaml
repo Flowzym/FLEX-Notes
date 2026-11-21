@@ -1,0 +1,51 @@
+name: flex_desktop
+description: Eigenständiger FLEX-Arbeitsplatz für den Desktop.
+publish_to: none
+version: 1.2.3+6
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+  flutter: '>=3.47.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flex_notizbuch:
+    path: ../flutter_app
+  drift: 2.35.3
+  drift_flutter: 0.3.1
+  file_selector: ^1.1.0
+  image: 4.12.0
+  pdfrx: 2.12.0
+  pdf: ^3.13.1
+  url_launcher: ^6.3.2
+  window_manager: ^0.5.1
+  path_provider: 2.1.5
+  uuid: 4.5.1
+  web: ^1.1.1
+  http: ^1.6.0
+  flutter_secure_storage: ^11.2.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+hooks:
+  user_defines:
+    sqlite3:
+      source:
+        linux: sqlcipher
+        default: sqlite3
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/schema.sql
+    - assets/demo-planung.docx
+    - assets/licenses/
+  fonts:
+    - family: FlexSans
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Semibold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

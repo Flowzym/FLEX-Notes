@@ -2,6 +2,8 @@ part of 'school_editor.dart';
 
 extension _SchoolEditorView on _SchoolEditorState {
   Widget editorView(BuildContext context) {
+    final desktop =
+        Theme.of(context).extension<FlexDialogPresentation>() != null;
     final title = mode == 'review'
         ? 'Ziel überprüfen'
         : mode == 'comment'
@@ -41,7 +43,23 @@ extension _SchoolEditorView on _SchoolEditorState {
               if (mode != 'entry' && (dirty || draftRevision > 0))
                 EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
             ],
-            footerContent: isObservation ? observationFooter() : null,
+            footerContent: desktop
+                ? EntryWindowCommands(
+                    close: busy ? null : close,
+                    save: busy ? null : save,
+                    saveKey: const ValueKey('save-school-record'),
+                    saveLabel: r.revision > 0 && mode == 'entry'
+                        ? 'Änderungen speichern'
+                        : 'Speichern',
+                    status: draftStatus.isNotEmpty
+                        ? draftStatus
+                        : draftRevision > 0
+                        ? 'Entwurf geöffnet'
+                        : '',
+                  )
+                : isObservation
+                ? observationFooter()
+                : null,
             title: Row(
               children: [
                 FlexIcon(FlexIcon.forKind(r.kind)),
@@ -124,7 +142,44 @@ extension _SchoolEditorView on _SchoolEditorState {
                         'otherParticipants': names,
                       }),
                     ),
+                  if (desktop && mode == 'entry') ...[
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 18,
+                      ),
+                      title: Text(
+                        isObservation
+                            ? 'Beobachtet am'
+                            : r.kind == SchoolKind.goal
+                            ? 'Vereinbart am'
+                            : 'Aufgegeben am',
+                      ),
+                      subtitle: Text(
+                        [
+                          displayDate(r.observedOn),
+                          r.observedTime,
+                        ].where((v) => v.isNotEmpty).join(' · '),
+                      ),
+                      onTap: busy
+                          ? null
+                          : () => chooseDate('observedOn', time: true),
+                    ),
+                    CompactSwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Später ergänzen'),
+                      value: r.needsCompletion,
+                      onChanged: busy
+                          ? null
+                          : (v) => edit({'needsCompletion': v}),
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                  ],
                   attachments(forTask: mode == 'comment' ? taskId : null),
+                  if (desktop && isObservation && r.revision == 0)
+                    ...observationOptions(),
                   if (stale && mode == 'comment')
                     TextButton(
                       onPressed: rebaseComment,

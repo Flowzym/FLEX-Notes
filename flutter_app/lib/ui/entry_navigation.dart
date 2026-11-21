@@ -426,3 +426,49 @@ Future<void> showAssignedHomework(
     },
   ),
 );
+
+/// Command strip used by desktop hosts. Properties live beside the input.
+class EntryWindowCommands extends StatelessWidget {
+  const EntryWindowCommands({
+    super.key,
+    required this.close,
+    required this.save,
+    this.status = '',
+    this.saveKey,
+    this.saveLabel = 'Speichern',
+  });
+  final VoidCallback? close, save;
+  final String status, saveLabel;
+  final Key? saveKey;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Semantics(
+          liveRegion: true,
+          child: Text(
+            status,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      ),
+      TextButton(
+        key: const ValueKey('cancel-editor'),
+        onPressed: close,
+        child: const Text('Abbrechen'),
+      ),
+      const SizedBox(width: 10),
+      Tooltip(
+        message: 'Speichern (Strg+S)',
+        child: FilledButton.icon(
+          key: saveKey,
+          onPressed: save,
+          icon: const Icon(Icons.check, size: 16),
+          label: Text(saveLabel),
+        ),
+      ),
+    ],
+  );
+}
