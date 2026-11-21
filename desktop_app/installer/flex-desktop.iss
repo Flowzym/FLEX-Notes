@@ -1,5 +1,5 @@
 #define AppName "FLEX Desktop"
-#define AppVersion "1.2.4"
+#define AppVersion "1.3.0"
 [Setup]
 AppId={{E8D09B86-DA04-42CF-8E4B-21C0BBEB4613}
 AppName={#AppName}

@@ -105,6 +105,40 @@ void main() {
       expect(record.taskState(record.tasks.single), TaskState.partial);
     },
   );
+  test(
+    'shared homework materials resolve per recipient and survive a retry',
+    () async {
+      final second = await repo.savePupil(
+        const Pupil(id: 'other', name: 'Beta'),
+      );
+      final record = homework(pupil.id).patch({
+        'assignmentSources': [
+          {'documentId': 'all', 'title': 'Blatt A'},
+          {'documentId': 'extra', 'title': 'Blatt B', 'pupilId': second.id},
+          {'documentId': 'all', 'title': 'Blatt A', 'pupilId': second.id},
+        ],
+      });
+      final recipients = [pupil.id, second.id];
+      for (var i = 0; i < 2; i++) {
+        final group = await repo.saveSchoolGroup(
+          record,
+          recipients,
+          'material-group',
+        );
+        expect(group.first.assignmentSources.map((s) => s.documentId), ['all']);
+        expect(group.last.assignmentSources.map((s) => s.documentId), [
+          'all',
+          'extra',
+        ]);
+        expect(
+          group
+              .expand((r) => r.assignmentSources)
+              .every((s) => s.pupilId == null),
+          isTrue,
+        );
+      }
+    },
+  );
   test('invalid tasks, times, feedback and goal reviews are rejected', () {
     final record = homework(pupil.id);
     for (final changes in <Json>[

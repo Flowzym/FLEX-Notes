@@ -124,6 +124,32 @@ void main() {
         negative.style!.backgroundColor!.resolve({}),
         observationToneColors['negative'],
       );
+      await t.tap(find.byTooltip('Beobachtungen bearbeiten'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Nur für Person Zwei'));
+      await t.pumpAndSettle();
+      await t.enterText(
+        find.byKey(const ValueKey('new-personal-negative-0')),
+        'Eigenes Beispiel',
+      );
+      await t.tap(find.text('Änderungen speichern'));
+      await t.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('observation-Eigenes Beispiel')),
+        findsOneWidget,
+      );
+      expect(
+        (await t.runAsync(
+          () => repo.observationCatalog('social-negative@p1'),
+        ))!.options,
+        isEmpty,
+      );
+      expect(
+        (await t.runAsync(
+          () => repo.observationCatalog('social-negative'),
+        ))!.options,
+        isNot(contains('Eigenes Beispiel')),
+      );
       await t.tap(
         find.byKey(const ValueKey('observation-Unterbricht andere wiederholt')),
       );

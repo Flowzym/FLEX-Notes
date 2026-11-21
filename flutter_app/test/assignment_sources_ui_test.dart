@@ -19,6 +19,75 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  testWidgets(
+    'homework picker opens on pupil materials and links one copy per recipient',
+    (t) async {
+      final c = NotebookController(classroomMemory());
+      await c.initialize();
+      await c.savePupil(const Pupil(id: 'a', name: 'Alex'));
+      await c.savePupil(const Pupil(id: 'b', name: 'Bea'));
+      addTearDown(() async {
+        c.dispose();
+        await c.repository.close();
+      });
+      final individual = await c.repository.saveClassroomDocument(
+        material('Leseblatt').patch({
+          'pupilIds': ['a'],
+        }),
+      );
+      await c.saveClassroom(material('Wochenblatt'));
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => editSchool(ctx, c, taskRecord('a')),
+                child: const Text('Hausübung anlegen'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tap(t, find.text('Hausübung anlegen'));
+      await tap(t, find.text('Material verknüpfen'));
+      expect(
+        find.widgetWithText(CheckboxListTile, 'Wochenblatt'),
+        findsNothing,
+      );
+      await tap(t, find.widgetWithText(CheckboxListTile, 'Leseblatt'));
+      await tap(t, find.text('Übernehmen'));
+      await tap(t, find.byKey(const ValueKey('pupil-tag-b')).first);
+      await tap(t, find.text('Material verknüpfen'));
+      await tap(t, find.widgetWithText(CheckboxListTile, 'Wochenblatt'));
+      await tap(t, find.text('Übernehmen'));
+      await tap(t, find.byKey(const ValueKey('save-school-record')));
+      final saved = await c.repository.schoolRecords();
+      expect(
+        saved
+            .singleWhere((r) => r.pupilId == 'a')
+            .assignmentSources
+            .map((s) => s.title)
+            .toSet(),
+        {'Leseblatt', 'Wochenblatt'},
+      );
+      expect(
+        saved
+            .singleWhere((r) => r.pupilId == 'b')
+            .assignmentSources
+            .map((s) => s.title),
+        ['Wochenblatt'],
+      );
+      expect(
+        (await c.repository.classroomDocuments())
+            .singleWhere((d) => d.id == individual.id)
+            .strings('pupilIds'),
+        ['a'],
+      );
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+    },
+  );
   for (final scale in [1.0, 2.0]) {
     testWidgets(
       'work assignment links day material and a planning task at scale $scale',

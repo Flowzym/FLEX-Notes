@@ -141,6 +141,10 @@ mixin AdminStore on PrivacyStore, ClassroomStore {
               ...draft.data,
               'recipients': group.where((id) => !ids.contains(id)).toList(),
               'individual': individual,
+              if (draft.data['assignmentSources'] is List)
+                'assignmentSources': (draft.data['assignmentSources'] as List)
+                    .where((s) => !ids.contains(s['pupilId']))
+                    .toList(),
             },
           ),
         );
@@ -174,6 +178,10 @@ mixin AdminStore on PrivacyStore, ClassroomStore {
             (d.record.revision == 0 || !ids.contains(d.record.pupilId))) {
           final record = d.record.patch({
             'pupilId': recipients.first,
+            'assignmentSources': d.record.assignmentSources
+                .where((s) => !ids.contains(s.pupilId))
+                .map((s) => s.toJson())
+                .toList(),
             'participantIds': d.record.participantIds
                 .where((id) => !ids.contains(id))
                 .toList(),

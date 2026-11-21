@@ -90,9 +90,11 @@ Json classroomInitial(
 Future<List<String>?> chooseMaterials(
   BuildContext context,
   NotebookController c,
-  List<String> selected,
-) async {
+  List<String> selected, {
+  Pupil? pupil,
+}) async {
   final ids = selected.toSet();
+  var personal = pupil != null;
   var query = '';
   return showDialog<List<String>>(
     context: context,
@@ -103,6 +105,25 @@ Future<List<String>?> chooseMaterials(
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (pupil != null) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  ChoiceChip(
+                    label: Text('Für ${pupil.name}'),
+                    selected: personal,
+                    onSelected: (_) => update(() => personal = true),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Bibliothek'),
+                    selected: !personal,
+                    onSelected: (_) => update(() => personal = false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             TextField(
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
@@ -112,6 +133,7 @@ Future<List<String>?> chooseMaterials(
             ),
             for (final package in c.classroom.where(
               (d) =>
+                  !personal &&
                   !d.deleted &&
                   d.kind == ClassroomKind.materialSet &&
                   materialMatches(d, query),
@@ -151,10 +173,25 @@ Future<List<String>?> chooseMaterials(
               const Text(
                 'Noch keine Materialien. Dateien oder Links unter Materialien hinzufügen.',
               ),
+            if (personal &&
+                !c.classroom.any(
+                  (d) =>
+                      !d.deleted &&
+                      d.kind == ClassroomKind.material &&
+                      d.strings('pupilIds').contains(pupil!.id) &&
+                      materialMatches(d, query, pupils: c.pupils),
+                ))
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Kein passendes Schülermaterial. In der Bibliothek findest du alle Materialien.',
+                ),
+              ),
             for (final m in c.classroom.where(
               (d) =>
                   !d.deleted &&
                   d.kind == ClassroomKind.material &&
+                  (!personal || d.strings('pupilIds').contains(pupil!.id)) &&
                   materialMatches(d, query, pupils: c.pupils),
             ))
               CheckboxListTile(

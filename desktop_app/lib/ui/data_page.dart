@@ -284,7 +284,7 @@ extension _DataViews on _DesktopWorkspaceState {
               onPressed: () => showLicensePage(
                 context: context,
                 applicationName: 'FLEX Desktop',
-                applicationVersion: '1.2.4',
+                applicationVersion: '1.3.0',
               ),
               child: const Text('Open-Source-Lizenzen'),
             ),

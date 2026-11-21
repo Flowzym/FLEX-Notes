@@ -40,7 +40,11 @@ extension _SchoolObservationView on _SchoolEditorState {
   Widget observation() {
     final scheme = Theme.of(context).colorScheme;
     final catalog =
-        catalogs[catalogKey] ?? ObservationCatalog.defaults(catalogKey);
+        (catalogs[catalogKey] ?? ObservationCatalog.defaults(catalogKey))
+            .withPersonal(
+              catalogs[pupilCatalogKey(catalogKey, r.pupilId)] ??
+                  ObservationCatalog(options: const []),
+            );
     final selected = r.observations(selectedTone);
     final options = [
       ...catalog.favorites,
@@ -145,12 +149,12 @@ extension _SchoolObservationView on _SchoolEditorState {
                       : Theme.of(
                               context,
                             ).extension<FlexSurfaces>()?.palette.button ??
-                            scheme.onSurface.withValues(alpha: .07),
+                            scheme.surface,
                   borderRadius: BorderRadius.circular(
                     Theme.of(context).extension<FlexDialogPresentation>() ==
                             null
                         ? 24
-                        : 5,
+                        : 7,
                   ),
                   boxShadow:
                       Theme.of(context).extension<FlexDialogPresentation>() ==
@@ -603,6 +607,35 @@ extension _SchoolObservationView on _SchoolEditorState {
                     );
                   },
                 ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.tune_outlined),
+                label: const Text('Auswahltexte bearbeiten'),
+                onPressed: catalogBusy ? null : editOptions,
+              ),
+            ),
+            for (final tone in observationTones.keys)
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final option in {
+                    ...?catalogs['${r.kind.name}-$tone']?.options,
+                    ...?catalogs[pupilCatalogKey(
+                          '${r.kind.name}-$tone',
+                          r.pupilId,
+                        )]
+                        ?.options,
+                  }.where((option) => !r.observations(tone).contains(option)))
+                    ActionChip(
+                      label: Text('${observationSigns[tone]} $option'),
+                      onPressed: () => edit({
+                        tone: [...r.observations(tone), option],
+                      }),
+                    ),
+                ],
+              ),
             Wrap(
               spacing: 8,
               children: [

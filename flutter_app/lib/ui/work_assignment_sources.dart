@@ -23,6 +23,7 @@ class WorkAssignmentSources extends StatelessWidget {
     required this.date,
     required this.values,
     this.onChanged,
+    this.showPicker = true,
     this.files = const LocalMaterialFiles(),
   });
   final NotebookController controller;
@@ -30,11 +31,12 @@ class WorkAssignmentSources extends StatelessWidget {
   final List<AssignmentSource> values;
   final ValueChanged<List<AssignmentSource>>? onChanged;
   final MaterialFiles files;
+  final bool showPicker;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (onChanged != null)
+      if (showPicker && onChanged != null)
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(

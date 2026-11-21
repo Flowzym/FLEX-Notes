@@ -39,10 +39,22 @@ class EntryPageHeader extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(title, style: Theme.of(context).textTheme.titleLarge),
-                  Text(
-                    owner,
-                    key: const ValueKey('entry-owner'),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      child: Text(
+                        owner,
+                        key: const ValueKey('entry-owner'),
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
                   ),
                 ],
               ),

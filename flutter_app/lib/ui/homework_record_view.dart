@@ -1,4 +1,5 @@
 import 'detail_flow.dart';
+import 'work_assignment_sources.dart';
 import 'submission_collection.dart';
 import 'selection_controls.dart';
 import 'dart:math' as math;
@@ -130,6 +131,12 @@ class HomeworkRecordView extends StatelessWidget {
             taskBuilder: (task, onSelect) =>
                 _task(context, task, onSelect: onSelect),
           ),
+          if (r.assignmentSources.isNotEmpty)
+            WorkAssignmentSources(
+              controller: c,
+              date: r.observedOn,
+              values: r.assignmentSources,
+            ),
           if (generalNotes.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 10),
