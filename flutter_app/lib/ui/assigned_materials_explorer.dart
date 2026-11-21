@@ -158,7 +158,10 @@ class _AssignedMaterialsExplorerState extends State<AssignedMaterialsExplorer> {
               .toList();
           if (parts.isNotEmpty) parts.removeLast();
           if (parts.length < currentPath.length ||
-              !listEquals(parts.take(currentPath.length).toList(), currentPath)) {
+              !listEquals(
+                parts.take(currentPath.length).toList(),
+                currentPath,
+              )) {
             continue;
           }
           count++;
