@@ -27,8 +27,8 @@ extension _FlowSources on _LessonFlowPageState {
       await reviewSource(source);
       return;
     }
-    final saved = flow.revision > 0;
-    final decisions = saved
+    final compare = flow.revision > 0 || pupilId != null && shared.revision > 0;
+    final decisions = compare
         ? await comparePlan(TeachingFlowChanges(flow, incoming))
         : (<String, String>{}, <String>{});
     if (decisions == null || !mounted) return;
@@ -43,7 +43,7 @@ extension _FlowSources on _LessonFlowPageState {
           'Die Planung hat sich inzwischen geändert. Bitte den Vergleich erneut öffnen.',
         );
       }
-      final result = saved
+      final result = compare
           ? reconcileTeachingFlow(
               flow,
               incoming,

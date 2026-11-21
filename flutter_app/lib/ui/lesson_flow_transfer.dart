@@ -28,7 +28,10 @@ extension _FlowTransfer on _LessonFlowPageState {
           final needsChoice =
               destination.revision == 0 &&
               destination.map('flow')['sourceId'] == null &&
-              candidates.isNotEmpty;
+              phases.isEmpty &&
+              candidates.isNotEmpty &&
+              savedLessonFlowFor(c.classroom, day, selected?.target ?? '') ==
+                  null;
           return FlexModal(
             title: Text('Weiterführen am ${displayDate(day)}'),
             onClose: () => Navigator.pop(ctx),

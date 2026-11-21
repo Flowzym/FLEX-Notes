@@ -30,8 +30,28 @@ ClassroomDocument withLessonPhases(
         : phases.any((p) => p.status != 'open' || p.elapsed > 0)
         ? 'started'
         : 'planned',
-  'flow': {...d.map('flow'), 'phases': phases.map((p) => p.toJson()).toList()},
+  'flow': {
+    ...(d.map('flow')..remove('suggested')),
+    'phases': phases.map((p) => p.toJson()).toList(),
+  },
 });
+
+ClassroomDocument? savedLessonFlowFor(
+  Iterable<ClassroomDocument> docs,
+  String date,
+  String target, {
+  String pupilId = '',
+}) => docs
+    .where(
+      (d) =>
+          !d.deleted &&
+          hasLessonFlow(d) &&
+          !isFlowTemplate(d) &&
+          d.text('date') == date &&
+          lessonFlowPupil(d) == pupilId &&
+          d.map('flow')['lessonTarget'] == target,
+    )
+    .firstOrNull;
 
 ClassroomDocument lessonFlowFor(
   Iterable<ClassroomDocument> docs,
@@ -44,17 +64,7 @@ ClassroomDocument lessonFlowFor(
   ClassroomDocument? chosenSource,
 }) {
   final target = lessonTarget ?? lesson?.target ?? '';
-  final existing = docs
-      .where(
-        (d) =>
-            !d.deleted &&
-            hasLessonFlow(d) &&
-            !isFlowTemplate(d) &&
-            d.text('date') == date &&
-            lessonFlowPupil(d) == pupilId &&
-            d.map('flow')['lessonTarget'] == target,
-      )
-      .firstOrNull;
+  final existing = savedLessonFlowFor(docs, date, target, pupilId: pupilId);
   if (existing != null) return existing;
   final stableId = const Uuid().v5(
     Namespace.url.value,
@@ -96,11 +106,11 @@ ClassroomDocument lessonFlowFor(
         );
   final personal = shared == null
       ? null
-      : [
+      : {
           for (final phase in lessonPhases(shared))
             if (phase.pupilIds.isEmpty || phase.pupilIds.contains(pupilId))
-              individualTeachingPhase(phase, pupilId),
-        ];
+              phase: individualTeachingPhase(phase, pupilId),
+        };
   final parentSourceId = shared?.map('flow')['sourceId'];
   final parentSource = parentSourceId == null
       ? null
@@ -115,13 +125,14 @@ ClassroomDocument lessonFlowFor(
         'template': false,
         'lessonTarget': target,
         if (pupilId.isNotEmpty) 'pupilId': pupilId,
+        if (personal == null && imported == null && candidates.isEmpty ||
+            shared != null && isSuggestedLessonFlow(shared))
+          'suggested': true,
         if (imported != null) ...teachingFlowOrigin(imported),
         if (parentSource != null && personal != null)
-          ...teachingFlowOrigin(
-            ImportedTeachingFlow(parentSource, personal, {}),
-          ),
+          ..._pupilTeachingOrigin(parentSource, shared!, personal),
         'phases': personal != null
-            ? personal.map((p) => p.toJson()).toList()
+            ? personal.values.map((p) => p.toJson()).toList()
             : imported?.phases.map((p) => p.toJson()).toList() ??
                   (candidates.isNotEmpty
                       ? <Json>[]
@@ -146,12 +157,28 @@ ClassroomDocument lessonFlowFor(
   );
 }
 
+Json _pupilTeachingOrigin(
+  ClassroomDocument source,
+  ClassroomDocument shared,
+  Map<LessonPhase, LessonPhase> personal,
+) {
+  final base = shared.map('flow')['sourceBase'] as Map? ?? {};
+  final fromSource = personal.entries.where((e) => base.containsKey(e.key.id));
+  final origin = teachingFlowOrigin(
+    ImportedTeachingFlow(source, [for (final e in fromSource) e.value], {}),
+  );
+  final signatures = origin['sourceBase'] as Map;
+  for (final e in fromSource) {
+    if (base[e.key.id] != _phaseSignature(e.key)) {
+      signatures[e.value.id] = base[e.key.id];
+    }
+  }
+  return origin;
+}
+
 /// Only an unsaved, generated starter can be replaced on first import.
 bool isSuggestedLessonFlow(ClassroomDocument d) =>
-    d.revision == 0 &&
-    d.map('flow')['sourceId'] == null &&
-    lessonPhases(d).map((p) => p.title).join('|') ==
-        'Ankommen|HÜ-Kontrolle|Arbeitsphase|Austausch|Abschluss';
+    d.revision == 0 && d.map('flow')['suggested'] == true;
 
 ClassroomDocument carryDestination(
   Iterable<ClassroomDocument> docs,
