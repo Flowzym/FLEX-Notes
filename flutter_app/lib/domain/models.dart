@@ -694,6 +694,8 @@ class DialogDraft {
 
 /// User preferences independent from the fixed FLEX visual language.
 /// Legacy appearance keys are intentionally not restored from databases/backups.
+enum MaterialLayout { list, compact, grid }
+
 class Appearance {
   const Appearance({
     this.mode = 'light',
@@ -705,7 +707,8 @@ class Appearance {
     this.organisationDefaultPage = 0,
     this.materialDefaultPage = 0,
     this.moreDefaultPage = 0,
-    this.materialGrid = false,
+    this.materialLayout = MaterialLayout.list,
+    this.weekFolderWeekends = false,
     this.materialSort = 'recent',
     this.shortcutOrder = const ['goal', 'social', 'work', 'homework', 'orga'],
   });
@@ -716,14 +719,19 @@ class Appearance {
       materialDefaultPage,
       moreDefaultPage;
   final double textScale;
-  final bool materialGrid;
+  final MaterialLayout materialLayout;
+  final bool weekFolderWeekends;
+  bool get materialGrid => materialLayout == MaterialLayout.grid;
   final List<String> shortcutOrder;
 
   Appearance copyWith({String? mode, double? textScale}) =>
       patch({'mode': ?mode, 'textScale': ?textScale});
   Appearance change(Json changes) => patch(changes);
-  Appearance patch(Json changes) =>
-      Appearance.fromJson({...toJson(), ...changes});
+  Appearance patch(Json changes) => Appearance.fromJson({
+    ...toJson(),
+    if (changes.containsKey('materialGrid')) 'materialLayout': null,
+    ...changes,
+  });
   Json toJson() => {
     'designVersion': 1,
     'mode': mode,
@@ -737,6 +745,8 @@ class Appearance {
     'materialDefaultPage': materialDefaultPage,
     'moreDefaultPage': moreDefaultPage,
     'materialGrid': materialGrid,
+    'materialLayout': materialLayout.name,
+    'weekFolderWeekends': weekFolderWeekends,
     'materialSort': materialSort,
     'shortcutOrder': shortcutOrder,
   };
@@ -765,7 +775,14 @@ class Appearance {
       organisationDefaultPage: source['organisationDefaultPage'] as int? ?? 0,
       materialDefaultPage: source['materialDefaultPage'] as int? ?? 0,
       moreDefaultPage: source['moreDefaultPage'] as int? ?? 0,
-      materialGrid: source['materialGrid'] == true,
+      weekFolderWeekends: source['weekFolderWeekends'] == true,
+      materialLayout:
+          MaterialLayout.values
+              .where((v) => v.name == source['materialLayout'])
+              .firstOrNull ??
+          (source['materialGrid'] == true
+              ? MaterialLayout.grid
+              : MaterialLayout.list),
       materialSort:
           const {
             'recent',

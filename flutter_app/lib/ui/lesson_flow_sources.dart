@@ -120,6 +120,7 @@ extension _FlowSources on _LessonFlowPageState {
         ),
       for (final m in weekly)
         ExpansionTile(
+          key: PageStorageKey('flow-week-plan-${m.id}-$date'),
           tilePadding: EdgeInsets.zero,
           leading: const Icon(Icons.view_week_outlined),
           title: const Text('Aus der Wochenplanung'),

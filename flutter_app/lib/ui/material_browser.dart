@@ -12,7 +12,7 @@ class _MaterialBrowserCard extends StatefulWidget {
     super.key,
     required this.document,
     required this.files,
-    required this.grid,
+    required this.layout,
     required this.pupils,
     required this.prepared,
     required this.onOpen,
@@ -26,7 +26,9 @@ class _MaterialBrowserCard extends StatefulWidget {
   });
   final ClassroomDocument document;
   final MaterialFiles files;
-  final bool grid, prepared;
+  final MaterialLayout layout;
+  bool get grid => layout == MaterialLayout.grid;
+  final bool prepared;
   final List<Pupil> pupils;
   final VoidCallback onOpen, onEdit;
   final VoidCallback? onFavorite, onPrepare, onRestore, onAssign;
@@ -86,14 +88,14 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
           message: d.title,
           child: Text(
             d.title,
-            maxLines: 2,
+            maxLines: widget.layout == MaterialLayout.compact ? 1 : 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        if (widget.layout != MaterialLayout.compact) const SizedBox(height: 4),
         if (widget.grid && details.isNotEmpty) smallText(details, lines: 2),
         if (widget.grid && d.text('topic').isNotEmpty)
           smallText(d.text('topic')),
@@ -267,7 +269,10 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
             ? widget.onOpen
             : () => widget.onSelect?.call(!widget.selected!),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: widget.layout == MaterialLayout.compact ? 1 : 5,
+          ),
           child: LayoutBuilder(
             builder: (_, constraints) {
               if (widget.grid) {
@@ -291,6 +296,24 @@ class _MaterialBrowserCardState extends State<_MaterialBrowserCard> {
                 );
               }
               final scale = MediaQuery.textScalerOf(context);
+              if (widget.layout == MaterialLayout.compact) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          description,
+                          availability(includePupils: true),
+                        ],
+                      ),
+                    ),
+                    ?assignment(compact: true),
+                    actions,
+                  ],
+                );
+              }
               final compact = constraints.maxWidth < scale.scale(460);
               if (constraints.maxWidth < scale.scale(190)) {
                 return Column(

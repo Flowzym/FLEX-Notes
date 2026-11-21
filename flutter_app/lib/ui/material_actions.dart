@@ -216,7 +216,8 @@ Future<void> openMaterial(
     if (!await files.exists(current.text('localKey'))) {
       if (ownDrive) await client.load();
       if (current.text('itemId').isNotEmpty &&
-          current.text('url').isEmpty &&
+          (current.text('url').isEmpty ||
+              current.text('extension') == 'docx') &&
           !client.connected &&
           !current.flag('sourceMissing')) {
         if (!context.mounted) return;

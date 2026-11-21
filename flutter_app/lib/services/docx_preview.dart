@@ -5,10 +5,14 @@ import 'package:xml/xml.dart';
 import '../domain/models.dart';
 import 'material_files.dart';
 
+part 'docx_document.dart';
+
 class _BoundedXmlOutput extends OutputMemoryStream {
   static const limit = 2000000;
+  _BoundedXmlOutput([this.maximum = limit]);
+  final int maximum;
   void check(int extra) {
-    if (length + extra > limit) {
+    if (length + extra > maximum) {
       throw const FormatException('Document too large');
     }
   }
@@ -39,28 +43,60 @@ class _BoundedXmlOutput extends OutputMemoryStream {
 
   @override
   void reserve(int total) {
-    if (total > limit) throw const FormatException('Document too large');
+    if (total > maximum) throw const FormatException('Document too large');
     super.reserve(total);
   }
 }
 
 /// Content preview only. No HTML, remote relationships, macros or external XML
 /// entities are executed. The original stays available for Word layout/printing.
-List<Json> readDocxPreview(Uint8List bytes, {bool planningLayout = false}) {
+List<Json> readDocxPreview(Uint8List bytes, {bool planningLayout = false}) =>
+    _readDocx(bytes, planningLayout: planningLayout);
+
+/// Rich blocks for the on-screen document, including local embedded pictures.
+List<Json> readDocxDocument(Uint8List bytes) => _readDocx(bytes, rich: true);
+
+/// Word can store a raster preview of the first page in the package.
+Uint8List? readDocxCover(Uint8List bytes) {
+  final zip = ZipDecoder().decodeBytes(bytes);
+  for (final ext in ['jpeg', 'png', 'jpg']) {
+    final file = zip.findFile('docProps/thumbnail.$ext');
+    if (file == null || file.size <= 0 || file.size > 2000000) continue;
+    try {
+      final out = _BoundedXmlOutput(file.size);
+      file.writeContent(out);
+      final image = out.getBytes();
+      validateMaterialBytes(image, ext == 'jpeg' ? 'jpg' : ext);
+      return image;
+    } catch (_) {
+      continue;
+    }
+  }
+  return null;
+}
+
+XmlDocument _docxXml(ArchiveFile file) {
+  if (file.size > _BoundedXmlOutput.limit) throw const FormatException();
+  final out = _BoundedXmlOutput();
+  file.writeContent(out);
+  final source = utf8.decode(out.getBytes());
+  if (source.contains(RegExp(r'<!DOCTYPE|<!ENTITY', caseSensitive: false))) {
+    throw const FormatException();
+  }
+  return XmlDocument.parse(source);
+}
+
+List<Json> _readDocx(
+  Uint8List bytes, {
+  bool planningLayout = false,
+  bool rich = false,
+}) {
   try {
     validateMaterialBytes(bytes, 'docx');
     final zip = ZipDecoder().decodeBytes(bytes);
     final doc = zip.findFile('word/document.xml');
-    if (doc == null || doc.size > _BoundedXmlOutput.limit) {
-      throw const FormatException();
-    }
-    final out = _BoundedXmlOutput();
-    doc.writeContent(out);
-    final source = utf8.decode(out.getBytes());
-    if (source.contains(RegExp(r'<!DOCTYPE|<!ENTITY', caseSensitive: false))) {
-      throw const FormatException();
-    }
-    final xml = XmlDocument.parse(source);
+    if (doc == null) throw const FormatException();
+    final xml = _docxXml(doc);
     final body = xml.descendants
         .whereType<XmlElement>()
         .where((e) => e.name.local == 'body')
@@ -68,6 +104,7 @@ List<Json> readDocxPreview(Uint8List bytes, {bool planningLayout = false}) {
     if (body == null) throw const FormatException();
     final nodes = body.descendants.whereType<XmlElement>().toList();
     if (nodes.length > 50000) throw const FormatException();
+    if (rich) return _DocxDocument(zip).blocks(body);
     String text(XmlElement p) {
       final buffer = StringBuffer();
       for (final e in p.descendants.whereType<XmlElement>()) {

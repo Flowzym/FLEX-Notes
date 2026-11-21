@@ -554,6 +554,7 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                 pupilId = lessonFlowPupil(baseline);
                 expanded = lessonPhases(current).firstOrNull?.id;
               });
+              widget.onDateChanged?.call(day);
             },
           ),
         ),
@@ -923,8 +924,9 @@ class _LessonFlowPageState extends State<LessonFlowPage>
                 padding: const EdgeInsets.only(left: 34, bottom: 8),
                 child: Text(p.body),
               ),
-            for (final guide in p.guidance)
+            for (final (index, guide) in p.guidance.indexed)
               ExpansionTile(
+                key: PageStorageKey('flow-guide-$date-${p.id}-$index'),
                 tilePadding: const EdgeInsets.only(left: 32),
                 title: Text(
                   c.pupils
