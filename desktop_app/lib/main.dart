@@ -1,3 +1,5 @@
+import 'package:flex_notizbuch/services/reminders.dart';
+import 'package:flex_notizbuch/services/secret_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
@@ -34,7 +36,18 @@ Future<void> main() async {
     final repo = await openDesktopWorkspace(demo: demo);
     final notebook = NotebookController(repo);
     await notebook.initialize();
-    final controller = WorkspaceController(notebook, demo: demo);
+    final controller = WorkspaceController(
+      notebook,
+      demo: demo,
+      reminders:
+          !demo && !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
+          ? Reminders(
+              const DeviceSecretStore(),
+              WindowsReminderPort(),
+              systemName: 'Windows',
+            )
+          : null,
+    );
     await repo.removeUnreferencedFiles(controller.files.remove);
     if (demo) {
       var day = DateTime.now();

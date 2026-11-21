@@ -76,7 +76,7 @@ jobs:
           $runtime = Get-ChildItem "$vsInstall/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
           if (!$runtime) { throw 'MSVC redistributable runtime missing' }
           Copy-Item "$($runtime.FullName)/*.dll" $releaseDir
-          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.2.2-Windows-x64.zip'
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.2.3-Windows-x64.zip'
           $compiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
           if (!(Test-Path $compiler)) { choco install innosetup --yes --no-progress }
           & $compiler 'installer/flex-desktop.iss'
@@ -137,3 +137,17 @@ jobs:
           path: desktop_app/build/installer/*.exe
           retention-days: 30
           if-no-files-found: error
+
+      - name: Check scheduled Windows reminders survive a process restart
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          flutter build windows --release --no-pub --target tool/windows_reminder_probe.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:FLEX_REMINDER_PROBE = '1'
+          $exe = (Resolve-Path 'build/windows/x64/runner/Release/flex_desktop.exe').Path
+          foreach ($phase in 'plan','inspect') {
+            $probe = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList $phase -PassThru
+            if (!$probe.WaitForExit(45000)) { $probe.Kill(); throw "Windows notification probe timed out ($phase)" }
+            if ($probe.ExitCode -ne 0) { throw "Windows notification probe failed ($phase, code $($probe.ExitCode))" }
+          }

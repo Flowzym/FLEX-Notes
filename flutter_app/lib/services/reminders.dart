@@ -307,9 +307,112 @@ class AndroidReminderPort implements ReminderPort {
   }
 }
 
+/// Windows keeps scheduled toasts in its own queue, including after FLEX exits.
+class WindowsReminderPort implements ReminderPort {
+  WindowsReminderPort({
+    FlutterLocalNotificationsPlugin? notifications,
+    this.appId = 'at.flowzym.FLEXDesktop',
+    this.guid = '4d5f7bbc-6ffa-4dbc-aa1d-71c205f49d89',
+  }) : plugin = notifications ?? FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin plugin;
+  final String appId, guid;
+  Future<Set<int>> scheduledIds() async =>
+      (await plugin.pendingNotificationRequests()).map((v) => v.id).toSet();
+  final applied = <int, String>{};
+  bool ready = false;
+  @override
+  Future<String?> initialize(ValueChanged<String> onTap) async {
+    String? payload(NotificationResponse? r) {
+      if (r == null) return null;
+      for (final value in [r.payload, r.actionId]) {
+        if (value != null && ReminderAction.parse(value) != null) return value;
+      }
+      return null;
+    }
+
+    ready =
+        await plugin.initialize(
+          settings: InitializationSettings(
+            windows: WindowsInitializationSettings(
+              appName: 'FLEX Desktop',
+              appUserModelId: appId,
+              guid: guid,
+            ),
+          ),
+          onDidReceiveNotificationResponse: (r) {
+            final value = payload(r);
+            if (value != null) onTap(value);
+          },
+        ) ==
+        true;
+    if (!ready) {
+      throw const DomainError(
+        'Windows-Benachrichtigungen konnten nicht initialisiert werden.',
+      );
+    }
+    final launch = await plugin.getNotificationAppLaunchDetails();
+    return launch?.didNotificationLaunchApp == true
+        ? payload(launch?.notificationResponse)
+        : null;
+  }
+
+  @override
+  Future<bool> permission({bool request = false}) async => ready;
+  @override
+  Future<bool> exactPermission({bool request = false}) async => ready;
+  @override
+  Future<void> apply(
+    List<ReminderRequest> requests, {
+    required bool exact,
+    Set<int> retainDelivered = const {},
+  }) async {
+    final pending = await scheduledIds();
+    final wanted = {for (final r in requests) r.id: r};
+    for (final id in pending) {
+      if (!wanted.containsKey(id) || applied[id] != wanted[id]!.fingerprint) {
+        await plugin.cancel(id: id);
+        applied.remove(id);
+      }
+    }
+    for (final r in requests) {
+      if (pending.contains(r.id) && applied[r.id] == r.fingerprint) continue;
+      await plugin.zonedSchedule(
+        id: r.id,
+        scheduledDate: tz.TZDateTime.from(r.when, tz.UTC),
+        title: 'FLEX · ${r.label}',
+        body: 'FLEX öffnen, um den Eintrag anzusehen.',
+        payload: r.payload,
+        androidScheduleMode: AndroidScheduleMode.inexact,
+        notificationDetails: NotificationDetails(
+          windows: WindowsNotificationDetails(
+            actions: [
+              if (r.completable)
+                WindowsAction(
+                  content: 'Erledigt',
+                  arguments: ReminderAction.response(r.payload, 'done'),
+                ),
+              WindowsAction(
+                content: 'Später · 1 Std.',
+                arguments: ReminderAction.response(r.payload, 'snooze'),
+              ),
+            ],
+          ),
+        ),
+      );
+      applied[r.id] = r.fingerprint;
+    }
+    applied.removeWhere((id, _) => !wanted.containsKey(id));
+  }
+}
+
 class Reminders extends ChangeNotifier {
-  Reminders(this.store, this.port, {DateTime Function()? now})
-    : now = now ?? DateTime.now;
+  Reminders(
+    this.store,
+    this.port, {
+    DateTime Function()? now,
+    this.systemName = "Android",
+  }) : now = now ?? DateTime.now;
+  final String systemName;
   final SecretStore store;
   final ReminderPort port;
   final DateTime Function() now;
@@ -343,9 +446,7 @@ class Reminders extends ChangeNotifier {
     // setting when Android eventually answers an earlier permission request.
     final write = _configurationWrites.then((_) async {
       if (patch['enabled'] == true && !await port.permission(request: true)) {
-        throw const DomainError(
-          'Android hat Benachrichtigungen nicht erlaubt.',
-        );
+        throw DomainError('$systemName hat Benachrichtigungen nicht erlaubt.');
       }
       final value = {...settings, ...patch};
       await store.write(key, jsonEncode(value));
@@ -387,11 +488,11 @@ class Reminders extends ChangeNotifier {
         }
         count = plan.length;
         error = enabled && !permitted
-            ? 'Benachrichtigungen sind in Android ausgeschaltet.'
+            ? 'Benachrichtigungen sind in $systemName ausgeschaltet.'
             : null;
       } catch (_) {
         error =
-            'Erinnerungen konnten nicht aktualisiert werden. Bitte Android-Berechtigungen prüfen.';
+            'Erinnerungen konnten nicht aktualisiert werden. Bitte $systemName-Berechtigungen prüfen.';
       }
       notifyListeners();
     });

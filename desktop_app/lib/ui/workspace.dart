@@ -52,6 +52,7 @@ import 'package:flex_notizbuch/ui/flex_modal.dart';
 import 'package:flex_notizbuch/ui/entry_templates.dart'
     show showEntryTemplateManager, showCatalogTransfer;
 import 'package:flex_notizbuch/ui/option_bar.dart' show OptionBar;
+import 'package:flex_notizbuch/domain/reminder_action.dart';
 import 'design.dart';
 part 'desk.dart';
 part 'week.dart';
@@ -110,6 +111,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
       }
       await c.editor?.flush();
       if (c.notebook.syncingMaterials) await c.notebook.syncMaterials();
+      await c.settleReminders();
       await c.repository.close();
       await windowManager.destroy();
     } catch (_) {
@@ -119,6 +121,65 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
         );
       }
     }
+  }
+
+  bool handlingReminder = false;
+  void onWindowsReminder() {
+    final alerts = c.reminders;
+    if (!mounted || handlingReminder || alerts?.pendingTarget == null) return;
+    final action = ReminderAction.parse(alerts!.pendingTarget!);
+    alerts.consumeTarget();
+    if (action == null) return;
+    handlingReminder = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted) return;
+        await run(() async {
+          if (action.action != 'open') {
+            final applied = await c.repository.applyReminderAction(
+              action,
+              DateTime.now(),
+            );
+            await c.notebook.reload();
+            if (!applied && mounted) {
+              message('Die Erinnerung wurde bereits geändert.');
+            }
+            return;
+          }
+          final parts = action.target.split(':'), id = parts[1];
+          final item = switch (parts.first) {
+            'orga' => c.notebook.entries.where((e) => e.id == id).firstOrNull,
+            'school' =>
+              c.notebook.records
+                  .where((e) => e.id == id && !e.deleted)
+                  .firstOrNull,
+            'return' =>
+              c.notebook.classroom
+                  .where((e) => e.id == id && !e.deleted)
+                  .firstOrNull,
+            _ => null,
+          };
+          if (item != null) {
+            await openDesktopValue(item);
+            return;
+          }
+          if (parts.first == 'lesson' && validDate(parts.last)) {
+            final matches = c
+                .agenda(schoolDay(parts.last))
+                .where((i) => i.id == action.target);
+            if (matches.isNotEmpty) {
+              await viewCalendarItem(matches.first);
+              return;
+            }
+          }
+          message('Der Eintrag ist inzwischen nicht mehr verfügbar.');
+        });
+      } finally {
+        handlingReminder = false;
+        if (mounted) onWindowsReminder();
+      }
+    });
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   final drive = OneDriveClient(useNativeAuthentication: false);
@@ -135,6 +196,8 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
       windowManager.addListener(this);
     }
     WidgetsBinding.instance.addObserver(this);
+    c.reminders?.addListener(onWindowsReminder);
+    unawaited(c.initializeReminders());
     unawaited(
       drive
           .load()
@@ -147,6 +210,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
 
   @override
   void dispose() {
+    c.reminders?.removeListener(onWindowsReminder);
     WidgetsBinding.instance.removeObserver(this);
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
       windowManager.removeListener(this);

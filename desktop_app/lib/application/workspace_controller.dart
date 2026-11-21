@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flex_notizbuch/services/reminders.dart';
 import '../domain/core.dart';
 import '../domain/desktop_calendar.dart';
 export '../domain/desktop_calendar.dart';
@@ -19,10 +21,41 @@ enum WorkspaceSection {
 }
 
 class WorkspaceController extends ChangeNotifier {
-  WorkspaceController(this.notebook, {this.demo = false, MaterialFiles? files})
-    : files = files ?? const LocalMaterialFiles() {
-    notebook.addListener(notifyListeners);
+  WorkspaceController(
+    this.notebook, {
+    this.demo = false,
+    MaterialFiles? files,
+    this.reminders,
+  }) : files = files ?? const LocalMaterialFiles() {
+    notebook.addListener(_notebookChanged);
   }
+  final Reminders? reminders;
+  bool _remindersReady = false;
+  String? reminderSetupError;
+  Future<void> initializeReminders() async {
+    final service = reminders;
+    if (service == null) return;
+    try {
+      await service.initialize();
+      _remindersReady = true;
+      reminderSetupError = null;
+      await settleReminders();
+    } catch (_) {
+      reminderSetupError =
+          'Windows-Erinnerungen konnten nicht gestartet werden.';
+    }
+    notifyListeners();
+  }
+
+  Future<void> settleReminders() async {
+    if (_remindersReady) await reminders!.sync(notebook.currentSnapshot);
+  }
+
+  void _notebookChanged() {
+    if (_remindersReady) unawaited(settleReminders());
+    notifyListeners();
+  }
+
   final NotebookController notebook;
   final MaterialFiles files;
   final bool demo;
@@ -319,7 +352,7 @@ class WorkspaceController extends ChangeNotifier {
 
   @override
   void dispose() {
-    notebook.removeListener(notifyListeners);
+    notebook.removeListener(_notebookChanged);
     editor?.dispose();
     super.dispose();
   }

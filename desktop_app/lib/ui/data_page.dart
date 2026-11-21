@@ -8,6 +8,56 @@ extension _DataViews on _DesktopWorkspaceState {
         'Dein Arbeitsplatz',
         subtitle: 'Daten übernehmen, sichern und den Desktop einrichten.',
       ),
+      if (c.reminders case final alerts?) ...[
+        AnimatedBuilder(
+          animation: alerts,
+          builder: (ctx, _) => Surface(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Windows-Erinnerungen'),
+                  subtitle: Text(
+                    c.reminderSetupError ??
+                        alerts.error ??
+                        (alerts.enabled
+                            ? '${alerts.count} Erinnerungen in Windows eingeplant.'
+                            : 'Benachrichtigungen für Termine, Aufgaben, Ziele und Rückläufe.'),
+                  ),
+                  value: alerts.enabled,
+                  onChanged: c.reminderSetupError == null
+                      ? (v) => run(() => alerts.configure({'enabled': v}))
+                      : null,
+                ),
+                if (c.reminderSetupError != null)
+                  TextButton(
+                    onPressed: () => run(c.initializeReminders),
+                    child: const Text('Erneut versuchen'),
+                  ),
+                if (alerts.enabled)
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final e in const {
+                        'tasks': 'Aufgaben, Hausübungen & Rückläufe',
+                        'appointments': 'Termine',
+                        'goals': 'Ziele',
+                      }.entries)
+                        FilterChip(
+                          label: Text(e.value),
+                          selected: alerts.settings[e.key] != false,
+                          onSelected: (v) =>
+                              run(() => alerts.configure({e.key: v})),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+      ],
       Surface(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +284,7 @@ extension _DataViews on _DesktopWorkspaceState {
               onPressed: () => showLicensePage(
                 context: context,
                 applicationName: 'FLEX Desktop',
-                applicationVersion: '1.2.2',
+                applicationVersion: '1.2.3',
               ),
               child: const Text('Open-Source-Lizenzen'),
             ),
