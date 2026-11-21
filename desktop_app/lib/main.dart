@@ -35,6 +35,7 @@ Future<void> main() async {
     final notebook = NotebookController(repo);
     await notebook.initialize();
     final controller = WorkspaceController(notebook, demo: demo);
+    await repo.removeUnreferencedFiles(controller.files.remove);
     if (demo) {
       var day = DateTime.now();
       while (day.weekday != DateTime.monday) {

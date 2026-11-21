@@ -36,6 +36,7 @@ class MemoryFiles implements MaterialFiles {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   // Independent in-memory executors intentionally simulate two devices.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late SqliteNotebook repo;

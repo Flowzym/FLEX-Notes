@@ -468,6 +468,20 @@ extension _MaterialViews on _DesktopWorkspaceState {
         child: ListView(
           padding: const EdgeInsets.all(22),
           children: [
+            if (isTeachingSource(m))
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => openTeachingReview(
+                    context,
+                    c.notebook,
+                    m,
+                    original: deskFile,
+                  ),
+                  icon: const Icon(Icons.playlist_play),
+                  label: const Text('Unterrichtsplanung prüfen'),
+                ),
+              ),
             Text(
               m.title,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -848,7 +862,7 @@ class _DocumentPreviewState extends State<DocumentPreview> {
               sourceName: widget.material.id,
               params: const PdfViewerParams(),
             ),
-            'jpg' => InteractiveViewer(
+            'jpg' || 'png' => InteractiveViewer(
               child: Image.memory(s.data!, fit: BoxFit.contain),
             ),
             'docx' => FutureBuilder<List<Json>>(

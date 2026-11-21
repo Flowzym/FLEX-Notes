@@ -22,12 +22,13 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                 actions: [
                   IconButton(
                     tooltip: 'Rücklauf anlegen',
-                    onPressed: () => run(() => c.start(EntryKind.returnList)),
+                    onPressed: () =>
+                        run(() => newDesktopEntry(EntryKind.returnList)),
                     icon: const Icon(Icons.assignment_turned_in_outlined),
                   ),
                   IconButton(
                     tooltip: 'Aufgabe anlegen',
-                    onPressed: () => run(() => c.start(EntryKind.task)),
+                    onPressed: () => run(() => newDesktopEntry(EntryKind.task)),
                     icon: const Icon(Icons.add),
                   ),
                 ],
@@ -137,7 +138,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
                 ),
           Expanded(
             child: InkWell(
-              onTap: () => run(() => c.edit(e)),
+              onTap: () => run(() => openDesktopValue(e)),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
@@ -178,10 +179,66 @@ extension _OrganizationViews on _DesktopWorkspaceState {
               e.dueDate != null &&
               e.dueDate!.compareTo(dateOnly(DateTime.now())) < 0)
             const Pill('Überfällig', color: Color(0xff9a6e60)),
-          IconButton(
-            tooltip: 'Eintrag bearbeiten',
-            onPressed: () => run(() => c.edit(e)),
-            icon: const Icon(Icons.chevron_right, size: 18),
+          MenuAnchor(
+            builder: (_, menu, _) => IconButton(
+              tooltip: 'Aktionen zum Eintrag',
+              icon: const Icon(Icons.more_horiz),
+              onPressed: menu.open,
+            ),
+            menuChildren: [
+              MenuItemButton(
+                onPressed: () => run(() => openDesktopValue(e)),
+                child: const Text('Bearbeiten'),
+              ),
+              if ((e.isTask || e.isAppointment) && !e.done)
+                MenuItemButton(
+                  onPressed: () =>
+                      run(() => showOrgaRepeat(context, c.notebook, e)),
+                  child: const Text('Wiederholung'),
+                ),
+              if (e.pending)
+                MenuItemButton(
+                  onPressed: () => run(
+                    () => showReminderActions(
+                      context,
+                      c.notebook,
+                      'orga:${e.id}',
+                      e.title,
+                    ),
+                  ),
+                  child: const Text('Erinnerung verschieben'),
+                ),
+              if (e.reminderState == ReminderState.planned)
+                MenuItemButton(
+                  onPressed: () =>
+                      run(() => c.notebook.saveEntry(e.acknowledge())),
+                  child: const Text('Erinnerung quittieren'),
+                ),
+              MenuItemButton(
+                onPressed: () =>
+                    run(() => showJournal(context, c.notebook, e.id)),
+                child: const Text('Änderungsverlauf'),
+              ),
+              MenuItemButton(
+                onPressed: () => run(() async {
+                  if (await confirm(
+                    'In den Papierkorb verschieben?',
+                    e.title,
+                    action: 'Verschieben',
+                  )) {
+                    await c.notebook.saveEntry(
+                      e.copyWith(
+                        deleted: true,
+                        reminderState: e.reminderState == ReminderState.planned
+                            ? ReminderState.cancelled
+                            : e.reminderState,
+                      ),
+                    );
+                  }
+                }),
+                child: const Text('In den Papierkorb'),
+              ),
+            ],
           ),
         ],
       ),
@@ -195,7 +252,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
       child: Surface(
         padding: const EdgeInsets.all(17),
         child: InkWell(
-          onTap: () => run(() => c.edit(r)),
+          onTap: () => run(() => openDesktopValue(r)),
           child: Row(
             children: [
               const Icon(
@@ -254,8 +311,13 @@ extension _OrganizationViews on _DesktopWorkspaceState {
             subtitle:
                 'Vom Vorhaben zur Stunde – mit den passenden Materialien.',
             actions: [
+              IconButton(
+                tooltip: 'Planungen aus OneDrive prüfen',
+                icon: const Icon(Icons.source_outlined),
+                onPressed: chooseSource,
+              ),
               FilledButton.icon(
-                onPressed: () => run(() => c.start(EntryKind.plan)),
+                onPressed: () => run(() => newDesktopEntry(EntryKind.plan)),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Neue Planung'),
               ),
@@ -376,7 +438,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => run(() => c.edit(p)),
+            onTap: () => run(() => openDesktopValue(p)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -422,7 +484,7 @@ extension _OrganizationViews on _DesktopWorkspaceState {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: InkWell(
-                onTap: () => run(() => c.edit(m)),
+                onTap: () => run(() => openDesktopValue(m)),
                 child: Row(
                   children: [
                     MaterialThumbnail(

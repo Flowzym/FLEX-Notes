@@ -11,7 +11,7 @@ import '../domain/core.dart';
 Future<SqliteNotebook> openDesktopWorkspace({bool demo = false}) async {
   final schema = await rootBundle.loadString('assets/schema.sql');
   final connection = driftDatabase(
-    name: demo ? 'flex_desktop_demo_v1' : 'flex_desktop_v1',
+    name: demo ? 'flex_desktop_demo_v2' : 'flex_desktop_v1',
     native: await notebookNativeOptions(),
     web: DriftWebOptions(
       sqlite3Wasm: Uri.parse('sqlite3.wasm'),

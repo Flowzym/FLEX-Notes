@@ -20,12 +20,13 @@ extension _CalendarView on _DesktopWorkspaceState {
             actions: [
               IconButton(
                 tooltip: 'Unterricht anlegen',
-                onPressed: () => run(() => c.start(EntryKind.lesson)),
+                onPressed: () => run(() => newDesktopEntry(EntryKind.lesson)),
                 icon: const Icon(Icons.school_outlined),
               ),
               IconButton(
                 tooltip: 'Termin anlegen',
-                onPressed: () => run(() => c.start(EntryKind.appointment)),
+                onPressed: () =>
+                    run(() => newDesktopEntry(EntryKind.appointment)),
                 icon: const Icon(Icons.add),
               ),
             ],
@@ -271,13 +272,16 @@ extension _CalendarView on _DesktopWorkspaceState {
                   ),
                   builder: (ctx, candidate, rejected) => InkWell(
                     onTap: () => run(() async {
-                      await c.start(EntryKind.appointment, onDate: day);
-                      c.editor!.patch({
-                        'appointmentTime': minutesClock(slot * 30),
-                        'appointmentEndTime': minutesClock(
-                          (60 + slot * 30).clamp(0, 1440),
-                        ),
-                      });
+                      await newDesktopEntry(
+                        EntryKind.appointment,
+                        onDate: day,
+                        fields: {
+                          'appointmentTime': minutesClock(slot * 30),
+                          'appointmentEndTime': minutesClock(
+                            (60 + slot * 30).clamp(0, 1440),
+                          ),
+                        },
+                      );
                     }),
                     child: Container(
                       height: hourHeight / 2,
@@ -401,7 +405,7 @@ extension _CalendarView on _DesktopWorkspaceState {
                                         .toList();
                                     return InkWell(
                                       onTap: () => run(
-                                        () => c.start(
+                                        () => newDesktopEntry(
                                           EntryKind.appointment,
                                           onDate: day,
                                         ),

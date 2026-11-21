@@ -1,3 +1,7 @@
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flex_notizbuch/domain/teaching_sheet.dart';
+import 'package:flex_notizbuch/domain/planning_import.dart';
+import 'package:flex_notizbuch/services/teaching_sheet_reader.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../domain/core.dart';
@@ -108,7 +112,48 @@ Future<void> seedDemo(
       ],
     },
   );
-  final docs = [...materials, plan, returns];
+  final sourceBytes = (await rootBundle.load(
+    'assets/demo-planung.docx',
+  )).buffer.asUint8List();
+  final sourceKey = newId(), name = 'Tagesplanung ${dateOnly(day)}.docx';
+  await files.write(sourceKey, sourceBytes);
+  final metadata = {
+    'use': 'dayPlan',
+    'day': dateOnly(day),
+    'week': weekOfDay(dateOnly(day)),
+    'year': yearOfDay(day),
+  };
+  final source = ClassroomDocument.create(ClassroomKind.material, name, {
+    'extension': 'docx',
+    'name': name,
+    'remoteName': name,
+    'localKey': sourceKey,
+    'size': sourceBytes.length,
+    'driveId': 'demo',
+    'itemId': 'demo-plan',
+    'remoteEtag': 'demo1',
+    'etag': 'demo1',
+    'planning': metadata,
+  });
+  materials[0] = materials[0].patch({
+    'driveId': 'demo',
+    'itemId': 'demo-blatt',
+    'remoteName': 'Brüche entdecken.pdf',
+    'planning': {...metadata, 'use': 'lesson'},
+  });
+  final docs = [
+    ...materials,
+    plan,
+    returns,
+    source.patch({
+      'planSheet': {
+        'stamp': sourceStamp(source),
+        'drive': 'demo',
+        'item': 'demo-plan',
+        'rows': readTeachingRows(sourceBytes),
+      },
+    }),
+  ];
   for (var i = 0; i < 5; i++) {
     final d = day.add(Duration(days: i));
     docs.add(

@@ -22,15 +22,40 @@ import 'package:flex_notizbuch/domain/drive_rules.dart' show isDriveRule;
 import 'package:flex_notizbuch/services/docx_preview.dart';
 import '../domain/core.dart';
 import '../domain/week_folder.dart';
+import 'package:flex_notizbuch/domain/teaching_sheet.dart';
+import 'package:flex_notizbuch/domain/planning_import.dart'
+    show teachingDay, teachingUse, teachingWeek;
+import 'package:flex_notizbuch/ui/lesson_flow_page.dart';
+import 'package:flex_notizbuch/ui/teaching_review.dart';
+import 'package:flex_notizbuch/ui/admin_page.dart';
+import 'package:flex_notizbuch/ui/archived_pupils.dart';
 import '../domain/desk_organization.dart';
 import '../data/week_pdf.dart';
 import '../application/editor_session.dart';
 import '../application/workspace_controller.dart';
+import 'package:flex_notizbuch/ui/school_workspace.dart'
+    show editSchool, showHomeworkDetail, showJournal, SchoolRecordCard;
+import 'package:flex_notizbuch/ui/homework_control.dart';
+import 'package:flex_notizbuch/ui/orga_editor.dart';
+import 'package:flex_notizbuch/ui/classroom_editor.dart'
+    show showClassroomEditor;
+import 'package:flex_notizbuch/ui/return_lists.dart' show showReturnDetail;
+import 'package:flex_notizbuch/ui/dialog_workflows.dart'
+    show showBulk, showCatalog, showSituation;
+import 'package:flex_notizbuch/ui/timetable.dart' show resumeTimetableDraft;
+import 'package:flex_notizbuch/ui/calendar_page.dart' show showCalendarItem;
+import 'package:flex_notizbuch/ui/scan_editor.dart' show showDocumentScanner;
+import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
+import 'package:flex_notizbuch/ui/repeat_editor.dart' show showOrgaRepeat;
+import 'package:flex_notizbuch/ui/reminder_actions.dart';
+import 'package:flex_notizbuch/ui/flex_modal.dart';
 import 'design.dart';
 part 'desk.dart';
 part 'week.dart';
+part 'teaching.dart';
 part 'commands.dart';
 part 'entry_editor.dart';
+part 'full_editor.dart';
 part 'calendar.dart';
 part 'materials.dart';
 part 'organization.dart';
@@ -76,6 +101,10 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   @override
   void onWindowClose() async {
     try {
+      if (Navigator.of(context).canPop()) {
+        await Navigator.of(context).maybePop();
+        return;
+      }
       await c.editor?.flush();
       if (c.notebook.syncingMaterials) await c.notebook.syncMaterials();
       await c.repository.close();
@@ -191,30 +220,131 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
         ),
       ) ??
       false;
-  Widget addMenu({bool wide = true}) => MenuAnchor(
-    builder: (ctx, controller, child) => FilledButton.icon(
-      onPressed: () =>
-          controller.isOpen ? controller.close() : controller.open(),
-      icon: const Icon(Icons.add, size: 18),
-      label: Text(wide ? 'Neuer Eintrag' : 'Neu'),
-    ),
-    menuChildren: [
-      for (final kind in EntryKind.values)
-        MenuItemButton(
-          leadingIcon: Icon(entryIcons[kind.index], size: 18),
-          onPressed: () => run(() => c.start(kind)),
-          child: Text(kind.label),
-        ),
-      const Divider(),
+  Widget addMenu({bool floating = true}) {
+    final priority = switch (c.section) {
+      WorkspaceSection.calendar || WorkspaceSection.week => [
+        EntryKind.appointment,
+        EntryKind.lesson,
+        EntryKind.plan,
+      ],
+      WorkspaceSection.journal => [
+        EntryKind.social,
+        EntryKind.work,
+        EntryKind.goal,
+        EntryKind.homework,
+      ],
+      WorkspaceSection.organization => [
+        EntryKind.task,
+        EntryKind.returnList,
+        EntryKind.note,
+        EntryKind.appointment,
+      ],
+      WorkspaceSection.planning => [EntryKind.plan, EntryKind.lesson],
+      _ => const [EntryKind.note, EntryKind.task, EntryKind.social],
+    };
+    Widget actionForKind(EntryKind kind) => MenuItemButton(
+      leadingIcon: Icon(entryIcons[kind.index], size: 18),
+      onPressed: () => run(() => newDesktopEntry(kind)),
+      child: Text(kind.label),
+    );
+    final files = [
       MenuItemButton(
-        leadingIcon: const Icon(Icons.person_add_alt, size: 18),
-        onPressed: addPupil,
-        child: const Text('Schüler hinzufügen'),
-      ),
-      MenuItemButton(
-        leadingIcon: const Icon(Icons.file_upload_outlined, size: 18),
+        leadingIcon: const Icon(Icons.file_upload_outlined),
         onPressed: () => run(importLocal),
         child: const Text('Dateien importieren'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.add_link),
+        onPressed: () => run(addLink),
+        child: const Text('Materiallink hinzufügen'),
+      ),
+    ];
+    return MenuAnchor(
+      style: MenuStyle(
+        alignment: floating ? Alignment.topRight : Alignment.bottomRight,
+      ),
+      builder: (ctx, menu, _) {
+        void toggle() => menu.isOpen ? menu.close() : menu.open();
+        return floating
+            ? FloatingActionButton(
+                key: const ValueKey('desktop-add'),
+                heroTag: null,
+                tooltip: 'Hinzufügen',
+                onPressed: toggle,
+                child: const Icon(Icons.add),
+              )
+            : IconButton(
+                tooltip: 'Hinzufügen',
+                onPressed: toggle,
+                icon: const Icon(Icons.add),
+              );
+      },
+      menuChildren: [
+        if (c.section == WorkspaceSection.materials) ...[
+          ...files,
+          const Divider(),
+        ],
+        for (final kind in priority) actionForKind(kind),
+        SubmenuButton(
+          leadingIcon: const Icon(Icons.library_add_outlined),
+          menuChildren: [
+            for (final kind in EntryKind.values.where(
+              (k) => !priority.contains(k),
+            ))
+              actionForKind(kind),
+          ],
+          child: const Text('Weitere Eintragsarten'),
+        ),
+        const Divider(),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.group_add_outlined),
+          onPressed: () => run(() => showBulk(context, c.notebook)),
+          child: const Text('Für mehrere erfassen'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.fact_check_outlined),
+          onPressed: () => run(
+            () => showHomeworkControl(
+              context,
+              c.notebook,
+              dateOnly(c.date),
+              pupilId: c.section == WorkspaceSection.journal
+                  ? c.pupil?.id
+                  : null,
+            ),
+          ),
+          child: const Text('Hausübungen kontrollieren'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.document_scanner_outlined),
+          onPressed: () => run(() async {
+            await showDocumentScanner(context, c.notebook);
+          }),
+          child: const Text('Scan oder Bild hinzufügen'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.edit_note),
+          onPressed: () => run(() => c.start(EntryKind.note)),
+          child: const Text('Schnellnotiz im Seitenbereich'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.person_add_alt, size: 18),
+          onPressed: addPupil,
+          child: const Text('Schüler hinzufügen'),
+        ),
+        if (c.section != WorkspaceSection.materials) ...files,
+      ],
+    );
+  }
+
+  Widget centralPage() => Stack(
+    fit: StackFit.expand,
+    children: [
+      mainContent(),
+      Positioned(
+        right: 20,
+        bottom: 20,
+        child: SafeArea(top: false, left: false, child: addMenu()),
       ),
     ],
   );
@@ -228,7 +358,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
         const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
             commandPalette,
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
-            run(() => c.start(EntryKind.note)),
+            run(() => newDesktopEntry(EntryKind.note)),
         const SingleActivator(LogicalKeyboardKey.enter, control: true): () =>
             run(c.commitEditor, success: 'Eintrag gespeichert'),
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): () =>
@@ -253,7 +383,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               if (!inspector || box.maxWidth >= 1000)
-                                Expanded(child: mainContent()),
+                                Expanded(child: centralPage()),
                               if (inspector ||
                                   box.maxWidth >= 1380 &&
                                       c.section == WorkspaceSection.desk)
@@ -279,6 +409,8 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                                               success: 'Eintrag gespeichert',
                                             ),
                                             onPark: () => run(c.parkEditor),
+                                            onExpand: () =>
+                                                run(expandQuickEditor),
                                             onTrash: () async {
                                               if (await confirm(
                                                 'Eintrag in den Papierkorb?',
@@ -365,14 +497,14 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                 color: c.section == section
                     ? const Color(0xffdce3d1)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(6),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(6),
                   onTap: () => c.navigate(section),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 13,
-                      vertical: 14,
+                      vertical: 11,
                     ),
                     child: Row(
                       mainAxisAlignment: compact
@@ -487,7 +619,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
   );
   static const compactFont = 30.0;
   Widget header(bool compact) => Container(
-    height: 76,
+    height: 56,
     padding: const EdgeInsets.symmetric(horizontal: 26),
     decoration: const BoxDecoration(
       color: white,
@@ -518,8 +650,9 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
             style: const TextStyle(fontSize: 11),
           ),
         ),
-        const SizedBox(width: 12),
-        addMenu(wide: !compact),
+        if (MediaQuery.sizeOf(context).width < 1000 &&
+            (c.editor != null || c.material != null))
+          addMenu(floating: false),
       ],
     ),
   );
@@ -543,14 +676,14 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
       if (target is WorkspaceSection) {
         c.navigate(target);
       } else if (target is EntryKind) {
-        await c.start(target);
+        await newDesktopEntry(target);
       } else if (target is Pupil) {
         await c.parkEditor();
         c.materialId = null;
         c.selectPupil(target.id);
         c.navigate(WorkspaceSection.journal);
       } else {
-        await c.edit(target);
+        await openDesktopValue(target);
         if (target is ClassroomDocument &&
             target.kind == ClassroomKind.material) {
           c.navigate(WorkspaceSection.materials);
@@ -591,7 +724,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
-                    run(() => c.edit(d));
+                    run(() => openDesktopValue(d));
                   },
                 ),
               for (final d in c.notebook.drafts)
@@ -604,7 +737,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                   subtitle: Text(c.name(d.entry.pupilId)),
                   onTap: () {
                     Navigator.pop(ctx);
-                    run(() => c.edit(d));
+                    run(() => openDesktopValue(d));
                   },
                 ),
               for (final d in c.notebook.dialogDrafts)
@@ -615,9 +748,7 @@ class _DesktopWorkspaceState extends State<DesktopWorkspace>
                   subtitle: Text(d.type == 'pupil' ? 'Schülerprofil' : d.type),
                   onTap: () {
                     Navigator.pop(ctx);
-                    run(
-                      () => d.type == 'pupil' ? editPupil(draft: d) : c.edit(d),
-                    );
+                    run(() => openDesktopValue(d));
                   },
                 ),
             ],

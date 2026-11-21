@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:flex_notizbuch/ui/observation_tone_colors.dart';
+import 'package:flex_notizbuch/ui/school_editor.dart';
+import 'package:flex_notizbuch/ui/return_lists.dart' show ReturnDetail;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -67,8 +70,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
-      expect(c.editor?.kind, EntryKind.returnList);
-      expect(c.editor?.data['title'], 'Museumsliste');
+      expect(find.text('Museumsliste'), findsWidgets);
+      expect(find.byType(ReturnDetail), findsOneWidget);
+      expect(find.text('Testkind Alpha'), findsWidgets);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       c.dispose();
@@ -77,6 +81,72 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Zentraler Plusbutton öffnet vollständige Beobachtung mit Farbe, Zuordnung und Speicherung',
+    (t) async {
+      t.view.physicalSize = const Size(1440, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final repo = SqliteNotebook(
+        NotebookDatabase(
+          NativeDatabase.memory(),
+          File('assets/schema.sql').readAsStringSync(),
+        ),
+      );
+      final n = NotebookController(repo);
+      await t.runAsync(() async {
+        await n.initialize();
+        await n.savePupil(const Pupil(id: 'p1', name: 'Person Eins'));
+        await n.savePupil(const Pupil(id: 'p2', name: 'Person Zwei'));
+      });
+      final c = WorkspaceController(n, files: MemoryFiles());
+      await t.pumpWidget(DesktopApp(controller: c));
+      await t.pumpAndSettle();
+      final fab = find.byKey(const ValueKey('desktop-add'));
+      final rect = t.getRect(fab);
+      expect(rect.right, closeTo(1440 - 390 - 20, 2));
+      expect(rect.bottom, closeTo(880, 2));
+      await t.tap(fab);
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(MenuItemButton, 'Sozialverhalten'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Person Zwei').last);
+      await t.pumpAndSettle();
+      expect(find.byType(SchoolEditor), findsOneWidget);
+      expect(find.text('Person Zwei'), findsWidgets);
+      await t.tap(find.byKey(const ValueKey('tone-negative')));
+      await t.pumpAndSettle();
+      final negative = t.widget<TextButton>(
+        find.byKey(const ValueKey('tone-negative')),
+      );
+      expect(
+        negative.style!.backgroundColor!.resolve({}),
+        observationToneColors['negative'],
+      );
+      await t.tap(
+        find.byKey(const ValueKey('observation-Unterbricht andere wiederholt')),
+      );
+      await t.pump();
+      expect(find.text('Scannen / Foto'), findsWidgets);
+      await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await t.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await t.pumpAndSettle();
+      await t.runAsync(repo.snapshot);
+      await t.pumpAndSettle();
+      expect(find.byType(SchoolEditor), findsNothing);
+      final saved = (await t.runAsync(repo.schoolRecords))!.single;
+      expect(saved.pupilId, 'p2');
+      expect(saved.negative, ['Unterbricht andere wiederholt']);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+      c.dispose();
+      n.dispose();
+      await t.runAsync(repo.close);
+    },
+  );
   for (final size in [const Size(1440, 960), const Size(1024, 768)]) {
     testWidgets('all desktop workspaces and entry forms fit ${size.width}', (
       tester,

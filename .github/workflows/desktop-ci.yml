@@ -76,7 +76,7 @@ jobs:
           $runtime = Get-ChildItem "$vsInstall/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
           if (!$runtime) { throw 'MSVC redistributable runtime missing' }
           Copy-Item "$($runtime.FullName)/*.dll" $releaseDir
-          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.1.0-Windows-x64.zip'
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath 'build/FLEX-Desktop-1.2.0-Windows-x64.zip'
           $compiler = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
           if (!(Test-Path $compiler)) { choco install innosetup --yes --no-progress }
           & $compiler 'installer/flex-desktop.iss'

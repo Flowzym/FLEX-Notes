@@ -23,7 +23,7 @@ extension _WeekDesk on _DesktopWorkspaceState {
       action: IconButton(
         tooltip: 'Termin für diesen Tag anlegen',
         onPressed: () =>
-            run(() => c.start(EntryKind.appointment, onDate: day.day)),
+            run(() => newDesktopEntry(EntryKind.appointment, onDate: day.day)),
         icon: const Icon(Icons.add),
       ),
     );
@@ -174,6 +174,11 @@ extension _WeekDesk on _DesktopWorkspaceState {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
+            IconButton(
+              tooltip: 'Unterrichtsablauf öffnen',
+              icon: const Icon(Icons.playlist_play),
+              onPressed: () => deskLesson(dateOnly(day.day)),
+            ),
             TextButton.icon(
               onPressed: () {
                 redraw(() => calendarView = 'Tag');
@@ -184,6 +189,35 @@ extension _WeekDesk on _DesktopWorkspaceState {
             ),
           ],
         ),
+        for (final m in teachingSources(
+          c.notebook.classroom,
+          dateOnly(day.day),
+          week: true,
+        ))
+          ExpansionTile(
+            title: const Text('Wochenschwerpunkt'),
+            subtitle: Text(m.title),
+            children: [
+              for (final row in weeklyContext(m, dateOnly(day.day)))
+                ListTile(
+                  title: Text(
+                    sheetText(row, row['type'] == 'week' ? 'task' : 'subject'),
+                  ),
+                  subtitle: Text(
+                    sheetText(row, row['type'] == 'week' ? 'prep' : 'goal'),
+                  ),
+                ),
+              TextButton(
+                onPressed: () => openTeachingReview(
+                  context,
+                  c.notebook,
+                  m,
+                  original: deskFile,
+                ),
+                child: const Text('Wochenplanung prüfen'),
+              ),
+            ],
+          ),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (_, box) {
@@ -287,7 +321,11 @@ extension _WeekDesk on _DesktopWorkspaceState {
       );
       return;
     }
-    await run(() => c.openCalendar(i));
+    if (i.lesson?.document.isTeachingLesson == true) {
+      await deskLesson(i.lesson!.date, item: i);
+      return;
+    }
+    await run(() => openDeskCalendarItem(i));
   }
 
   Widget weekFile(
@@ -318,7 +356,7 @@ extension _WeekDesk on _DesktopWorkspaceState {
               onPressed: () => run(() => c.prepareForDay([m.id], day)),
             )
           : null,
-      onTap: () => run(() => c.edit(m)),
+      onTap: () => run(() => openDesktopValue(m)),
     );
   }
 

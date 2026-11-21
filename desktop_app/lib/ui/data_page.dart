@@ -150,6 +150,14 @@ extension _DataViews on _DesktopWorkspaceState {
               icon: const Icon(Icons.delete_outline, size: 17),
               label: const Text('Papierkorb öffnen'),
             ),
+            TextButton.icon(
+              onPressed: () => run(() async {
+                await c.parkEditor();
+                if (mounted) await openAdminArea(context, c.notebook);
+              }),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              label: const Text('Admin-Bereich'),
+            ),
           ],
         ),
       ),
@@ -159,7 +167,7 @@ extension _DataViews on _DesktopWorkspaceState {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'FLEX Desktop · 1.1',
+              'FLEX Desktop · 1.2',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
             ),
             const SizedBox(height: 8),
@@ -172,7 +180,7 @@ extension _DataViews on _DesktopWorkspaceState {
               onPressed: () => showLicensePage(
                 context: context,
                 applicationName: 'FLEX Desktop',
-                applicationVersion: '1.1.0',
+                applicationVersion: '1.2.0',
               ),
               child: const Text('Open-Source-Lizenzen'),
             ),

@@ -7,12 +7,13 @@ class EntryEditor extends StatefulWidget {
     required this.workspace,
     required this.onSave,
     required this.onPark,
+    required this.onExpand,
     required this.onDiscard,
     required this.onTrash,
   });
   final EditorSession session;
   final WorkspaceController workspace;
-  final VoidCallback onSave, onPark, onDiscard, onTrash;
+  final VoidCallback onSave, onPark, onExpand, onDiscard, onTrash;
   @override
   State<EntryEditor> createState() => _EntryEditorState();
 }
@@ -26,6 +27,7 @@ class _EntryEditorState extends State<EntryEditor> {
   @override
   void initState() {
     super.initState();
+    tone = c.notebook.appearance.defaultObservationTone;
     if (s.kind == EntryKind.social || s.kind == EntryKind.work) {
       for (final key in observationTones.keys) {
         unawaited(
@@ -156,6 +158,11 @@ class _EntryEditorState extends State<EntryEditor> {
                 ),
               ),
               IconButton(
+                tooltip: 'Vollständigen Editor öffnen',
+                icon: const Icon(Icons.open_in_full),
+                onPressed: s.saving ? null : widget.onExpand,
+              ),
+              IconButton(
                 tooltip: 'Schließen und Entwurf behalten',
                 onPressed: s.saving ? null : widget.onPark,
                 icon: const Icon(Icons.close),
@@ -205,6 +212,16 @@ class _EntryEditorState extends State<EntryEditor> {
                   selected: {tone},
                   onSelectionChanged: (v) => setState(() => tone = v.first),
                   style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith(
+                      (s) => s.contains(WidgetState.selected)
+                          ? toneColor(tone)
+                          : null,
+                    ),
+                    foregroundColor: WidgetStateProperty.resolveWith(
+                      (s) => s.contains(WidgetState.selected)
+                          ? Colors.white
+                          : null,
+                    ),
                     textStyle: WidgetStateProperty.all(
                       const TextStyle(fontSize: 11),
                     ),
@@ -417,11 +434,8 @@ class _EntryEditorState extends State<EntryEditor> {
   );
   List<String> suggestions() =>
       catalogs[tone] ?? observationDefaults['${s.kind.name}-$tone'] ?? [];
-  Color toneColor(String value) => switch (value) {
-    'positive' => const Color(0xff52735c),
-    'negative' => const Color(0xff97695e),
-    _ => const Color(0xff647b8c),
-  };
+  Color toneColor(String value) =>
+      observationToneColors[value] ?? observationToneColors['neutral']!;
   Future<void> addObservation() async {
     final input = TextEditingController();
     final value = await showDialog<String>(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flex_notizbuch/ui/flex_modal.dart';
+part 'editor_window.dart';
 
 const paper = Color(0xfff6f4ef),
     ink = Color(0xff2d342d),
@@ -25,7 +27,9 @@ ThemeData desktopTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    fontFamily: 'FlexSans',
+    fontFamily: 'Segoe UI',
+    fontFamilyFallback: const ['FlexSans'],
+    extensions: const [FlexDialogPresentation(desktopFormFrame)],
     scaffoldBackgroundColor: paper,
     visualDensity: VisualDensity.compact,
     textTheme: const TextTheme(
@@ -40,32 +44,32 @@ ThemeData desktopTheme() {
       filled: true,
       fillColor: white,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(5),
         borderSide: const BorderSide(color: line),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(5),
         borderSide: const BorderSide(color: line),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(5),
         borderSide: const BorderSide(color: olive, width: 1.5),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 38),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        minimumSize: const Size(0, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 38),
+        minimumSize: const Size(0, 32),
         side: const BorderSide(color: line),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
@@ -79,18 +83,15 @@ ThemeData desktopTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: line),
       ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
-    scrollbarTheme: ScrollbarThemeData(
-      thumbVisibility: WidgetStateProperty.all(true),
-      thickness: WidgetStateProperty.all(5),
-    ),
+    scrollbarTheme: ScrollbarThemeData(thickness: WidgetStateProperty.all(5)),
   );
 }
 
@@ -108,7 +109,7 @@ class Surface extends StatelessWidget {
   Widget build(BuildContext context) => Material(
     color: color,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(8),
       side: const BorderSide(color: line),
     ),
     clipBehavior: Clip.antiAlias,

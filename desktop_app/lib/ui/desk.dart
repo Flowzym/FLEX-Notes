@@ -60,7 +60,8 @@ extension _DeskViews on _DesktopWorkspaceState {
                         children: [
                           for (final item in items)
                             InkWell(
-                              onTap: () => run(() => c.openCalendar(item)),
+                              onTap: () =>
+                                  run(() => openDeskCalendarItem(item)),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -89,7 +90,8 @@ extension _DeskViews on _DesktopWorkspaceState {
                 ),
                 IconButton(
                   tooltip: 'Termin hinzufügen',
-                  onPressed: () => run(() => c.start(EntryKind.appointment)),
+                  onPressed: () =>
+                      run(() => newDesktopEntry(EntryKind.appointment)),
                   icon: const Icon(Icons.add),
                 ),
               ],
@@ -283,7 +285,8 @@ extension _DeskViews on _DesktopWorkspaceState {
     if (kind == EntryKind.note) {
       return PopupMenuButton<EntryKind>(
         tooltip: 'Organisation für ${pupil.name}',
-        onSelected: (value) => run(() => c.start(value, pupil: pupil.id)),
+        onSelected: (value) =>
+            run(() => newDesktopEntry(value, pupil: pupil.id)),
         itemBuilder: (_) => [
           for (final value in [
             EntryKind.note,
@@ -300,7 +303,7 @@ extension _DeskViews on _DesktopWorkspaceState {
       message: '${kind.label} für ${pupil.name}',
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => run(() => c.start(kind, pupil: pupil.id)),
+        onTap: () => run(() => newDesktopEntry(kind, pupil: pupil.id)),
         child: face,
       ),
     );
@@ -327,12 +330,71 @@ extension _DeskViews on _DesktopWorkspaceState {
       overflow: TextOverflow.ellipsis,
       style: const TextStyle(fontSize: 13),
     ),
-    subtitle: Text(
-      '${c.name(r.pupilId)} · ${r.kind.label} · ${shortDate(r.observedOn)}',
-      style: const TextStyle(fontSize: 10, color: muted),
+    subtitle: Wrap(
+      spacing: 6,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          '${c.name(r.pupilId)} · ${r.kind.label} · ${shortDate(r.observedOn)}',
+          style: const TextStyle(fontSize: 11, color: muted),
+        ),
+        for (final tone in observationTones.entries)
+          if (r.observations(tone.key).isNotEmpty)
+            Pill(tone.value, color: observationToneColors[tone.key]!),
+      ],
     ),
-    trailing: const Icon(Icons.chevron_right, size: 17, color: muted),
-    onTap: () => run(() => c.edit(r)),
+    trailing: MenuAnchor(
+      builder: (_, menu, _) => IconButton(
+        tooltip: 'Aktionen zum Schülereintrag',
+        onPressed: menu.open,
+        icon: const Icon(Icons.more_horiz),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          onPressed: () => run(() => editSchool(context, c.notebook, r)),
+          child: const Text('Eintrag bearbeiten'),
+        ),
+        if (r.kind == SchoolKind.goal)
+          MenuItemButton(
+            onPressed: () =>
+                run(() => editSchool(context, c.notebook, r, mode: 'review')),
+            child: const Text('Ziel überprüfen'),
+          ),
+        MenuItemButton(
+          onPressed: () => run(
+            () => showDialog<void>(
+              context: context,
+              builder: (ctx) => AnimatedBuilder(
+                animation: c.notebook,
+                builder: (ctx, _) {
+                  final record = c.notebook.records
+                      .where((v) => v.id == r.id && !v.deleted)
+                      .firstOrNull;
+                  return FlexModal(
+                    title: Text(r.kind.label),
+                    onClose: () => Navigator.pop(ctx),
+                    content: record == null
+                        ? const Text('Der Eintrag liegt im Papierkorb.')
+                        : SchoolRecordCard(
+                            controller: c.notebook,
+                            record: record,
+                            standalone: true,
+                          ),
+                  );
+                },
+              ),
+            ),
+          ),
+          child: const Text('Details und Aktionen'),
+        ),
+        MenuItemButton(
+          onPressed: () => run(() => showJournal(context, c.notebook, r.id)),
+          child: const Text('Änderungsverlauf'),
+        ),
+      ],
+    ),
+    onTap: () => run(() => openDesktopValue(r)),
   );
   Widget todayInspector() => ListView(
     padding: const EdgeInsets.all(25),
@@ -381,7 +443,7 @@ extension _DeskViews on _DesktopWorkspaceState {
               const SizedBox(width: 8),
               Expanded(
                 child: InkWell(
-                  onTap: () => run(() => c.edit(e)),
+                  onTap: () => run(() => openDesktopValue(e)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -427,7 +489,7 @@ extension _DeskViews on _DesktopWorkspaceState {
             m.text('subject'),
             style: const TextStyle(fontSize: 10, color: muted),
           ),
-          onTap: () => run(() => c.edit(m)),
+          onTap: () => run(() => openDesktopValue(m)),
         ),
       TextButton.icon(
         onPressed: () => c.navigate(WorkspaceSection.materials),
@@ -469,6 +531,11 @@ extension _DeskViews on _DesktopWorkspaceState {
           'Klasse & Journal',
           subtitle: 'Verlauf, Aufgaben und Materialien pro Schüler.',
           actions: [
+            IconButton(
+              tooltip: 'Archivierte Schüler',
+              icon: const Icon(Icons.inventory_2_outlined),
+              onPressed: () => openArchivedPupils(context, c.notebook),
+            ),
             IconButton(
               tooltip: 'Schüler hinzufügen',
               onPressed: addPupil,
@@ -551,8 +618,9 @@ extension _DeskViews on _DesktopWorkspaceState {
                         EntryKind.note,
                       ])
                         OutlinedButton.icon(
-                          onPressed: () =>
-                              run(() => c.start(kind, pupil: c.pupilId)),
+                          onPressed: () => run(
+                            () => newDesktopEntry(kind, pupil: c.pupilId),
+                          ),
                           icon: Icon(entryIcons[kind.index], size: 16),
                           label: Text(
                             kind.label,
