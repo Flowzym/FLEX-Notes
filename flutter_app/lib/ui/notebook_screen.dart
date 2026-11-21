@@ -19,7 +19,7 @@ import 'collapsible_search.dart';
 import 'draft_actions.dart';
 import 'pupil_workspace.dart';
 import 'conflict_dialog.dart';
-import 'maintenance_dialog.dart';
+import 'admin_page.dart';
 import 'pupil_editor.dart';
 import 'dialog_workflows.dart';
 import 'surfaces.dart';
@@ -441,6 +441,11 @@ class _NotebookScreenState extends State<NotebookScreen>
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
     children: [
       for (final item in <(String, IconData, VoidCallback)>[
+        (
+          'Admin-Bereich',
+          Icons.admin_panel_settings_outlined,
+          () => openAdminArea(context, c),
+        ),
         ('Entwürfe (${c.draftCount})', Icons.edit_note, () => _showDrafts()),
         (
           'Rückläufe',
@@ -516,24 +521,7 @@ class _NotebookScreenState extends State<NotebookScreen>
   );
   Widget _moreBody() => switch (_moreView) {
     1 => _pupils(archived: true),
-    2 => Column(
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) =>
-                  MaintenanceDialog(controller: c, emptyTrash: true),
-            ),
-            child: const Text('Papierkorb endgültig leeren'),
-          ),
-        ),
-        Expanded(
-          child: SchoolTools(controller: c, mode: 'trash'),
-        ),
-      ],
-    ),
+    2 => SchoolTools(controller: c, mode: 'trash'),
     3 => SettingsPage(
       key: const ValueKey('data-page'),
       controller: c,
@@ -1301,7 +1289,7 @@ class _NotebookScreenState extends State<NotebookScreen>
           label: 'Schüler suchen',
           iconOnly: true,
           leading: Text(
-            archived ? 'Archiv' : 'Notizen',
+            archived ? 'Archivierte Schüler' : 'Notizen',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           actions: [

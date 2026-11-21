@@ -29,6 +29,35 @@ class EntryPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+          constraints.maxWidth >= 520) {
+        return Row(
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 14,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    owner,
+                    key: const ValueKey('entry-owner'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            ...actions,
+            ...titleActions,
+            IconButton(
+              key: const ValueKey('entry-back'),
+              tooltip: 'Schließen und Entwurf sichern',
+              onPressed: onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        );
+      }
       final headingStyle = const TextStyle(
         fontFamily: 'FlexSans',
         fontSize: 20,

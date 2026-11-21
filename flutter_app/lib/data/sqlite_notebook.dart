@@ -1,4 +1,5 @@
 import '../domain/entry_template.dart';
+import '../domain/admin_deletion.dart';
 import '../domain/reminder_action.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
@@ -24,6 +25,7 @@ import '../domain/material_versions.dart';
 import 'database.dart';
 part 'school_store.dart';
 part 'privacy_store.dart';
+part 'admin_store.dart';
 part 'template_store.dart';
 part 'backup_merge_store.dart';
 part 'classroom_store.dart';
@@ -35,6 +37,7 @@ class SqliteNotebook
         ClassroomStore,
         BackupMergeStore,
         PrivacyStore,
+        AdminStore,
         TemplateStore
     implements NotebookRepository, BackupMergeRepository {
   @override

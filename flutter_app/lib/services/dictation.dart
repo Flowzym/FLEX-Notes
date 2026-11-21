@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'windows_input.dart';
+import '../domain/models.dart' show DomainError;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -49,10 +51,75 @@ class AndroidDictationPort implements DictationPort {
   }
 }
 
+class WindowsDictationPort implements DictationPort {
+  final _events = StreamController<DictationEvent>.broadcast();
+  int generation = 0;
+  void Function()? _stop, _cancel;
+  @override
+  Stream<DictationEvent> get events => _events.stream;
+  @override
+  Future<void> start(String language) async {
+    await cancel();
+    final token = generation;
+    final speech = await startWindowsSpeech(language);
+    if (token != generation) {
+      speech.cancel();
+      await speech.result.catchError((_) => '');
+      return;
+    }
+    _stop = speech.stop;
+    _cancel = speech.cancel;
+    _events.add((state: 'listening', text: ''));
+    unawaited(
+      speech.result
+          .then((text) {
+            if (token == generation) {
+              _events.add((
+                state: text.isEmpty ? 'error' : 'final',
+                text: text.isEmpty
+                    ? 'Kein Text erkannt. Bitte erneut diktieren.'
+                    : text,
+              ));
+            }
+          })
+          .catchError((Object e) {
+            if (token == generation) {
+              _events.add((
+                state: 'error',
+                text: e is DomainError
+                    ? e.message
+                    : 'Windows konnte das Diktat nicht abschließen.',
+              ));
+            }
+          })
+          .whenComplete(() {
+            if (token == generation) {
+              _stop = null;
+              _cancel = null;
+            }
+          }),
+    );
+  }
+
+  @override
+  Future<void> stop() async => _stop?.call();
+  @override
+  Future<void> cancel() async {
+    generation++;
+    _cancel?.call();
+    _stop = null;
+    _cancel = null;
+  }
+}
+
 bool get supportsDictation =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        windowsAcquisitionAvailable);
 DictationPort? _port;
-DictationPort get deviceDictation => _port ??= AndroidDictationPort();
+DictationPort get deviceDictation => _port ??= windowsAcquisitionAvailable
+    ? WindowsDictationPort()
+    : AndroidDictationPort();
 
 /// Insertion keeps the selection and all surrounding text; limits are enforced
 /// before mutation, never by silently truncating a pupil's existing note.

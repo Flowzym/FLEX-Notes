@@ -382,7 +382,10 @@ mixin ClassroomStore on SchoolStore {
       day = day.add(const Duration(days: 1))
     ) {
       final date = dateOnly(day);
-      if (date == series.text('date')) continue;
+      if (date == series.text('date') ||
+          series.strings('excludedDates').contains(date)) {
+        continue;
+      }
       final id = _repeatEntryId(series.id, date),
           old = existing[_repeatEntryId(series.id, date)];
       final managed = old != null && old.revision == generated[date];

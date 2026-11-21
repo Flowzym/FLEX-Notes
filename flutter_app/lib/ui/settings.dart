@@ -1,7 +1,7 @@
 import 'entry_templates.dart';
 import 'app_navigation.dart';
 import 'school_year_dialog.dart';
-import 'retention_dialog.dart';
+import 'admin_page.dart';
 import 'diagnostics_dialog.dart';
 import 'merge_dialog.dart';
 import 'privacy_details.dart';
@@ -416,9 +416,9 @@ class _SettingsPageState extends State<SettingsPage>
             label: const Text('Schuljahr abschließen'),
           ),
           OutlinedButton.icon(
-            onPressed: () => showRetentionReview(context, c),
+            onPressed: () => openAdminArea(context, c),
             icon: const Icon(Icons.auto_delete_outlined),
-            label: const Text('Aufbewahrung & Löschprüfung'),
+            label: const Text('Admin-Bereich'),
           ),
         ],
       ),
