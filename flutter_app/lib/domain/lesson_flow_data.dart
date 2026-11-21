@@ -182,6 +182,7 @@ void validateLessonFlow(Json data) {
   if (data.keys.any(
         (k) => !{
           'template',
+          'suggested',
           'lessonTarget',
           'phases',
           'pupilId',
@@ -191,6 +192,7 @@ void validateLessonFlow(Json data) {
           'sourceRows',
         }.contains(k),
       ) ||
+      data.containsKey('suggested') && data['suggested'] is! bool ||
       (data.containsKey('pupilId') &&
           (data['pupilId'] is! String ||
               (data['pupilId'] as String).length > 250)) ||

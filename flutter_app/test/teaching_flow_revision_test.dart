@@ -32,6 +32,88 @@ ClassroomDocument plan(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
+    'Ein Schüler behält den angepassten Grundablauf beim Weiterführen und beim Wochenauftrag',
+    () async {
+      final repo = classroomMemory();
+      await repo.initialize();
+      addTearDown(repo.close);
+      final suggested = lessonFlowFor([], day);
+      expect(isSuggestedLessonFlow(suggested), isTrue);
+      expect(
+        lessonPhases(carryDestination([], day, pupils: [], pupilId: 'a')),
+        isEmpty,
+      );
+      final phases = lessonPhases(suggested);
+      phases[0] = phases[0].patch({
+        'body': 'Den Lerntag zu zweit beginnen',
+        'minutes': 25,
+      });
+      final shared = await repo.saveClassroomDocument(
+        withLessonPhases(suggested, phases),
+      );
+      final pupil = lessonFlowFor([shared], day, pupilId: 'a');
+      expect(isSuggestedLessonFlow(pupil), isFalse);
+      final target = carryDestination([shared], day, pupilId: 'a', pupils: []);
+      expect(lessonPhases(target).first.minutes, 25);
+      final updated = addWeekPhase(
+        pupil,
+        LessonPhase(
+          id: 'wo',
+          title: 'Leseauftrag',
+          sourceId: 'woche',
+          sourceRow: 'zeile-2',
+        ),
+      );
+      expect(lessonPhases(updated), hasLength(6));
+      expect(lessonPhases(updated).first.body, 'Den Lerntag zu zweit beginnen');
+    },
+  );
+  test(
+    'Ein individueller Word-Abgleich erhält geerbte Handnotizen und lokal bearbeitete Klassenphasen',
+    () async {
+      final repo = classroomMemory();
+      await repo.initialize();
+      addTearDown(repo.close);
+      final source = plan(rows);
+      final draft = lessonFlowFor([source], day);
+      final phases = lessonPhases(draft);
+      final shared = await repo.saveClassroomDocument(
+        withLessonPhases(draft, [
+          phases.first.patch({'body': 'Den Auftrag gemeinsam besprechen'}),
+          phases.last,
+          LessonPhase(id: 'hand', title: 'Lesezeit', minutes: 20),
+        ]),
+      );
+      final personal = lessonFlowFor([source, shared], day, pupilId: 'a');
+      final update = plan([
+        head,
+        ...rows.skip(1),
+        ['Abschluss', '08:30–08:35', 'Rückblick'],
+      ]);
+      final fresh = buildTeachingFlow(update, [update], []);
+      final result = reconcileTeachingFlow(
+        personal,
+        ImportedTeachingFlow(update, [
+          for (final p in fresh.phases) individualTeachingPhase(p, 'a'),
+        ], {}),
+      );
+      expect(
+        lessonPhases(result).first.body,
+        'Den Auftrag gemeinsam besprechen',
+      );
+      expect(
+        lessonPhases(result).map((p) => p.title),
+        containsAll(['Abschluss', 'Lesezeit']),
+      );
+      expect(
+        (result.map('flow')['sourceBase'] as Map).containsKey(
+          lessonPhases(result).firstWhere((p) => p.title == 'Lesezeit').id,
+        ),
+        isFalse,
+      );
+    },
+  );
+  test(
     'Weiterführen erhält die noch ungespeicherte Zielplanung samt Quelle nach erneutem Laden',
     () async {
       final repo = classroomMemory();
