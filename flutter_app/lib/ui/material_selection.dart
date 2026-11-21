@@ -161,6 +161,8 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
     enabled: !busy,
     onSelected: (value) {
       switch (value) {
+        case 'assigned':
+          showAssignedMaterials(ctx, c);
         case 'trash':
           openFileTrash(true);
         case 'tags':
@@ -172,6 +174,10 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
       }
     },
     itemBuilder: (_) => [
+      const PopupMenuItem(
+        value: 'assigned',
+        child: Text('Zugewiesene Materialien'),
+      ),
       const PopupMenuItem(value: 'tags', child: Text('Tags verwalten')),
       const PopupMenuItem(value: 'trash', child: Text('Papierkorb')),
       if (materialDeviceAvailable) ...[
@@ -327,17 +333,13 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
                   ),
               ],
             ),
-            IconButton(
+            MaterialLayoutButton(
               key: const ValueKey('material-layout'),
-              tooltip: grid ? 'Listenansicht' : 'Rasteransicht',
-              icon: Icon(
-                grid ? Icons.view_list_outlined : Icons.grid_view_outlined,
-                size: 20,
-              ),
-              onPressed: () => guarded(
+              value: layout,
+              onChanged: (choice) => guarded(
                 ctx,
                 () => c.saveAppearance(
-                  c.appearance.patch({'materialGrid': !grid}),
+                  c.appearance.patch({'materialLayout': choice.name}),
                 ),
               ),
             ),
@@ -361,7 +363,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
       document: d,
       files: files,
       pupils: c.pupils,
-      grid: grid,
+      layout: layout,
       prepared: prepared.contains(d.id),
       selected: selecting ? selection.contains(d.id) : null,
       onSelect: busy
@@ -399,6 +401,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
     final minWidth = MediaQuery.textScalerOf(ctx).scale(1) > 1.4
         ? 270.0
         : 160.0;
+    final grid = layout == MaterialLayout.grid;
     final columns = grid
         ? ((availableWidth + 12) / (minWidth + 12)).floor().clamp(1, 5)
         : 1;
@@ -406,9 +409,7 @@ extension _MaterialSelectionView on _MaterialLibraryPageState {
     return [
       for (var start = 0; start < documents.length; start += columns)
         Padding(
-          key: start == 0
-              ? ValueKey(grid ? 'material-grid' : 'material-list')
-              : null,
+          key: start == 0 ? ValueKey('material-${layout.name}') : null,
           padding: EdgeInsets.only(bottom: grid ? 12 : 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

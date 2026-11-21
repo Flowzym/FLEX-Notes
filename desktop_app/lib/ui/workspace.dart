@@ -11,15 +11,18 @@ import 'package:flex_notizbuch/ui/backup_dialog.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/draft_buffer.dart' show saveBytesFile;
 import 'package:flex_notizbuch/ui/material_thumbnail.dart';
+import 'package:flex_notizbuch/ui/material_layout_button.dart';
 import 'package:flex_notizbuch/ui/material_library.dart'
     show
         browseOneDrive,
         connectOneDrive,
         cacheMaterial,
-        showMaterialAssignments;
+        showMaterialAssignments,
+        AssignedMaterialsExplorer,
+        showAssignedMaterials;
 import 'package:flex_notizbuch/services/onedrive.dart';
 import 'package:flex_notizbuch/domain/drive_rules.dart' show isDriveRule;
-import 'package:flex_notizbuch/services/docx_preview.dart';
+import 'package:flex_notizbuch/ui/material_docx.dart' show DocxPreview;
 import '../domain/core.dart';
 import '../domain/week_folder.dart';
 import 'package:flex_notizbuch/domain/teaching_sheet.dart';

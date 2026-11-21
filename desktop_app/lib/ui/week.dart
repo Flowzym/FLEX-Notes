@@ -2,7 +2,11 @@ part of 'workspace.dart';
 
 extension _WeekDesk on _DesktopWorkspaceState {
   Widget weekDesk() {
-    final week = buildWeekFolder(c.notebook.currentSnapshot, c.date);
+    final weekends = c.notebook.appearance.weekFolderWeekends;
+    final week = buildWeekFolder(
+      c.notebook.currentSnapshot,
+      c.date,
+    ).take(weekends ? 7 : 5).toList();
     final day = week[c.date.weekday - 1];
     final calendar = day.agenda
         .where((i) => !_deadlineKinds.contains(i.category))
@@ -50,10 +54,26 @@ extension _WeekDesk on _DesktopWorkspaceState {
         ],
       ],
       'Für diesen Tag sind keine Unterlagen bereitgelegt.',
-      action: IconButton(
-        tooltip: 'Unterlagen für diesen Tag auswählen',
-        onPressed: () => run(() => pickDayMaterials(day.day)),
-        icon: const Icon(Icons.add),
+      action: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Zugewiesene Materialien durchsuchen',
+            icon: const Icon(Icons.folder_shared_outlined),
+            onPressed: () => showAssignedMaterials(
+              context,
+              c.notebook,
+              day: dateOnly(day.day),
+              files: c.files,
+              openFile: deskFile,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Unterlagen für diesen Tag auswählen',
+            icon: const Icon(Icons.add),
+            onPressed: () => run(() => pickDayMaterials(day.day)),
+          ),
+        ],
       ),
     );
     return ListView(
@@ -71,7 +91,11 @@ extension _WeekDesk on _DesktopWorkspaceState {
             ),
             TextButton(
               onPressed: () => c.setDate(DateTime.now()),
-              child: const Text('Heute'),
+              child: Text(
+                !weekends && DateTime.now().weekday > DateTime.friday
+                    ? 'Diese Woche'
+                    : 'Heute',
+              ),
             ),
             IconButton(
               tooltip: 'Nächste Woche',
@@ -179,6 +203,19 @@ extension _WeekDesk on _DesktopWorkspaceState {
               icon: const Icon(Icons.playlist_play),
               onPressed: () => deskLesson(dateOnly(day.day)),
             ),
+            Tooltip(
+              message: 'Samstag und Sonntag anzeigen',
+              child: FilterChip(
+                key: const ValueKey('week-folder-weekends'),
+                selected: weekends,
+                label: const Text('Sa/So'),
+                onSelected: (value) => run(
+                  () => c.notebook.saveAppearance(
+                    c.notebook.appearance.patch({'weekFolderWeekends': value}),
+                  ),
+                ),
+              ),
+            ),
             TextButton.icon(
               onPressed: () {
                 redraw(() => calendarView = 'Tag');
@@ -195,6 +232,7 @@ extension _WeekDesk on _DesktopWorkspaceState {
           week: true,
         ))
           ExpansionTile(
+            key: PageStorageKey('week-plan-${m.id}-${dateOnly(day.day)}'),
             title: const Text('Wochenschwerpunkt'),
             subtitle: Text(m.title),
             children: [

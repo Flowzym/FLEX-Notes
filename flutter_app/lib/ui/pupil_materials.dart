@@ -170,6 +170,11 @@ class _PupilMaterialsState extends State<_PupilMaterials> {
       final all = direct.isNotEmpty && chosen.length == direct.length;
       return FlexModal(
         headerActions: [
+          IconButton(
+            tooltip: 'Material-Explorer öffnen',
+            icon: const Icon(Icons.folder_open_outlined),
+            onPressed: () => showAssignedMaterials(ctx, c, pupil: pupil),
+          ),
           if (direct.isNotEmpty && !selecting)
             IconButton(
               tooltip: 'Mehrere Materialien auswählen',

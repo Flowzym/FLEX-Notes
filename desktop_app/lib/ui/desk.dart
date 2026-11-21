@@ -583,154 +583,174 @@ extension _DeskViews on _DesktopWorkspaceState {
             ),
             const VerticalDivider(width: 1),
             Expanded(
-              child: ListView(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 24, 24),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          c.pupil?.name ?? 'Die FLEX-Klasse',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            c.pupil?.name ?? 'Die FLEX-Klasse',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                      if (c.pupil != null)
-                        IconButton(
-                          tooltip: 'Schülerprofil und Dateikürzel bearbeiten',
-                          icon: const Icon(Icons.manage_accounts_outlined),
-                          onPressed: () => editPupil(pupil: c.pupil),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final kind in [
-                        EntryKind.goal,
-                        EntryKind.social,
-                        EntryKind.work,
-                        EntryKind.homework,
-                        EntryKind.note,
-                      ])
-                        OutlinedButton.icon(
-                          onPressed: () => run(
-                            () => newDesktopEntry(kind, pupil: c.pupilId),
+                        if (c.pupil != null)
+                          IconButton(
+                            tooltip: 'Schülerprofil und Dateikürzel bearbeiten',
+                            icon: const Icon(Icons.manage_accounts_outlined),
+                            onPressed: () => editPupil(pupil: c.pupil),
                           ),
-                          icon: Icon(entryIcons[kind.index], size: 16),
-                          label: Text(
-                            kind.label,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 7,
-                    children: [
-                      for (final label in [
-                        'Alle',
-                        'Beobachtungen',
-                        'HÜ',
-                        'Materialien',
-                        'Rückläufe',
-                      ])
-                        ChoiceChip(
-                          label: Text(
-                            label,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          selected: journalFilter == label,
-                          onSelected: (_) =>
-                              redraw(() => journalFilter = label),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (journalFilter == 'Materialien') ...[
-                    OutlinedButton.icon(
-                      onPressed: () => run(importLocal),
-                      icon: const Icon(Icons.file_upload_outlined, size: 16),
-                      label: const Text('Dateien zuordnen'),
+                      ],
                     ),
-                    for (final m in c.materials.where(
-                      (m) =>
-                          c.pupilId == null ||
-                          m.strings('pupilIds').contains(c.pupilId),
-                    ))
-                      materialRow(m),
-                  ] else if (journalFilter == 'Rückläufe') ...[
-                    for (final r in c.notebook.classroom.where(
-                      (d) =>
-                          !d.deleted &&
-                          d.kind == ClassroomKind.returnList &&
-                          (c.pupilId == null ||
-                              d.returnParticipant(c.pupilId!) != null),
-                    ))
-                      returnRow(r),
-                  ] else ...[
-                    for (final r in recentRecords(pupil: c.pupilId).where(
-                      (r) =>
-                          journalFilter == 'Alle' ||
-                          journalFilter == 'HÜ' &&
-                              r.kind == SchoolKind.homework ||
-                          journalFilter == 'Beobachtungen' &&
-                              (r.kind == SchoolKind.social ||
-                                  r.kind == SchoolKind.work),
-                    ))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Surface(
-                          padding: EdgeInsets.zero,
-                          child: Column(
-                            children: [
-                              recordRow(r),
-                              if (r.kind == SchoolKind.homework)
-                                for (final t in r.tasks)
-                                  CheckboxListTile(
-                                    dense: true,
-                                    title: Text(
-                                      t.text,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    subtitle: Text(
-                                      r.taskState(t).label,
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                    value: r.taskState(t) == TaskState.complete,
-                                    onChanged: (v) => run(
-                                      () => updateHomework(
-                                        r,
-                                        t,
-                                        v == true
-                                            ? TaskState.complete
-                                            : TaskState.open,
-                                      ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final kind in [
+                          EntryKind.goal,
+                          EntryKind.social,
+                          EntryKind.work,
+                          EntryKind.homework,
+                          EntryKind.note,
+                        ])
+                          OutlinedButton.icon(
+                            onPressed: () => run(
+                              () => newDesktopEntry(kind, pupil: c.pupilId),
+                            ),
+                            icon: Icon(entryIcons[kind.index], size: 16),
+                            label: Text(
+                              kind.label,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 7,
+                      children: [
+                        for (final label in [
+                          'Alle',
+                          'Beobachtungen',
+                          'HÜ',
+                          'Materialien',
+                          'Rückläufe',
+                        ])
+                          ChoiceChip(
+                            label: Text(
+                              label,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            selected: journalFilter == label,
+                            onSelected: (_) =>
+                                redraw(() => journalFilter = label),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (journalFilter == 'Materialien')
+                      Expanded(
+                        child: AssignedMaterialsExplorer(
+                          key: ValueKey(c.pupilId),
+                          controller: c.notebook,
+                          pupil: c.pupil,
+                          includeUnassigned: c.pupil == null,
+                          files: c.files,
+                          openFile: (m) => c.edit(m),
+                          onImport: () =>
+                              run(() => importLocal(stayInJournal: true)),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            if (journalFilter == 'Rückläufe') ...[
+                              for (final r in c.notebook.classroom.where(
+                                (d) =>
+                                    !d.deleted &&
+                                    d.kind == ClassroomKind.returnList &&
+                                    (c.pupilId == null ||
+                                        d.returnParticipant(c.pupilId!) !=
+                                            null),
+                              ))
+                                returnRow(r),
+                            ] else ...[
+                              for (final r
+                                  in recentRecords(pupil: c.pupilId).where(
+                                    (r) =>
+                                        journalFilter == 'Alle' ||
+                                        journalFilter == 'HÜ' &&
+                                            r.kind == SchoolKind.homework ||
+                                        journalFilter == 'Beobachtungen' &&
+                                            (r.kind == SchoolKind.social ||
+                                                r.kind == SchoolKind.work),
+                                  ))
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Surface(
+                                    padding: EdgeInsets.zero,
+                                    child: Column(
+                                      children: [
+                                        recordRow(r),
+                                        if (r.kind == SchoolKind.homework)
+                                          for (final t in r.tasks)
+                                            CheckboxListTile(
+                                              dense: true,
+                                              title: Text(
+                                                t.text,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              subtitle: Text(
+                                                r.taskState(t).label,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                              value:
+                                                  r.taskState(t) ==
+                                                  TaskState.complete,
+                                              onChanged: (v) => run(
+                                                () => updateHomework(
+                                                  r,
+                                                  t,
+                                                  v == true
+                                                      ? TaskState.complete
+                                                      : TaskState.open,
+                                                ),
+                                              ),
+                                            ),
+                                      ],
                                     ),
                                   ),
+                                ),
+                              if (journalFilter == 'Alle')
+                                for (final e in c.notebook.entries.where(
+                                  (e) =>
+                                      !e.deleted &&
+                                      (c.pupilId == null ||
+                                          e.pupilId == c.pupilId),
+                                ))
+                                  orgaRow(e),
+                              if (recentRecords(pupil: c.pupilId).isEmpty)
+                                const QuietEmpty(
+                                  'Noch keine Beobachtungen',
+                                  'Die Eintragsaktionen oben öffnen die Bearbeitung rechts.',
+                                ),
                             ],
-                          ),
+                          ],
                         ),
                       ),
-                    if (journalFilter == 'Alle')
-                      for (final e in c.notebook.entries.where(
-                        (e) =>
-                            !e.deleted &&
-                            (c.pupilId == null || e.pupilId == c.pupilId),
-                      ))
-                        orgaRow(e),
-                    if (recentRecords(pupil: c.pupilId).isEmpty)
-                      const QuietEmpty(
-                        'Noch keine Beobachtungen',
-                        'Die Eintragsaktionen oben öffnen die Bearbeitung rechts.',
-                      ),
                   ],
-                ],
+                ),
               ),
             ),
           ],

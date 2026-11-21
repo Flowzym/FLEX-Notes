@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flex_notizbuch/services/reminders.dart';
+import 'package:flex_notizbuch/domain/teaching_sheet.dart' show teachingSources;
 import '../domain/core.dart';
 import '../domain/desktop_calendar.dart';
 export '../domain/desktop_calendar.dart';
@@ -52,6 +53,8 @@ class WorkspaceController extends ChangeNotifier {
   }
 
   void _notebookChanged() {
+    _alignWeekDay();
+    _alignJournalPreview();
     if (_remindersReady) unawaited(settleReminders());
     notifyListeners();
   }
@@ -97,6 +100,8 @@ class WorkspaceController extends ChangeNotifier {
     section = value;
     query = '';
     selectedMaterials.clear();
+    _alignWeekDay();
+    _alignJournalPreview();
     notifyListeners();
   }
 
@@ -107,12 +112,41 @@ class WorkspaceController extends ChangeNotifier {
 
   void selectPupil(String? id) {
     pupilId = id;
+    _alignJournalPreview();
+    selectedMaterials.clear();
     notifyListeners();
   }
 
   void setDate(DateTime value) {
     date = value;
+    _alignWeekDay();
     notifyListeners();
+  }
+
+  void _alignJournalPreview() {
+    if (materialId != null &&
+        section == WorkspaceSection.journal &&
+        pupilId != null &&
+        material?.strings('pupilIds').contains(pupilId) != true) {
+      materialId = null;
+    }
+  }
+
+  void _alignWeekDay() {
+    if (section != WorkspaceSection.week) return;
+    if (!notebook.appearance.weekFolderWeekends &&
+        date.weekday > DateTime.friday) {
+      date = calendarDay(date, DateTime.friday - date.weekday);
+    }
+    if (materialId == null) return;
+    final day = dateOnly(date),
+        docs = notebook.currentSnapshot.active().classroom;
+    final belongsToDay = [
+      ...preparedDayMaterials(docs, day),
+      ...suggestedMaterials(docs, day),
+      ...teachingSources(docs, day, week: true),
+    ].any((file) => file.id == materialId);
+    if (!belongsToDay) materialId = null;
   }
 
   Future<void> parkEditor() => _sequence(_parkEditor);

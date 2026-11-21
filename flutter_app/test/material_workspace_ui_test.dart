@@ -85,6 +85,14 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  Future<void> chooseLayout(WidgetTester t, String label) async {
+    await tap(t, find.byKey(const ValueKey('material-layout')));
+    await tap(
+      t,
+      find.widgetWithText(CheckedPopupMenuItem<MaterialLayout>, label),
+    );
+  }
+
   Future<void> selectFiles(WidgetTester t) async {
     await tap(t, find.byTooltip('Mehrere Dateien auswählen'));
   }
@@ -181,6 +189,8 @@ void main() {
       await selectFiles(t);
       await tap(t, find.byTooltip('Alle angezeigten auswählen'));
       expect(find.text('2 ausgewählt'), findsOneWidget);
+      await chooseLayout(t, 'Kompaktliste');
+      expect(find.text('2 ausgewählt'), findsOneWidget);
       await tap(t, find.widgetWithText(OutlinedButton, 'Zuordnen'));
       await tap(t, find.text('Kind'));
       await tap(t, find.text('Übernehmen'));
@@ -211,8 +221,14 @@ void main() {
     final b = t.getTopLeft(find.byKey(ValueKey(docx.id)));
     expect(a.dy < b.dy || a.dy == b.dy && a.dx < b.dx, isTrue);
     expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
-    await tap(t, find.byTooltip('Rasteransicht'));
-    await tap(t, find.byTooltip('Listenansicht'));
+    await chooseLayout(t, 'Kacheln');
+    expect(find.byKey(const ValueKey('material-grid')), findsOneWidget);
+    await chooseLayout(t, 'Kompaktliste');
+    expect(find.byKey(const ValueKey('material-compact')), findsOneWidget);
+    expect(find.byType(MaterialThumbnail), findsNothing);
+    await c.reload();
+    expect(c.appearance.materialLayout, MaterialLayout.compact);
+    await chooseLayout(t, 'Liste');
     expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
     await tap(t, filterButton);
     await tap(t, find.byKey(const ValueKey('material-format-docx')));
@@ -773,8 +789,8 @@ void main() {
         }
         await capture(t, key, 'materialien-${width.toInt()}-${scale.toInt()}');
         expect(find.byKey(const ValueKey('material-list')), findsOneWidget);
-        await tap(t, find.byTooltip('Rasteransicht'));
-        await tap(t, find.byTooltip('Listenansicht'));
+        await chooseLayout(t, 'Kacheln');
+        await chooseLayout(t, 'Liste');
         await capture(
           t,
           key,

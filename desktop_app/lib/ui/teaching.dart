@@ -23,6 +23,7 @@ extension _TeachingDesk on _DesktopWorkspaceState {
                   key: ValueKey(m.text('localKey')),
                   material: m,
                   files: c.files,
+                  loadOnline: loadDocxPreview,
                 ),
               ),
               TextButton.icon(
@@ -44,6 +45,7 @@ extension _TeachingDesk on _DesktopWorkspaceState {
   Future<void> deskLesson(String day, {CalendarItem? item}) async {
     final occurrence = item?.lesson;
     var selectedDay = day;
+    final timelineKey = GlobalKey();
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (ctx) => StatefulBuilder(
@@ -78,6 +80,7 @@ extension _TeachingDesk on _DesktopWorkspaceState {
                   ),
                 ];
                 final timeline = LessonFlowPage(
+                  key: timelineKey,
                   controller: c.notebook,
                   initialDate: day,
                   initialTarget: occurrence?.target,
@@ -95,6 +98,7 @@ extension _TeachingDesk on _DesktopWorkspaceState {
                         key: ValueKey(sourceFiles.map((m) => m.id).join('|')),
                         sources: sourceFiles,
                         files: c.files,
+                        loadOnline: loadDocxPreview,
                         onReview: (m) => openTeachingReview(
                           ctx,
                           c.notebook,
@@ -190,9 +194,11 @@ class _DeskPlanSource extends StatefulWidget {
     required this.sources,
     required this.files,
     required this.onReview,
+    required this.loadOnline,
   });
   final List<ClassroomDocument> sources;
   final MaterialFiles files;
+  final Future<Uint8List?> Function(ClassroomDocument) loadOnline;
   final Future<void> Function(ClassroomDocument) onReview;
   @override
   State<_DeskPlanSource> createState() => _DeskPlanSourceState();
@@ -240,6 +246,7 @@ class _DeskPlanSourceState extends State<_DeskPlanSource> {
               key: ValueKey('${m.id}/${m.text('localKey')}'),
               material: m,
               files: widget.files,
+              loadOnline: widget.loadOnline,
             ),
           ),
         ],

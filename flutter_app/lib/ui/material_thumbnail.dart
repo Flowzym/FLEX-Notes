@@ -127,7 +127,7 @@ class _DocumentThumbnailViewState extends State<DocumentThumbnailView> {
             child: Tooltip(
               message: missing
                   ? 'Vorschau nicht verfügbar · Datei öffnen oder offline laden'
-                  : widget.extension == 'docx'
+                  : data?.text != null
                   ? 'Textvorschau'
                   : 'Vorschau',
               child: ClipRRect(

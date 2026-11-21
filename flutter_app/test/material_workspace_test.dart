@@ -547,6 +547,56 @@ void main() {
     },
   );
   test(
+    'DOCX-Dokumentvorschau erhält Tabellen, Absatzformatierung und eingebettete Bilder',
+    () {
+      final png = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jA/8AAAAASUVORK5CYII=',
+      );
+      final package = Archive();
+      void add(String path, List<int> bytes) =>
+          package.add(ArchiveFile(path, bytes.length, bytes));
+      add('[Content_Types].xml', utf8.encode('<Types/>'));
+      add(
+        'word/document.xml',
+        utf8.encode(
+          word(
+            '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Auftrag</w:t></w:r>'
+            '<w:del><w:r><w:t>Alt</w:t></w:r></w:del></w:p>'
+            '<w:tbl><w:tblGrid><w:gridCol w:w="1000"/><w:gridCol w:w="2000"/></w:tblGrid>'
+            '<w:tr><w:tc><w:tcPr><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:t>Skizze</w:t>'
+            '<w:drawing><blip embed="r1"/></w:drawing></w:r></w:p></w:tc></w:tr></w:tbl>'
+            '<w:p><w:r><w:drawing><blip embed="remote"/></w:drawing></w:r></w:p>',
+          ),
+        ),
+      );
+      add(
+        'word/_rels/document.xml.rels',
+        utf8.encode(
+          '<Relationships>'
+          '<Relationship Id="r1" Type="test/image" Target="media/p.png"/>'
+          '<Relationship Id="remote" Type="test/image" TargetMode="External" Target="https://example.org/never.png"/>'
+          '</Relationships>',
+        ),
+      );
+      add('word/media/p.png', png);
+      add('docProps/thumbnail.png', png);
+      final bytes = Uint8List.fromList(ZipEncoder().encode(package));
+      final blocks = readDocxDocument(bytes);
+      expect(blocks[0]['runs'], [
+        {'text': 'Auftrag', 'b': true},
+      ]);
+      final table = blocks[1];
+      expect(table['columns'], 2);
+      expect(table['widths'], [1000, 2000]);
+      final cell = table['rows'][0][0];
+      expect(cell['span'], 2);
+      expect(cell['blocks'][0]['runs'][0]['text'], 'Skizze');
+      expect(cell['blocks'][1]['bytes'], orderedEquals(png));
+      expect(blocks[2]['type'], 'notice');
+      expect(readDocxCover(bytes), orderedEquals(png));
+    },
+  );
+  test(
     'DOCX rejects malformed XML, entity declarations and oversized content',
     () {
       for (final source in [

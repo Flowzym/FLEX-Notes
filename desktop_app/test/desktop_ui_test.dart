@@ -16,6 +16,188 @@ import 'workspace_test.dart' show MemoryFiles;
 
 void main() {
   testWidgets(
+    'Wochenmappe wechselt nach dem Scrollen zu einer älteren Woche und einem leeren Tag',
+    (t) async {
+      t.view.physicalSize = const Size(1480, 740);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final repo = SqliteNotebook(
+        NotebookDatabase(
+          NativeDatabase.memory(),
+          File('assets/schema.sql').readAsStringSync(),
+        ),
+      );
+      final n = NotebookController(repo), files = MemoryFiles();
+      final nov = DateTime(2026, 11, 18), sept = DateTime(2026, 9, 30);
+      final entries = [
+        for (var i = 0; i < 20; i++)
+          ClassroomDocument.create(ClassroomKind.material, 'Datei $i', {
+            'extension': 'pdf',
+            'url': 'https://example.org/$i.pdf',
+          }),
+      ];
+      await t.runAsync(() async {
+        await n.initialize();
+        await repo.saveClassroomDocuments([
+          ...entries,
+          prepareMaterials(
+            [],
+            dateOnly(nov),
+            entries.map((m) => m.id).toList(),
+          ),
+          ClassroomDocument.create(
+            ClassroomKind.material,
+            'Septemberwoche.docx',
+            {
+              'extension': 'docx',
+              'url': 'https://example.org/september.docx',
+              'planning': {
+                'use': 'weekPlan',
+                'day': '',
+                'week': '2026-09-28',
+                'year': '2026-27',
+              },
+            },
+          ),
+        ]);
+        await n.reload();
+      });
+      final c = WorkspaceController(n, files: files)
+        ..setDate(nov)
+        ..navigate(WorkspaceSection.week);
+      await t.pumpWidget(DesktopApp(controller: c));
+      await t.pumpAndSettle();
+      final list = find.byKey(const PageStorageKey('week-folder'));
+      final position = t
+          .state<ScrollableState>(
+            find.descendant(of: list, matching: find.byType(Scrollable)).first,
+          )
+          .position;
+      position.jumpTo(140);
+      await t.pumpAndSettle();
+      position.jumpTo(0);
+      await t.pumpAndSettle();
+      await t.runAsync(() => c.edit(entries.first));
+      await t.pumpAndSettle();
+      expect(find.text('Dokumentvorschau'), findsOneWidget);
+      c.setDate(sept);
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      expect(find.text('Wochenschwerpunkt'), findsOneWidget);
+      expect(find.text('Dokumentvorschau'), findsNothing);
+      await t.tap(find.text('Wochenschwerpunkt'));
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Vorherige Woche'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Für diesen Tag sind keine Unterlagen bereitgelegt.'),
+        findsOneWidget,
+      );
+      expect(find.text('Sa'), findsNothing);
+      await t.tap(find.byKey(const ValueKey('week-folder-weekends')));
+      await t.pumpAndSettle();
+      expect(find.text('Sa'), findsOneWidget);
+      await t.tap(find.text('So'));
+      await t.pumpAndSettle();
+      expect(c.date.weekday, DateTime.sunday);
+      await t.tap(find.byKey(const ValueKey('week-folder-weekends')));
+      await t.pumpAndSettle();
+      expect(c.date.weekday, DateTime.friday);
+      expect(find.text('So'), findsNothing);
+      await t.runAsync(n.reload);
+      expect(n.appearance.weekFolderWeekends, isFalse);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      c.dispose();
+      n.dispose();
+      await t.runAsync(repo.close);
+    },
+  );
+
+  testWidgets(
+    'Journal findet zugewiesene Dateien aus Unterordnern und wechselt den Vorschaukontext',
+    (t) async {
+      t.view.physicalSize = const Size(1480, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final repo = SqliteNotebook(
+        NotebookDatabase(
+          NativeDatabase.memory(),
+          File('assets/schema.sql').readAsStringSync(),
+        ),
+      );
+      final n = NotebookController(repo);
+      final a = ClassroomDocument.create(ClassroomKind.material, 'Schachzüge', {
+        'url': 'https://example.org/a',
+        'extension': 'pdf',
+        'sourcePath': 'FLEX/Unterricht/Schach/Blatt.pdf',
+        'pupilIds': ['a'],
+        'pupilDates': [
+          {'pupilId': 'a', 'date': '2026-11-18'},
+        ],
+      });
+      await t.runAsync(() async {
+        await n.initialize();
+        await n.savePupil(const Pupil(id: 'a', name: 'Kind A'));
+        await n.savePupil(const Pupil(id: 'b', name: 'Kind B'));
+        await n.saveClassroom(a);
+      });
+      final c = WorkspaceController(n, files: MemoryFiles())
+        ..navigate(WorkspaceSection.journal)
+        ..selectPupil('a');
+      await t.pumpWidget(DesktopApp(controller: c));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(ChoiceChip, 'Materialien'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('FLEX / Unterricht / Schach'));
+      await t.pumpAndSettle();
+      expect(find.byKey(ValueKey('assigned-file-${a.id}')), findsOneWidget);
+      await t.tap(find.text('Schachzüge'));
+      await t.pumpAndSettle();
+      expect(find.text('Dokumentvorschau'), findsOneWidget);
+      await t.tap(find.text('Kind B'));
+      await t.pumpAndSettle();
+      expect(find.text('Schachzüge'), findsNothing);
+      expect(find.text('Dokumentvorschau'), findsNothing);
+      expect(
+        find.text('Keine zugewiesenen Materialien in dieser Ansicht.'),
+        findsOneWidget,
+      );
+      c.navigate(WorkspaceSection.materials);
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('material-layout')));
+      await t.pumpAndSettle();
+      await t.tap(
+        find.widgetWithText(CheckedPopupMenuItem<MaterialLayout>, 'Kacheln'),
+      );
+      await t.pumpAndSettle();
+      expect(
+        find.byKey(const PageStorageKey('desk-material-grid')),
+        findsOneWidget,
+      );
+      await t.tap(find.byTooltip('Alle sichtbaren Materialien auswählen'));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('material-layout')));
+      await t.pumpAndSettle();
+      await t.tap(
+        find.widgetWithText(
+          CheckedPopupMenuItem<MaterialLayout>,
+          'Kompaktliste',
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('1 ausgewählt'), findsOneWidget);
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+      c.dispose();
+      n.dispose();
+      await t.runAsync(repo.close);
+    },
+  );
+
+  testWidgets(
     'organisation filters are independent and a return can be reopened from the keyboard',
     (tester) async {
       tester.view.physicalSize = const Size(1200, 800);

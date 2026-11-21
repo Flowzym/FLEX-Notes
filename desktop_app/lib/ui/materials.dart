@@ -1,7 +1,7 @@
 part of 'workspace.dart';
 
 extension _MaterialViews on _DesktopWorkspaceState {
-  Future<void> importLocal() async {
+  Future<void> importLocal({bool stayInJournal = false}) async {
     final picked = await openFiles(
       acceptedTypeGroups: const [
         XTypeGroup(
@@ -47,7 +47,7 @@ extension _MaterialViews on _DesktopWorkspaceState {
       batch,
       assignTo: c.section == WorkspaceSection.journal ? c.pupilId : null,
     );
-    c.navigate(WorkspaceSection.materials);
+    if (!stayInJournal) c.navigate(WorkspaceSection.materials);
     message(
       '${picked.length} Datei${picked.length == 1 ? '' : 'en'} importiert',
     );
@@ -85,6 +85,7 @@ extension _MaterialViews on _DesktopWorkspaceState {
                 ? order
                 : a.title.toLowerCase().compareTo(b.title.toLowerCase());
           });
+    final layout = c.notebook.appearance.materialLayout;
     final visible = entries.map((m) => m.id).toSet();
     final selected = c.selectedMaterials.intersection(visible);
     return Column(
@@ -162,6 +163,16 @@ extension _MaterialViews on _DesktopWorkspaceState {
               spacing: 7,
               runSpacing: 4,
               children: [
+                ActionChip(
+                  avatar: const Icon(Icons.folder_shared_outlined, size: 16),
+                  label: const Text('Zuordnungen'),
+                  onPressed: () => showAssignedMaterials(
+                    context,
+                    c.notebook,
+                    files: c.files,
+                    openFile: deskFile,
+                  ),
+                ),
                 for (final scope in [
                   'Alle',
                   'Ohne Zuordnung',
@@ -214,6 +225,17 @@ extension _MaterialViews on _DesktopWorkspaceState {
                       ? '${entries.length} Materialien'
                       : '${selected.length} ausgewählt',
                   style: const TextStyle(color: muted),
+                ),
+              ),
+              MaterialLayoutButton(
+                key: const ValueKey('material-layout'),
+                value: layout,
+                onChanged: (choice) => run(
+                  () => c.notebook.saveAppearance(
+                    c.notebook.appearance.patch({
+                      'materialLayout': choice.name,
+                    }),
+                  ),
                 ),
               ),
               if (selected.isNotEmpty) ...[
@@ -283,124 +305,206 @@ extension _MaterialViews on _DesktopWorkspaceState {
                       : 'Ändere die Suche oder die gewählten Filter.',
                   icon: Icons.folder_open_outlined,
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                  itemCount: entries.length,
-                  itemBuilder: (_, i) =>
-                      materialRow(entries[i], selectable: true),
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    const padding = EdgeInsets.fromLTRB(28, 0, 28, 28);
+                    final minTileWidth = MediaQuery.textScalerOf(
+                      context,
+                    ).scale(190);
+                    final columns = layout == MaterialLayout.grid
+                        ? ((constraints.maxWidth - padding.horizontal + 12) /
+                                  (minTileWidth + 12))
+                              .floor()
+                              .clamp(1, 6)
+                        : 1;
+                    return ListView.builder(
+                      key: PageStorageKey('desk-material-${layout.name}'),
+                      padding: padding,
+                      itemCount: (entries.length + columns - 1) ~/ columns,
+                      itemBuilder: (_, row) {
+                        if (layout != MaterialLayout.grid) {
+                          return materialRow(
+                            entries[row],
+                            selectable: true,
+                            layout: layout,
+                          );
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var col = 0; col < columns; col++) ...[
+                                if (col > 0) const SizedBox(width: 12),
+                                Expanded(
+                                  child: row * columns + col < entries.length
+                                      ? materialRow(
+                                          entries[row * columns + col],
+                                          selectable: true,
+                                          layout: layout,
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
         ),
       ],
     );
   }
 
-  Widget materialRow(ClassroomDocument m, {bool selectable = false}) =>
-      Draggable<String>(
-        data: m.id,
-        feedback: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(8),
+  Widget materialRow(
+    ClassroomDocument m, {
+    bool selectable = false,
+    MaterialLayout layout = MaterialLayout.list,
+  }) {
+    final grid = layout == MaterialLayout.grid;
+    final compact = layout == MaterialLayout.compact;
+    final selected = selectable && c.selectedMaterials.contains(m.id);
+    final focused = c.materialId == m.id;
+    final pupils = m.strings('pupilIds').map(c.name).join(', ');
+    final metadata = [
+      m.text('extension').toUpperCase(),
+      m.text('subject'),
+      m.text('localKey').isEmpty ? 'OneDrive / Link' : 'Offline verfügbar',
+      if (compact) pupils,
+    ].where((v) => v.isNotEmpty).join(' · ');
+    final check = selectable
+        ? Checkbox(
+            value: selected,
+            semanticLabel: '${m.title} auswählen',
+            onChanged: (v) => redraw(() {
+              if (v == true) {
+                c.selectedMaterials.add(m.id);
+              } else {
+                c.selectedMaterials.remove(m.id);
+              }
+            }),
+          )
+        : null;
+    final title = Tooltip(
+      message: m.title,
+      child: Text(
+        m.title,
+        maxLines: grid ? 2 : 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+    final info = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        title,
+        if (!compact) const SizedBox(height: 3),
+        Text(
+          metadata,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, color: muted),
+        ),
+        if (pupils.isNotEmpty && !compact)
+          Text(
+            pupils,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, color: olive),
+          ),
+      ],
+    );
+    final actions = [
+      IconButton(
+        tooltip: m.flag('favorite')
+            ? 'Favorit entfernen'
+            : 'Als Favorit markieren',
+        onPressed: () => run(
+          () => c.notebook.saveClassroom(
+            m.patch({'favorite': !m.flag('favorite')}),
+          ),
+        ),
+        icon: Icon(
+          m.flag('favorite') ? Icons.star_rounded : Icons.star_outline_rounded,
+          size: 19,
+        ),
+      ),
+      IconButton(
+        tooltip: 'Schüler und Unterrichtsdatum zuordnen',
+        onPressed: () => run(() => assignDialog([m.id])),
+        icon: const Icon(Icons.person_add_alt, size: 18),
+      ),
+    ];
+    return Draggable<String>(
+      key: ValueKey('desk-material-${m.id}'),
+      data: m.id,
+      feedback: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(padding: const EdgeInsets.all(14), child: Text(m.title)),
+      ),
+      child: Material(
+        color: selected || focused
+            ? wash.withValues(alpha: .65)
+            : grid
+            ? paper
+            : Colors.transparent,
+        shape: grid
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9),
+                side: BorderSide(color: selected || focused ? olive : line),
+              )
+            : const Border(bottom: BorderSide(color: line)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => run(() => c.edit(m)),
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text(m.title),
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: c.materialId == m.id
-                ? wash.withValues(alpha: .5)
-                : Colors.transparent,
-            border: const Border(bottom: BorderSide(color: line)),
-          ),
-          child: InkWell(
-            onTap: () => run(() => c.edit(m)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Row(
-                children: [
-                  if (selectable)
-                    SizedBox(
-                      width: 34,
-                      child: Checkbox(
-                        value: c.selectedMaterials.contains(m.id),
-                        onChanged: (v) => redraw(() {
-                          v == true
-                              ? c.selectedMaterials.add(m.id)
-                              : c.selectedMaterials.remove(m.id);
-                        }),
-                      ),
-                    ),
-                  MaterialThumbnail(
-                    material: m,
-                    files: c.files,
-                    width: 42,
-                    height: 54,
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          m.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          [
-                            m.text('extension').toUpperCase(),
-                            m.text('subject'),
-                            m.text('localKey').isEmpty
-                                ? 'OneDrive / Link'
-                                : 'Offline verfügbar',
-                          ].where((v) => v.isNotEmpty).join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10, color: muted),
-                        ),
-                        if (m.strings('pupilIds').isNotEmpty)
-                          Text(
-                            m.strings('pupilIds').map(c.name).join(', '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 10, color: olive),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: m.flag('favorite')
-                        ? 'Favorit entfernen'
-                        : 'Als Favorit markieren',
-                    onPressed: () => run(
-                      () => c.notebook.saveClassroom(
-                        m.patch({'favorite': !m.flag('favorite')}),
-                      ),
-                    ),
-                    icon: Icon(
-                      m.flag('favorite')
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
-                      size: 19,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Schüler und Unterrichtsdatum zuordnen',
-                    onPressed: () => run(() => assignDialog([m.id])),
-                    icon: const Icon(Icons.person_add_alt, size: 18),
-                  ),
-                ],
-              ),
+            padding: EdgeInsets.symmetric(
+              horizontal: grid ? 12 : 8,
+              vertical: compact ? 1 : 10,
             ),
+            child: grid
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MaterialThumbnail(
+                        material: m,
+                        files: c.files,
+                        width: double.infinity,
+                        height: 112,
+                      ),
+                      const SizedBox(height: 9),
+                      info,
+                      Row(children: [?check, const Spacer(), ...actions]),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      ?check,
+                      if (!compact) ...[
+                        MaterialThumbnail(
+                          material: m,
+                          files: c.files,
+                          width: 42,
+                          height: 54,
+                        ),
+                        const SizedBox(width: 13),
+                      ],
+                      Expanded(child: info),
+                      const SizedBox(width: 8),
+                      ...actions,
+                    ],
+                  ),
           ),
         ),
-      );
+      ),
+    );
+  }
+
   Widget materialInspector(ClassroomDocument m) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -446,7 +550,11 @@ extension _MaterialViews on _DesktopWorkspaceState {
                           ),
                         ),
                         Expanded(
-                          child: DocumentPreview(material: m, files: c.files),
+                          child: DocumentPreview(
+                            material: m,
+                            files: c.files,
+                            loadOnline: loadDocxPreview,
+                          ),
                         ),
                       ],
                     ),
@@ -500,9 +608,9 @@ extension _MaterialViews on _DesktopWorkspaceState {
             SizedBox(
               height: 330,
               child: DocumentPreview(
-                key: ValueKey('${m.id}:${m.revision}'),
                 material: m,
                 files: c.files,
+                loadOnline: loadDocxPreview,
               ),
             ),
             const SizedBox(height: 12),
@@ -735,6 +843,20 @@ extension _MaterialViews on _DesktopWorkspaceState {
     }
   }
 
+  Future<Uint8List?> loadDocxPreview(ClassroomDocument m) async {
+    if (!driveLoaded) {
+      await drive.load();
+      driveLoaded = true;
+    }
+    if (!mounted) return null;
+    if (!drive.connected) await connectOneDrive(context, drive);
+    if (!drive.connected || !mounted) return null;
+    final item = await drive.item(m.text('driveId'), m.text('itemId'));
+    final bytes = await drive.download(item);
+    validateMaterialBytes(bytes, 'docx');
+    return bytes;
+  }
+
   Future<void> openOriginal(ClassroomDocument m) async {
     if (m.text('localKey').isNotEmpty) {
       await saveBytesFile(
@@ -821,7 +943,9 @@ class DocumentPreview extends StatefulWidget {
     super.key,
     required this.material,
     required this.files,
+    this.loadOnline,
   });
+  final Future<Uint8List?> Function(ClassroomDocument)? loadOnline;
   final ClassroomDocument material;
   final MaterialFiles files;
   @override
@@ -829,9 +953,25 @@ class DocumentPreview extends StatefulWidget {
 }
 
 class _DocumentPreviewState extends State<DocumentPreview> {
-  late final Future<Uint8List?> bytes = widget.material.text('localKey').isEmpty
-      ? Future.value(null)
-      : widget.files.read(widget.material.text('localKey'));
+  late Future<Uint8List?> bytes = localBytes();
+  Future<Uint8List?> localBytes() async {
+    final key = widget.material.text('localKey');
+    return key.isEmpty ? null : widget.files.read(key);
+  }
+
+  @override
+  void didUpdateWidget(DocumentPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.files != oldWidget.files ||
+        widget.material.id != oldWidget.material.id ||
+        widget.material.text('localKey') !=
+            oldWidget.material.text('localKey') ||
+        widget.material.text('remoteEtag') !=
+            oldWidget.material.text('remoteEtag')) {
+      bytes = localBytes();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(9),
@@ -840,14 +980,41 @@ class _DocumentPreviewState extends State<DocumentPreview> {
       child: FutureBuilder<Uint8List?>(
         future: bytes,
         builder: (ctx, s) {
+          if (s.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final m = widget.material;
+          if ((s.hasError || s.data == null) &&
+              widget.loadOnline != null &&
+              m.text('extension') == 'docx' &&
+              m.text('itemId').isNotEmpty &&
+              m.text('driveId').isNotEmpty &&
+              !m.flag('sourceMissing')) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (s.hasError)
+                    Text(
+                      s.error is DomainError
+                          ? (s.error! as DomainError).message
+                          : 'Die Datei konnte nicht geladen werden.',
+                    ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.cloud_download_outlined),
+                    label: const Text('Vorschau aus OneDrive laden'),
+                    onPressed: () =>
+                        setState(() => bytes = widget.loadOnline!(m)),
+                  ),
+                ],
+              ),
+            );
+          }
           if (s.hasError) {
             return const QuietEmpty(
               'Datei nicht verfügbar',
               'Offline-Kopie aktualisieren oder die Originaldatei erneut importieren.',
             );
-          }
-          if (s.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
           }
           if (s.data == null) {
             return const QuietEmpty(
@@ -865,48 +1032,7 @@ class _DocumentPreviewState extends State<DocumentPreview> {
             'jpg' || 'png' => InteractiveViewer(
               child: Image.memory(s.data!, fit: BoxFit.contain),
             ),
-            'docx' => FutureBuilder<List<Json>>(
-              future: Future.sync(() => readDocxPreview(s.data!)),
-              builder: (ctx, doc) {
-                if (doc.hasError) {
-                  return const QuietEmpty(
-                    'Vorschau nicht möglich',
-                    'Die Originaldatei lässt sich weiterhin exportieren.',
-                  );
-                }
-                if (!doc.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: SelectionArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'TEXTVORSCHAU',
-                          style: TextStyle(fontSize: 9, color: muted),
-                        ),
-                        const SizedBox(height: 12),
-                        for (final block in doc.data!)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Text(
-                              block['text'] as String? ??
-                                  (block['rows'] as List? ?? [])
-                                      .map((r) => (r as List).join('  |  '))
-                                      .join('\n'),
-                              style: TextStyle(
-                                fontSize: block['type'] == 'heading' ? 18 : 12,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            'docx' => DocxPreview(bytes: s.requireData!),
             _ => const SizedBox(),
           };
         },
