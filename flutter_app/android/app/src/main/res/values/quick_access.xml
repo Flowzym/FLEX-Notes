@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<resources>
+    <style name="FlexWidgetAction">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textColor">#414A31</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:padding">4dp</item>
+        <item name="android:maxLines">2</item>
+    </style>
+    <string name="widget_description">FLEX öffnen: Notizen, Kalender, Scanner und Hausübungskontrolle.</string>
+    <string name="shortcut_notes">Notizen</string>
+    <string name="shortcut_calendar">Kalender</string>
+    <string name="shortcut_scan">Scannen</string>
+    <string name="shortcut_homework">HÜ-Kontrolle</string>
+</resources>

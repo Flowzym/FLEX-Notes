@@ -1,0 +1,14 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/return_workflow_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: pupil return persists across restart and appears in both workspaces
+00:04 +1: new return is visible even after task, done and search filters
+00:06 +2: quick add in a pupil workspace preselects only that pupil
+00:07 +3: return draft is accessible and resumable from pupil
+00:08 +4: return draft is accessible and resumable from tasks
+00:09 +5: return draft is accessible and resumable from editor
+00:10 +6: participants error is visible and a return can be saved after correction
+00:11 +7: storage error is visible and a return can be saved after correction
+00:12 +8: pupil return previews show shared and own files, never another pupil files
+00:13 +9: pupil return search and counters respect individual status and deletion
+00:13 +10: (tearDownAll)
+00:13 +10: All tests passed!

@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flex_notizbuch/ui/compact_switch.dart';
 import 'dart:async';
@@ -18,29 +19,12 @@ import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/domain/observation_catalog.dart';
 import 'package:flex_notizbuch/ui/option_bar.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SqliteNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = SqliteNotebook(
       NotebookDatabase(
@@ -76,12 +60,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
       ),
     );
     await t.pumpAndSettle();
@@ -187,7 +165,7 @@ void main() {
         t.testTextInput.log.clear();
         for (final step in [
           ('appointment', -110.0),
-          ('appointment', -110.0),
+          if (editing) ('appointment', -110.0),
           ('task', 110.0),
           ('note', 110.0),
           ('note', 110.0),
@@ -467,7 +445,7 @@ void main() {
         ),
       );
       final control = find.descendant(
-        of: find.byKey(const ValueKey('section-Beteiligt')),
+        of: find.byKey(const ValueKey('section-Zielbezug')),
         matching: find.byType(CompactSwitch),
       );
       await t.ensureVisible(control);
@@ -531,7 +509,7 @@ void main() {
           if (view.$2 == 1) {
             expect(
               t.getSize(find.byKey(const ValueKey('tone-pill'))).height,
-              inInclusiveRange(38, 40),
+              inInclusiveRange(42, 46),
             );
           }
           await capture(t, boundary, 'tone-$tone-$suffix');

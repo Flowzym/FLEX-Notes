@@ -1,3 +1,7 @@
+// Full-strength cryptographic operations need headroom on shared CI runners.
+@Timeout(Duration(minutes: 2))
+library;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -88,6 +92,7 @@ class FakeReminders implements ReminderPort {
   Future<void> apply(
     List<ReminderRequest> requests, {
     required bool exact,
+    Set<int> retainDelivered = const {},
   }) async {
     applied.add(requests);
   }
@@ -117,6 +122,45 @@ void main() {
     authenticate: auth ?? () async => true,
     protectScreen: (_) async {},
     now: now,
+  );
+  test(
+    'legacy PIN upgrades only after successful PIN entry; failed write stays locked',
+    () async {
+      final secrets = MemorySecrets();
+      secrets.values[AppLock.key] = File(
+        'test/fixtures/pin_v1.json',
+      ).readAsStringSync();
+      final lock = lockFor(secrets);
+      await lock.load();
+      expect(await lock.unlockPin('000000'), false);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+      expect(await lock.unlockBiometric(), true);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+      lock.lock();
+      expect(await lock.unlockPin('654321'), true);
+      final upgraded = jsonDecode(secrets.values[AppLock.key]!);
+      expect(upgraded['version'], 2);
+      expect(
+        upgraded['salt'],
+        isNot(
+          jsonDecode(
+            File('test/fixtures/pin_v1.json').readAsStringSync(),
+          )['salt'],
+        ),
+      );
+      final restarted = lockFor(secrets);
+      await restarted.load();
+      expect(await restarted.unlockPin('654321'), true);
+      secrets.values[AppLock.key] = File(
+        'test/fixtures/pin_v1.json',
+      ).readAsStringSync();
+      final failing = lockFor(secrets);
+      await failing.load();
+      secrets.broken = true;
+      expect(await failing.unlockPin('654321'), false);
+      expect(failing.locked, true);
+      expect(jsonDecode(secrets.values[AppLock.key]!)['version'], 1);
+    },
   );
   test(
     'PIN persists hashed, locks on restart, checks old PIN for changes',
@@ -167,6 +211,8 @@ void main() {
       expect(restarted.locked, true);
       expect(restarted.ready, false);
     },
+    // This scenario intentionally performs seven full-strength KDF operations.
+    timeout: const Timeout(Duration(minutes: 2)),
   );
   test(
     'backgrounding during successful unlock cannot expose the app',
@@ -413,10 +459,10 @@ void main() {
         text:
             'Gesprächsvorbereitung · Änne\nZeitraum: 01.11.2026 bis 04.11.2026\n${List.filled(300, 'Förderung: hört zu, übt und äußert Wünsche. ${'Sehr langer Text ' * 50}').join('\n')}\nNächste Schritte',
         regularFont: ByteData.sublistView(
-          await File('assets/fonts/Selawik-Regular.ttf').readAsBytes(),
+          await File('assets/fonts/Inter-Regular.ttf').readAsBytes(),
         ),
         boldFont: ByteData.sublistView(
-          await File('assets/fonts/Selawik-Bold.ttf').readAsBytes(),
+          await File('assets/fonts/Inter-Bold.ttf').readAsBytes(),
         ),
       );
       expect(ascii.decode(pdf.take(5).toList()), '%PDF-');

@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'detail_flow.dart';
+import 'quick_add.dart';
 import 'package:flutter/material.dart';
 
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
 import '../domain/school.dart';
 import 'common.dart';
 import 'collapsible_search.dart';
@@ -17,6 +20,7 @@ import 'document_attachments.dart';
 import 'material_thumbnail.dart';
 import '../domain/document_scanner.dart';
 import 'surfaces.dart';
+import 'return_lists.dart';
 
 /// One pupil's entries with persistent area navigation and a quiet action bar.
 class PupilWorkspaceDialog extends StatefulWidget {
@@ -31,10 +35,12 @@ class PupilWorkspaceDialog extends StatefulWidget {
     required this.showDrafts,
     required this.draftCount,
     this.initialArea,
+    this.embedded = false,
   });
   final NotebookController controller;
   final Pupil pupil;
   final FlexSymbol? initialArea;
+  final bool embedded;
   final Widget Function(OrgaEntry) entryCard;
   final VoidCallback editPupil, newOrga, newAppointment, showDrafts;
   final int draftCount;
@@ -45,13 +51,52 @@ class PupilWorkspaceDialog extends StatefulWidget {
 class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
   late FlexSymbol? area = widget.initialArea;
   String query = '', filter = 'all';
+  Set<String>? indexedKeys;
+  int searchGeneration = 0;
+  Timer? searchDelay;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(refreshSearch);
+  }
+
+  void refreshSearch() {
+    if (query.isNotEmpty) searchQuery(query);
+  }
+
+  void searchQuery(String value) {
+    final generation = ++searchGeneration;
+    searchDelay?.cancel();
+    setState(() {
+      query = value;
+      indexedKeys = null;
+    });
+    if (value.trim().isEmpty) return;
+    searchDelay = Timer(const Duration(milliseconds: 140), () async {
+      try {
+        final keys = await widget.controller.repository.searchEntryKeys(
+          value,
+          pupilId: widget.pupil.id,
+        );
+        if (mounted && generation == searchGeneration) {
+          setState(() => indexedKeys = keys);
+        }
+      } catch (_) {
+        /* The current local list remains searchable if the index cannot be read. */
+      }
+    });
+  }
+
   String? selectedRecordId, selectedEntryId;
   bool get splitView =>
+      !widget.embedded &&
       MediaQuery.sizeOf(context).width >= 900 &&
       MediaQuery.textScalerOf(context).scale(1) <= 1.4;
   final search = TextEditingController();
   @override
   void dispose() {
+    searchDelay?.cancel();
+    widget.controller.removeListener(refreshSearch);
     search.dispose();
     super.dispose();
   }
@@ -86,8 +131,10 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     );
   }
 
-  bool matches(bool pending, String text) =>
-      text.toLowerCase().contains(query.toLowerCase()) &&
+  bool matches(bool pending, String text, String key, {bool indexed = true}) =>
+      (!indexed || indexedKeys == null
+          ? text.toLowerCase().contains(query.toLowerCase())
+          : indexedKeys!.contains(key)) &&
       (filter == 'all' || (filter == 'open' ? pending : !pending));
 
   Widget navigation() => LayoutBuilder(
@@ -247,10 +294,17 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
     required String summary,
     required String status,
     required ScanContext scope,
+    ScanContext? sharedScope,
     required VoidCallback onOpen,
   }) {
     final c = widget.controller;
-    final docs = c.classroom.where(scope.matchesMaterial).toList();
+    final docs = c.classroom
+        .where(
+          (d) =>
+              scope.matchesMaterial(d) ||
+              (sharedScope?.matchesMaterial(d) ?? false),
+        )
+        .toList();
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -359,7 +413,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               r.pupilId == p.id &&
               !r.deleted &&
               (area == null || r.kind.name == area!.name) &&
-              matches(r.pending, r.searchText),
+              matches(r.pending, r.searchText, 'school:${r.id}'),
         ))
           (
             id: r.id,
@@ -383,8 +437,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                       ...r.negative.map((t) => '− $t'),
                     ].where((s) => s.isNotEmpty).join(' · '),
               status: [
-                if (r.kind == SchoolKind.homework)
-                  '${r.tasks.where((t) => r.taskState(t) == TaskState.complete).length} / ${r.tasks.length} erledigt',
+                if (r.kind == SchoolKind.homework) r.homeworkProgress,
                 if (r.kind == SchoolKind.goal)
                   r.goalStatus == 'active'
                       ? 'In Arbeit'
@@ -405,7 +458,8 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               e.pupilId == p.id &&
               matches(
                 e.pending,
-                '${e.title} ${e.body} ${e.items.map((i) => i.text).join(' ')}',
+                '${e.title} ${e.body} ${e.otherParticipants} ${e.tags.join(' ')} ${e.items.map((i) => i.text).join(' ')}',
+                'orga:${e.id}',
               ),
         ))
           (
@@ -419,6 +473,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               date: e.observedOn,
               summary: [
                 e.body,
+                ...e.tags.map((tag) => '#$tag'),
                 ...e.items.map((i) => i.text),
               ].where((s) => s.isNotEmpty).join(' · '),
               status: e.isTask
@@ -432,6 +487,52 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
               onOpen: () => details(entryId: e.id),
             ),
           ),
+      if (area == null || area == FlexSymbol.orga)
+        for (final d in c.classroom.where(
+          (d) =>
+              !d.deleted &&
+              d.returnParticipant(p.id) != null &&
+              matches(
+                d.returnPendingFor(p.id),
+                d.returnSearchText(p.id),
+                'classroom:${d.id}',
+                indexed: false,
+              ),
+        ))
+          (
+            id: d.id,
+            date: d.text('createdAtUtc'),
+            pending: d.returnPendingFor(p.id),
+            card: preview(
+              id: d.id,
+              symbol: FlexSymbol.orga,
+              title: d.title,
+              date: d.text('createdAtUtc'),
+              summary: [
+                d.text('note'),
+                d.returnParticipant(p.id)!['note'] as String,
+              ].where((s) => s.isNotEmpty).join(' · '),
+              status: [
+                'Rücklauf',
+                d.flag('closed')
+                    ? 'Abgeschlossen'
+                    : returnStatuses[d.text('type')]![d.returnParticipant(
+                        p.id,
+                      )!['status']]!,
+                if (d.text('dueDate').isNotEmpty)
+                  'Frist ${displayDate(d.text('dueDate'))}',
+              ].join(' · '),
+              scope: ScanContext(
+                pupilIds: [p.id],
+                links: [DocumentLink('classroom', d.id)],
+              ),
+              sharedScope: ScanContext(
+                links: [DocumentLink('classroom', d.id)],
+                unassignedPupilsOnly: true,
+              ),
+              onOpen: () => showReturnDetail(context, c, d.id),
+            ),
+          ),
     ]..sort((a, b) => b.date.compareTo(a.date));
     final title = Column(
       key: const ValueKey('pupil-workspace-title'),
@@ -443,8 +544,8 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            fontFamily: 'FlexSerif',
-            fontSize: 20,
+            fontFamily: 'FlexSans',
+            fontSize: 18,
             height: 1.15,
           ),
         ),
@@ -466,9 +567,22 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
         tooltip: 'Schüleraktionen',
         icon: const Icon(Icons.more_vert, size: 21),
         padding: const EdgeInsets.all(6),
-        onSelected: (action) {
+        onSelected: (action) async {
           if (action == 'edit') {
             widget.editPupil();
+          } else if (action == 'trash') {
+            if (await confirmFlex(
+                  context,
+                  'Schüler in den Papierkorb?',
+                  '${p.name} und die zugehörigen Einträge werden ausgeblendet und bleiben wiederherstellbar.',
+                  accept: 'In den Papierkorb',
+                ) &&
+                context.mounted) {
+              await guarded(context, () async {
+                await c.savePupil(p.copyWith(deleted: true, archived: true));
+                if (context.mounted && !widget.embedded) Navigator.pop(context);
+              });
+            }
           } else if (action == 'brief') {
             showBrief(context, c, p);
           } else {
@@ -480,6 +594,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
         },
         itemBuilder: (_) => [
           const PopupMenuItem(value: 'edit', child: Text('Schüler bearbeiten')),
+          const PopupMenuItem(value: 'trash', child: Text('In den Papierkorb')),
           const PopupMenuItem(
             value: 'brief',
             child: Text('Gesprächsvorbereitung'),
@@ -492,8 +607,8 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       ),
     ];
     return FlexModal(
+      embedded: widget.embedded,
       maxWidth: 1120,
-      accentColor: Color(p.color),
       title: title,
       headerContent: LayoutBuilder(
         builder: (context, constraints) {
@@ -513,7 +628,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
                 Row(
                   children: [
                     Expanded(child: title),
-                    close,
+                    if (!widget.embedded) close,
                   ],
                 ),
                 Row(
@@ -527,7 +642,7 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
             children: [
               Expanded(child: title),
               ...headerActions,
-              close,
+              if (!widget.embedded) close,
             ],
           );
         },
@@ -561,106 +676,118 @@ class _PupilWorkspaceDialogState extends State<PupilWorkspaceDialog> {
       scrollable: false,
       content: SizedBox(
         height: MediaQuery.sizeOf(context).height * .7,
-        child: workspace(
-          ListView(
-            key: const PageStorageKey('pupil-workspace'),
-            padding: EdgeInsets.zero,
-            children: [
-              navigation(),
-              const SizedBox(height: 8),
-              CollapsibleSearch(
-                fieldKey: const ValueKey('pupil-entry-search'),
-                buttonKey: const ValueKey('pupil-search-button'),
-                controller: search,
-                label: 'Einträge durchsuchen',
-                iconOnly: true,
-                leading: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => showPupilMaterials(context, c, p),
-                    icon: const Icon(Icons.folder_open_outlined),
-                    label: const Text('Dokumente'),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-                onChanged: (v) => setState(() => query = v),
-                actions: [
-                  if (!p.archived && area == FlexSymbol.orga)
-                    IconButton(
-                      tooltip: 'Termin anlegen',
-                      onPressed: widget.newAppointment,
-                      icon: const Icon(Icons.event_outlined),
-                    ),
-                  if (!p.archived) ...[
-                    const SizedBox(width: 8),
-                    if (area != null)
-                      IconButton(
-                        tooltip: '${fullLabel(area!)} anlegen',
-                        onPressed: () => create(area!),
-                        icon: const Icon(Icons.add),
-                      )
-                    else
-                      PopupMenuButton<FlexSymbol>(
-                        tooltip: 'Eintrag anlegen',
-                        icon: const Icon(Icons.add),
-                        onSelected: create,
-                        itemBuilder: (_) => [
-                          for (final s in FlexSymbol.values)
-                            PopupMenuItem(
-                              value: s,
-                              child: Row(
-                                children: [
-                                  FlexIcon(s, size: 20),
-                                  const SizedBox(width: 10),
-                                  Flexible(child: Text(fullLabel(s))),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                  ],
-                ],
-              ),
-              Wrap(
-                key: const ValueKey('pupil-entry-filter'),
-                spacing: 6,
-                runSpacing: 4,
+        child: Stack(
+          children: [
+            workspace(
+              ListView(
+                key: const PageStorageKey('pupil-workspace'),
+                padding: EdgeInsets.only(bottom: widget.embedded ? 16 : 84),
                 children: [
-                  for (final option in const {
-                    'all': 'Alle',
-                    'open': 'Noch offen',
-                    'closed': 'Abgeschlossen',
-                  }.entries)
-                    transparentChip(
-                      ChoiceChip(
-                        key: ValueKey('pupil-filter-${option.key}'),
-                        label: Text(option.value),
-                        selected: filter == option.key,
-                        onSelected: (_) => setState(() => filter = option.key),
-                        backgroundColor: Colors.transparent,
-                        side: BorderSide.none,
-                        showCheckmark: false,
+                  navigation(),
+                  const SizedBox(height: 8),
+                  CollapsibleSearch(
+                    fieldKey: const ValueKey('pupil-entry-search'),
+                    buttonKey: const ValueKey('pupil-search-button'),
+                    controller: search,
+                    label: 'Einträge durchsuchen',
+                    iconOnly: true,
+                    leading: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => showPupilMaterials(context, c, p),
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: const Text('Materialien'),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                        ),
                       ),
+                    ),
+                    onChanged: searchQuery,
+                    actions: [
+                      if (!p.archived && area == FlexSymbol.orga)
+                        IconButton(
+                          tooltip: 'Termin anlegen',
+                          onPressed: widget.newAppointment,
+                          icon: const Icon(Icons.event_outlined),
+                        ),
+                      if (!p.archived) ...[
+                        const SizedBox(width: 8),
+                        if (area != null)
+                          IconButton(
+                            tooltip: '${fullLabel(area!)} anlegen',
+                            onPressed: () => create(area!),
+                            icon: const Icon(Icons.add),
+                          )
+                        else
+                          PopupMenuButton<FlexSymbol>(
+                            tooltip: 'Eintrag anlegen',
+                            icon: const Icon(Icons.add),
+                            onSelected: create,
+                            itemBuilder: (_) => [
+                              for (final s in FlexSymbol.values)
+                                PopupMenuItem(
+                                  value: s,
+                                  child: Row(
+                                    children: [
+                                      FlexIcon(s, size: 20),
+                                      const SizedBox(width: 10),
+                                      Flexible(child: Text(fullLabel(s))),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ],
+                  ),
+                  Wrap(
+                    key: const ValueKey('pupil-entry-filter'),
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final option in const {
+                        'all': 'Alle',
+                        'open': 'Noch offen',
+                        'closed': 'Abgeschlossen',
+                      }.entries)
+                        transparentChip(
+                          ChoiceChip(
+                            key: ValueKey('pupil-filter-${option.key}'),
+                            label: Text(option.value),
+                            selected: filter == option.key,
+                            onSelected: (_) =>
+                                setState(() => filter = option.key),
+                            backgroundColor: Colors.transparent,
+                            side: BorderSide.none,
+                            showCheckmark: false,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'} · ${rows.where((r) => r.pending).length} offen',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (p.archived) const Text('Archiviert'),
+                  const SizedBox(height: 6),
+                  if (rows.isEmpty)
+                    const EmptyState('Keine passenden Einträge.'),
+                  for (final row in rows)
+                    KeyedSubtree(
+                      key: ValueKey('pupil-entry-${row.id}'),
+                      child: row.card,
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                '${rows.length} ${rows.length == 1 ? 'Eintrag' : 'Einträge'} · ${rows.where((r) => r.pending).length} offen',
-                style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (!p.archived && !widget.embedded)
+              Positioned(
+                right: 4,
+                bottom: 8,
+                child: QuickAddButton(controller: c, pupil: p),
               ),
-              if (p.archived) const Text('Archiviert'),
-              const SizedBox(height: 6),
-              if (rows.isEmpty) const EmptyState('Keine passenden Einträge.'),
-              for (final row in rows)
-                KeyedSubtree(
-                  key: ValueKey('pupil-entry-${row.id}'),
-                  child: row.card,
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );

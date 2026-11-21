@@ -40,7 +40,7 @@ Future<DocumentThumbnail> renderDocumentThumbnail(
   String extension,
 ) async {
   validateMaterialBytes(bytes, extension);
-  if (extension == 'jpg') {
+  if (extension == 'jpg' || extension == 'png') {
     return DocumentThumbnail(image: await compute(thumbnailImage, bytes));
   }
   if (extension == 'docx') {

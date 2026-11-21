@@ -1,0 +1,17 @@
+{
+  "version": "0.28.0+78",
+  "syntheticData": true,
+  "widths": [
+    320,
+    390
+  ],
+  "checks": [
+    "existing local data open",
+    "encrypted v3 download",
+    "v3 import and merge preview",
+    "OneDrive setup at narrow width"
+  ],
+  "downloadBytes": 2286576,
+  "pageErrors": [],
+  "physicalAndroidTested": false
+}

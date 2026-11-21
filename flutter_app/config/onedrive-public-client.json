@@ -1,0 +1,14 @@
+{
+  "displayName": "FLEX",
+  "signInAudience": "AzureADandPersonalMicrosoftAccount",
+  "isFallbackPublicClient": true,
+  "api": { "requestedAccessTokenVersion": 2 },
+  "requiredResourceAccess": [
+    {
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "resourceAccess": [
+        { "id": "10465720-29dd-4523-a11a-6a75c743c9d9", "type": "Scope" }
+      ]
+    }
+  ]
+}

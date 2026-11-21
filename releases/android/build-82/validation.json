@@ -1,0 +1,45 @@
+{
+  "version": "0.31.0+82",
+  "sourceCommit": "17f21736e7e13fc1cee55b6784491f296d682e92",
+  "flutterSuite": {
+    "passed": 662,
+    "failed": 1,
+    "remainingFailure": "classroom_ui_test.dart expected the pre-build-81 swipe order",
+    "resolution": "Updated this outdated expectation; all 10 tests in that file pass on the final source. No production navigation change."
+  },
+  "finalAuthenticationTests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "finalClassroomTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "nativeTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "schemaTests": {
+    "passed": 11,
+    "failed": 0
+  },
+  "analyze": "No issues found",
+  "format": "252 files unchanged",
+  "browser": {
+    "version": "0.31.0+82",
+    "viewports": [
+      390,
+      320
+    ],
+    "defaultRegistrationVerified": true,
+    "webDeviceCodeWithMockServer": true,
+    "cancelled": true,
+    "realMicrosoftLoginTested": false,
+    "errors": []
+  },
+  "webRelease": "succeeded",
+  "androidRelease": "succeeded for both ABIs",
+  "deviceInstallTested": false,
+  "realMicrosoftLoginTested": false,
+  "privateWebSourceCommit": "44b369790812a3c83df09171ae3897fa4efadb2b"
+}

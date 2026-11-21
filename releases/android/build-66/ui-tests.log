@@ -1,0 +1,23 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: More pills keep all labels inside their touch targets with large text
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/tone_controls_test.dart: Orga new class entry: swipes retain text, checklist and focus across kinds
+00:04 +2: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:05 +3: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:06 +4: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:08 +5: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:08 +6: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:08 +7: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:09 +8: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:11 +9: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:12 +10: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:14 +11: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+00:21 +12: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 320.0/1.8/light
+00:27 +13: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+00:37 +14: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+01:00 +15: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: import into a fresh app with its timetable merges and preserves the timetable
+01:01 +16: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: a task shows its text once and keeps completion, scanning, attachments, history and trash reachable
+01:01 +17: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: backup screens show options for the chosen action
+01:01 +18: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: large option labels stay on one line instead of breaking words
+01:02 +19: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: (tearDownAll)
+01:02 +19: All tests passed!

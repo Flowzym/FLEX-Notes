@@ -1,0 +1,219 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: a removed calendar block keeps its saved flow; deleting a flow allows a fresh one
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: a changed carry destination rolls back the source write in the same transaction
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: days and lesson occurrences have independent progress; reading creates no stored data
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: pause and resume count elapsed time once; templates strip all runtime progress
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: completing and skipping progress explicitly; activating another phase pauses the old one
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: validation rejects malformed, ambiguous or running template data
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: carry forward is atomic, preserves target phases and cannot duplicate completed transfers
+00:00 +7: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: phase references and progress survive backup, restore and pupil mapping; invalid links rollback
+00:00 +8: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: homework control appends feedback, retains siblings and notes and rejects later-dated feedback
+00:13 +9: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: (setUpAll)
+00:13 +9: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: phase editing, running, pausing and progress survive leaving and reopening the app
+00:13 +10: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: phase editing, running, pausing and progress survive leaving and reopening the app
+00:16 +11: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:17 +12: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:17 +13: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: homework control filters by due date, keeps checked rows and shares normal task status
+00:18 +14: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:18 +15: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:19 +16: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:19 +17: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:20 +18: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:23 +19: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:24 +20: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:25 +21: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:25 +22: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:26 +23: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+00:26 +24: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts exclude pupil entries and are resumable at large text
+00:26 +25: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:26 +26: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:27 +27: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 0.8
+00:28 +28: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: compact day keeps short events tappable and adjacent lessons separate
+00:29 +29: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:29 +30: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:30 +31: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: time marker stays above ongoing blocks and passes taps through
+00:30 +32: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 1200.0 system font 1.0 app font 1.2
+00:31 +33: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: shared day updates current time with and without lessons and omits it on other dates
+00:31 +34: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:31 +35: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:31 +36: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 390.0 scale 1.0
+00:32 +37: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 1.2
+00:32 +38: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 1.2
+00:32 +39: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: populated day week month remain usable at width 1100.0 scale 1.0
+00:33 +40: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:33 +41: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:33 +42: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: month selection keeps month then opens selected day and dated creation
+00:34 +43: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +44: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +45: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +46: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +47: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +48: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week overlaps open every source and weekends with entries stay visible
+00:34 +49: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_test.dart: one occurrence can override or clear files without changing next week
+00:34 +50: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +51: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +52: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +53: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +54: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +55: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +56: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:35 +57: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: single lesson edit past series end retains preparation and inheritance
+00:36 +58: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: lesson planning is created and linked atomically to this occurrence
+00:36 +59: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:36 +60: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:37 +61: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:37 +62: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: week keeps a conversation visible inside Flexk and both entries reachable
+00:37 +63: /workspace/FLEX-Notes/flutter_app/test/calendar_redesign_ui_test.dart: (tearDownAll)
+00:38 +63: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: (setUpAll)
+00:38 +63: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointments retain local date/time through database, drafts, backup and legacy payload
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:205:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:234:13)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:246:11)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:38 +64: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment schedule distinguishes future, past, all-day and removed events
+00:38 +65: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:38 +66: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:38 +67: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:42 +68: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:43 +69: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+00:44 +70: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+00:45 +71: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:45 +72: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:46 +73: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+00:47 +74: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointment is created in Orga, reopens with date/time and can become a note
+00:48 +75: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga header filters pupil and class drafts and preserves current note
+00:50 +76: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga header filters pupil and class drafts and preserves current note
+00:50 +77: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: delete in the editor discards only the draft and never recreates it
+00:51 +78: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: delete in the editor discards only the draft and never recreates it
+00:51 +79: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 320.0 font 1.0
+00:52 +80: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: delete in the editor discards only the draft and never recreates it
+00:52 +81: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: delete in the editor discards only the draft and never recreates it
+00:53 +82: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: delete in the editor discards only the draft and never recreates it
+00:53 +83: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: numeric pupil badges and both homework header routes 390.0 font 1.0
+00:54 +84: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: goal: delete in the editor discards only the draft and never recreates it
+00:54 +85: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 390.0 font 1.0
+00:54 +86: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: homework: delete in the editor discards only the draft and never recreates it
+00:55 +87: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 390.0 font 1.0
+00:55 +88: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: orga: delete in the editor discards only the draft and never recreates it
+00:55 +89: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: orga: delete in the editor discards only the draft and never recreates it
+00:56 +90: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: orga: delete in the editor discards only the draft and never recreates it
+00:56 +91: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+00:56 +92: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+00:57 +93: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: bulk: delete in the editor discards only the draft and never recreates it
+00:57 +94: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: bulk: delete in the editor discards only the draft and never recreates it
+00:58 +95: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 320.0 font 2.0
+00:58 +96: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
+00:59 +97: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
+00:59 +98: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 320.0/1.0
+01:00 +99: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 390.0/1.0
+01:01 +100: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:01 +101: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:02 +102: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +103: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +104: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +105: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +106: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +107: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +108: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +109: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +110: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +111: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +112: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +113: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +114: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:03 +115: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:04 +116: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment explicit changes and cleared values survive type changes
+01:06 +117: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: file title opens directly and edit/star controls have independent targets
+01:06 +118: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment date/time survives swipe away and back
+01:07 +119: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+01:08 +120: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment values survive closing, backup restore and database restart
+01:09 +121: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+01:09 +122: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: appointment round trip without edits removes its draft
+01:10 +123: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material format, sort, layout and reset work together
+01:11 +124: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+01:12 +125: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+01:12 +126: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task explicit changes and cleared values survive type changes
+01:12 +127: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+01:13 +128: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+01:14 +129: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task values survive closing, backup restore and database restart
+01:14 +130: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared day removes reference only; next day has a separate selection
+01:14 +131: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task round trip without edits removes its draft
+01:14 +132: /workspace/FLEX-Notes/flutter_app/test/orga_type_conflict_test.dart: task round trip without edits removes its draft
+01:15 +133: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:15 +134: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:16 +135: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:16 +136: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:16 +137: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:16 +138: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+01:16 +139: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil unlink keeps shared material and package accessible elsewhere
+01:16 +140: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: plan editor saves minimal name and keeps text focus through autosave
+01:17 +141: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 1.0
+01:17 +142: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+01:18 +143: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 2.0
+01:18 +144: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 2.0
+01:18 +145: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: incompatible task fields roll back every change atomically
+01:18 +146: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared dialog retains title/close and fits large text
+01:18 +147: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared dialog retains title/close and fits large text
+01:18 +148: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: same names require explicit mapping; owner links are rewritten
+01:18 +149: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:18 +150: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:18 +151: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:19 +152: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:20 +153: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:20 +154: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+01:20 +155: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 320.0/2.0
+01:21 +156: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 320.0/2.0
+01:21 +157: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: maintenance retains series tombstones and completed sources can stop their series
+01:22 +158: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +159: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +160: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +161: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +162: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +163: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +164: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +165: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +166: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +167: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +168: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +169: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +170: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +171: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 1200.0/1.0
+01:22 +172: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: postponing a reminder leaves deadline unchanged and completion cancels it
+01:22 +173: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: closed and answered returns do not schedule reminders, lessons respect cancellation
+01:23 +174: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: development retains empty weeks and does not invent tone for untagged free text
+01:23 +175: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS round trip escapes multiline unicode and import identity is stable
+01:23 +176: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS reports unsupported rules instead of scheduling an incorrect one-off event
+01:23 +177: /workspace/FLEX-Notes/flutter_app/test/classroom_test.dart: ICS preserves supported weekly recurrence and excluded dates
+01:23 +178: /workspace/FLEX-Notes/flutter_app/test/build69_domain_test.dart: individual progress, duration and carry never mutate another pupil or shared flow
+01:23 +179: /workspace/FLEX-Notes/flutter_app/test/build69_domain_test.dart: individual ownership and calendar preference round-trip through backup and pupil merge
+01:23 +180: /workspace/FLEX-Notes/flutter_app/test/build69_domain_test.dart: subtasks retain IDs, complete their parent and reopen it on a new open item
+01:23 +181: All tests passed!

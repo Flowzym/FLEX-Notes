@@ -1,0 +1,15 @@
+{
+  "version": {
+    "app_name": "flex_notizbuch",
+    "version": "0.23.0",
+    "build_number": "69",
+    "package_name": "flex_notizbuch"
+  },
+  "syntheticData": true,
+  "normalCanvasTouch": true,
+  "headerCycles": "two forward cycles in all five sections",
+  "calendarPeriodSwipes": true,
+  "weekend320Screenshot": true,
+  "quickAddOpened": true,
+  "pageErrors": []
+}

@@ -1,0 +1,120 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: (setUpAll)
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: classroom conflict previews describe all changed series and payment fields
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: app navigation swipes between pupils calendar and materials with live data
+00:03 +2: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:03 +3: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: class Orga can be entered, saved, reopened and completed without browser
+00:04 +4: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: lesson editor retains focus through autosave and restores a draft
+00:04 +5: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: closing secures an unpublished draft, including a pending checklist input
+00:04 +6: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: closing secures an unpublished draft, including a pending checklist input
+00:05 +7: /workspace/FLEX-Notes/flutter_app/test/editor_test.dart: closing secures an unpublished draft, including a pending checklist input
+00:05 +8: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: return consent rejection counts as answered and bulk status persists
+00:05 +9: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: payment status resets old amount and partial payment requests an amount
+00:05 +10: /workspace/FLEX-Notes/flutter_app/test/classroom_ui_test.dart: calendar day week and month work with large text on phone
+00:06 +11: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: open pupil rows retain all five aligned actions and search focus
+00:06 +12: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: open pupil rows retain all five aligned actions and search focus
+00:07 +13: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: open pupil rows retain all five aligned actions and search focus
+00:07 +14: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: open pupil rows retain all five aligned actions and search focus
+00:08 +15: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga hardware Enter and IME newline continue lists, blank Enter exits, formatting alone is no draft
+00:10 +16: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors use adaptive details at 1100.0
+00:11 +17: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: checklist Enter keeps focus, splits existing items and exits empty rows without losing checks
+00:12 +18: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: all five pupil areas and editors use adaptive details at 320.0
+00:14 +19: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:14 +20: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: fresh modal header resumes only selected draft; pending input and other categories stay intact
+00:14 +21: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: render reference-derived pupil pages, framed homework and focused comment using synthetic data
+00:15 +22: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: homework header opens assigned homework and keeps unpublished tasks separate
+00:15 +23: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: save failure retains input and cancel preserves both pupil drafts
+00:16 +24: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: Orga header filters pupil and class drafts and preserves current note
+00:17 +25: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+00:18 +26: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+00:18 +27: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: reference observation dialogs and optional calendar time render and preserve selections
+00:18 +28: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 320.0 font 1.0
+00:18 +29: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+00:19 +30: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+00:19 +31: /workspace/FLEX-Notes/flutter_app/test/handover_ui_test.dart: calendar supports leap day, month and year choices and midnight on a narrow screen
+00:19 +32: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: overview summaries and neutral surfaces 390.0 font 1.0
+00:19 +33: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 390.0 font 1.0
+00:20 +34: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: filled symbols cover all five reference categories
+00:20 +35: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: filled symbols cover all five reference categories
+00:21 +36: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: filled symbols cover all five reference categories
+00:21 +37: /workspace/FLEX-Notes/flutter_app/test/overview_lists_test.dart: shared positive negative pill and header access 1200.0 font 1.0
+00:22 +38: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:22 +39: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:22 +40: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:23 +41: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework uses direct status buttons and comment gets focus without changing status
+00:24 +42: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework recipients are tags and save separate records atomically
+00:24 +42: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: appointments retain local date/time through database, drafts, backup and legacy payload
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:205:9)
+<asynchronous suspension>
+#5      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#7      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class NotebookDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database.
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new NotebookDatabase (package:flex_notizbuch/data/database.dart)
+#4      main.<anonymous closure>.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:234:13)
+#5      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart:246:11)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:24 +43: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework recipients are tags and save separate records atomically
+00:24 +44: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: homework recipients are tags and save separate records atomically
+00:24 +45: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:25 +46: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:26 +47: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:27 +48: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:28 +49: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:28 +50: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: tone swipe retains selections, ignores vertical drags and switches over text
+00:28 +51: /workspace/FLEX-Notes/flutter_app/test/rebuild_ui_test.dart: synthetic direct Flutter render of the homework modal
+00:28 +52: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+00:29 +53: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: work: tone swipe retains selections, ignores vertical drags and switches over text
+00:30 +54: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:30 +55: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:32 +56: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:33 +57: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:33 +58: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: social: delete in the editor discards only the draft and never recreates it
+00:34 +59: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:35 +60: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:36 +61: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:36 +62: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:37 +63: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, stop at edges and preserve slider gestures
+00:37 +64: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: pupil: delete in the editor discards only the draft and never recreates it
+00:38 +65: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:38 +66: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: bulk: delete in the editor discards only the draft and never recreates it
+00:38 +67: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:38 +68: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: delete waits for running autosave, handles failure and rejects a newer draft revision
+00:39 +69: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+00:39 +70: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 320.0/1.0
+00:40 +71: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:40 +72: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:40 +73: /workspace/FLEX-Notes/flutter_app/test/orga_overview_test.dart: clean overview and compact Orga/search rendering 1200.0/1.0
+00:41 +74: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 0.8
+00:41 +75: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 0.8
+00:42 +76: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:43 +77: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:43 +78: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 1200.0 system font 1.0 app font 1.2
+00:44 +79: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:45 +80: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 1.2
+00:46 +81: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:47 +82: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: (tearDownAll)
+00:47 +82: All tests passed!

@@ -31,6 +31,7 @@ List<CalendarItem> calendarItems(
   String from,
   String to,
 ) {
+  data = data.active();
   final first = schoolDay(from), last = schoolDay(to);
   if (last.isBefore(first) || last.difference(first).inDays > 740) {
     throw const DomainError('Bitte einen Zeitraum bis zu zwei Jahren wählen.');
@@ -46,11 +47,14 @@ List<CalendarItem> calendarItems(
         time: l.start,
         end: l.end,
         title: l.title,
-        category: 'lesson',
+        category: l.document.calendarCategory,
         detail: [
           l.document.text('subject'),
           l.document.text('teacher'),
           l.document.text('room'),
+          for (final p in data.pupils)
+            if (l.document.strings('pupilIds').contains(p.id)) p.name,
+          l.document.text('otherParticipants'),
         ].where((s) => s.isNotEmpty).join(' · '),
         lesson: l,
         document: l.document,
@@ -63,13 +67,20 @@ List<CalendarItem> calendarItems(
           id: 'orga:${e.id}',
           date: (e.appointmentDate ?? e.dueDate)!,
           time: e.appointmentTime,
+          end: e.appointmentEndTime,
           title: e.title,
           category: e.isAppointment ? 'appointment' : 'task',
           done: e.done,
           entry: e,
-          detail: e.pupilId == null
-              ? 'FLEX-Klasse'
-              : data.pupils.firstWhere((p) => p.id == e.pupilId).name,
+          detail: [
+            for (final tag in e.tags) '#$tag',
+            if (e.pupilId != null)
+              data.pupils.firstWhere((p) => p.id == e.pupilId).name,
+            if (e.otherParticipants.trim().isNotEmpty)
+              e.otherParticipants.trim(),
+            if (e.pupilId == null && e.otherParticipants.trim().isEmpty)
+              'FLEX-Klasse',
+          ].join(' · '),
         ),
     for (final r in data.records.where(
       (r) => !r.deleted && active.contains(r.pupilId),
@@ -99,9 +110,10 @@ List<CalendarItem> calendarItems(
         title: d.title,
         category: 'return',
         document: d,
-        done: d.flag('closed') || !d.rows('participants').any(returnPending),
-        detail:
-            '${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
+        done: d.returnFinished,
+        detail: d.returnFinished
+            ? d.returnState.label
+            : '${d.rows('participants').where(returnPending).length} Rückmeldungen offen',
       ),
   ];
   for (final h in data.classroom.where(

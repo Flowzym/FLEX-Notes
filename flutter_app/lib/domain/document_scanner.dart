@@ -1,3 +1,4 @@
+import 'material_tags.dart';
 import 'classroom.dart';
 import 'models.dart';
 
@@ -30,13 +31,23 @@ class DocumentLink {
       date: j['date'] as String? ?? '',
       taskId: j['taskId'] as String? ?? '',
     );
-    if (!{'orga', 'school', 'classroom', 'lesson'}.contains(link.kind) ||
+    if (!{
+          'orga',
+          'school',
+          'orgaDraft',
+          'schoolDraft',
+          'bulkDraft',
+          'classroomDraft',
+          'classroom',
+          'lesson',
+        }.contains(link.kind) ||
         link.id.isEmpty ||
         link.id.length > 250 ||
         (link.kind == 'lesson'
             ? !validDate(link.date)
             : link.date.isNotEmpty) ||
-        (link.taskId.isNotEmpty && link.kind != 'school') ||
+        (link.taskId.isNotEmpty &&
+            !{'school', 'schoolDraft', 'bulkDraft'}.contains(link.kind)) ||
         link.taskId.length > 250 ||
         j.keys.any((k) => !{'kind', 'id', 'date', 'taskId'}.contains(k))) {
       throw const DomainError('Ungültige Dokumentzuordnung.');
@@ -49,7 +60,7 @@ class DocumentLink {
   bool includes(DocumentLink other, {bool includeTasks = true}) =>
       identity == other.identity ||
       includeTasks &&
-          kind == 'school' &&
+          {'school', 'schoolDraft', 'bulkDraft'}.contains(kind) &&
           taskId.isEmpty &&
           other.kind == kind &&
           other.id == id;
@@ -64,11 +75,12 @@ class ScanContext {
     this.subject = '',
     this.includeTasks = true,
     this.unassignedPupilsOnly = false,
+    this.collection = false,
   });
   final List<String> pupilIds;
   final List<DocumentLink> links;
   final String title, category, subject;
-  final bool includeTasks, unassignedPupilsOnly;
+  final bool includeTasks, unassignedPupilsOnly, collection;
   Json initial({DateTime? now}) => {
     'title':
         '${dateOnly(now ?? DateTime.now())} · ${title.isEmpty ? 'Scan' : title.substring(0, title.length.clamp(0, 180))}',
@@ -77,7 +89,10 @@ class ScanContext {
     'pupilIds': pupilIds,
     'links': links.map((v) => v.toJson()).toList(),
     'pages': <Json>[],
-    'tags': <String>[],
+    if (collection) 'collection': true,
+    'tags': <String>[
+      if (collection) category == 'form' ? 'Rücklauf' : 'Hausübung',
+    ],
     'outputFormat': 'pdf',
   };
   bool matchesMaterial(ClassroomDocument d) =>
@@ -153,7 +168,13 @@ class ScanPage {
 }
 
 void validateScanData(Json j) {
-  if (j['outputFormat'] != null &&
+  if (j['scanPending'] != null && j['scanPending'] is! bool ||
+      j['scanReplaceKey'] != null &&
+          (j['scanReplaceKey'] is! String ||
+              (j['scanReplaceKey'] as String).length > 120) ||
+      j['redacted'] != null && j['redacted'] is! bool ||
+      j['discardVersions'] != null && j['discardVersions'] is! bool ||
+      j['outputFormat'] != null &&
           !{'pdf', 'jpg'}.contains(j['outputFormat']) ||
       j['capturePending'] != null && j['capturePending'] is! bool ||
       j['captureAsDocument'] != null && j['captureAsDocument'] is! bool ||
@@ -182,6 +203,44 @@ void validateScanData(Json j) {
       )) {
     throw const DomainError('Ungültiger Scanentwurf.');
   }
+  if (j.containsKey('collection') &&
+      (j['collection'] is! bool ||
+          j['collection'] == true &&
+              ((j['pupilIds'] as List).length != 1 ||
+                  (j['links'] as List).length != 1 ||
+                  j['outputFormat'] != 'pdf'))) {
+    throw const DomainError(
+      'Zum Einsammeln bitte einen Schüler und einen Vorgang wählen.',
+    );
+  }
+  final names = j['importNames'] ?? const [];
+  final successes = j['importSuccess'] ?? const [];
+  final failures = j['importErrors'] ?? const {};
+  final messages = j['importFailures'] ?? const [];
+  if (j['sourceRedacted'] != null && j['sourceRedacted'] is! bool ||
+      j['importBatchId'] != null && j['importBatchId'] is! String ||
+      names is! List ||
+      !names.every((v) => v is String) ||
+      successes is! List ||
+      !successes.every((v) => v is int && v >= 0 && v < names.length) ||
+      failures is! Map ||
+      !failures.entries.every((e) => e.key is String && e.value is String) ||
+      messages is! List ||
+      !messages.every((v) => v is String)) {
+    throw const DomainError('Ungültige Angaben zum Stapelimport.');
+  }
+  final undo = j['filterUndo'] ?? const {};
+  if (undo is! Map || undo.length > scanPageLimit) {
+    throw const DomainError('Ungültiger Filterverlauf.');
+  }
+  for (final e in undo.entries) {
+    if (e.key is! String ||
+        !RegExp(r'^[a-zA-Z0-9_-]{1,120}$').hasMatch(e.key as String) ||
+        e.value is! Map) {
+      throw const DomainError('Ungültiger Filterverlauf.');
+    }
+    ScanPage.fromJson(Json.from(e.value as Map));
+  }
   final pages = (j['pages'] as List)
       .map((p) => ScanPage.fromJson(Json.from(p as Map)))
       .toList();
@@ -200,14 +259,7 @@ void validateScanData(Json j) {
   }
 }
 
-List<String> scanTags(String text) {
-  final values = <String, String>{};
-  for (var tag in text.split(',')) {
-    tag = tag.trim().replaceFirst(RegExp(r'^#+'), '');
-    if (tag.isNotEmpty) values.putIfAbsent(tag.toLowerCase(), () => tag);
-  }
-  return values.values.toList();
-}
+List<String> scanTags(String text) => normalizeMaterialTags(text.split(','));
 
 String scanFilename(String title, {String extension = 'pdf'}) {
   var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');

@@ -25,6 +25,11 @@ ClassroomDocument material(String title, {Json fields = const {}}) =>
 class FolderDrive extends OneDriveClient {
   FolderDrive(this.tree);
   final Map<String, List<Json>> tree;
+  @override
+  Future<Json> graph(String path, {bool retried = false}) async =>
+      path == '/me/drive'
+      ? {'id': 'drive'}
+      : super.graph(path, retried: retried);
   final requested = <String>[];
   @override
   Future<List<Json>> children({String? drive, String? folder}) async {
@@ -420,7 +425,7 @@ void main() {
       final drive = FolderDrive({
         'root': [
           {'id': 'sub', 'name': 'Unterricht', 'folder': {}},
-          file('ignored', 'image.png'),
+          file('ignored', 'image.tiff'),
         ],
         'sub': [
           file('f', 'Arbeitsblatt.pdf'),

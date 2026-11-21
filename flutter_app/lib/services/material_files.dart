@@ -7,6 +7,7 @@ import 'package:archive/archive.dart' show ZipDecoder;
 import 'package:flex_device/flex_device.dart';
 import '../domain/classroom.dart';
 import '../domain/models.dart';
+import '../domain/material_versions.dart';
 
 abstract interface class MaterialFiles {
   Future<void> write(String key, Uint8List bytes);
@@ -39,8 +40,9 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   if (bytes.isEmpty || bytes.length > 20000000) {
     throw const DomainError('Bitte eine Datei bis zu 20 MB auswählen.');
   }
-  if (extension == 'jpg') {
-    final info = img.JpegDecoder().startDecode(bytes);
+  if (extension == 'jpg' || extension == 'png') {
+    final info = (extension == 'png' ? img.PngDecoder() : img.JpegDecoder())
+        .startDecode(bytes);
     if (info == null ||
         info.width < 1 ||
         info.height < 1 ||
@@ -54,10 +56,8 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
                   '%PDF-') ||
       extension == 'docx' &&
           (bytes.length < 4 || bytes[0] != 0x50 || bytes[1] != 0x4b) ||
-      !{'pdf', 'jpg', 'docx'}.contains(extension)) {
-    throw const DomainError(
-      'Die Datei ist kein gültiges PDF-, JPG- oder DOCX-Dokument.',
-    );
+      !{'pdf', 'jpg', 'png', 'docx'}.contains(extension)) {
+    throw const DomainError('PDF, DOCX, JPG oder PNG auswählen.');
   }
   if (extension == 'docx') {
     try {
@@ -76,14 +76,43 @@ void validateMaterialBytes(Uint8List bytes, String extension) {
   }
 }
 
-/// A separate encrypted bundle keeps binary materials out of the 20-MB notebook
-/// backup. Bounded JSON/base64 avoids ZIP path traversal and decompression bombs.
+/// Build 84 could record the remote extension over an existing offline copy.
+Json? legacyCloudCorrection(Json data, Uint8List bytes) {
+  if ((data['itemId'] ?? '') == '' ||
+      (data['localKey'] ?? '') == '' ||
+      (data['cachedAt'] ?? '') != '') {
+    return null;
+  }
+  final declared = data['extension'];
+  if (declared != 'pdf' && declared != 'docx') return null;
+  final actual =
+      bytes.length >= 5 &&
+          ascii.decode(bytes.sublist(0, 5), allowInvalid: true) == '%PDF-'
+      ? 'pdf'
+      : 'docx';
+  if (actual == declared) return null;
+  validateMaterialBytes(bytes, actual);
+  final name = data['name'] as String? ?? data['title'] as String;
+  return {
+    'remoteName': data['remoteName'] ?? name,
+    'extension': actual,
+    'size': bytes.length,
+    'name': "${name.replaceFirst(RegExp(r'\.[^.]+$'), '')}.$actual",
+  };
+}
+
+/// Optional exchange package for selected materials. The complete notebook
+/// backup includes all referenced binaries through CompleteBackup.
 class MaterialBundle {
   static const maxPlain = 60000000, maxFileTotal = 40000000;
   static final cipher = AesGcm.with256bits();
-  static Future<SecretKey> _key(String password, List<int> salt) => Pbkdf2(
+  static Future<SecretKey> _key(
+    String password,
+    List<int> salt, {
+    bool legacy = false,
+  }) => Pbkdf2(
     macAlgorithm: Hmac.sha256(),
-    iterations: 310000,
+    iterations: legacy ? 310000 : 600000,
     bits: 256,
   ).deriveKey(secretKey: SecretKey(utf8.encode(password)), nonce: salt);
   static Future<Uint8List> encode(
@@ -124,10 +153,10 @@ class MaterialBundle {
       plain,
       secretKey: await _key(password, salt),
       nonce: nonce,
-      aad: ascii.encode('FLEXMAT1'),
+      aad: ascii.encode('FLEXMAT2'),
     );
     return Uint8List.fromList([
-      ...ascii.encode('FLEXMAT1'),
+      ...ascii.encode('FLEXMAT2'),
       ...salt,
       ...nonce,
       ...box.cipherText,
@@ -141,7 +170,10 @@ class MaterialBundle {
   decode(Uint8List bytes, String password) async {
     if (bytes.length < 52 ||
         bytes.length > maxPlain + 52 ||
-        ascii.decode(bytes.sublist(0, 8), allowInvalid: true) != 'FLEXMAT1') {
+        !{
+          'FLEXMAT1',
+          'FLEXMAT2',
+        }.contains(ascii.decode(bytes.sublist(0, 8), allowInvalid: true))) {
       throw const DomainError('Keine gültige Materialsicherung.');
     }
     try {
@@ -151,8 +183,12 @@ class MaterialBundle {
           nonce: bytes.sublist(24, 36),
           mac: Mac(bytes.sublist(bytes.length - 16)),
         ),
-        secretKey: await _key(password, bytes.sublist(8, 24)),
-        aad: ascii.encode('FLEXMAT1'),
+        secretKey: await _key(
+          password,
+          bytes.sublist(8, 24),
+          legacy: ascii.decode(bytes.sublist(0, 8)) == 'FLEXMAT1',
+        ),
+        aad: bytes.sublist(0, 8),
       );
       final j = Json.from(jsonDecode(utf8.decode(plain)) as Map);
       if (j['format'] != 'FLEX-Materials' ||
@@ -182,17 +218,24 @@ class MaterialBundle {
                 entry.value['sha256']) {
           throw const FormatException();
         }
-        final matching = docs.where((d) => d.text('localKey') == key).toList();
+        final matching = docs
+            .where((d) => materialFileKeys(d.toJson()).contains(key))
+            .toList();
         if (matching.isEmpty) throw const FormatException();
         for (final d in matching) {
-          validateMaterialBytes(data, d.text('extension'));
+          final v = materialVersions(
+            d.toJson(),
+          ).where((v) => v['localKey'] == key).firstOrNull;
+          validateMaterialBytes(
+            data,
+            v?['extension'] as String? ?? d.text('extension'),
+          );
         }
         files[key] = data;
       }
       if (docs.any(
         (d) =>
-            d.text('localKey').isNotEmpty &&
-            !files.containsKey(d.text('localKey')),
+            materialFileKeys(d.toJson()).any((key) => !files.containsKey(key)),
       )) {
         throw const FormatException();
       }

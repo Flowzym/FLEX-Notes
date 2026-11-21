@@ -82,7 +82,11 @@ void main() {
       final done = await repo.saveEntry(initial.complete());
       final reopened = await repo.saveEntry(done.reopen());
       expect(reopened.reminderState, ReminderState.cancelled);
-      expect(reopened.items.single.checked, isFalse);
+      expect(done.items.single.checked, isTrue);
+      expect(
+        reopened.items.map((i) => i.toJson()).toList(),
+        done.items.map((i) => i.toJson()).toList(),
+      );
     },
   );
   test('stale editor is rejected and its draft remains available', () async {

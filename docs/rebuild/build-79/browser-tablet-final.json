@@ -1,0 +1,9 @@
+{
+  "source": "e27de61c8cff037e26d7330f861bd23abd213058",
+  "checks": [
+    "wide pupil master/detail",
+    "one global floating add button",
+    "phone notes retained"
+  ],
+  "pageErrors": []
+}

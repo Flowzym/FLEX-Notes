@@ -1,0 +1,15 @@
+{
+  "version": "0.27.0+77",
+  "syntheticData": true,
+  "widths": [
+    320,
+    390
+  ],
+  "checks": [
+    "existing local pupil and material data open",
+    "privacy information accessible from settings",
+    "privacy modal at phone widths"
+  ],
+  "pageErrors": [],
+  "physicalAndroidTested": false
+}

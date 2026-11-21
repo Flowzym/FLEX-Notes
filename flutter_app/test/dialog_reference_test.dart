@@ -1,3 +1,5 @@
+import 'package:flex_notizbuch/ui/admin_page.dart';
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -46,28 +48,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SqliteNotebook repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final font in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': [
-        'assets/fonts/Gelasio-Regular.ttf',
-        'assets/fonts/Gelasio-Medium.ttf',
-        'assets/fonts/Gelasio-SemiBold.ttf',
-        'assets/fonts/Gelasio-Bold.ttf',
-      ],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(font.key);
-      for (final path in font.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = SqliteNotebook(
       NotebookDatabase(
@@ -104,12 +85,6 @@ void main() {
       RepaintBoundary(
         key: boundary,
         child: FlexApp(controller: c),
-      ),
-    );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground)),
       ),
     );
     await t.pumpAndSettle();
@@ -354,8 +329,8 @@ void main() {
         }),
       );
       await tap(t, find.byKey(const ValueKey('save-school-record')));
-      await tap(t, find.text('Aktuelle Fassung übernehmen'));
-      await tap(t, find.text('Aktuelle Fassung übernehmen'));
+      await tap(t, find.text('Aktuelle Version übernehmen'));
+      await tap(t, find.text('Aktuelle Version übernehmen'));
       await tap(t, find.byKey(const ValueKey('save-school-record')));
       final saved = (await repo.schoolRecords()).single;
       expect(saved.taskState(task), TaskState.complete);
@@ -582,7 +557,7 @@ void main() {
         'Clara Entwurf',
       );
       await tap(t, find.byTooltip('#AC5D72'));
-      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+      await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
       final draft = (await repo.dialogDrafts()).single;
       expect(await repo.pupils(), hasLength(2));
       await open(t, PupilEditor(controller: c, draft: draft));
@@ -795,15 +770,13 @@ void main() {
         await t.pumpAndSettle();
         await tap(t, find.text('Sicherung wiederherstellen'));
         expect(
-          find.text(
-            'Bitte die Wiederherstellung als neuen Datenstand bestätigen.',
-          ),
+          find.text('Bitte die Wiederherstellung dieser Sicherung bestätigen.'),
           findsOneWidget,
         );
         expect(await target.pupils(), isEmpty);
         await tap(
           t,
-          find.text('Diese Sicherung als neuen Datenstand verwenden'),
+          find.text('Die Daten aus dieser Sicherung wiederherstellen'),
         );
         await tap(t, find.text('Sicherung wiederherstellen'));
         expect(await target.pupils(), hasLength(2));
@@ -886,7 +859,7 @@ void main() {
       await t.pumpAndSettle();
       expect(
         find.descendant(
-          of: find.byType(FlexModal),
+          of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
           matching: find.textContaining('Gespräch mit Eltern'),
         ),
         findsOneWidget,
@@ -898,17 +871,23 @@ void main() {
       await t.pumpAndSettle();
       expect(
         find.descendant(
-          of: find.byType(FlexModal),
+          of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
           matching: find.textContaining('Gespräch mit Eltern'),
         ),
         findsNothing,
       );
       expect(find.text('Aktuelle Beobachtung'), findsWidgets);
       unawaited(
-        showJournal(t.element(find.byType(FlexModal).last), c, changed.id),
+        showJournal(
+          t.element(
+            find.byWidgetPredicate((w) => w is FlexModal && !w.embedded).last,
+          ),
+          c,
+          changed.id,
+        ),
       );
       await t.pumpAndSettle();
-      await tap(t, find.textContaining('Fassung 2'));
+      await tap(t, find.textContaining('Version 2'));
       expect(find.textContaining('Frühere Beobachtung'), findsOneWidget);
       expect(find.textContaining('Aktuelle Beobachtung'), findsWidgets);
       expect(find.textContaining('rebuildFormat'), findsNothing);
@@ -987,17 +966,17 @@ void main() {
           find.widgetWithText(TextField, 'Name'),
           'Nicht verlieren',
         );
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         expect(find.text('Entwurf nicht gesichert'), findsOneWidget);
         expect(await failing.dialogDrafts(), isEmpty);
         await tap(t, find.text('Verwerfen'));
         expect(find.text('Synthetischer Verwerfungsfehler'), findsOneWidget);
         expect(t.takeException(), isNull);
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         await tap(t, find.text('Weiterbearbeiten'));
         expect(find.text('Nicht verlieren'), findsOneWidget);
         failing.failWrites = false;
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         final draft = (await failing.dialogDrafts()).single;
         expect(draft.data['name'], 'Nicht verlieren');
         expect(await failing.pupils(), isEmpty);
@@ -1185,15 +1164,27 @@ void main() {
         ),
         for (final menu in ['drafts', 'class', 'trash', 'drafts-filled'])
           'menu-$menu': (ctx) async {
+            if (menu == 'class') {
+              await t.tap(find.byKey(const ValueKey('bottom-2')));
+              await t.pumpAndSettle();
+              await t.tap(find.byKey(const ValueKey('general-class-only-all')));
+              return;
+            }
             await t.tap(find.byTooltip('Weitere Bereiche'));
             await t.pumpAndSettle();
-            await t.tap(
-              menu.startsWith('drafts')
-                  ? find.textContaining('Entwürfe (').last
-                  : find
-                        .text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb')
-                        .last,
-            );
+            final target = menu.startsWith('drafts')
+                ? find.textContaining('Entwürfe (')
+                : find.text(menu == 'class' ? 'Klassen-Orga' : 'Papierkorb');
+            if (target.evaluate().isEmpty) {
+              await t.scrollUntilVisible(
+                target,
+                100,
+                scrollable: find.byType(Scrollable).last,
+              );
+            }
+            await t.ensureVisible(target.last);
+            await t.pumpAndSettle();
+            await t.tap(target.last);
           },
         'conflicts': (ctx) => showDialog<void>(
           context: ctx,
@@ -1250,15 +1241,71 @@ void main() {
         await t.pumpAndSettle();
         await t.runAsync(() => repo.snapshot());
         await t.pumpAndSettle();
-        if (scenario.key == 'menu-trash') {
-          expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
-          expect(find.text('Papierkorb endgültig leeren'), findsOneWidget);
+        if (scenario.key == 'menu-class') {
+          expect(
+            find.byKey(const ValueKey('general-all-page')),
+            findsOneWidget,
+          );
+          final appointments = find.byKey(
+            const ValueKey('general-type-all-appointments'),
+          );
+          await t.scrollUntilVisible(
+            appointments,
+            100,
+            scrollable: find
+                .descendant(
+                  of: find.byKey(const PageStorageKey('general-all')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+          await Scrollable.ensureVisible(
+            t.element(appointments),
+            alignment: .5,
+          );
+          await t.pumpAndSettle();
+          expect(appointments.hitTestable(), findsOneWidget);
           expect(t.takeException(), isNull);
           await finish(t);
           continue;
         }
-        expect(find.byType(FlexModal), findsOneWidget, reason: scenario.key);
-        final rect = t.getRect(find.byKey(const ValueKey('flex-modal-frame')));
+        if (scenario.key == 'menu-trash') {
+          expect(find.byKey(const ValueKey('context-4-2')), findsOneWidget);
+          expect(find.text('Papierkorb endgültig leeren'), findsNothing);
+          await t.tap(find.byKey(const ValueKey('context-4-0')));
+          await t.pumpAndSettle();
+          await t.ensureVisible(find.text('Admin-Bereich').last);
+          await t.tap(find.text('Admin-Bereich').last);
+          await t.pumpAndSettle();
+          await t.runAsync(repo.snapshot);
+          await t.pumpAndSettle();
+          final erase = find.text('Papierkorb endgültig leeren');
+          await t.scrollUntilVisible(
+            erase,
+            220,
+            scrollable: find
+                .descendant(
+                  of: find.byType(AdminArea),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+          expect(erase, findsOneWidget);
+          expect(t.takeException(), isNull);
+          await finish(t);
+          continue;
+        }
+        expect(
+          find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+          findsOneWidget,
+          reason: scenario.key,
+        );
+        final rect = t.getRect(
+          find.descendant(
+            of: find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+            matching: find.byKey(const ValueKey('flex-modal-frame')),
+          ),
+        );
         expect(rect.left, greaterThanOrEqualTo(9.9), reason: scenario.key);
         expect(rect.right, lessThanOrEqualTo(size.width - 9.9));
         expect(
@@ -1278,7 +1325,10 @@ void main() {
                   : 'Speichern',
             ),
           );
-          expect(find.byType(FlexModal), findsOneWidget);
+          expect(
+            find.byWidgetPredicate((w) => w is FlexModal && !w.embedded),
+            findsOneWidget,
+          );
           if (scenario.key == 'social-error') {
             final error = find.byKey(const ValueKey('record-error'));
             expect(error, findsOneWidget);

@@ -130,6 +130,7 @@ void main() {
       await t.pumpAndSettle();
       Future<void> tap(Finder finder) async {
         await t.ensureVisible(finder);
+        await t.pumpAndSettle();
         await t.tap(finder);
         await t.pumpAndSettle();
       }
@@ -150,10 +151,10 @@ void main() {
       expect(find.text('2 ausgewählt'), findsOneWidget);
       await tap(find.text('Tags'));
       await t.enterText(
-        find.widgetWithText(TextField, 'Tags hinzufügen'),
-        'Neu, Bestehend',
+        find.widgetWithText(TextField, 'Tag hinzufügen'),
+        'Neu',
       );
-      await tap(find.text('Hinzufügen'));
+      await tap(find.widgetWithText(FilledButton, 'Übernehmen'));
       expect(
         c.classroom.every(
           (d) => d.strings('tags').toSet().containsAll(['Bestehend', 'Neu']),

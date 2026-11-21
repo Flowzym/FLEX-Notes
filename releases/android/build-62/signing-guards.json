@@ -1,0 +1,18 @@
+{
+  "missing-key": {
+    "passed": true,
+    "exitCode": 1
+  },
+  "wrong-key": {
+    "passed": true,
+    "exitCode": 1
+  },
+  "unsigned-ci": {
+    "passed": true,
+    "exitCode": 0
+  },
+  "debug-without-private-key": {
+    "passed": true,
+    "exitCode": 0
+  }
+}

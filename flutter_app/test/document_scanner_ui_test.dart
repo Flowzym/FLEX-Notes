@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flex_notizbuch/services/scan_store.dart';
 import 'package:flutter/services.dart';
 import 'package:flex_device/flex_device.dart';
 import 'package:file_selector/file_selector.dart';
@@ -28,6 +29,17 @@ class InterruptedScanRepository extends SqliteNotebook {
       throw const DomainError('Speicherung unterbrochen');
     }
     return super.saveDialogDraft(draft);
+  }
+}
+
+class DelayedScanCleanup extends MemoryMaterialFiles {
+  bool failRemoval = false;
+  @override
+  Future<void> remove(String key) async {
+    if (failRemoval) {
+      throw const DomainError('Temporäres Aufräumen fehlgeschlagen');
+    }
+    await super.remove(key);
   }
 }
 
@@ -90,10 +102,108 @@ void main() {
   }
 
   Future<void> tap(WidgetTester t, Finder f) async {
+    await t.pump();
     await t.ensureVisible(f);
+    await t.pump();
     await t.tap(f);
     await t.pump();
   }
+
+  testWidgets(
+    'redacted replacement requires explicit confirmation before removing originals',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      await files.write('first-page', scannerImage());
+      Future<DialogDraft> draft(String id, Map<String, dynamic> extra) =>
+          c.repository.saveDialogDraft(
+            DialogDraft(
+              id: id,
+              type: 'scan',
+              ownerId: id,
+              updatedAtUtc: utcNow(),
+              data: {
+                ...const ScanContext(title: 'Privacy test').initial(),
+                'pages': [const ScanPage('first-page', 180, 240).toJson()],
+                ...extra,
+              },
+            ),
+          );
+      final first = await t.runAsync(
+        () async => saveScan(c.repository, files, await draft('first', {})),
+      );
+      await files.write('first-page', scannerImage());
+      final edited = await draft('edited', {
+        'sourceId': first!.id,
+        'sourceRevision': first.revision,
+        'redacted': true,
+      });
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: edited),
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.text('Vorhandene Datei ersetzen'));
+      expect(find.text('Frühere Versionen entfernen'), findsOneWidget);
+      await tap(t, find.text('PDF ersetzen'));
+      expect(
+        find.text('Original und frühere Versionen entfernen?'),
+        findsOneWidget,
+      );
+      await tap(t, find.text('Abbrechen'));
+      expect(files.values.containsKey(first.text('localKey')), true);
+      expect(
+        (await c.repository.classroomDocuments()).single.revision,
+        first.revision,
+      );
+      await tap(t, find.text('PDF ersetzen'));
+      await tap(t, find.text('Ersetzen und entfernen'));
+      await settleWork(t, () => find.byType(ScanEditor).evaluate().isEmpty);
+      expect(files.values.containsKey(first.text('localKey')), false);
+      expect(
+        (await c.repository.classroomDocuments()).single.rows('versions'),
+        isEmpty,
+      );
+    },
+  );
+
+  testWidgets(
+    'direct import opens picker once and retains imported preview pages',
+    (t) async {
+      final c = await controller();
+      var requests = 0;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: MemoryMaterialFiles(),
+          importOnOpen: true,
+          pickFiles: () async {
+            requests++;
+            return [
+              XFile.fromData(
+                scannerImage(),
+                name: 'Formular.png',
+                mimeType: 'image/png',
+              ),
+            ];
+          },
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            find.text('1 Seite').evaluate().isNotEmpty ||
+            find.text('1 Seiten').evaluate().isNotEmpty,
+      );
+      expect(requests, 1);
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      final draft = (await c.repository.dialogDrafts()).single;
+      expect(draft.type, 'scan');
+      expect(draft.data['pages'], hasLength(1));
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'page editor tools remain reachable with doubled text at 320 pixels',
@@ -324,6 +434,7 @@ void main() {
               ++shot <= 2 ? scannerImage(width: 180 + shot * 20) : null,
         ),
       );
+      await tap(t, find.byKey(const ValueKey('scan-format-jpg')));
       await tap(t, find.byKey(const ValueKey('scanner-batch')));
       await settleWork(
         t,
@@ -420,6 +531,55 @@ void main() {
     );
   }
 
+  testWidgets(
+    'committed replacement survives cleanup failure without a false save error',
+    (t) async {
+      final c = await controller(), files = DelayedScanCleanup();
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          initialImages: [scannerImage(), scannerImage(width: 200)],
+          pickFiles: () async => [
+            XFile.fromData(scannerImage(width: 300), name: 'replacement.jpg'),
+          ],
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).length == 2,
+      );
+      final before = c.dialogDrafts.single.data['pages'] as List;
+      final oldKey = before.first['key'] as String;
+      files.failRemoval = true;
+      await tap(t, find.byKey(const ValueKey('scan-replace-page-0')));
+      await tap(t, find.text('Bild auswählen'));
+      await settleWork(
+        t,
+        () =>
+            (c.dialogDrafts.single.data['pages'] as List).first['width'] ==
+                300 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(
+        find.textContaining('Temporäres Aufräumen fehlgeschlagen'),
+        findsNothing,
+      );
+      expect(files.values.containsKey(oldKey), isTrue);
+      files.failRemoval = false;
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      final after = c.dialogDrafts.single.data['pages'] as List;
+      expect(after.map((v) => v['width']), [300, 200]);
+      expect(after.last['key'], before.last['key']);
+      expect(files.values.containsKey(oldKey), isFalse);
+      expect(files.values, hasLength(2));
+    },
+  );
+
   for (final failMetadata in [false, true]) {
     testWidgets(
       'batch filter keeps page order and safely retries failed draft write=$failMetadata',
@@ -445,17 +605,37 @@ void main() {
         await tap(t, find.byKey(const ValueKey('scan-batch-filter')));
         await settleWork(
           t,
-          () => find.text('Auf alle anwenden').evaluate().isNotEmpty,
+          () =>
+              find
+                  .byKey(const ValueKey('scan-filter-gray'))
+                  .evaluate()
+                  .isNotEmpty &&
+              t
+                      .widget<FilledButton>(
+                        find.byKey(const ValueKey('scan-batch-apply')),
+                      )
+                      .onPressed !=
+                  null,
         );
         await tap(t, find.byKey(const ValueKey('scan-filter-gray')));
+        await settleWork(
+          t,
+          () =>
+              t
+                  .widget<FilledButton>(
+                    find.byKey(const ValueKey('scan-batch-apply')),
+                  )
+                  .onPressed !=
+              null,
+        );
         (c.repository as InterruptedScanRepository).failWrite = failMetadata;
-        await tap(t, find.text('Auf alle anwenden'));
+        await tap(t, find.text('Anwenden · 2'));
         await settleWork(
           t,
           () =>
               files.values.length >= (failMetadata ? 4 : 2) &&
               find.byType(LinearProgressIndicator).evaluate().isEmpty &&
-              find.text('Auf alle anwenden').evaluate().isEmpty,
+              find.text('Anwenden · 2').evaluate().isEmpty,
         );
         if (failMetadata) {
           expect(
@@ -469,7 +649,11 @@ void main() {
         final after = c.dialogDrafts.single.data['pages'] as List;
         expect(after.map((p) => p['width']), [180, 240]);
         expect(after.map((p) => p['key']).toList(), isNot(before));
-        expect(files.values.length, 2);
+        expect(
+          files.values.length,
+          4,
+        ); // Current pages and durable filter undo.
+        expect((c.dialogDrafts.single.data['filterUndo'] as Map).length, 2);
         for (final p in after) {
           final image = img.decodeJpg(files.values[p['key']]!)!;
           final pixel = image.getPixel(image.width ~/ 2, image.height ~/ 2);
@@ -479,6 +663,87 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'batch selection preserves unselected pixels and undo restores original page order',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          initialImages: [scannerImage(width: 180), scannerImage(width: 240)],
+        ),
+      );
+      await settleWork(
+        t,
+        () =>
+            c.dialogDrafts.isNotEmpty &&
+            (c.dialogDrafts.single.data['pages'] as List).length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      List<String> keys() => (c.dialogDrafts.single.data['pages'] as List)
+          .map((p) => p['key'] as String)
+          .toList();
+      final original = keys();
+      await tap(t, find.byKey(const ValueKey('scan-batch-filter')));
+      await settleWork(
+        t,
+        () =>
+            find
+                .byKey(const ValueKey('scan-filter-gray'))
+                .evaluate()
+                .isNotEmpty &&
+            t
+                    .widget<FilledButton>(
+                      find.byKey(const ValueKey('scan-batch-apply')),
+                    )
+                    .onPressed !=
+                null,
+      );
+      await tap(t, find.widgetWithText(FilterChip, 'Seite 2'));
+      await tap(t, find.byKey(const ValueKey('scan-filter-gray')));
+      await settleWork(
+        t,
+        () =>
+            t
+                .widget<FilledButton>(
+                  find.byKey(const ValueKey('scan-batch-apply')),
+                )
+                .onPressed !=
+            null,
+      );
+      await tap(t, find.byKey(const ValueKey('scan-batch-apply')));
+      await settleWork(
+        t,
+        () =>
+            keys().first != original.first &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(keys().last, original.last);
+      expect(original.every(files.values.containsKey), true);
+      await tap(t, find.text('Später fortsetzen'));
+      final resumed = (await c.repository.dialogDrafts()).single;
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: resumed),
+      );
+      await t.pumpAndSettle();
+      await tap(t, find.byTooltip('Bearbeitung zurücknehmen'));
+      await settleWork(
+        t,
+        () =>
+            keys().first == original.first &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(keys(), original);
+      await tap(t, find.text('Später fortsetzen'));
+      await t.pumpAndSettle();
+      expect(files.values.keys.toSet(), original.toSet());
+      expect(t.takeException(), isNull);
+    },
+  );
 
   testWidgets('cancelled replacement leaves the original untouched', (t) async {
     final c = await controller(), files = MemoryMaterialFiles();
@@ -619,9 +884,21 @@ void main() {
             find.byType(LinearProgressIndicator).evaluate().isEmpty,
       );
       await t.enterText(
-        find.byKey(const ValueKey('scan-tags')),
-        '#Mathe, Probe, mathe',
+        find.descendant(
+          of: find.byKey(const ValueKey('scan-tags')),
+          matching: find.byType(TextField),
+        ),
+        '#Mathe',
       );
+      await tap(t, find.byTooltip('Tag übernehmen'));
+      await t.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('scan-tags')),
+          matching: find.byType(TextField),
+        ),
+        'Probe',
+      );
+      await t.pumpAndSettle();
       await tap(t, find.byKey(const ValueKey('scan-edit-page-0')));
       await settleWork(
         t,
@@ -640,13 +917,8 @@ void main() {
       expect(resume.data['tags'], ['Mathe', 'Probe']);
       await t.tap(find.text('Öffnen'));
       await t.pumpAndSettle();
-      expect(
-        t
-            .widget<TextField>(find.byKey(const ValueKey('scan-tags')))
-            .controller!
-            .text,
-        'Mathe, Probe',
-      );
+      expect(find.widgetWithText(InputChip, 'Mathe'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'Probe'), findsOneWidget);
       await tap(t, find.byKey(const ValueKey('save-scan')));
       await settleWork(t, () => result != null);
       expect(result!.text('extension'), 'jpg');
@@ -658,9 +930,81 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'document series uses live scanner, preserves order and can replace one page',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      final limits = <int>[];
+      var photos = 0;
+      await host(
+        t,
+        (_) => ScanEditor(
+          controller: c,
+          files: files,
+          capturePages: (limit) async {
+            limits.add(limit);
+            return limits.length == 1
+                ? [scannerImage(width: 180), scannerImage(width: 200)]
+                : [scannerImage(width: 220)];
+          },
+          capturePhoto: () async {
+            photos++;
+            return null;
+          },
+        ),
+      );
+      await tap(t, find.byKey(const ValueKey('scanner-camera')));
+      await settleWork(
+        t,
+        () =>
+            find.text('2 Seiten').evaluate().isNotEmpty &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(limits, [25]);
+      expect(photos, 0);
+      final original = (c.dialogDrafts.single.data['pages'] as List)
+          .map((p) => p['key'])
+          .toList();
+      await tap(t, find.byTooltip('Bild ersetzen').first);
+      await t.pumpAndSettle();
+      await tap(t, find.text('Neu aufnehmen'));
+      await settleWork(
+        t,
+        () =>
+            limits.length == 2 &&
+            find.byType(LinearProgressIndicator).evaluate().isEmpty,
+      );
+      expect(limits, [25, 1]);
+      expect(photos, 0);
+      final pages = c.dialogDrafts.single.data['pages'] as List;
+      expect(pages, hasLength(2));
+      expect(pages.first['width'], 220);
+      expect(pages.last['key'], original.last);
+      expect(await files.exists(original.first as String), isFalse);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('cancelled live camera leaves no empty scan draft', (t) async {
+    final c = await controller();
+    await host(
+      t,
+      (_) => ScanEditor(
+        controller: c,
+        files: MemoryMaterialFiles(),
+        capturePages: (_) async => null,
+      ),
+    );
+    await tap(t, find.byKey(const ValueKey('scanner-camera')));
+    await t.pumpAndSettle();
+    await tap(t, find.text('Später fortsetzen'));
+    await t.pumpAndSettle();
+    expect(c.dialogDrafts, isEmpty);
+  });
+
   for (final cameraFails in [false, true]) {
     testWidgets(
-      'document scanner falls back without Play Services; camera fails=$cameraFails',
+      'document scanner offers explicit fallback without Play Services; camera fails=$cameraFails',
       (t) async {
         final c = await controller(), files = MemoryMaterialFiles();
         final calls = <String>[];
@@ -695,6 +1039,10 @@ void main() {
         );
         await host(t, (_) => ScanEditor(controller: c, files: files));
         await tap(t, find.byKey(const ValueKey('scanner-camera')));
+        await t.pump(const Duration(milliseconds: 350));
+        expect(calls, isNot(contains('capturePhoto')));
+        expect(find.text('Live-Randerkennung nicht verfügbar'), findsOneWidget);
+        await tap(t, find.text('Ohne Randerkennung'));
         if (cameraFails) {
           await t.pumpAndSettle();
           expect(
@@ -724,7 +1072,7 @@ void main() {
         }
         expect(calls, containsAllInOrder(['scanDocument', 'capturePhoto']));
         expect(
-          find.textContaining('Aufnahme mit der normalen Kamera'),
+          find.textContaining('Foto ohne Live-Randerkennung'),
           findsOneWidget,
         );
         await t.pumpWidget(const SizedBox());
@@ -762,17 +1110,24 @@ void main() {
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(FlexDevice.channel, null),
       );
+      resume = await c.repository.saveDialogDraft(
+        DialogDraft(
+          id: 'legacy-photo-draft',
+          type: 'scan',
+          ownerId: 'legacy-photo-draft',
+          updatedAtUtc: utcNow(),
+          data: {
+            ...const ScanContext().initial(),
+            'outputFormat': 'jpg',
+            'capturePending': true,
+            'captureAsDocument': false,
+          },
+        ),
+      );
       await host(
         t,
         (_) => ScanEditor(controller: c, files: files, draft: resume),
       );
-      await tap(t, find.byKey(const ValueKey('scanner-photo')));
-      await t.pumpAndSettle();
-      await tap(t, find.text('Später fortsetzen'));
-      await t.pumpAndSettle();
-      resume = c.dialogDrafts.single;
-      await t.tap(find.text('Öffnen'));
-      await t.pump();
       await settleWork(
         t,
         () =>
@@ -982,6 +1337,154 @@ void main() {
         );
         expect(image.getPixel(3, 3).r, greaterThan(220));
         expect(t.takeException(), isNull);
+      },
+    );
+  }
+  testWidgets(
+    'native edge capture persists original before acknowledgment and recovers once',
+    (t) async {
+      final c = await controller(), files = MemoryMaterialFiles();
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      var attempts = 0;
+      final captured = {
+        'token': 'native-page',
+        'bytes': scannerImage(),
+        'corners': [
+          [.1, .1],
+          [.9, .1],
+          [.9, .9],
+          [.1, .9],
+        ],
+      };
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(FlexDevice.channel, (call) async {
+        if (call.method == 'scanDocument' || call.method == 'recoverScan') {
+          return [captured];
+        }
+        if (call.method == 'finishScanPage') {
+          final stored = await c.repository.dialogDrafts();
+          expect(
+            (stored.single.data['pages'] as List).single['captureToken'],
+            'native-page',
+          );
+          expect((stored.single.data['filterUndo'] as Map).length, 1);
+          attempts++;
+          if (attempts == 1) {
+            throw PlatformException(
+              code: 'scanner_ack',
+              message: 'Temporär nicht verfügbar.',
+            );
+          }
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(FlexDevice.channel, null),
+      );
+      await host(t, (_) => ScanEditor(controller: c, files: files));
+      await tap(t, find.byKey(const ValueKey('scanner-camera')));
+      await settleWork(t, () => attempts == 1);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+      await c.reload();
+      final draft = c.dialogDrafts.single;
+      expect(draft.data['scanPending'], true);
+      await host(
+        t,
+        (_) => ScanEditor(controller: c, files: files, draft: draft),
+      );
+      await settleWork(
+        t,
+        () =>
+            attempts == 2 && c.dialogDrafts.single.data['scanPending'] == false,
+      );
+      expect((c.dialogDrafts.single.data['pages'] as List).length, 1);
+      expect(files.values.length, 2);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  for (final mixed in [false, true]) {
+    testWidgets(
+      'native camera retains photo mode and mixed batch metadata: $mixed',
+      (t) async {
+        final c = await controller(), files = MemoryMaterialFiles();
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        final calls = <String>[];
+        messenger.setMockMethodCallHandler(FlexDevice.channel, (call) async {
+          calls.add(call.method);
+          if (call.method == 'scanDocument') {
+            expect((call.arguments as Map)['photo'], true);
+            return [
+              {
+                'token': 'photo',
+                'photo': true,
+                'bytes': scannerImage(),
+                'corners': [
+                  [.1, .1],
+                  [.9, .1],
+                  [.9, .9],
+                  [.1, .9],
+                ],
+              },
+              if (mixed)
+                {'token': 'document', 'photo': false, 'bytes': scannerImage()},
+            ];
+          }
+          if (call.method == 'finishScanPage') {
+            final stored = (await c.repository.dialogDrafts()).single;
+            expect(
+              (stored.data['pages'] as List).any(
+                (p) => p['captureToken'] == (call.arguments as Map)['token'],
+              ),
+              true,
+            );
+          }
+          return null;
+        });
+        addTearDown(
+          () => messenger.setMockMethodCallHandler(FlexDevice.channel, null),
+        );
+        await host(
+          t,
+          (_) => ScanEditor(
+            controller: c,
+            files: files,
+            scope: const ScanContext(pupilIds: ['p'], title: 'Kamera'),
+          ),
+        );
+        await tap(t, find.byKey(const ValueKey('scanner-photo')));
+        await settleWork(
+          t,
+          () =>
+              c.dialogDrafts.isNotEmpty &&
+              c.dialogDrafts.single.data['scanPending'] == false,
+        );
+        final data = c.dialogDrafts.single.data;
+        expect(data['outputFormat'], mixed ? 'pdf' : 'jpg');
+        final pages = (data['pages'] as List)
+            .map((p) => ScanPage.fromJson(Json.from(p as Map)))
+            .toList();
+        expect(pages.first.photo, true);
+        expect(pages.first.width, 180);
+        expect(pages.first.height, 240);
+        expect(calls, isNot(contains('capturePhoto')));
+        expect(data['filterUndo'] as Map? ?? {}, isEmpty);
+        await tap(t, find.byKey(const ValueKey('save-scan')));
+        await settleWork(t, () => c.classroom.isNotEmpty);
+        expect(c.classroom.single.text('extension'), mixed ? 'pdf' : 'jpg');
+        expect(c.classroom.single.strings('pupilIds'), ['p']);
+        await t.pumpWidget(const SizedBox());
+        await t.pumpAndSettle();
+        debugDefaultTargetPlatformOverride = null;
       },
     );
   }

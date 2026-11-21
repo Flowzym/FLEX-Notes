@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/models.dart';
 import '../security/backup_codec.dart';
 import 'secret_store.dart';
+import 'stream_backup.dart';
 
 abstract interface class BackupFiles {
   Future<Map<String, dynamic>?> chooseDirectory();
@@ -14,9 +15,69 @@ abstract interface class BackupFiles {
   Future<void> delete(String folder, String uri);
 }
 
-class DeviceBackupFiles implements BackupFiles {
+abstract interface class StreamingBackupFiles implements BackupFiles {
+  Future<String> writeStream(
+    String folder,
+    String name,
+    Stream<List<int>> bytes,
+  );
+  Stream<List<int>> readStream(String folder, String uri);
+}
+
+class DeviceBackupFiles implements StreamingBackupFiles {
   const DeviceBackupFiles();
   static const device = FlexDevice();
+  @override
+  Future<String> writeStream(
+    String folder,
+    String name,
+    Stream<List<int>> bytes,
+  ) async {
+    final item = (await FlexDevice.channel.invokeMapMethod<String, dynamic>(
+      'beginBackupWrite',
+      {'folder': folder, 'name': name},
+    ))!;
+    final token = item['token'] as String;
+    try {
+      await for (final part in bytes) {
+        await FlexDevice.channel.invokeMethod('writeFileChunk', {
+          'token': token,
+          'bytes': Uint8List.fromList(part),
+        });
+      }
+      return (await FlexDevice.channel.invokeMethod<String>('finishFileWrite', {
+        'token': token,
+      }))!;
+    } catch (_) {
+      try {
+        await FlexDevice.channel.invokeMethod('abortFileWrite', {
+          'token': token,
+        });
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
+  @override
+  Stream<List<int>> readStream(String folder, String uri) async* {
+    final token = await FlexDevice.channel.invokeMethod<String>(
+      'beginBackupRead',
+      {'folder': folder, 'uri': uri},
+    );
+    try {
+      while (true) {
+        final part = await FlexDevice.channel.invokeMethod<Uint8List>(
+          'readFileChunk',
+          {'token': token},
+        );
+        if (part == null) break;
+        yield part;
+      }
+    } finally {
+      await FlexDevice.channel.invokeMethod('closeFileRead', {'token': token});
+    }
+  }
+
   @override
   Future<Map<String, dynamic>?> chooseDirectory() => device.chooseDirectory();
   @override
@@ -41,6 +102,7 @@ class AutomaticBackup extends ChangeNotifier {
     required this.store,
     required this.files,
     required this.export,
+    this.exportStream,
     required this.schedule,
     required this.withLock,
     DateTime Function()? now,
@@ -48,6 +110,7 @@ class AutomaticBackup extends ChangeNotifier {
   final SecretStore store;
   final BackupFiles files;
   final Future<String> Function() export;
+  final Stream<List<int>> Function(String password)? exportStream;
   final Future<void> Function(int?) schedule;
   final Future<void> Function(Future<void> Function()) withLock;
   final DateTime Function() now;
@@ -154,32 +217,67 @@ class AutomaticBackup extends ChangeNotifier {
         final folder = _config['folder'] as String;
         String? created;
         try {
-          final text = await export();
-          final encrypted = await compute(_encryptBackup, {
-            'text': text,
-            'password': _config['password'] as String,
-          });
-          final bytes = Uint8List.fromList(utf8.encode(encrypted));
           final stamp = now()
               .toUtc()
               .toIso8601String()
               .split('.')
               .first
               .replaceAll(':', '');
-          created = await files.write(
-            folder,
-            'FLEX-Auto-${stamp}Z-${_config['groupId']}-${newId()}.json',
-            bytes,
-          );
-          final read = await files.read(folder, created);
-          if (read.length != bytes.length ||
-              !listEquals(
-                (await Sha256().hash(read)).bytes,
-                (await Sha256().hash(bytes)).bytes,
+          final name = 'FLEX-Auto-${stamp}Z-${_config['groupId']}-${newId()}';
+          if (exportStream != null && files is StreamingBackupFiles) {
+            final streamFiles = files as StreamingBackupFiles;
+            final expected = Sha256().toSync().newHashSink();
+            var length = 0;
+            Stream<List<int>> writing() async* {
+              await for (final chunk in exportStream!(
+                _config['password'] as String,
               )) {
-            throw const DomainError(
-              'Die gespeicherte Sicherung konnte nicht geprüft werden.',
+                expected.add(chunk);
+                length += chunk.length;
+                yield chunk;
+              }
+              expected.close();
+            }
+
+            created = await streamFiles.writeStream(
+              folder,
+              '$name.flexbackup',
+              writing(),
             );
+            final actual = Sha256().toSync().newHashSink();
+            var readLength = 0;
+            await for (final chunk in streamFiles.readStream(folder, created)) {
+              actual.add(chunk);
+              readLength += chunk.length;
+            }
+            actual.close();
+            if (length != readLength ||
+                !listEquals(
+                  (await expected.hash()).bytes,
+                  (await actual.hash()).bytes,
+                )) {
+              throw const DomainError(
+                'Die gespeicherte Sicherung konnte nicht geprüft werden.',
+              );
+            }
+          } else {
+            final text = await export();
+            final encrypted = await compute(_encryptBackup, {
+              'text': text,
+              'password': _config['password'] as String,
+            });
+            final bytes = Uint8List.fromList(utf8.encode(encrypted));
+            created = await files.write(folder, '$name.json', bytes);
+            final read = await files.read(folder, created);
+            if (read.length != bytes.length ||
+                !listEquals(
+                  (await Sha256().hash(read)).bytes,
+                  (await Sha256().hash(bytes)).bytes,
+                )) {
+              throw const DomainError(
+                'Die gespeicherte Sicherung konnte nicht geprüft werden.',
+              );
+            }
           }
           final value = {
             ..._config,
@@ -244,6 +342,20 @@ class AutomaticBackup extends ChangeNotifier {
     return _config['folder'] == null
         ? []
         : files.list(_config['folder'] as String);
+  }
+
+  Future<({BackupSource source, String password})> openInput(String uri) async {
+    await load();
+    final folder = _config['folder'] as String;
+    Stream<List<int>> source() async* {
+      if (files is StreamingBackupFiles) {
+        yield* (files as StreamingBackupFiles).readStream(folder, uri);
+      } else {
+        yield await files.read(folder, uri);
+      }
+    }
+
+    return (source: source, password: _config['password'] as String);
   }
 
   Future<String> open(String uri, {String? password}) async {

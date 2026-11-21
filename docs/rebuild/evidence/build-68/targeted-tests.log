@@ -1,0 +1,108 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: days and lesson occurrences have independent progress; reading creates no stored data
+00:00 +1: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: pause and resume count elapsed time once; templates strip all runtime progress
+00:00 +2: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: completing and skipping progress explicitly; activating another phase pauses the old one
+00:00 +3: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: validation rejects malformed, ambiguous or running template data
+00:00 +4: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: carry forward is atomic, preserves target phases and cannot duplicate completed transfers
+00:00 +5: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: phase references and progress survive backup, restore and pupil mapping; invalid links rollback
+00:00 +6: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_test.dart: homework control appends feedback, retains siblings and notes and rejects later-dated feedback
+00:01 +7: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: (setUpAll)
+00:01 +7: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: phase editing, running, pausing and progress survive leaving and reopening the app
+00:02 +8: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: phase editing, running, pausing and progress survive leaving and reopening the app
+00:04 +9: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:05 +10: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: horizontal swipes change primary page, vertical drags and settings sliders do not; search survives
+00:05 +11: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: homework control filters by due date, keeps checked rows and shares normal task status
+00:06 +12: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:07 +13: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:07 +14: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: tap and swipe use the same short directional transition in every section
+00:08 +15: /workspace/FLEX-Notes/flutter_app/test/lesson_flow_ui_test.dart: flow and homework control fit 768.0 at text scale 1.0
+00:08 +16: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +17: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +18: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +19: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +20: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +21: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +22: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:09 +23: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +24: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +25: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +26: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +27: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +28: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +29: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +30: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +31: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +32: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +33: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +34: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +35: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +36: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:10 +37: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:12 +38: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:12 +39: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: all sections swipe in pill order from content and header, wrap at both edges and preserve slider gestures
+00:14 +40: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: preparing files preserves order, deduplicates and isolates dates
+00:14 +41: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:14 +42: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:15 +43: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:15 +44: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: text size persists and resetting it keeps shortcut order
+00:15 +45: /workspace/FLEX-Notes/flutter_app/test/material_workspace_test.dart: plan and package drafts survive restore and save atomically
+00:15 +46: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +47: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +48: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +49: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +50: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +51: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +52: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +53: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +54: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +55: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: failed scale persistence rolls back without losing the settings route
+00:15 +56: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: homework symbols persist all four states and retain sibling status and comments
+00:16 +57: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: legacy layout scaling is ignored; font changes preserve editor state and keyboard geometry
+00:18 +58: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: file title opens directly and edit/star controls have independent targets
+00:18 +59: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 1.0 app font 0.8
+00:19 +60: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: library retains search when switching views and reloading data
+00:20 +61: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 390.0 system font 1.0 app font 1.0
+00:21 +62: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: multi-selection assigns two files to pupil atomically without duplication
+00:21 +63: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 1200.0 system font 1.0 app font 1.2
+00:23 +64: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 1200.0 system font 1.0 app font 1.2
+00:23 +65: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: today shortcut preserves other prepared files and favorite is independent
+00:23 +66: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:23 +67: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.0
+00:25 +68: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+00:26 +69: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: large libraries build previews near the viewport and remain scrollable
+00:26 +70: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:26 +71: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:26 +72: /workspace/FLEX-Notes/flutter_app/test/swipe_design_test.dart: design and symbol renderings 320.0 system font 2.0 app font 1.6
+00:27 +73: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil assignment plans files, cancels atomically and clears only personal dates
+00:27 +74: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: pupil unlink keeps shared material and package accessible elsewhere
+00:27 +75: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:28 +76: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: preview is read-only; adds records, preserves original history, deduplicates repeat import
+00:28 +77: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 1.0
+00:28 +78: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 1.0
+00:28 +79: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: incompatible task fields roll back every change atomically
+00:28 +80: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 2.0
+00:28 +81: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: material view and selection fit phone at text scale 2.0
+00:28 +82: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: same names require explicit mapping; owner links are rewritten
+00:29 +83: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: prepared dialog retains title/close and fits large text
+00:29 +84: /workspace/FLEX-Notes/flutter_app/test/backup_merge_test.dart: divergent drafts survive twice without multiplying on repeat imports
+00:29 +85: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:29 +86: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:29 +87: /workspace/FLEX-Notes/flutter_app/test/material_workspace_ui_test.dart: actual app material screen and prepared day screenshots 390.0/1.0
+00:31 +88: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:32 +89: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:33 +90: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: one calendar retains mode and lesson visibility across task swipes without mutating data
+00:33 +91: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:34 +92: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:37 +93: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:37 +94: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:37 +95: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/light
+00:54 +96: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 390.0/1.0/dark
+01:03 +97: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 320.0/1.8/light
+01:09 +98: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 768.0/1.0/light
+01:20 +99: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: populated navigation and editors remain usable at 1280.0/1.0/dark
+01:31 +100: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: import into a fresh app with its timetable merges and preserves the timetable
+01:31 +101: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: a task shows its text once and keeps completion, scanning, attachments, history and trash reachable
+01:31 +102: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: backup screens show options for the chosen action
+01:31 +103: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: large option labels stay on one line instead of breaking words
+01:32 +104: /workspace/FLEX-Notes/flutter_app/test/ui_journey_audit_test.dart: (tearDownAll)
+01:32 +104: All tests passed!

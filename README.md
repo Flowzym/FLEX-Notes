@@ -1,4 +1,29 @@
-# FLEX-Notes – Flutter-Wiederaufbau
+# FLEX-Notes
+
+Version **0.38.0+90** auf dem Branch **`redesign/cream-olive`**.
+Flutter-App für Notizen, Unterricht, Kalender, Organisation und Materialien der FLEX-Klasse.
+
+- [Materialverwaltung und individuelle Schülerzuordnung](docs/rebuild/MATERIAL-BUILD-83.md)
+- [OneDrive einrichten, Unterricht planen und Materialkürzel vergeben](docs/rebuild/ONEDRIVE-SETUP.md)
+- [Aktueller Funktions- und Prüfstand](FLUTTER_STATUS.md)
+- [Integrationsprüfung, Rückläufe und Scanner](docs/rebuild/INTEGRATION-SCANNER-BUILD-84.md)
+- [Aktuelle Android-App für ARM64 herunterladen](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/android/)
+- [Private Webvorschau](https://flex-notizbuch-vorschau-40.maoam.chatgpt.site/)
+- [Entwicklung und lokaler Start](flutter_app/README.md)
+- [Navigation, Standardansichten und Termin-Tags](docs/rebuild/NAVIGATION-BUILD-80.md)
+- [Review-Ergänzungen und Kalender](docs/rebuild/REVIEW-CALENDAR-BUILD-79.md)
+- [Offene Geräteabnahme](docs/rebuild/ANDROID-ACCEPTANCE-BUILD-79.md)
+
+Vor Android-Updates unabhängig sichern. Die neue FLEX aktualisiert Build 62–82;
+die ursprüngliche FLEX Test bleibt separat. Neue Sicherungen mit Schema 8 benötigen
+Build 79 oder neuer. [Installation und Signatur](flutter_app/ANDROID-TEST.md).
+
+Die folgenden Abschnitte dokumentieren die Herkunft und frühere Arbeitsschritte.
+Ihre Versionsangaben beschreiben den damaligen Stand.
+
+---
+
+# Historischer Rekonstruktionsstand · Build 49
 
 Arbeitsbranch: **`fix/dialog-reference-audit`**, ausgehend von der unveränderten Sicherung
 auf `recovery/webpreview`.

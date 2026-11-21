@@ -1,10 +1,56 @@
+import java.io.File
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// CI may compile without the private key. Distributable releases must use the
+// permanent certificate; there is deliberately no debug-signing fallback.
+val unsignedRelease = providers.gradleProperty("flexUnsignedRelease")
+    .map { it.toBooleanStrict() }.getOrElse(false)
+val signingFile = if (unsignedRelease) null else providers
+    .environmentVariable("FLEX_SIGNING_PROPERTIES").orNull?.let { file(it) }
+val releaseRequested = gradle.startParameter.taskNames.any {
+    val name = it.substringAfterLast(':').lowercase()
+    name.contains("release") || name in setOf("build", "assemble", "bundle")
+}
+if (releaseRequested && !unsignedRelease && signingFile == null) {
+    throw GradleException(
+        "FLEX release signing requires FLEX_SIGNING_PROPERTIES. " +
+            "Use -PflexUnsignedRelease=true only for a non-installable CI build."
+    )
+}
+val releaseSigning = signingFile?.let { config ->
+    require(config.isFile) { "FLEX signing configuration not found." }
+    Properties().apply { config.inputStream().use { load(it) } }
+}
+fun signingValue(name: String): String = releaseSigning?.getProperty(name)
+    ?.takeIf { it.isNotBlank() }
+    ?: throw GradleException("FLEX signing configuration is missing $name.")
+val releaseStore: File? = signingFile?.let { config ->
+    val path = File(signingValue("storeFile"))
+    val store = if (path.isAbsolute) path else config.parentFile.resolve(path.path)
+    require(store.isFile) { "FLEX release keystore not found." }
+    val keyStore = KeyStore.getInstance(store, signingValue("storePassword").toCharArray())
+    val alias = signingValue("keyAlias")
+    require(keyStore.isKeyEntry(alias)) { "FLEX signing alias is not a private key." }
+    val certificate = keyStore.getCertificate(alias)
+    val digest = MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+        .joinToString("") { "%02x".format(it) }
+    val expected = rootProject.file("release-certificate.sha256").readText().trim()
+    require(digest == expected) { "FLEX release keystore does not match the permanent certificate." }
+    store
+}
+
 android {
+    buildFeatures {
+        resValues = true
+    }
     namespace = "at.flowzym.flex_notizbuch"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -16,8 +62,10 @@ android {
     }
 
     defaultConfig {
-        // Separate identity and storage for the installable Android test app.
-        applicationId = "at.flowzym.flex_notizbuch.test"
+        // Separate from the old FLEX Test app, which keeps its existing data.
+        applicationId = "at.flowzym.flex_notizbuch"
+        manifestPlaceholders["flexAppLabel"] = "FLEX"
+        resValue("string", "quick_package", "at.flowzym.flex_notizbuch")
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,11 +78,45 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseStore != null) {
+            create("permanentRelease") {
+                storeFile = releaseStore
+                storePassword = signingValue("storePassword")
+                keyAlias = signingValue("keyAlias")
+                keyPassword = signingValue("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = false
+            }
+        }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    packaging {
+        resources {
+            // Preserve the license shared by the three Bouncy Castle modules.
+            merges += "META-INF/LICENSE.md"
+            // OSGi bundle metadata is not used by Android's class loader.
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
+
     buildTypes {
+        debug {
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["flexAppLabel"] = "FLEX Dev"
+            resValue("string", "quick_package", "at.flowzym.flex_notizbuch.dev")
+        }
         release {
-            // This is a sideloaded test app, not a store release. Keep the local
-            // debug keystore for update installs; never commit signing keys.
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = if (releaseStore == null) null else signingConfigs.getByName("permanentRelease")
         }
     }
 }

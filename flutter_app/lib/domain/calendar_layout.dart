@@ -3,6 +3,12 @@ import 'calendar.dart';
 import 'classroom.dart';
 import 'models.dart';
 
+int isoCalendarWeek(DateTime date) {
+  final day = DateTime.utc(date.year, date.month, date.day);
+  final thursday = day.add(Duration(days: DateTime.thursday - day.weekday));
+  return 1 + thursday.difference(DateTime.utc(thursday.year)).inDays ~/ 7;
+}
+
 int clockMinutes(String clock) =>
     int.parse(clock.substring(0, 2)) * 60 + int.parse(clock.substring(3, 5));
 String minuteClock(int minutes) =>
@@ -67,7 +73,7 @@ List<CalendarPlacement> placeCalendarItems(
   for (final item in sorted) {
     final start = clockMinutes(item.time);
     final end = math.max(
-      validClock(item.end) ? clockMinutes(item.end) : start,
+      validEndClock(item.end) ? clockMinutes(item.end) : start,
       start + minimumMinutes,
     );
     if (group.isNotEmpty && start >= groupEnd) flush();
@@ -96,7 +102,7 @@ List<CalendarPlacement> placeCalendarItems(
     end = math.max(
       end,
       ((math.max(
-                    validClock(item.end) ? clockMinutes(item.end) : time,
+                    validEndClock(item.end) ? clockMinutes(item.end) : time,
                     time + minimumMinutes,
                   ) +
                   59) ~/
@@ -115,7 +121,7 @@ CalendarItem? currentCalendarItem(Iterable<CalendarItem> items, DateTime now) {
             i.date == date &&
             calendarTimed(i) &&
             !i.done &&
-            validClock(i.end) &&
+            validEndClock(i.end) &&
             clockMinutes(i.time) <= minutes &&
             clockMinutes(i.end) > minutes,
       )
@@ -162,6 +168,17 @@ String calendarMonth(DateTime day) => const [
   'November',
   'Dezember',
 ][day.month - 1];
+
+/// Keep the compact heading unambiguous across month and year boundaries.
+String calendarRangeLabel(DateTime from, DateTime to) {
+  if (from.year != to.year) {
+    return '${from.day}. ${calendarMonth(from)} ${from.year} – ${to.day}. ${calendarMonth(to)} ${to.year}';
+  }
+  if (from.month != to.month) {
+    return '${from.day}. ${calendarMonth(from)} – ${to.day}. ${calendarMonth(to)} ${to.year}';
+  }
+  return '${from.day}.–${to.day}. ${calendarMonth(to)} ${to.year}';
+}
 
 List<List<CalendarPlacement>> calendarClusters(
   Iterable<CalendarItem> items, {

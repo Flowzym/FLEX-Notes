@@ -53,13 +53,18 @@ Future<void> showCalendarItem(
               ).where((l) => l.target == lesson.target).firstOrNull;
         if (doc == null || current == null) {
           return FlexModal(
-            title: const Text('Unterricht'),
+            title: Text(
+              lesson.document.calendarCategory == 'appointment'
+                  ? 'Termin'
+                  : 'Unterricht',
+            ),
             onClose: () => Navigator.pop(ctx),
             content: const Text(
-              'Diese Durchführung wurde geändert oder abgesagt.',
+              'Dieser Kalendereintrag wurde geändert oder abgesagt.',
             ),
           );
         }
+        final appointment = doc.calendarCategory == 'appointment';
         return FlexModal(
           maxWidth: 800,
           title: Text(current.title),
@@ -75,10 +80,34 @@ Future<void> showCalendarItem(
                 [
                   doc.text('subject'),
                   doc.text('teacher'),
-                  'FLEX-Klasse',
+                  if (doc.strings('pupilIds').isEmpty &&
+                      doc.text('otherParticipants').isEmpty)
+                    'FLEX-Klasse',
+                  for (final p in c.pupils)
+                    if (doc.strings('pupilIds').contains(p.id)) p.name,
+                  doc.text('otherParticipants'),
                   doc.text('room'),
                 ].where((v) => v.isNotEmpty).join(' · '),
               ),
+              if (doc.isTeachingLesson)
+                FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(ctx).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: Text(current.title)),
+                        body: SafeArea(
+                          child: LessonFlowPage(
+                            controller: c,
+                            initialDate: current.date,
+                            initialTarget: current.target,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.playlist_play),
+                  label: const Text('Unterrichtsablauf öffnen'),
+                ),
               if (current.note.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -136,7 +165,11 @@ Future<void> showCalendarItem(
                 children: [
                   OutlinedButton.icon(
                     icon: const Icon(Icons.attach_file),
-                    label: const Text('Dateien dieser Stunde'),
+                    label: Text(
+                      appointment
+                          ? 'Dateien dieses Termins'
+                          : 'Dateien dieser Stunde',
+                    ),
                     onPressed: () async {
                       final ids = await chooseMaterials(
                         ctx,
@@ -176,7 +209,7 @@ Future<void> showCalendarItem(
                       occurrenceDate: lesson.originalDate,
                     ),
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Diese Stunde bearbeiten'),
+                    label: const Text('Nur diesen Termin bearbeiten'),
                   ),
                   if (doc.rule.repeats)
                     OutlinedButton.icon(
@@ -189,7 +222,9 @@ Future<void> showCalendarItem(
                         following: true,
                       ),
                       icon: const Icon(Icons.repeat),
-                      label: const Text('Diese und folgende'),
+                      label: Text(
+                        '${appointment ? 'Terminserie' : 'Stundenplan'} ab ${displayDate(current.originalDate)} ändern',
+                      ),
                     ),
                   TextButton.icon(
                     onPressed: () => showReminderActions(
@@ -201,16 +236,17 @@ Future<void> showCalendarItem(
                     icon: const Icon(Icons.snooze),
                     label: const Text('Erinnerung verschieben'),
                   ),
-                  TextButton.icon(
-                    onPressed: () => showBulk(
-                      ctx,
-                      c,
-                      initialKind: 'homework',
-                      initialSubject: doc.text('subject'),
+                  if (!appointment)
+                    TextButton.icon(
+                      onPressed: () => showBulk(
+                        ctx,
+                        c,
+                        initialKind: 'homework',
+                        initialSubject: doc.text('subject'),
+                      ),
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('HÜ vergeben'),
                     ),
-                    icon: const Icon(Icons.home_outlined),
-                    label: const Text('HÜ vergeben'),
-                  ),
                   TextButton.icon(
                     onPressed: () async {
                       final pupil = await showDialog<Pupil>(
@@ -257,7 +293,11 @@ Future<void> showCalendarItem(
                       ),
                     ),
                     icon: const Icon(Icons.event_busy_outlined),
-                    label: const Text('Diese Stunde entfällt'),
+                    label: Text(
+                      appointment
+                          ? 'Diesen Termin absagen'
+                          : 'Diese Stunde entfällt',
+                    ),
                   ),
                 ],
               ),

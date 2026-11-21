@@ -1,0 +1,72 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart
+00:00 +0: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar has no page pills and retains mode and lesson visibility across organisation visits
+00:02 +1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: quick add chooses pupil once and opens matching existing editor
+00:03 +2: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+00:04 +3: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.tap (file:///workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart:43:13)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart:133:13)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  calendar tasks and organisation notes retain entries and editing
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:09 +3 -1: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: rapid cyclic header swipes retain order through repeated wraparound
+00:09 +3 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing [E]
+  Test failed. See exception logs above.
+  The test description was: calendar tasks and organisation notes retain entries and editing
+  
+00:10 +4 -1: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: tasks integrate return lists with status, kind and search filters in organisation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.tap (file:///workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart:43:13)
+#4      main.<anonymous closure> (file:///workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart:225:13)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  tasks integrate return lists with status, kind and search filters in organisation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:11 +4 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: calendar body swipes dates without page pills; creation inherits selected date
+00:11 +4 -2: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: tasks integrate return lists with status, kind and search filters in organisation [E]
+  Test failed. See exception logs above.
+  The test description was: tasks integrate return lists with status, kind and search filters in organisation
+  
+00:11 +5 -2: /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: general drafts retain pupil assignments and are resumable at large text
+00:12 +6 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:12 +7 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.0
+00:12 +8 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 390.0/1.0
+00:12 +9 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: weekend and quick add remain reachable at 320.0/1.8
+00:13 +10 -2: /workspace/FLEX-Notes/flutter_app/test/navigation_layout_test.dart: navigation keeps equal touch widths and complete words at phone widths and large text
+00:14 +11 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: overdue tasks disappear after completing subtasks; adding one reopens the parent
+00:14 +12 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: pupil quick capture inherits owner and calendar default can be selected in settings
+00:15 +13 -2: /workspace/FLEX-Notes/flutter_app/test/build69_ui_test.dart: (tearDownAll)
+00:15 +13 -2: Some tests failed.
+
+Failing tests:
+  /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: calendar tasks and organisation notes retain entries and editing
+  /workspace/FLEX-Notes/flutter_app/test/calendar_hub_test.dart: tasks integrate return lists with status, kind and search filters in organisation

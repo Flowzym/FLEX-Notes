@@ -1,0 +1,7 @@
+00:00 +0: loading /workspace/FLEX-Notes/flutter_app/test/development_ui_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: latest observations are compact, filterable and open their original
+00:01 +1: assignment-only work entries have a readable summary and selection label
+00:02 +2: selection follows visible records and goals remain reachable with large text
+00:02 +3: (tearDownAll)
+00:02 +3: All tests passed!

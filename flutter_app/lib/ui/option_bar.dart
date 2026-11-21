@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'surfaces.dart';
+import 'flex_modal.dart';
 
 /// Equal, directly visible options. Large text can use one option per row.
 class OptionBar extends StatelessWidget {
@@ -9,21 +11,27 @@ class OptionBar extends StatelessWidget {
     required this.onChanged,
     this.keyPrefix = 'option',
     this.colors = const {},
+    this.icons = const {},
     this.minButtonHeight = 30,
     this.fontSize = 13,
+    this.horizontalPadding = 6,
   });
   final Map<String, String> options;
   final String value, keyPrefix;
   final ValueChanged<String>? onChanged;
   final Map<String, Color> colors;
-  final double minButtonHeight, fontSize;
+  final Map<String, IconData> icons;
+  final double minButtonHeight, fontSize, horizontalPadding;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final scheme = Theme.of(context).colorScheme;
+      final desktop =
+          Theme.of(context).extension<FlexDialogPresentation>() != null;
       Widget button(MapEntry<String, String> entry) {
         final selected = entry.key == value;
         final color = colors[entry.key] ?? scheme.primary;
+        final foreground = selected ? legibleOn(color) : scheme.onSurface;
         return Semantics(
           selected: selected,
           inMutuallyExclusiveGroup: true,
@@ -32,32 +40,57 @@ class OptionBar extends StatelessWidget {
             onPressed: onChanged == null ? null : () => onChanged!(entry.key),
             style: TextButton.styleFrom(
               backgroundColor: selected ? color : Colors.transparent,
-              foregroundColor: selected
-                  ? (ThemeData.estimateBrightnessForColor(color) ==
-                            Brightness.dark
-                        ? Colors.white
-                        : Colors.black)
-                  : scheme.onSurface,
+              foregroundColor: foreground,
+              backgroundBuilder: (context, states, child) => DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(desktop ? 4 : 24),
+                  gradient: selected && !desktop
+                      ? FlexDesign.wash(color)
+                      : null,
+                ),
+                child: child,
+              ),
               minimumSize: Size(0, minButtonHeight),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 5,
+              ),
               textStyle: TextStyle(
                 fontFamily: 'FlexSans',
                 fontSize: fontSize,
                 height: 1.2,
               ),
-              shape: const StadiumBorder(),
+              shape: desktop
+                  ? RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    )
+                  : const StadiumBorder(),
             ),
-            child: Text(entry.value, textAlign: TextAlign.center),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icons[entry.key] != null) ...[
+                  Icon(
+                    icons[entry.key],
+                    size: 17,
+                    color: selected ? foreground : color,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(child: Text(entry.value, textAlign: TextAlign.center)),
+              ],
+            ),
           ),
         );
       }
 
       final slotWidth = (constraints.maxWidth - 4) / options.length;
-      final vertical = options.values.any((label) {
+      final vertical = options.entries.any((entry) {
         final painter = TextPainter(
           text: TextSpan(
-            text: label,
+            text: entry.value,
             style: TextStyle(
               fontFamily: 'FlexSans',
               fontSize: fontSize,
@@ -68,16 +101,26 @@ class OptionBar extends StatelessWidget {
           textDirection: Directionality.of(context),
           maxLines: 1,
         )..layout();
-        final tooWide = painter.width + 16 > slotWidth;
+        final tooWide =
+            painter.width +
+                horizontalPadding * 2 +
+                4 +
+                (icons.containsKey(entry.key) ? 23 : 0) >
+            slotWidth;
         painter.dispose();
         return tooWide;
       });
       return Container(
         padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          border: Border.all(color: scheme.outlineVariant),
-          borderRadius: BorderRadius.circular(vertical ? 18 : 99),
-        ),
+        decoration: desktop
+            ? BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                border: Border.all(color: scheme.outlineVariant),
+                borderRadius: BorderRadius.circular(5),
+              )
+            : FlexDesign.capsule(context).copyWith(
+                borderRadius: BorderRadius.circular(vertical ? 18 : 99),
+              ),
         child: vertical
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

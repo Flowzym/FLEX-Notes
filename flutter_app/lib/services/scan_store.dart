@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/classroom.dart';
 import '../domain/document_scanner.dart';
+import '../domain/drive_rules.dart';
 import '../domain/models.dart';
+import '../domain/material_versions.dart';
 import '../domain/repository.dart';
 import 'material_files.dart';
 import 'scan_images.dart';
@@ -16,11 +18,10 @@ Future<void> removeUnusedScanFiles(
   final docs = await repo.classroomDocuments();
   final drafts = await repo.dialogDrafts();
   final retained = {
-    for (final d in docs) d.text('localKey'),
-    for (final d in drafts)
-      if (d.data['localKey'] is String) d.data['localKey'] as String,
+    for (final d in docs) ...materialFileKeys(d.toJson()),
+    for (final d in drafts) ...materialFileKeys(d.data),
     for (final d in drafts.where((d) => d.type == 'scan'))
-      for (final p in d.data['pages'] as List) p['key'] as String,
+      ...scanFileKeys(d.data),
   };
   for (final key
       in keys.where((k) => k.isNotEmpty && !retained.contains(k)).toSet()) {
@@ -40,12 +41,15 @@ Future<void> discardScan(
       'draftId': draft.id,
     });
   }
+  if (!kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      draft.data['scanPending'] == true) {
+    await FlexDevice.channel.invokeMethod<void>('discardScanCapture', {
+      'draftId': draft.id,
+    });
+  }
   await repo.discardDialogDraft(draft.id, draft.revision);
-  await removeUnusedScanFiles(
-    repo,
-    files,
-    (draft.data['pages'] as List).map((p) => p['key'] as String),
-  );
+  await removeUnusedScanFiles(repo, files, scanFileKeys(draft.data));
 }
 
 Future<ClassroomDocument> saveScan(
@@ -53,6 +57,8 @@ Future<ClassroomDocument> saveScan(
   MaterialFiles files,
   DialogDraft draft, {
   bool replace = false,
+  bool discardVersions = false,
+  void Function()? onCleanupFailure,
 }) async {
   validateScanData(draft.data);
   final data = draft.data;
@@ -94,6 +100,16 @@ Future<ClassroomDocument> saveScan(
       'Zum Ersetzen eines Fotos bitte genau ein Bild behalten.',
     );
   }
+  final previousVersion = source == null || discardVersions
+      ? null
+      : materialVersionSnapshot({
+          ...source.toJson(),
+          'size': (await files.read(source.text('localKey'))).length,
+        });
+  final pupils = await repo.pupils();
+  final rules = (await repo.classroomDocuments())
+      .where((f) => usableDriveRule(f, pupils))
+      .toList();
   final outputs = photo ? inputs : [await compute(scanPdf, inputs)];
   final keys = <String>[];
   final documents = <ClassroomDocument>[];
@@ -108,16 +124,57 @@ Future<ClassroomDocument> saveScan(
         'title': title,
         'name': scanFilename(title, extension: photo ? 'jpg' : 'pdf'),
         'documentType': data['documentType'], 'subject': data['subject'],
+        if (data['collection'] == true) 'collected': true,
         'pupilIds': data['pupilIds'],
         'links': data['links'],
         'tags': data['tags'] ?? <String>[],
         'extension': photo ? 'jpg' : 'pdf',
         'localKey': key,
         'size': item.$2.length,
+        if (source != null)
+          'versions': discardVersions
+              ? <Json>[]
+              : [
+                  previousVersion!,
+                  ...materialVersions(source.toJson()),
+                ].take(materialVersionLimit).toList(),
+        'redacted':
+            data['redacted'] == true ||
+            data['sourceRedacted'] == true ||
+            source?.flag('redacted') == true,
         'scanner': true, 'scan': !photo, 'pageCount': photo ? 1 : pages.length,
         // Edited files are local copies, independent of remote originals.
-        'url': '', 'driveId': '', 'itemId': '', 'etag': '', 'sourcePath': '',
+        'url': '',
+        'driveId': '',
+        'itemId': '',
+        'etag': '',
+        'sourcePath': '',
+        'remoteName': '',
+        if (source?.map('planning').isNotEmpty == true) ...{
+          'planning': <String, dynamic>{},
+          'planningOverride': <String, dynamic>{},
+          'planningDecisions': <String>[],
+          'planningAutoDates': <String>[],
+          'planningDismissed': false,
+          'planningDeferred': <String>[],
+          'planningReviewedCodes': <String>[],
+          'remoteCreatedAt': '',
+        },
+        'remoteEtag': '',
+        'remoteModifiedAt': '',
+        'cachedAt': '',
       };
+      fields['cloudUpload'] = scanUploadJob(
+        data,
+        key,
+        fields['name'] as String,
+        rules,
+      );
+      fields.addAll({
+        'cloudRule': '',
+        'cloudReview': '',
+        'sourceMissing': false,
+      });
       documents.add(
         source == null
             ? ClassroomDocument.create(
@@ -147,9 +204,11 @@ Future<ClassroomDocument> saveScan(
   // The committed document survives a best-effort cleanup failure.
   try {
     await removeUnusedScanFiles(repo, files, [
-      ...pages.map((p) => p.key),
-      if (source != null) source.text('localKey'),
+      ...scanFileKeys(draft.data),
+      if (source != null) ...materialFileKeys(source.toJson()),
     ]);
-  } catch (_) {}
+  } catch (_) {
+    onCleanupFailure?.call();
+  }
   return saved;
 }

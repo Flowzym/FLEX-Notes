@@ -1,3 +1,8 @@
+import 'entry_templates.dart';
+import 'material_tags.dart';
+import '../domain/entry_template.dart';
+import 'dictation.dart';
+import '../services/dictation.dart';
 import 'compact_switch.dart';
 import 'document_attachments.dart';
 import 'option_bar.dart';
@@ -19,6 +24,10 @@ import 'draft_buffer.dart';
 import 'flex_modal.dart';
 import 'orga_list_editing.dart';
 import 'entry_navigation.dart';
+import 'person_assignment.dart';
+import 'classroom_editor.dart';
+import '../domain/classroom.dart';
+import '../domain/calendar_layout.dart';
 
 class OrgaEditor extends StatefulWidget {
   const OrgaEditor({
@@ -39,6 +48,9 @@ class OrgaEditor extends StatefulWidget {
 class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   late OrgaEntry entry;
   late OrgaTypeDraft typeDraft;
+  Json? returnInitial;
+  DialogDraft? returnDraft;
+  bool returnOpen = false;
   late String draftId;
   late TextEditingController note, reminder;
   final itemText = TextEditingController();
@@ -72,11 +84,13 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   Timer? debounce;
   Future<void> pending = Future.value();
   NotebookController get c => widget.controller;
-  bool get isClass => entry.pupilId == null;
-  static const kinds = {
+  bool get isClass =>
+      entry.pupilId == null && entry.otherParticipants.trim().isEmpty;
+  Map<String, String> get kinds => {
     'note': 'Notiz',
     'task': 'Aufgabe',
     'appointment': 'Termin',
+    if (entry.revision == 0) 'return': 'Rücklauf',
   };
   String get kind => entry.isAppointment
       ? 'appointment'
@@ -85,9 +99,89 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       : 'note';
 
   void selectKind(String next) {
+    if (next == 'return') {
+      openReturn();
+      return;
+    }
     if (next == kind) return;
     change(typeDraft.select(entry, next), false);
   }
+
+  Future<void> openReturn() async {
+    if (busy || returnOpen) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await persist() || !mounted) return;
+      final current = value;
+      returnInitial ??= {
+        ...classroomInitial(ClassroomKind.returnList, c),
+        'title': current.title,
+        'note': current.body == current.title ? '' : current.body,
+        'dueDate': current.dueDate ?? current.appointmentDate ?? '',
+        'otherParticipants': current.otherParticipants,
+        if (current.pupilId != null)
+          'participants': [
+            for (final pupil in c.pupils.where((p) => p.id == current.pupilId))
+              {
+                'pupilId': pupil.id,
+                'name': pupil.name,
+                'status': 'open',
+                'note': '',
+                'paid': 0,
+              },
+          ],
+      };
+      setState(() => returnOpen = true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Widget returnEditor() => classroomEditor(
+    c,
+    ClassroomKind.returnList,
+    fields: returnInitial,
+    draft: returnDraft,
+    entryOwner: 'FLEX-Klasse',
+    navigation: (content, navigate) {
+      void select(String next) {
+        if (next == 'return') return;
+        navigate((draft) {
+          setState(() {
+            returnDraft = draft;
+            returnOpen = false;
+          });
+          selectKind(next);
+        });
+      }
+
+      return OptionSwipe(
+        key: const ValueKey('orga-kind-swipe'),
+        onChanged: (previous) {
+          if (previous) select('appointment');
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OptionBar(
+              key: const ValueKey('orga-kind-bar'),
+              minButtonHeight: 38,
+              fontSize: 12,
+              horizontalPadding: 2,
+              keyPrefix: 'orga-kind',
+              options: kinds,
+              value: 'return',
+              onChanged: select,
+            ),
+            const SizedBox(height: 12),
+            content,
+          ],
+        ),
+      );
+    },
+  );
 
   void swipeKind(bool previous) {
     final options = kinds.keys.toList();
@@ -147,25 +241,37 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     final first = OrgaLine.parse(
       note.text.trimLeft().split('\n').first,
     ).text.trim();
-    return entry.copyWith(
+    final result = entry.copyWith(
       title: first.substring(0, first.length.clamp(0, 160)),
       body: note.text,
       reminderText: reminder.text,
-      items: [
-        ...entry.items,
-        if (itemText.text.trim().isNotEmpty)
-          CheckItem(id: itemId, text: itemText.text.trim()),
-      ],
     );
+    return itemText.text.trim().isEmpty
+        ? result
+        : result.withTaskItems([
+            ...entry.items,
+            CheckItem(id: itemId, text: itemText.text.trim()),
+          ]);
   }
 
   void change([OrgaEntry? next, bool rememberType = true]) {
     if (busy) return;
     setState(() {
       error = null;
-      if (next != null) {
-        if (rememberType) typeDraft = typeDraft.remember(next);
-        entry = next;
+      final candidate = next;
+      if (candidate != null) {
+        final listChanged =
+            candidate.items.length != entry.items.length ||
+            candidate.items.indexed.any(
+              (e) =>
+                  e.$2.id != entry.items[e.$1].id ||
+                  e.$2.checked != entry.items[e.$1].checked,
+            );
+        final updated = listChanged
+            ? candidate.withTaskItems(candidate.items)
+            : candidate;
+        if (rememberType) typeDraft = typeDraft.remember(updated);
+        entry = updated;
       }
       dirty = true;
       editGeneration++;
@@ -175,11 +281,19 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     debounce = Timer(const Duration(milliseconds: 400), persist);
   }
 
-  Future<bool> persist() async {
+  bool get hasDraftAttachments {
+    final scope = orgaDraftScanContext(c, draftId, value);
+    return c.classroom.any(scope.matchesMaterial) ||
+        c.dialogDrafts.any(scope.matchesDraft);
+  }
+
+  Future<bool> persist({bool force = false}) async {
     final snapshot = value, types = typeDraft, generation = editGeneration;
-    if (dirty) {
+    if (dirty || force || draftRevision > 0) {
       pending = pending.catchError((Object _) {}).then((_) async {
-        if (signature(snapshot, types) == baseline) {
+        if (!force &&
+            signature(snapshot, types) == baseline &&
+            !hasDraftAttachments) {
           if (draftRevision > 0) {
             await c.repository.discardDraft(
               draftId,
@@ -187,7 +301,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
             );
             draftRevision = 0;
           }
-        } else {
+        } else if (dirty || force && draftRevision == 0) {
           final saved = await c.repository.saveDraft(
             EditDraft(
               id: draftId,
@@ -332,7 +446,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (mounted) setState(() => busy = false);
   }
 
-  Future<void> save({bool documents = false, bool scan = false}) async {
+  Future<void> save() async {
     if (busy) return;
     debounce?.cancel();
     setState(() {
@@ -360,15 +474,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       saved.validate();
       await c.saveEntry(saved, draftId: draftId, draftRevision: draftRevision);
       if (!mounted) return;
-      final host = Navigator.of(context).context;
       await pop();
-      if ((documents || scan) && host.mounted) {
-        if (scan) {
-          await scanAndShow(host, c, orgaScanContext(c, saved));
-        } else {
-          await showContextDocuments(host, c, orgaScanContext(c, saved));
-        }
-      }
     } catch (e) {
       if (mounted) {
         setState(() => error = friendlyError(e));
@@ -376,6 +482,31 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
       }
     }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> openAttachments({bool scan = false}) async {
+    if (busy) return;
+    setState(() => busy = true);
+    debounce?.cancel();
+    try {
+      if (!await persist(force: true) || !mounted) return;
+      final scope = orgaDraftScanContext(c, draftId, value);
+      if (scan) {
+        await scanAndShow(context, c, scope);
+      } else {
+        await showContextDocuments(
+          context,
+          c,
+          scope,
+          additionalScopes: [orgaScanContext(c, value)],
+        );
+      }
+      if (mounted) await persist();
+    } catch (e) {
+      if (mounted) setState(() => error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   void addItem({bool fromEnter = false}) {
@@ -474,10 +605,21 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
     if (selected == null || !mounted) return;
     if (appointment) {
       if (selected.$1.isEmpty) return;
+      final duration =
+          validClock(entry.appointmentTime) &&
+              validEndClock(entry.appointmentEndTime)
+          ? clockMinutes(entry.appointmentEndTime) -
+                clockMinutes(entry.appointmentTime)
+          : 30;
       change(
         entry.copyWith(
           appointmentDate: selected.$1,
           appointmentTime: selected.$2,
+          appointmentEndTime: selected.$2.isEmpty || selected.$2 == '23:59'
+              ? ''
+              : minuteClock(
+                  (clockMinutes(selected.$2) + duration).clamp(0, 1439),
+                ),
         ),
       );
     } else if (due) {
@@ -522,97 +664,85 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
+  Widget build(BuildContext context) =>
+      returnOpen ? returnEditor() : orgaEditor();
+
+  Widget orgaEditor() => PopScope(
     canPop: canPop,
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) close();
     },
     child: CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): close,
+        if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+            !busy) ...{
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): save,
+        },
+      },
       child: Focus(
         autofocus: true,
         child: FlexModal(
           closeLabel: 'Schließen und Entwurf sichern',
           key: ValueKey(draftId),
-          title: isClass
-              ? const Text('Klassen-Orga')
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      c.owner(entry),
-                      style: const TextStyle(
-                        fontFamily: 'FlexSans',
-                        fontSize: 15,
-                      ),
-                    ),
-                    const Text('Orga'),
-                  ],
-                ),
-          accentColor: isClass
-              ? null
-              : Color(c.pupils.firstWhere((p) => p.id == entry.pupilId).color),
-          headerActions: [
-            IconButton(
-              tooltip: entry.revision == 0
-                  ? 'Speichern und Dokumente öffnen'
-                  : 'Dokumente',
-              icon: const Icon(Icons.folder_open_outlined),
-              onPressed: busy
-                  ? null
-                  : () => entry.revision == 0
-                        ? save(documents: true)
-                        : navigateEntry(
-                            () => showContextDocuments(
-                              context,
-                              c,
-                              orgaScanContext(
-                                c,
-                                c.entries
-                                        .where((e) => e.id == entry.id)
-                                        .firstOrNull ??
-                                    entry,
-                              ),
-                            ),
-                          ),
-            ),
-            if (dirty || draftRevision > 0)
-              EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
-            AnimatedBuilder(
-              animation: c,
-              builder: (_, _) => EntryHeaderButton(
-                key: const ValueKey('entry-drafts'),
-                label: 'Entwürfe',
-                icon: Icons.edit_note,
-                count: entryDraftCount(
-                  c,
-                  pupilId: entry.pupilId,
-                  exclude: draftId,
-                ),
-                onPressed: busy
-                    ? null
-                    : () => navigateEntry(
-                        () => showEntryDrafts(
-                          context,
-                          c,
-                          pupilId: entry.pupilId,
-                          exclude: draftId,
-                        ),
-                      ),
+          title: Text(isClass ? 'Klassen-Orga' : 'Orga'),
+          headerContent: EntryPageHeader(
+            owner: isClass ? 'FLEX-Klasse' : c.owner(entry),
+            title: isClass ? 'Klassen-Orga' : 'Orga',
+            onClose: busy ? null : close,
+            titleActions: [
+              EntryTemplateButton(
+                controller: c,
+                kind: EntryTemplate.orgaKind(entry),
+                enabled: !busy,
+                capture: (name) =>
+                    EntryTemplate.orga(entry.copyWith(body: note.text), name),
+                apply: (template) {
+                  final next = template.applyOrga(
+                    entry.copyWith(body: note.text),
+                  );
+                  note.text = next.body;
+                  change(next);
+                },
               ),
-            ),
-          ],
+              if (dirty || draftRevision > 0)
+                EditorDraftDeleteButton(onPressed: busy ? null : deleteDraft),
+            ],
+            actions: [
+              AnimatedBuilder(
+                animation: c,
+                builder: (_, _) => EntryHeaderButton(
+                  key: const ValueKey('entry-drafts'),
+                  label: 'Entwürfe',
+                  icon: Icons.edit_note,
+                  count: entryDraftCount(
+                    c,
+                    pupilId: entry.pupilId,
+                    exclude: draftId,
+                  ),
+                  onPressed: busy
+                      ? null
+                      : () => navigateEntry(
+                          () => showEntryDrafts(
+                            context,
+                            c,
+                            pupilId: entry.pupilId,
+                            exclude: draftId,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
           onClose: busy ? null : close,
           content: AbsorbPointer(
             absorbing: busy,
             child: OptionSwipe(
               key: const ValueKey('orga-kind-swipe'),
               onChanged: swipeKind,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: EntryFormSections(
+                primary: [
                   if (status.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -620,12 +750,32 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                   OptionBar(
                     key: const ValueKey('orga-kind-bar'),
+                    minButtonHeight: 38,
+                    fontSize: kinds.length > 3 ? 12 : 14,
+                    horizontalPadding: kinds.length > 3 ? 2 : 6,
                     keyPrefix: 'orga-kind',
                     options: kinds,
                     value: kind,
                     onChanged: selectKind,
                   ),
                   const SizedBox(height: 12),
+                  PersonAssignmentField(
+                    pupils: c.pupils,
+                    selected: {if (entry.pupilId != null) entry.pupilId!},
+                    locked: {
+                      if (entry.revision > 0 && entry.pupilId != null)
+                        entry.pupilId!,
+                    },
+                    multiple: false,
+                    canChangePupils: entry.revision == 0,
+                    otherNames: entry.otherParticipants,
+                    onChanged: (ids, names) => change(
+                      entry.copyWith(
+                        pupilId: ids.firstOrNull,
+                        otherParticipants: names,
+                      ),
+                    ),
+                  ),
                   if (entry.isAppointment)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -638,41 +788,93 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                  Text(
-                    entry.isAppointment
-                        ? 'Termin und Notizen'
-                        : entry.isTask
-                        ? 'Aufgabe'
-                        : 'Notiz',
-                  ),
-                  Wrap(
-                    spacing: 4,
-                    children: [
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-check'),
-                        label: 'Checkliste',
-                        icon: Icons.checklist,
-                        onPressed: () {
-                          setState(() => listOpen = true);
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) itemFocus.requestFocus();
-                          });
+                  if (entry.isAppointment && entry.appointmentTime.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('orga-appointment-end'),
+                        icon: const Icon(Icons.schedule_outlined),
+                        label: Text(
+                          'Ende: ${entry.appointmentEndTime.isEmpty ? 'Offen' : entry.appointmentEndTime}',
+                        ),
+                        onPressed: () async {
+                          final initial = entry.appointmentEndTime.isEmpty
+                              ? (clockMinutes(entry.appointmentTime) + 30)
+                                    .clamp(0, 1439)
+                              : clockMinutes(
+                                  entry.appointmentEndTime,
+                                ).clamp(0, 1439);
+                          final picked = await showTimePicker(
+                            context: context,
+                            helpText: 'Terminende',
+                            initialTime: TimeOfDay(
+                              hour: initial ~/ 60,
+                              minute: initial % 60,
+                            ),
+                          );
+                          if (picked == null || !mounted) return;
+                          final value = minuteClock(
+                            picked.hour * 60 + picked.minute,
+                          );
+                          if (value.compareTo(entry.appointmentTime) <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Das Ende muss nach dem Beginn liegen.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          change(entry.copyWith(appointmentEndTime: value));
                         },
                       ),
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-bullet'),
-                        label: 'Aufzählung',
-                        icon: Icons.format_list_bulleted,
-                        onPressed: () => insertPrefix('• '),
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          entry.isAppointment
+                              ? 'Termin und Notizen'
+                              : entry.isTask
+                              ? 'Aufgabe'
+                              : 'Notiz',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                      FlexSymbolButton(
-                        key: const ValueKey('orga-list-number'),
-                        label: 'Nummerierung',
-                        icon: Icons.format_list_numbered,
-                        onPressed: () => insertPrefix('1. '),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-check'),
+                            label: entry.isTask
+                                ? 'Unteraufgaben'
+                                : 'Checkliste',
+                            icon: Icons.checklist,
+                            onPressed: () {
+                              setState(() => listOpen = true);
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) itemFocus.requestFocus();
+                              });
+                            },
+                          ),
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-bullet'),
+                            label: 'Aufzählung',
+                            icon: Icons.format_list_bulleted,
+                            onPressed: () => insertPrefix('• '),
+                          ),
+                          FlexSymbolButton(
+                            key: const ValueKey('orga-list-number'),
+                            label: 'Nummerierung',
+                            icon: Icons.format_list_numbered,
+                            onPressed: () => insertPrefix('1. '),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
                   DecoratedBox(
                     key: const ValueKey('orga-text-editor'),
                     decoration: BoxDecoration(
@@ -681,11 +883,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                         color: Theme.of(context).colorScheme.outline,
                       ),
                       borderRadius: BorderRadius.circular(
-                        Theme.of(context)
-                                .extension<FlexSurfaces>()
-                                ?.appearance
-                                ?.fieldRadius ??
-                            14,
+                        FlexDesign.fieldRadius,
                       ),
                     ),
                     child: Padding(
@@ -742,6 +940,12 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                               maxLines: 12,
                               maxLength: 12000,
                               decoration: InputDecoration(
+                                suffixIcon: supportsDictation
+                                    ? DictationButton(
+                                        controller: note,
+                                        onChanged: (_) => change(),
+                                      )
+                                    : null,
                                 hintText: entry.isAppointment
                                     ? 'Termin …'
                                     : entry.isTask
@@ -789,8 +993,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                         text: item.text,
                                       ),
                                     ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Listenpunkt',
+                                    decoration: InputDecoration(
+                                      labelText: entry.isTask
+                                          ? 'Unteraufgabe'
+                                          : 'Listenpunkt',
                                     ),
                                     onChanged: (v) => change(
                                       entry.copyWith(
@@ -806,7 +1012,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Listenpunkt entfernen',
+                                  tooltip: entry.isTask
+                                      ? 'Unteraufgabe entfernen'
+                                      : 'Listenpunkt entfernen',
                                   onPressed: () => change(
                                     entry.copyWith(
                                       items: entry.items
@@ -818,7 +1026,7 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                 ),
                               ],
                             ),
-                          if (listOpen)
+                          if (listOpen || entry.isTask)
                             Row(
                               children: [
                                 Expanded(
@@ -827,8 +1035,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                     textInputAction: TextInputAction.next,
                                     controller: itemText,
                                     focusNode: itemFocus,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Neuer Listenpunkt',
+                                    decoration: InputDecoration(
+                                      labelText: entry.isTask
+                                          ? 'Neue Unteraufgabe'
+                                          : 'Neuer Listenpunkt',
                                     ),
                                     onChanged: (_) => change(),
                                     onSubmitted: (_) =>
@@ -836,7 +1046,9 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: 'Listenpunkt hinzufügen',
+                                  tooltip: entry.isTask
+                                      ? 'Unteraufgabe hinzufügen'
+                                      : 'Listenpunkt hinzufügen',
                                   onPressed: addItem,
                                   icon: const Icon(Icons.add),
                                 ),
@@ -846,8 +1058,31 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                ],
+                details: [
+                  if (entry.isAppointment)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: MaterialTagEditor(
+                        key: const ValueKey('appointment-tags'),
+                        values: entry.tags,
+                        suggestions: [
+                          'Schularbeit',
+                          'Test',
+                          'Gespräch',
+                          'Ausflug',
+                          for (final e in c.entries.where(
+                            (e) => !e.deleted && e.isAppointment,
+                          ))
+                            ...e.tags,
+                          for (final d in c.drafts) ...d.entry.tags,
+                        ],
+                        enabled: !busy,
+                        onChanged: (tags) => change(entry.copyWith(tags: tags)),
+                      ),
+                    ),
                   if (entry.isTask) ...[
-                    TextButton.icon(
+                    OutlinedButton.icon(
                       onPressed: () => date(due: true),
                       icon: const Icon(Icons.calendar_month),
                       label: Text(
@@ -856,7 +1091,11 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                     ),
                     CompactSwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Aufgabe erledigt'),
+                      leading: const Icon(Icons.check_circle_outline),
+                      title: const Text(
+                        'Aufgabe erledigt',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       value: entry.done,
                       onChanged: (v) =>
                           change(v ? entry.complete() : entry.reopen()),
@@ -864,7 +1103,11 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   ],
                   CompactSwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Erinnern'),
+                    leading: const Icon(Icons.notifications_none_outlined),
+                    title: const Text(
+                      'Erinnern',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     value: reminderOpen,
                     onChanged: (v) {
                       setState(() => reminderOpen = v);
@@ -911,26 +1154,10 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   DocumentAttachmentSection(
                     controller: c,
-                    scope: orgaScanContext(c, value),
-                    saveFirst: entry.revision == 0,
-                    onScan: () => entry.revision == 0
-                        ? save(scan: true)
-                        : navigateEntry(
-                            () => scanAndShow(
-                              context,
-                              c,
-                              orgaScanContext(c, value),
-                            ),
-                          ),
-                    onDocuments: () => entry.revision == 0
-                        ? save(documents: true)
-                        : navigateEntry(
-                            () => showContextDocuments(
-                              context,
-                              c,
-                              orgaScanContext(c, value),
-                            ),
-                          ),
+                    scope: orgaDraftScanContext(c, draftId, value),
+                    additionalScopes: [orgaScanContext(c, value)],
+                    onScan: () => openAttachments(scan: true),
+                    onDocuments: () => openAttachments(),
                   ),
                   if (error != null)
                     Padding(
@@ -947,28 +1174,41 @@ class _OrgaEditorState extends State<OrgaEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: CompactSwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Später ergänzen'),
-                value: entry.needsCompletion,
-                onChanged: busy
-                    ? null
-                    : (v) => change(entry.copyWith(needsCompletion: v)),
+          footerContent: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: CompactSwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Später ergänzen'),
+                  value: entry.needsCompletion,
+                  onChanged: busy
+                      ? null
+                      : (v) => change(entry.copyWith(needsCompletion: v)),
+                ),
               ),
-            ),
-            TextButton(
-              key: const ValueKey('cancel-editor'),
-              onPressed: busy ? null : close,
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: busy ? null : save,
-              child: const Text('Speichern'),
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      key: const ValueKey('cancel-editor'),
+                      onPressed: busy ? null : close,
+                      child: const Text('Abbrechen'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: busy ? null : save,
+                      child: const Text('Speichern'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     ),

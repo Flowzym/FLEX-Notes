@@ -1,3 +1,4 @@
+import 'support/app_test_fonts.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,20 +6,19 @@ import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flex_notizbuch/application/notebook_controller.dart';
 import 'package:flex_notizbuch/data/database.dart';
 import 'package:flex_notizbuch/data/sqlite_notebook.dart';
 import 'package:flex_notizbuch/domain/models.dart';
 import 'package:flex_notizbuch/domain/school.dart';
+import 'package:flex_notizbuch/domain/classroom.dart';
+import 'package:flex_notizbuch/ui/classroom_editor.dart' show classroomInitial;
 import 'package:flex_notizbuch/ui/app.dart';
-import 'package:flex_notizbuch/ui/flex_modal.dart';
 import 'package:flex_notizbuch/ui/dialog_workflows.dart';
 import 'package:flex_notizbuch/ui/orga_editor.dart';
 import 'package:flex_notizbuch/ui/pupil_editor.dart';
 import 'package:flex_notizbuch/ui/school_editor.dart';
-import 'package:flex_notizbuch/ui/surfaces.dart';
 
 class DelayedDraftStore extends SqliteNotebook {
   DelayedDraftStore(super.db);
@@ -45,23 +45,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late DelayedDraftStore repo;
   late NotebookController c;
-  setUpAll(() async {
-    for (final entry in {
-      'FlexSans': [
-        'assets/fonts/Selawik-Regular.ttf',
-        'assets/fonts/Selawik-Semibold.ttf',
-        'assets/fonts/Selawik-Bold.ttf',
-      ],
-      'FlexSerif': ['assets/fonts/Gelasio-Regular.ttf'],
-      'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
-    }.entries) {
-      final loader = FontLoader(entry.key);
-      for (final path in entry.value) {
-        loader.addFont(rootBundle.load(path));
-      }
-      await loader.load();
-    }
-  });
+  setUpAll(loadAppTestFonts);
   setUp(() async {
     repo = DelayedDraftStore(
       NotebookDatabase(
@@ -99,12 +83,9 @@ void main() {
         child: FlexApp(controller: c),
       ),
     );
-    await t.runAsync(
-      () => precacheImage(
-        const AssetImage(FlexBackground.defaultDarkImage),
-        t.element(find.byType(FlexBackground).first),
-      ),
-    );
+    await t.pumpAndSettle();
+    // These workflows start from Aktuell; Live itself now opens Notizen.
+    await t.tap(find.byKey(const ValueKey('page-0')));
     await t.pumpAndSettle();
   }
 
@@ -376,7 +357,7 @@ void main() {
           isNot(Colors.transparent),
         );
         expect(find.byKey(ValueKey('observation-$positive')), findsNothing);
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
         final saved = (await repo.schoolDrafts()).single.record;
         expect(saved.positive, contains(positive));
         expect(saved.negative, contains(negativeLabel));
@@ -453,7 +434,120 @@ void main() {
   );
 
   testWidgets(
-    'class Orga offers compact search and a direct appointment action',
+    'long pressing a pupil starts a group entry with precisely the selected recipients',
+    (t) async {
+      await c.savePupil(const Pupil(id: 'c', name: 'Clara'));
+      await app(t);
+      await tap(t, find.byKey(const ValueKey('page-1')));
+      final anna = find.byKey(const ValueKey('pupil-open-a'));
+      await t.ensureVisible(anna);
+      await t.longPress(anna);
+      await t.pumpAndSettle();
+      expect(find.text('1 ausgewählt'), findsOneWidget);
+      await tap(t, find.widgetWithText(CheckboxListTile, 'Ben Beispiel'));
+      await tap(t, find.text('Gemeinsamer Eintrag'));
+      expect(
+        find.text('Für 2 Schüler: Anna Beispiel, Ben Beispiel'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Für 3 Schüler'), findsNothing);
+      await finish(t);
+    },
+  );
+
+  testWidgets(
+    'overview groups every type once and completes selected tasks together',
+    (t) async {
+      for (final title in ['Mappe holen', 'Arbeitsblatt kopieren']) {
+        await c.saveEntry(
+          OrgaEntry.empty().copyWith(title: title, isTask: true),
+        );
+      }
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Kollegium',
+          body: 'Materialabsprachen',
+        ),
+      );
+      await c.saveEntry(
+        OrgaEntry.empty().copyWith(
+          title: 'Konferenz',
+          appointmentDate: '2030-04-04',
+          appointmentTime: '12:15',
+        ),
+      );
+      final form = ClassroomDocument.fromJson({
+        ...classroomInitial(ClassroomKind.returnList, c),
+        'title': 'Anmeldungen',
+      });
+      await c.saveClassroom(form);
+      final key = GlobalKey();
+      await app(t, boundary: key);
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      for (final section in ['tasks', 'returns', 'appointments', 'notes']) {
+        final heading = find.byKey(ValueKey('orga-section-$section'));
+        expect(heading, findsOneWidget);
+      }
+      for (final name in [
+        'Mappe holen',
+        'Konferenz',
+        'Anmeldungen',
+        'Kollegium',
+      ]) {
+        expect(find.text(name), findsOneWidget);
+      }
+      await capture(t, key, 'organisation-typen-390');
+      final title = find.text('Mappe holen');
+      await t.ensureVisible(title);
+      await t.longPress(title);
+      await t.pumpAndSettle();
+      await tap(t, find.text('Arbeitsblatt kopieren'));
+      expect(find.text('2 ausgewählt'), findsOneWidget);
+      await tap(t, find.widgetWithText(TextButton, 'Erledigen'));
+      await c.reload();
+      expect(
+        c.entries.where((e) => e.done).map((e) => e.title),
+        unorderedEquals(['Mappe holen', 'Arbeitsblatt kopieren']),
+      );
+      expect(c.classroom.single.deleted, isFalse);
+      await finish(t);
+    },
+  );
+
+  test(
+    'mixed organisation batch rolls back all entries on a stale return revision',
+    () async {
+      final entry = await repo.saveEntry(
+        OrgaEntry.empty().copyWith(title: 'Probe', isTask: true),
+      );
+      final form = await repo.saveClassroomDocument(
+        ClassroomDocument.fromJson({
+          ...classroomInitial(ClassroomKind.returnList, c),
+          'title': 'Anmeldungen',
+        }),
+      );
+      await repo.saveClassroomDocument(
+        form.patch({'note': 'Neue Rückmeldung'}),
+      );
+      await expectLater(
+        repo.saveOrganisationSelection(
+          [entry.copyWith(deleted: true)],
+          [
+            form.patch({'deleted': true}),
+          ],
+        ),
+        throwsA(isA<DomainError>()),
+      );
+      expect((await repo.entries()).single.deleted, isFalse);
+      expect(
+        (await repo.classroomDocuments()).single.text('note'),
+        'Neue Rückmeldung',
+      );
+    },
+  );
+
+  testWidgets(
+    'class scope is available on the Orga page with visible filters and contextual creation',
     (t) async {
       await c.saveEntry(
         OrgaEntry.empty().copyWith(
@@ -465,28 +559,28 @@ void main() {
         OrgaEntry.empty().copyWith(title: 'Unterlagen', isTask: true),
       );
       await app(t);
-      await tap(t, find.byTooltip('Weitere Bereiche'));
-      await tap(t, find.text('Klassen-Orga'));
+      await tap(t, find.byKey(const ValueKey('bottom-2')));
+      await tap(t, find.byKey(const ValueKey('general-class-only-all')));
       Finder inModal(String text) => find.descendant(
-        of: find.byType(FlexModal).last,
+        of: find.byKey(const ValueKey('general-all-page')),
         matching: find.text(text),
       );
-      expect(find.byKey(const ValueKey('class-orga-search')), findsNothing);
-      await tap(t, find.byKey(const ValueKey('class-orga-search-button')));
+      expect(find.byKey(const ValueKey('general-search-all')), findsNothing);
+      await tap(t, find.byKey(const ValueKey('general-search-button-all')));
       await t.enterText(
-        find.byKey(const ValueKey('class-orga-search')),
+        find.byKey(const ValueKey('general-search-all')),
         'Konferenz',
       );
       await t.pumpAndSettle();
       expect(inModal('Unterlagen'), findsNothing);
       await t.testTextInput.receiveAction(TextInputAction.search);
       await t.pumpAndSettle();
-      expect(find.text('Suche: Konferenz'), findsOneWidget);
+      expect(find.byTooltip('Einträge durchsuchen: Konferenz'), findsOneWidget);
       await tap(t, find.byTooltip('Suchtext leeren'));
       expect(inModal('Unterlagen'), findsOneWidget);
-      await tap(t, find.text('Termine'));
+      await tap(t, find.byKey(const ValueKey('general-type-all-appointments')));
       expect(inModal('Unterlagen'), findsNothing);
-      await tap(t, find.byKey(const ValueKey('class-add-appointment')));
+      await tap(t, find.byKey(const ValueKey('general-add-all')));
       expect(
         find.byKey(const ValueKey('orga-appointment-date')),
         findsOneWidget,
@@ -688,7 +782,9 @@ void main() {
         await tap(t, find.byKey(const ValueKey('pupil-open-a')));
         expect(find.byKey(const ValueKey('pupil-entry-search')), findsNothing);
         await capture(t, key, 'pupil-dialog-$suffix');
-        await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück)$')));
+        if (view.$1 < 1000 || view.$2 > 1.5) {
+          await tap(t, find.byTooltip(RegExp(r'^(Schließen.*|Zurück.*)$')));
+        }
         await open(
           t,
           OrgaEditor(

@@ -3,12 +3,122 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/school.dart';
 import '../domain/models.dart';
+import '../domain/classroom.dart';
+import 'classroom_editor.dart';
 import 'dialog_workflows.dart';
 import 'flex_modal.dart';
 import 'common.dart';
 import 'orga_editor.dart';
 import 'school_workspace.dart';
 import 'draft_actions.dart';
+
+/// Shared context and heading for the school and organisation editors.
+class EntryPageHeader extends StatelessWidget {
+  const EntryPageHeader({
+    super.key,
+    required this.owner,
+    required this.title,
+    required this.onClose,
+    this.actions = const [],
+    this.titleActions = const [],
+  });
+  final String owner, title;
+  final VoidCallback? onClose;
+  final List<Widget> actions, titleActions;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (Theme.of(context).extension<FlexDialogPresentation>() != null &&
+          constraints.maxWidth >= 520) {
+        return Row(
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 14,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    owner,
+                    key: const ValueKey('entry-owner'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            ...actions,
+            ...titleActions,
+            IconButton(
+              key: const ValueKey('entry-back'),
+              tooltip: 'Schließen und Entwurf sichern',
+              onPressed: onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        );
+      }
+      final headingStyle = const TextStyle(
+        fontFamily: 'FlexSans',
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+      );
+      final heading = Text(title, style: headingStyle);
+      final tools = [...actions, ...titleActions];
+      final painter = TextPainter(
+        text: TextSpan(text: title, style: headingStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final separateTools =
+          painter.width + tools.length * 48 + 8 > constraints.maxWidth;
+      painter.dispose();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                key: const ValueKey('entry-back'),
+                tooltip: 'Zurück und Eingaben sichern',
+                iconSize: 20,
+                onPressed: onClose,
+                icon: const Icon(Icons.arrow_back),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  owner,
+                  key: const ValueKey('entry-owner'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (separateTools) ...[
+            heading,
+            if (tools.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(children: tools),
+              ),
+          ] else
+            Row(
+              children: [
+                Expanded(child: heading),
+                ...tools,
+              ],
+            ),
+        ],
+      );
+    },
+  );
+}
 
 int entryDraftCount(
   NotebookController c, {
@@ -33,9 +143,12 @@ int entryDraftCount(
     c.dialogDrafts
         .where(
           (d) =>
+              d.id != exclude &&
+                  kind == null &&
+                  isReturnDraft(d, pupilId: pupilId) ||
               d.type == 'bulk' &&
-              d.data['kind'] == (kind?.name ?? 'orga') &&
-              (d.data['recipients'] as List).contains(pupilId),
+                  d.data['kind'] == (kind?.name ?? 'orga') &&
+                  (d.data['recipients'] as List).contains(pupilId),
         )
         .length;
 
@@ -116,6 +229,24 @@ Future<void> showEntryDrafts(
                 Future<void> Function() discard,
               })
             >[
+              if (kind == null)
+                for (final d in c.dialogDrafts.where(
+                  (d) => d.id != exclude && isReturnDraft(d, pupilId: pupilId),
+                ))
+                  (
+                    id: 'return-${d.id}',
+                    preview: d.data['title'] as String? ?? '',
+                    time: d.updatedAtUtc,
+                    mode: 'Rücklauf',
+                    open: () => showClassroomEditor(
+                      ctx,
+                      c,
+                      ClassroomKind.returnList,
+                      draft: d,
+                    ),
+                    discard: () =>
+                        c.repository.discardDialogDraft(d.id, d.revision),
+                  ),
               for (final d in school)
                 (
                   id: 'school-${d.id}',
@@ -233,8 +364,9 @@ Future<void> showEntryDrafts(
 Future<void> showAssignedHomework(
   BuildContext context,
   NotebookController c,
-  String pupilId,
-) => showFlexDetail<void>(
+  String pupilId, {
+  bool onlyOpen = false,
+}) => showFlexDetail<void>(
   context: context,
   builder: (ctx) => AnimatedBuilder(
     animation: c,
@@ -272,8 +404,8 @@ Future<void> showAssignedHomework(
             const Text(
               'Hausübungen',
               style: TextStyle(
-                fontFamily: 'FlexSerif',
-                fontSize: 20,
+                fontFamily: 'FlexSans',
+                fontSize: 18,
                 height: 1.3,
               ),
             ),
@@ -287,6 +419,7 @@ Future<void> showAssignedHomework(
             controller: c,
             pupil: pupil,
             kind: SchoolKind.homework,
+            initiallyOpenOnly: onlyOpen,
           ),
         ),
       );

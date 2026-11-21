@@ -1,3 +1,5 @@
+import 'dictation.dart';
+import '../services/dictation.dart';
 import 'surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -69,12 +71,7 @@ class _TagTextFieldState extends State<TagTextField> {
           key: ValueKey('tag-frame-${widget.fieldKey}'),
           decoration: BoxDecoration(
             color: Theme.of(context).inputDecorationTheme.fillColor,
-            borderRadius: BorderRadius.circular(
-              Theme.of(
-                    context,
-                  ).extension<FlexSurfaces>()?.appearance?.fieldRadius ??
-                  14,
-            ),
+            borderRadius: BorderRadius.circular(FlexDesign.fieldRadius),
             border: Border.all(
               color: focus.hasFocus ? scheme.primary : scheme.outline,
             ),
@@ -151,6 +148,13 @@ class _TagTextFieldState extends State<TagTextField> {
                     maxLength: widget.maxLength,
                     decoration: InputDecoration(
                       hintText: widget.hint,
+                      suffixIcon: supportsDictation
+                          ? DictationButton(
+                              controller: controller,
+                              onChanged: widget.onChanged,
+                              maxLength: widget.maxLength,
+                            )
+                          : null,
                       counterText: '',
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,

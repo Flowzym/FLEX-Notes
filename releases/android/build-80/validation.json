@@ -1,0 +1,17 @@
+{
+  "build": "0.30.0+80",
+  "sourceCommit": "9f17cf4468ede5bc07dd816af8b1192243ad7897",
+  "browserViewports": [
+    320,
+    390
+  ],
+  "browserViews": 10,
+  "browserErrors": [],
+  "analyze": "No issues found",
+  "format": "246 files, no changes",
+  "deviceInstallTested": false,
+  "flutterTests": {
+    "passed": 650,
+    "failed": 0
+  }
+}

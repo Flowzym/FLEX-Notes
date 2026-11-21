@@ -3,8 +3,7 @@ import '../domain/school.dart';
 
 enum FlexSymbol { goal, social, work, homework, orga }
 
-/// Filled, scalable silhouettes following the five-symbol user reference.
-/// Drawn directly by Flutter; no embedded HTML or raster-image dependency.
+/// Consistent, quiet outlines rather than heavy silhouettes.
 class FlexIcon extends StatelessWidget {
   const FlexIcon(
     this.symbol, {
@@ -35,7 +34,7 @@ class FlexIcon extends StatelessWidget {
           symbol,
           color ??
               IconTheme.of(context).color ??
-              Theme.of(context).colorScheme.onSurface,
+              Theme.of(context).colorScheme.primary,
         ),
       ),
     ),
@@ -50,123 +49,101 @@ class _Glyph extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.scale(size.width / 24, size.height / 24);
-    final paint = Paint()
+    final pen = Paint()
       ..color = color
-      ..style = PaintingStyle.fill;
-    final path = Path()..fillType = PathFillType.evenOdd;
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.45
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path();
     switch (symbol) {
       case FlexSymbol.goal:
-        path.addOval(const Rect.fromLTWH(1, 3, 20, 20));
-        path.addOval(const Rect.fromLTWH(4, 6, 14, 14));
-        path.addOval(const Rect.fromLTWH(7, 9, 8, 8));
-        path.addOval(const Rect.fromLTWH(9.5, 11.5, 3, 3));
-        canvas.drawPath(path, paint);
-        canvas.drawPath(
-          Path()
-            ..moveTo(10, 14)
-            ..lineTo(12, 15)
-            ..lineTo(20, 7)
-            ..lineTo(22, 7)
-            ..lineTo(24, 4)
-            ..lineTo(21, 4)
-            ..lineTo(20, 1)
-            ..lineTo(17, 4)
-            ..lineTo(17, 6)
-            ..close(),
-          paint,
+        canvas.drawArc(
+          const Rect.fromLTWH(2, 4, 18, 18),
+          -.5,
+          5.75,
+          false,
+          pen,
         );
+        canvas.drawArc(
+          const Rect.fromLTWH(6, 8, 10, 10),
+          -.4,
+          5.65,
+          false,
+          pen,
+        );
+        path
+          ..moveTo(11, 13)
+          ..lineTo(20, 4)
+          ..lineTo(20, 1)
+          ..lineTo(17, 4)
+          ..lineTo(17, 7)
+          ..moveTo(17, 7)
+          ..lineTo(20, 7)
+          ..lineTo(23, 4)
+          ..lineTo(20, 4);
       case FlexSymbol.social:
-        path.addOval(const Rect.fromLTWH(3, 2, 9, 9));
-        path.addOval(const Rect.fromLTWH(14, 5, 7, 7));
-        path.addRRect(
-          RRect.fromRectAndCorners(
-            const Rect.fromLTWH(1, 12, 14, 10),
-            topLeft: const Radius.circular(7),
-            topRight: const Radius.circular(7),
-            bottomLeft: const Radius.circular(2),
-            bottomRight: const Radius.circular(2),
-          ),
-        );
-        path.addRRect(
-          RRect.fromRectAndCorners(
-            const Rect.fromLTWH(16, 13, 7, 9),
-            topRight: const Radius.circular(7),
-            bottomRight: const Radius.circular(2),
-          ),
-        );
-        canvas.drawPath(path, paint);
+        canvas.drawCircle(const Offset(8, 7), 3.2, pen);
+        canvas.drawCircle(const Offset(17.5, 8), 2.5, pen);
+        path
+          ..moveTo(1.5, 21)
+          ..lineTo(1.5, 18)
+          ..cubicTo(1.5, 11, 14.5, 11, 14.5, 18)
+          ..lineTo(14.5, 21)
+          ..moveTo(16, 13)
+          ..cubicTo(20, 12, 22.5, 15, 22.5, 18)
+          ..lineTo(22.5, 21);
       case FlexSymbol.work:
-        path.moveTo(5, 1);
-        path.lineTo(15, 1);
-        path.lineTo(21, 7);
-        path.lineTo(21, 20);
-        path.quadraticBezierTo(21, 23, 18, 23);
-        path.lineTo(5, 23);
-        path.quadraticBezierTo(2, 23, 2, 20);
-        path.lineTo(2, 4);
-        path.quadraticBezierTo(2, 1, 5, 1);
-        path.close();
-        for (final y in [9.0, 13.0, 17.0]) {
-          path.addRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(6, y, y == 17 ? 8 : 11, 1.8),
-              const Radius.circular(.9),
-            ),
-          );
-        }
-        canvas.drawPath(path, paint);
+        path
+          ..moveTo(5, 2)
+          ..lineTo(14, 2)
+          ..lineTo(20, 8)
+          ..lineTo(20, 22)
+          ..lineTo(5, 22)
+          ..close()
+          ..moveTo(14, 2)
+          ..lineTo(14, 8)
+          ..lineTo(20, 8)
+          ..moveTo(8, 12)
+          ..lineTo(16, 12)
+          ..moveTo(8, 15.5)
+          ..lineTo(16, 15.5)
+          ..moveTo(8, 19)
+          ..lineTo(13, 19);
       case FlexSymbol.homework:
-        path.moveTo(1, 11);
-        path.lineTo(11, 1);
-        path.quadraticBezierTo(12, 0, 13, 1);
-        path.lineTo(23, 11);
-        path.quadraticBezierTo(24, 13, 21, 13);
-        path.lineTo(21, 21);
-        path.quadraticBezierTo(21, 23, 19, 23);
-        path.lineTo(15, 23);
-        path.lineTo(15, 16);
-        path.quadraticBezierTo(15, 15, 14, 15);
-        path.lineTo(10, 15);
-        path.quadraticBezierTo(9, 15, 9, 16);
-        path.lineTo(9, 23);
-        path.lineTo(5, 23);
-        path.quadraticBezierTo(3, 23, 3, 21);
-        path.lineTo(3, 13);
-        path.quadraticBezierTo(0, 13, 1, 11);
-        path.close();
-        canvas.drawPath(path, paint);
+        path
+          ..moveTo(1, 8)
+          ..lineTo(12, 3)
+          ..lineTo(23, 8)
+          ..lineTo(12, 13)
+          ..close()
+          ..moveTo(5, 10)
+          ..lineTo(5, 17)
+          ..quadraticBezierTo(12, 22, 19, 17)
+          ..lineTo(19, 10)
+          ..moveTo(23, 8)
+          ..lineTo(23, 17);
       case FlexSymbol.orga:
-        path.addRRect(
+        canvas.drawRRect(
           RRect.fromRectAndRadius(
-            const Rect.fromLTWH(1, 4, 22, 19),
-            const Radius.circular(3),
+            const Rect.fromLTWH(3, 5, 18, 17),
+            const Radius.circular(1.5),
           ),
+          pen,
         );
-        path.addRect(const Rect.fromLTWH(2, 8, 20, 1));
-        for (final y in [12.0, 17.0]) {
-          for (final x in [5.0, 10.5, 16.0]) {
-            path.addRRect(
-              RRect.fromRectAndRadius(
-                Rect.fromLTWH(x, y, 3, 3),
-                const Radius.circular(.7),
-              ),
-            );
-          }
-        }
-        canvas.drawPath(path, paint);
-        for (final x in [6.0, 17.0]) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(x, 1, 2, 5),
-              const Radius.circular(1),
-            ),
-            paint,
-          );
-        }
+        path
+          ..moveTo(7, 2)
+          ..lineTo(7, 8)
+          ..moveTo(17, 2)
+          ..lineTo(17, 8)
+          ..moveTo(3, 11)
+          ..lineTo(21, 11);
     }
+    canvas.drawPath(path, pen);
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_Glyph old) => old.symbol != symbol || old.color != color;
+  bool shouldRepaint(covariant _Glyph old) =>
+      old.symbol != symbol || old.color != color;
 }

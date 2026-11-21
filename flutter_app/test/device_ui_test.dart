@@ -69,7 +69,7 @@ void main() {
       await tester.tap(find.text('Import'));
       await tester.pumpAndSettle();
       expect(find.text('Termindatum'), findsOneWidget);
-      expect(find.text('Terminzeit'), findsOneWidget);
+      expect(find.text('Terminbeginn'), findsOneWidget);
       await tester.ensureVisible(find.text('Sicherung: 11.11.2026'));
       await tester.tap(find.text('Sicherung: 11.11.2026'));
       await tester.tap(find.text('Auswahl zusammenführen'));

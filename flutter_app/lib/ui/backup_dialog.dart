@@ -1,4 +1,8 @@
 import 'merge_dialog.dart';
+import '../services/secret_store.dart';
+import '../services/automatic_backup.dart';
+import '../platform/backup_transfer.dart';
+import '../services/stream_backup.dart';
 import 'compact_switch.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -8,12 +12,12 @@ import 'package:flutter/material.dart';
 import '../application/notebook_controller.dart';
 import '../domain/models.dart';
 import '../security/backup_codec.dart';
+import '../services/complete_backup.dart';
+import '../services/material_files.dart';
+import '../services/material_storage.dart';
 import 'common.dart';
-import 'draft_buffer.dart';
 import 'flex_modal.dart';
 
-Future<String> _encrypt(Map<String, String> args) =>
-    BackupCodec.encrypt(args['text']!, args['password']!);
 Future<String> _decrypt(Map<String, String> args) =>
     BackupCodec.decrypt(args['text']!, args['password']!);
 
@@ -83,9 +87,15 @@ Future<String?> backupPassword(
 }
 
 class BackupDialog extends StatefulWidget {
-  const BackupDialog({super.key, required this.controller, this.export = true});
+  const BackupDialog({
+    super.key,
+    required this.controller,
+    this.export = true,
+    this.files = const LocalMaterialFiles(),
+  });
   final NotebookController controller;
   final bool export;
+  final MaterialFiles files;
   @override
   State<BackupDialog> createState() => _BackupDialogState();
 }
@@ -93,6 +103,43 @@ class BackupDialog extends StatefulWidget {
 class _BackupDialogState extends State<BackupDialog> {
   bool encrypt = true, appearance = true, catalogs = true, busy = false;
   String? message;
+  static const _manualKey = 'flex.lastManualBackup';
+  late final inventory = CompleteBackup.inventory(
+    widget.controller.repository,
+    widget.files,
+  );
+  DateTime? lastSuccess;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.export) loadLastSuccess();
+  }
+
+  Future<void> loadLastSuccess() async {
+    try {
+      const store = DeviceSecretStore();
+      final manual = await store.read(_manualKey);
+      final raw = await store.read(AutomaticBackup.key);
+      final automatic = raw == null
+          ? null
+          : (jsonDecode(raw) as Map)['lastSuccess'] as String?;
+      final dates =
+          [manual, automatic]
+              .whereType<String>()
+              .map(DateTime.tryParse)
+              .whereType<DateTime>()
+              .toList()
+            ..sort();
+      if (mounted &&
+          dates.isNotEmpty &&
+          (lastSuccess == null || dates.last.isAfter(lastSuccess!))) {
+        setState(() => lastSuccess = dates.last.toLocal());
+      }
+    } catch (_) {
+      /* The archive can still be exported if status storage is unavailable. */
+    }
+  }
+
   Future<void> action(Future<void> Function() work) async {
     if (busy) return;
     setState(() {
@@ -108,28 +155,42 @@ class _BackupDialogState extends State<BackupDialog> {
   }
 
   Future<void> exportFile() async {
-    final data = Json.from(
-      jsonDecode(await widget.controller.repository.exportBackup()) as Map,
+    final password = encrypt
+        ? await backupPassword(context, opening: false)
+        : null;
+    if (encrypt && password == null) return;
+    final saved = await saveBackupStream(
+      'FLEX-Sicherung-${dateOnly(DateTime.now())}.flexbackup',
+      StreamBackup.capture(
+        widget.controller.repository,
+        widget.files,
+        password: password,
+        appearance: appearance,
+        progress: (count, bytes) {
+          if (mounted) {
+            setState(
+              () => message =
+                  '$count Dateien · ${(bytes / 1000000).toStringAsFixed(1)} MB verarbeitet',
+            );
+          }
+        },
+      ),
     );
-    if (!appearance) {
-      (data['tables']['preferences'] as List).removeWhere(
-        (row) => row['key'] == 'appearance',
+    if (saved) {
+      lastSuccess = DateTime.now();
+      try {
+        await const DeviceSecretStore().write(
+          _manualKey,
+          lastSuccess!.toUtc().toIso8601String(),
+        );
+      } catch (_) {}
+    }
+    if (mounted) {
+      setState(
+        () => message = saved
+            ? 'Sicherungsdatei wurde ausgegeben.'
+            : 'Speichern abgebrochen.',
       );
-    }
-    var text = jsonEncode(data);
-    if (encrypt) {
-      if (!mounted) return;
-      final password = await backupPassword(context, opening: false);
-      if (password == null) return;
-      text = await compute(_encrypt, {'text': text, 'password': password});
-    }
-    final saved = await saveTextFile(
-      'FLEX-Sicherung-${dateOnly(DateTime.now())}.json',
-      text,
-      mime: 'application/json',
-    );
-    if (saved && mounted) {
-      setState(() => message = 'Sicherungsdatei wurde ausgegeben.');
     }
   }
 
@@ -137,36 +198,36 @@ class _BackupDialogState extends State<BackupDialog> {
     final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(
-          label: 'JSON',
-          extensions: ['json'],
-          mimeTypes: ['application/json'],
+          label: 'FLEX-Sicherung',
+          extensions: ['flexbackup', 'json'],
+          mimeTypes: ['application/octet-stream', 'application/json'],
         ),
       ],
     );
     if (file == null) return;
-    if (await file.length() > BackupCodec.maxEnvelopeBytes) {
-      throw const DomainError('Die Datei überschreitet 28 MB.');
+    final length = await file.length();
+    if (length > StreamBackup.maxArchiveBytes) {
+      throw const DomainError(
+        'Die Datei überschreitet die maximale Archivgröße.',
+      );
     }
-    final bytes = BytesBuilder();
-    await for (final part in file.openRead()) {
-      if (bytes.length + part.length > BackupCodec.maxEnvelopeBytes) {
-        throw const DomainError('Die Datei überschreitet 28 MB.');
+    Stream<List<int>> source() async* {
+      // Web XFile.openRead() otherwise materializes the entire Blob at once.
+      for (var offset = 0; offset < length; offset += 262144) {
+        yield* file.openRead(offset, (offset + 262144).clamp(0, length));
       }
-      bytes.add(part);
     }
-    var text = utf8.decode(bytes.takeBytes());
-    if (BackupCodec.isEncrypted(text)) {
-      if (!mounted) return;
-      final password = await backupPassword(context, opening: true);
-      if (password == null) return;
-      text = await compute(_decrypt, {'text': text, 'password': password});
-    }
+
     if (!mounted) return;
-    await showImportReview(
+    await showBackupSourceReview(
       context,
       widget.controller,
-      text,
+      source,
       catalogs: catalogs,
+      files: widget.files,
+      progress: (count, bytes) {
+        if (mounted) setState(() => message = '$count Dateien geprüft');
+      },
     );
   }
 
@@ -176,7 +237,7 @@ class _BackupDialogState extends State<BackupDialog> {
     child: FlexModal(
       maxWidth: 430,
       title: Text(
-        widget.export ? 'Sicherung exportieren' : 'Sicherung importieren',
+        widget.export ? 'Vollständige Sicherung' : 'Sicherung wiederherstellen',
       ),
       onClose: busy ? null : () => Navigator.pop(context),
       content: Column(
@@ -184,6 +245,24 @@ class _BackupDialogState extends State<BackupDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.export) ...[
+            FutureBuilder(
+              future: inventory,
+              builder: (context, snapshot) {
+                final v = snapshot.data;
+                return Text(
+                  v == null
+                      ? snapshot.hasError
+                            ? 'Größe konnte nicht ermittelt werden.'
+                            : 'Dateigröße wird ermittelt …'
+                      : '${v.count} lokale Dateien · ca. ${(v.bytes / 1000000).toStringAsFixed(1)} MB${v.unknown == 0 ? '' : ' · ${v.unknown} ohne Größenangabe'}',
+                );
+              },
+            ),
+            Text(
+              lastSuccess == null
+                  ? 'Letzte Sicherung: kein Zeitpunkt gespeichert'
+                  : 'Letzte Sicherung: ${displayDate(dateOnly(lastSuccess!))} · ${TimeOfDay.fromDateTime(lastSuccess!).format(context)}',
+            ),
             CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Sicherung mit Passwort verschlüsseln'),
@@ -192,7 +271,7 @@ class _BackupDialogState extends State<BackupDialog> {
             ),
             CompactSwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Darstellung und Hintergrundbild mitsichern'),
+              title: const Text('Anzeigeeinstellungen mitsichern'),
               value: appearance,
               onChanged: busy ? null : (v) => setState(() => appearance = v),
             ),
@@ -205,7 +284,7 @@ class _BackupDialogState extends State<BackupDialog> {
             ),
           if (widget.export)
             const Text(
-              'Die Sicherung enthält Unterrichtsdaten und Entwürfe einschließlich Papierkorb und früherer Fassungen. Bewahre sie geschützt auf.',
+              'Eine Datei für Einträge, Entwürfe, lokale Materialien, Scans und Dokumentversionen. OneDrive-Links bleiben verknüpft; nur heruntergeladene Dateien sind offline enthalten.',
             ),
           if (message != null)
             Padding(
@@ -228,17 +307,96 @@ class _BackupDialogState extends State<BackupDialog> {
   );
 }
 
+Future<void> showBackupSourceReview(
+  BuildContext context,
+  NotebookController controller,
+  BackupSource source, {
+  String? password,
+  bool catalogs = true,
+  MaterialFiles files = const LocalMaterialFiles(),
+  BackupProgress? progress,
+}) async {
+  if (await StreamBackup.recognizes(source)) {
+    if (password == null && await StreamBackup.requiresPassword(source)) {
+      if (!context.mounted) return;
+      password = await backupPassword(context, opening: true);
+      if (password == null) return;
+    }
+    final restore = await StreamBackup.prepare(
+      source,
+      files,
+      password: password,
+      progress: progress,
+    );
+    if (context.mounted) {
+      await showImportReview(
+        context,
+        controller,
+        restore.notebook,
+        catalogs: catalogs,
+        files: files,
+        complete: restore,
+      );
+    }
+    return;
+  }
+  // Historical JSON containers remain supported. Only their legacy decoder
+  // requires a full in-memory buffer; new exports use the streaming path.
+  final bytes = BytesBuilder();
+  await for (final part in source()) {
+    if (bytes.length + part.length > BackupCodec.maxCompleteEnvelopeBytes) {
+      throw const DomainError('Die Datei überschreitet 220 MB.');
+    }
+    bytes.add(part);
+  }
+  var text = utf8.decode(bytes.takeBytes());
+  if (BackupCodec.isEncrypted(text)) {
+    if (password == null) {
+      if (!context.mounted) return;
+      password = await backupPassword(context, opening: true);
+      if (password == null) return;
+    }
+    text = await compute(_decrypt, {'text': text, 'password': password});
+  }
+  if (context.mounted) {
+    await showImportReview(
+      context,
+      controller,
+      text,
+      catalogs: catalogs,
+      files: files,
+    );
+  }
+}
+
 Future<void> showImportReview(
   BuildContext context,
   NotebookController c,
   String text, {
   bool catalogs = true,
+  MaterialFiles files = const LocalMaterialFiles(),
+  CompleteRestore? complete,
 }) async {
   Json value;
   try {
     value = Json.from(jsonDecode(text) as Map);
   } catch (_) {
     throw const DomainError('Keine gültige FLEX-Sicherung.');
+  }
+  if (value['format'] == CompleteBackup.format) {
+    final bundle = await CompleteBackup.decode(value);
+    final restore = await bundle.prepare(files);
+    if (context.mounted) {
+      await showImportReview(
+        context,
+        c,
+        restore.notebook,
+        catalogs: catalogs,
+        files: files,
+        complete: restore,
+      );
+    }
+    return;
   }
   final legacy =
       value['format'] != 'FLEX-Flutter-Rebuild-Backup' &&
@@ -252,7 +410,7 @@ Future<void> showImportReview(
         title: const Text('Sicherung prüfen'),
         onClose: () => Navigator.pop(ctx),
         content: Text(
-          '${report.pupils} Schüler, ${report.entries} Einträge. Diese HTML-Sicherung kann unverändert zur Migration vorgemerkt werden. Sie wird noch nicht als aktiver Datenstand übernommen.',
+          '${report.pupils} Schüler, ${report.entries} Einträge. Diese HTML-Sicherung kann unverändert zur Migration vorgemerkt werden. Ihre Einträge werden noch nicht in FLEX übernommen.',
         ),
         actions: [
           FilledButton(
@@ -281,7 +439,13 @@ Future<void> showImportReview(
       c.stagedLegacyCount > 0 ||
       c.classroom.isNotEmpty) {
     if (context.mounted) {
-      await showMergeReview(context, c, text, catalogs: catalogs);
+      await showMergeReview(
+        context,
+        c,
+        text,
+        catalogs: catalogs,
+        complete: complete,
+      );
     }
     return;
   }
@@ -305,16 +469,20 @@ Future<void> showImportReview(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (complete != null)
+                Text(
+                  '${complete.fileCount} Dateien geprüft · werden gemeinsam wiederhergestellt',
+                ),
               Text(
                 '${(tables['pupils'] as List).length} Schüler · ${(tables['school_records'] as List? ?? []).length + (tables['orga'] as List? ?? []).length} Einträge',
               ),
               const Text(
-                'Diese Fassung stellt geprüfte Sicherungen in einem leeren Arbeitsbereich wieder her. Ein vorhandener Datenstand wird nicht überschrieben.',
+                'Geprüfte Sicherungen können in einem leeren Arbeitsbereich wiederhergestellt werden. Vorhandene Daten bleiben erhalten.',
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
-                  'Diese Sicherung als neuen Datenstand verwenden',
+                  'Die Daten aus dieser Sicherung wiederherstellen',
                 ),
                 value: confirmed,
                 onChanged: busy
@@ -344,7 +512,7 @@ Future<void> showImportReview(
                       if (!confirmed) {
                         update(
                           () => error =
-                              'Bitte die Wiederherstellung als neuen Datenstand bestätigen.',
+                              'Bitte die Wiederherstellung dieser Sicherung bestätigen.',
                         );
                         return;
                       }
@@ -383,7 +551,13 @@ Future<void> showImportReview(
                             ),
                           );
                         }
-                        await c.repository.restoreBackup(jsonEncode(copy));
+                        Future<void> apply() =>
+                            c.repository.restoreBackup(jsonEncode(copy));
+                        if (complete == null) {
+                          await apply();
+                        } else {
+                          await complete.commit(apply);
+                        }
                         await c.reload();
                         if (ctx.mounted) Navigator.pop(ctx);
                       } catch (e) {

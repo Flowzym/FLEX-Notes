@@ -1,5 +1,6 @@
 import 'homework_record_view.dart';
 import 'detail_flow.dart';
+import 'submission_collection.dart';
 import 'document_attachments.dart';
 import '../domain/document_scanner.dart';
 
@@ -66,7 +67,11 @@ class _ReturnListsState extends State<ReturnLists> {
                         ? d.deleted
                         : !d.deleted &&
                               (filter == 'all' ||
-                                  (filter == 'closed') == d.flag('closed'))),
+                                  (filter == 'open' && !d.returnFinished ||
+                                      filter == 'complete' &&
+                                          d.returnState ==
+                                              ReturnListState.complete ||
+                                      filter == 'closed' && d.flag('closed')))),
               )
               .toList()
             ..sort(
@@ -75,7 +80,7 @@ class _ReturnListsState extends State<ReturnLists> {
                   .compareTo(b.text('dueDate', '9999')),
             );
       return ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
         children: [
           CollapsibleSearch(
             controller: search,
@@ -101,6 +106,7 @@ class _ReturnListsState extends State<ReturnLists> {
             children: [
               for (final f in const {
                 'open': 'Offen',
+                'complete': 'Vollständig',
                 'closed': 'Abgeschlossen',
                 'all': 'Alle',
                 'trash': 'Papierkorb',
@@ -117,21 +123,53 @@ class _ReturnListsState extends State<ReturnLists> {
               'Keine passenden Rückläufe.',
               icon: Icons.fact_check_outlined,
             ),
-          for (final d in docs)
-            FlexCard(
-              child: ListTile(
-                title: Text(d.title),
-                subtitle: Text(
-                  '${displayDate(d.text('dueDate').isEmpty ? null : d.text('dueDate'))} · ${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => showReturnDetail(ctx, c, d.id),
-              ),
-            ),
+          for (final d in docs) ReturnListCard(controller: c, document: d),
         ],
       );
     },
   );
+}
+
+class ReturnListCard extends StatelessWidget {
+  const ReturnListCard({
+    super.key,
+    required this.controller,
+    required this.document,
+    this.pupilId,
+  });
+  final NotebookController controller;
+  final ClassroomDocument document;
+  final String? pupilId;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = document;
+    final participant = pupilId == null ? null : d.returnParticipant(pupilId!);
+    return FlexCard(
+      key: ValueKey('return-entry-${d.id}'),
+      child: ListTile(
+        leading: const Icon(Icons.fact_check_outlined),
+        title: Text(d.title),
+        subtitle: Text(
+          [
+            'Rücklauf · ${d.flag('closed')
+                ? 'Abgeschlossen'
+                : participant != null
+                ? returnStatuses[d.text('type')]![participant['status']]
+                : d.returnFinished
+                ? d.returnState.label
+                : '${d.rows('participants').where(returnPending).length} von ${d.rows('participants').length} offen'}',
+            if (participant != null &&
+                (participant['note'] as String).isNotEmpty)
+              participant['note'] as String,
+            if (d.text('dueDate').isNotEmpty) displayDate(d.text('dueDate')),
+          ].join('\n'),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showReturnDetail(context, controller, d.id),
+      ),
+    );
+  }
 }
 
 Future<void> showReturnDetail(
@@ -345,8 +383,8 @@ class _ReturnDetailState extends State<ReturnDetail> {
     ].join('\n');
     final bytes = await briefPdf(
       text: text,
-      regularFont: await rootBundle.load('assets/fonts/Selawik-Regular.ttf'),
-      boldFont: await rootBundle.load('assets/fonts/Selawik-Bold.ttf'),
+      regularFont: await rootBundle.load('assets/fonts/Inter-Regular.ttf'),
+      boldFont: await rootBundle.load('assets/fonts/Inter-Bold.ttf'),
     );
     await saveBytesFile(
       'FLEX-Ruecklauf-${dateOnly(DateTime.now())}.pdf',
@@ -375,7 +413,20 @@ class _ReturnDetailState extends State<ReturnDetail> {
     final statusLabel = returnStatuses[d.text('type')]![row['status']]!;
     final title = InkWell(
       key: ValueKey('return-pupil-${row['pupilId']}'),
-      onTap: () => editRow(d, row),
+      onLongPress: busy
+          ? null
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
+      onTap: busy
+          ? null
+          : selected.isEmpty
+          ? () => editRow(d, row)
+          : () => setState(() {
+              final id = row['pupilId'] as String;
+              if (!selected.add(id)) selected.remove(id);
+            }),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -506,6 +557,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
                 ),
           )
           .toList();
+      selected.retainAll(
+        visible.map((row) => row['pupilId'] as String).toSet(),
+      );
       return FlexModal(
         maxWidth: 950,
         title: Text(d.title),
@@ -521,6 +575,15 @@ class _ReturnDetailState extends State<ReturnDetail> {
               '${rows.where(returnPending).length} offen · ${rows.where((r) => r['status'] == 'exempt').length} ausgenommen',
             ),
             if (d.text('note').isNotEmpty) Text(d.text('note')),
+            if (!d.deleted)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: busy ? null : () => collectReturn(ctx, c, d),
+                  icon: const Icon(Icons.move_to_inbox_outlined),
+                  label: const Text('Einsammeln'),
+                ),
+              ),
             if (d.text('type') == 'payment')
               Text(
                 'Eingegangen: ${(rows.fold(0, (n, r) => n + (r['paid'] as int)) / 100).toStringAsFixed(2)} € · Soll: ${(rows.where((r) => r['status'] != 'exempt').length * d.number('amountDue') / 100).toStringAsFixed(2)} €',
@@ -601,7 +664,9 @@ class _ReturnDetailState extends State<ReturnDetail> {
             ),
             if (selected.isNotEmpty) ...[
               Text(
-                'Für ${selected.length} ausgewählte Schüler',
+                selected.length == 1
+                    ? 'Für den ausgewählten Schüler'
+                    : 'Für ${selected.length} ausgewählte Schüler',
                 style: Theme.of(ctx).textTheme.titleSmall,
               ),
               Wrap(

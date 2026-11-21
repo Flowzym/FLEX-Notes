@@ -23,7 +23,16 @@ Object? _content(Object? value) {
   if (value is Map) {
     final map = <String, Object?>{};
     final isDocumentLink =
-        {'orga', 'school', 'classroom', 'lesson'}.contains(value['kind']) &&
+        {
+          'orga',
+          'school',
+          'orgaDraft',
+          'schoolDraft',
+          'bulkDraft',
+          'classroomDraft',
+          'classroom',
+          'lesson',
+        }.contains(value['kind']) &&
         value.keys.every(
           (key) => {'kind', 'id', 'date', 'taskId'}.contains(key),
         );

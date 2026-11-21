@@ -158,7 +158,7 @@ void main() {
         c.appearance.patch({
           'materialGrid': true,
           'materialSort': 'format',
-          'pupilCompact': true,
+          'textScale': 1.2,
         }),
       );
       final backup = await repo.exportBackup();
@@ -167,7 +167,7 @@ void main() {
       await next.reload();
       expect(next.appearance.materialGrid, isTrue);
       expect(next.appearance.materialSort, 'format');
-      expect(next.appearance.pupilCompact, isTrue);
+      expect(next.appearance.textScale, 1.2);
       expect(next.pupils.single.name, 'Alex');
       final other = classroomMemory();
       await other.initialize();
